@@ -188,6 +188,24 @@ export function locationForPlace(
   );
 }
 
+/**
+ * The Setting with its location's look, as a Cast's home is added to a room of it (cast/places.ts
+ * `withCastPlace`): "at the counter by the window, at Corner café: green tiled counter, brass
+ * espresso machine". No words of its own: "Corner café: …". No look: the Setting as it is.
+ */
+export function withLocation(
+  setting: string | null | undefined,
+  location: Pick<LocationRecord, 'name' | 'look'>
+): string {
+  const words = setting?.trim() ?? '';
+  const look = location.look.trim();
+  if (!look) return words || location.name;
+  if (!words) return `${location.name}: ${look}`;
+  const head = `at ${location.name}:`;
+  if (words.includes(head)) return words;
+  return `${words.replace(/[.\s]+$/, '')}, ${head} ${look}`;
+}
+
 /** Server pull (studio-extras). */
 export function replaceLocations(entries: unknown): void {
   if (!Array.isArray(entries)) return;

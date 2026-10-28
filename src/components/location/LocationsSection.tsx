@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SelectInput, TextArea, TextInput } from '@/components/ui/Field';
@@ -9,12 +9,11 @@ import {
   LOCATION_LOOK_MAX,
   LOCATION_NAME_MAX,
   deleteLocation,
-  loadLocations,
   newLocationId,
   saveLocation,
-  subscribeLocations,
   type LocationRecord,
 } from '@/lib/location/records';
+import { useLocations } from './useLocations';
 
 type Draft = Partial<Pick<LocationRecord, 'name' | 'look' | 'setting'>> & { aliases?: string };
 
@@ -29,13 +28,7 @@ export default function LocationsSection({
   /** Every Cast's Scenes: what a delete would leave without a place. */
   scenes: ReadonlyArray<{ name: string; slot?: { locationId?: string } | null }>;
 }) {
-  // Read after mount (browser storage): the server render has none.
-  const [locations, setLocations] = useState<LocationRecord[]>([]);
-  useEffect(() => {
-    const read = () => setLocations(loadLocations());
-    read();
-    return subscribeLocations(read);
-  }, []);
+  const locations = useLocations();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [newName, setNewName] = useState('');
   const [refused, setRefused] = useState<{ id: string; usedBy: string[] } | null>(null);

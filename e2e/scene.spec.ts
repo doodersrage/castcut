@@ -485,6 +485,42 @@ test('a location is made, described, kept after a reload, and not deleted while 
   await expect(rows.first().getByTestId('location-name')).toHaveValue('Corner café');
 });
 
+// M8 T2: a Scene set in a location draws that place's look — its words in the queued prompt.
+test('a Scene set in a location queues its take with the location\'s look', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-empty')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('scene-new').click();
+  await expect(page.getByTestId('scene-shot')).toBeVisible();
+
+  const section = page.getByTestId('locations-section');
+  await section.getByTestId('location-new-name').fill('Corner café');
+  await section.getByTestId('location-add').click();
+  const cafe = section.locator('[data-testid^="location-loc-"]').first();
+  await cafe.getByTestId('location-look').fill('green tiled counter, brass espresso machine');
+  await cafe.getByTestId('location-look').blur();
+
+  // Picked with no words yet: the Setting starts as its name.
+  const picker = page.getByTestId('day-slot-location-record');
+  await picker.selectOption({ label: 'Corner café' });
+  await expect(page.getByTestId('day-slot-location')).toHaveValue('Corner café');
+  await page.getByTestId('day-slot-location').fill('at the counter by the window');
+  await page.getByTestId('day-slot-beat').fill('orders a coffee from the barista');
+  await expect(picker).not.toHaveValue('');
+
+  await page.getByTestId('scene-queue-take').click();
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(promptOf(queued[0]!)).toContain(
+    'at the counter by the window, at Corner café: green tiled counter, brass espresso machine'
+  );
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

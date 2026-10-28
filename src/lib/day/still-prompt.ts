@@ -10,6 +10,7 @@
  */
 
 import { withCastPlace } from '../cast/places';
+import { withLocation, type LocationRecord } from '../location/records';
 import { castRelationSentence } from '../cast/relationships';
 import { withEatingUtensil } from '../wardrobe/eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day/clothed-lead';
@@ -801,6 +802,8 @@ export type DayStillSlotState = {
   allowCompanions: boolean;
   dayWeather?: Parameters<typeof withDayWeather>[1];
   lockedLocation?: string;
+  /** Location records (location/records.ts): a slot set in one draws its look (M8 T2). */
+  locations?: readonly LocationRecord[];
   notes?: string;
   model: string;
   realismMode?: Parameters<typeof buildDaySlotPrompt>[0]['realismMode'];
@@ -946,8 +949,17 @@ export function buildDaySlotPromptForStill(
   // adult recipes pick and write their own rooms (live 2026-10-09: the place never reached an
   // Intimate prompt), and they are short on purpose. Written for a woman like the rest of the
   // brief — a man lead's prompt is swapped whole.
+  // A slot set in a location record (M8 T2) draws that place's look instead — the same room in
+  // every shot set there.
   const setting = resolveRoleplaySetting(beatSlot.location, state.lockedLocation);
-  const placed = isDayAdultMood(dayMood) ? setting : withCastPlace(setting, state.character);
+  const location = beatSlot.locationId
+    ? state.locations?.find(entry => entry.id === beatSlot.locationId)
+    : undefined;
+  const placed = isDayAdultMood(dayMood)
+    ? setting
+    : location
+      ? withLocation(setting, location)
+      : withCastPlace(setting, state.character);
   const placedSlot = placed && placed !== setting ? { ...beatSlot, location: placed } : beatSlot;
   return buildDaySlotPrompt({
     // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).

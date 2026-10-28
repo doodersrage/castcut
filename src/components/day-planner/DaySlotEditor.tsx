@@ -23,6 +23,7 @@ import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import type { CharacterRecord } from '@/lib/character/os';
+import type { LocationRecord } from '@/lib/location/records';
 import type { ClothingSummaryThumb } from '@/lib/wardrobe/clothing-summary';
 import {
   daySlotProgressState,
@@ -74,6 +75,11 @@ export type DaySlotEditorProps = {
   groupOptions?: DayPartnerOption[];
   /** The Clothing sheet's title (default: "Clothing · <slot label>"). */
   clothingTitle?: string;
+  /**
+   * Location records the shot can be set in (M8 T2); unset = no picker (Day, whose slots a
+   * location's delete guard does not count).
+   */
+  locations?: readonly LocationRecord[];
 };
 
 /**
@@ -110,6 +116,7 @@ export default function DaySlotEditor({
   compact = false,
   groupOptions = [],
   clothingTitle,
+  locations,
 }: DaySlotEditorProps) {
   const [clothingOpen, setClothingOpen] = useState(false);
   const outfitRef = useRef<HTMLDivElement>(null);
@@ -201,6 +208,39 @@ export default function DaySlotEditor({
               onChange={event => updateSlot(slot.id, { location: event.target.value })}
             />
           </label>
+          {locations ? (
+            <label className="space-y-1.5">
+              <FieldLabel>Location</FieldLabel>
+              <SelectInput
+                data-testid="day-slot-location-record"
+                value={slot.locationId ?? ''}
+                title="A place the film goes back to (Locations): every shot set there draws the same room"
+                onChange={event => {
+                  const picked = locations.find(entry => entry.id === event.target.value);
+                  updateSlot(
+                    slot.id,
+                    picked
+                      ? {
+                          locationId: picked.id,
+                          // No words yet: the place's name is a start.
+                          ...(slot.location?.trim() ? {} : { location: picked.name }),
+                        }
+                      : { locationId: undefined }
+                  );
+                }}
+              >
+                <option value="">None — the Setting&apos;s words only</option>
+                {slot.locationId && !locations.some(entry => entry.id === slot.locationId) ? (
+                  <option value={slot.locationId}>A location no longer here</option>
+                ) : null}
+                {locations.map(entry => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name}
+                  </option>
+                ))}
+              </SelectInput>
+            </label>
+          ) : null}
           <label className="space-y-1.5">
             <FieldLabel>
               Beat

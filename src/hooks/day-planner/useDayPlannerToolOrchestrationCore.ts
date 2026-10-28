@@ -1,5 +1,6 @@
 'use client';
 
+import { loadLocations } from '@/lib/location/records';
 import { useKeeperStandIn } from '@/hooks/fitting-room/useKeeperStandIn';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import {
@@ -967,6 +968,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           allowCompanions: toolSettings.allowCompanions === true,
           dayWeather: toolSettings.dayWeather,
           lockedLocation: shared.lockedLocation,
+          locations: loadLocations(),
           notes: toolSettings.notes,
           model: shared.model,
           realismMode: shared.renderRealismMode,
@@ -2568,6 +2570,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           (roomLedEngine && !partnerFace && /\bSCENE: /.test(finalized));
         const placePhoto =
           !adultStill &&
+          // Set in a location record (M8 T2): its own place, never a room of her home.
+          !queueTarget.locationId?.trim() &&
           !queueTarget.thirdCastId?.trim() &&
           // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so).
           (!vacationFaceBreak || Boolean(partnerFace)) &&

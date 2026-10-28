@@ -2,6 +2,7 @@
 
 import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
 import LocationsSection from '@/components/location/LocationsSection';
+import { useLocations } from '@/components/location/useLocations';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
@@ -105,6 +106,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   } = page;
   const { renderOffline, queueBlocked, quality, mediaBusy, engineControls } = views;
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const locations = useLocations();
   const advancedId = useId();
   const [sendSlotId, setSendSlotId] = useState<DaySlotId | ''>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -392,6 +394,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                   onKeepNewTake={() => vm.dropPreviousTake(slot.id)}
                   onPickTwoTake={keep => vm.pickTwoTake(slot.id, keep)}
                   groupOptions={partnerOptions.filter(option => option.id !== partnerCharacterId)}
+                  locations={locations}
                 />
               </div>
             </ToolSection>

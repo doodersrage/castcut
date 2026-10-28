@@ -1934,6 +1934,15 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - A script place resolves to a location on import and reimport (the place map gains it).
 - Acceptance: one location picked for two Scenes, both prompts carry its words (and photo); a
   reimport keeps the mapping; unit tests on the prompt and the map.
+- Status 2026-10-28 (first half, the Scene and the prompt): the Scene editor's **Location** picker
+  (`DaySlotEditor`, Scene only — Day slots aren't counted by the delete guard) sets the shot's
+  `locationId`; with no words yet the Setting starts as the place's name. The still prompt
+  (`buildDaySlotPromptForStill`, `withLocation`) adds the place's look to the Setting — "at the
+  counter, at Corner café: green tiled counter, …" — instead of her home's design, and a room
+  photo of her home is not attached to a shot set elsewhere. Adult moods leave the place out, as
+  they do for home and work. Unit tests (two Scenes in one place; a kitchen at someone else's
+  flat; a record that is gone) and an e2e (picked, queued, the look in the prompt). The photo
+  path waits for T3 (no location has a picture yet); the script map is the second half.
 
 **T3 — A location's picture.** · S + _GPU_
 - "Make its picture": one render of the empty place from its words (no people), kept as the

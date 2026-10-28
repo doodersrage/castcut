@@ -150,6 +150,68 @@ describe('a beat the player typed for a man lead', () => {
   });
 });
 
+describe('a Scene set in a location record (M8 T2)', () => {
+  it('draws the location\'s look in every shot set there, never her home\'s', async () => {
+    const { buildDaySlotPromptForStill } = await import('./still-prompt');
+    const { resolveDayQueueIdentityPlate } = await import('./plate');
+    const plate = { filename: 'cast-plate-mara.png', source: 'cast' as const };
+    const character = { id: 'char-mara', name: 'Mara', version: 1, updatedAt: 1 };
+    const locations = [
+      {
+        id: 'loc-cafe',
+        name: 'Corner café',
+        setting: 'INT' as const,
+        look: 'green tiled counter, brass espresso machine, chalkboard menu',
+        aliases: [],
+        createdAt: 1,
+      },
+      {
+        id: 'loc-flat',
+        name: "Lena's flat",
+        setting: 'INT' as const,
+        look: 'yellow kitchen cabinets, a checkered floor',
+        aliases: [],
+        createdAt: 1,
+      },
+    ];
+    const build = (slot: Record<string, unknown>) =>
+      buildDaySlotPromptForStill(
+        { id: 'morning', label: 'morning', ...slot } as never,
+        {
+          plate,
+          queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate: plate } as never),
+          character,
+          hasPlate: true,
+          leadNoun: 'woman',
+          dayMood: 'everyday',
+          intimateEnabled: false,
+          allowCompanions: false,
+          locations,
+          model: 'qwen-image-edit-2511-lightning-8',
+          defaultPoseGuideStyle: 'openpose',
+        } as never
+      );
+    const look = /at Corner café: green tiled counter, brass espresso machine, chalkboard menu/;
+    for (const [location, beat] of [
+      ['at the counter', 'orders a coffee'],
+      ['by the window table', 'reads a paper'],
+    ]) {
+      assert.match(build({ location, sceneHints: beat, locationId: 'loc-cafe' }), look);
+    }
+    // A kitchen at someone else's place: that place, not her own apartment's design.
+    const flat = build({ location: 'kitchen', sceneHints: 'makes tea', locationId: 'loc-flat' });
+    assert.match(flat, /at Lena's flat: yellow kitchen cabinets/);
+    assert.doesNotMatch(flat, /in her apartment:/);
+    // Without a record, her kitchen is her home's, as before.
+    assert.match(build({ location: 'kitchen', sceneHints: 'makes tea' }), /in her apartment:/);
+    // A record that is gone: the words as they are.
+    assert.doesNotMatch(
+      build({ location: 'at the counter', sceneHints: 'orders', locationId: 'loc-gone' }),
+      /Corner café/
+    );
+  });
+});
+
 describe('pubic hair (a Cast trait)', () => {
   it('is said on a nude Raunchy still and never on a clothed one', async () => {
     const { buildDaySlotPromptForStill } = await import('./still-prompt');

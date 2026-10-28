@@ -12,6 +12,7 @@ import {
   placeKey,
   replaceLocations,
   saveLocation,
+  withLocation,
 } from './records';
 
 function installWindow() {
@@ -126,6 +127,21 @@ describe('location records (M8 T1)', () => {
     assert.deepEqual(deleteLocation('loc-cafe', scenes.slice(2)), { deleted: true, usedBy: [] });
     assert.deepEqual(loadLocations(), []);
     assert.deepEqual(deleteLocation('loc-cafe', []), { deleted: false, usedBy: [] });
+  });
+
+  it('adds its look to a Setting, once; its name leads when there are no words (M8 T2)', () => {
+    const location = { name: 'Corner café', look: 'green tiled counter, brass espresso machine' };
+    assert.equal(
+      withLocation('at the counter by the window.', location),
+      'at the counter by the window, at Corner café: green tiled counter, brass espresso machine'
+    );
+    assert.equal(
+      withLocation('', location),
+      'Corner café: green tiled counter, brass espresso machine'
+    );
+    const once = withLocation('at the counter', location);
+    assert.equal(withLocation(once, location), once);
+    assert.equal(withLocation('at the counter', { ...location, look: ' ' }), 'at the counter');
   });
 
   it('reads a synced copy, dropping what is not a location', () => {
