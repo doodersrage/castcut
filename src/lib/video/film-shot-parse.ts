@@ -8,6 +8,7 @@ import type { FilmPlaylistShot } from '../media/kind';
 import { normalizeCutFraming } from './cut-move';
 import { cleanLowerThird, normalizeOverlayCorner } from './cut-overlay';
 import { normalizeCutTransition } from './cut-timeline';
+import { cleanSubtitleCues } from './cut-subtitle-track';
 
 const TEXT_MAX = 300;
 
@@ -77,6 +78,9 @@ export function parseFilmPlaylistShots(raw: unknown): FilmPlaylistShot[] {
         : {}),
       ...(subtitleFromSec !== undefined ? { subtitleFromSec } : {}),
       ...(subtitleToSec !== undefined ? { subtitleToSec } : {}),
+      ...(cleanSubtitleCues(record.subtitleCues).length
+        ? { subtitleCues: cleanSubtitleCues(record.subtitleCues) }
+        : {}),
       ...(typeof record.volume === 'number' && Number.isFinite(record.volume)
         ? { volume: Math.min(2, Math.max(0, record.volume)) }
         : {}),

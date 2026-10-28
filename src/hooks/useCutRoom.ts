@@ -7,6 +7,7 @@
  * card — and keeps the film on the Cast.
  */
 
+import type { ShotSubtitleCue } from '@/lib/media/kind';
 import { planReel, type ReelLength } from '@/lib/video/cut-reel';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
 import { loadSettingsCache } from '@/lib/settings/cache';
@@ -1576,7 +1577,10 @@ export function useCutRoom() {
    * an empty set goes back to the line or narration.
    */
   const setShotSubtitle = useCallback(
-    (key: string, set: { text?: string; fromSec?: number; toSec?: number }) => {
+    (
+      key: string,
+      set: { text?: string; fromSec?: number; toSec?: number; cues?: ShotSubtitleCue[] }
+    ) => {
       const now = stateRef.current.options;
       commitEdit({
         options: { ...now, shotEdits: withShotSubtitle(now.shotEdits, key, set) },
@@ -1586,7 +1590,15 @@ export function useCutRoom() {
   );
   /** An imported .srt's subtitles on their shots, as one step (undoable). */
   const applySrtSubtitles = useCallback(
-    (matches: ReadonlyArray<{ key: string; text: string; fromSec: number; toSec: number }>) => {
+    (
+      matches: ReadonlyArray<{
+        key: string;
+        text: string;
+        fromSec: number;
+        toSec: number;
+        cues?: ShotSubtitleCue[];
+      }>
+    ) => {
       const now = stateRef.current.options;
       const shotEdits = matches.reduce(
         (edits, match) =>
@@ -1594,6 +1606,8 @@ export function useCutRoom() {
             text: match.text,
             fromSec: match.fromSec,
             toSec: match.toSec,
+            // Each of the file's cues kept at its time (M10 T3).
+            ...(match.cues?.length ? { cues: match.cues } : {}),
           }),
         now.shotEdits
       );

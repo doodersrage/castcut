@@ -19,6 +19,8 @@ import {
   type FilmPlaylistShot,
 } from './character-film';
 import { TITLE_CARD_SEC } from '../video/polish';
+import { cleanSubtitleCues } from '../video/cut-subtitle-track';
+import type { ShotSubtitleCue } from '../media/kind';
 import { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip/trim';
 
 /** A shot with a stable key (Day slot id, Story beat id@at) the edits refer to. */
@@ -68,6 +70,8 @@ export type CutShotEdit = {
   /** Where in the shot (seconds) the subtitle shows, as you set it; unset: where it's said. */
   subtitleFromSec?: number;
   subtitleToSec?: number;
+  /** The subtitle as timed cues (M10 T3, cut-subtitle-track.ts); over text and window when set. */
+  subtitleCues?: ShotSubtitleCue[];
   /**
    * The media this shot was cut with (R5, cut-pins.ts): set when the shot is edited, a version is
    * saved or the film is rendered. While set, the shot plays it — a new take in its source is
@@ -210,14 +214,16 @@ export function captionFromBeat(text: string | null | undefined, max = CAPTION_M
 export function withShotSubtitle(
   edits: CutShotEdits | undefined,
   key: string,
-  set: { text?: string; fromSec?: number; toSec?: number }
+  set: { text?: string; fromSec?: number; toSec?: number; cues?: ShotSubtitleCue[] }
 ): CutShotEdits {
   const {
     subtitle: _text,
     subtitleFromSec: _from,
     subtitleToSec: _to,
+    subtitleCues: _cues,
     ...rest
   } = edits?.shots?.[key] ?? {};
+  const cues = cleanSubtitleCues(set.cues);
   return {
     ...edits,
     shots: {
@@ -227,6 +233,7 @@ export function withShotSubtitle(
         ...(set.text !== undefined ? { subtitle: set.text } : {}),
         ...(set.fromSec !== undefined ? { subtitleFromSec: set.fromSec } : {}),
         ...(set.toSec !== undefined ? { subtitleToSec: set.toSec } : {}),
+        ...(cues.length ? { subtitleCues: cues } : {}),
       },
     },
   };
@@ -289,6 +296,9 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           : {}),
         ...(subtitleSec(edit?.subtitleToSec) !== undefined
           ? { subtitleToSec: subtitleSec(edit?.subtitleToSec) }
+          : {}),
+        ...(cleanSubtitleCues(edit?.subtitleCues).length
+          ? { subtitleCues: cleanSubtitleCues(edit?.subtitleCues) }
           : {}),
         ...(cleanLowerThird(edit?.lowerThird)
           ? {

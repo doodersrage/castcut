@@ -1235,8 +1235,9 @@ export async function encodeFilmPlaylistServer(
           const speed = speeds[i] ?? 1;
           // Where it shows when set in Cut (M4 F5), else where it is said.
           const set = shots[i]!;
-          const span =
-            set.subtitleFromSec !== undefined || set.subtitleToSec !== undefined
+          const span = set.subtitleCues?.length
+            ? null
+            : set.subtitleFromSec !== undefined || set.subtitleToSec !== undefined
               ? {
                   from: set.subtitleFromSec ?? 0.2,
                   to: set.subtitleToSec ?? hold - 0.2,
@@ -1248,10 +1249,17 @@ export async function encodeFilmPlaylistServer(
                       found => (found ? { from: found.from / speed, to: found.to / speed } : null)
                     )
                   : null;
-          const cues = subtitleCues(line, {
-            from: Math.min(hold, span?.from ?? 0.2),
-            to: Math.min(hold, span?.to ?? hold - 0.2),
-          });
+          // Your own timed cues (M10 T3), kept inside the shot; else the line split over its span.
+          const cues = set.subtitleCues?.length
+            ? set.subtitleCues.flatMap(cue => {
+                const from = Math.min(hold, cue.fromSec);
+                const to = Math.min(hold, cue.toSec);
+                return to > from ? [{ text: cue.text, from, to }] : [];
+              })
+            : subtitleCues(line, {
+                from: Math.min(hold, span?.from ?? 0.2),
+                to: Math.min(hold, span?.to ?? hold - 0.2),
+              });
           const out: Array<{ file: string; from: number; to: number }> = [];
           for (const [k, cue] of cues.entries()) {
             const file = await writeRawText(

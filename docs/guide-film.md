@@ -117,9 +117,18 @@ narration, set **from** / **to** (seconds into the shot) to say when it shows, *
 back, **None** for no subtitle. Overlaps, subtitles under 0.8 s or over 7 s, more than two rows and
 characters a subtitle file can't carry are flagged.
 
+**Split into cues** turns a long subtitle into timed cues — its sentences, else two halves at the
+middle word — each with its own text and **from** / **to**. **Split** divides a cue again,
+**Join** makes it one with the next, **One subtitle** goes back to a single subtitle over the
+shot. Without cues, a subtitle is still shown phrase by phrase across its window; cues set exactly
+when each phrase shows.
+
+The monitor shows the subtitle at the playhead (**CC** hides it), and the encode burns in the
+same cues at the same times.
+
 **Export .srt** downloads them any time. **Import .srt…** reads a subtitle file, places each
-line on the shot it falls in, and shows the result before **Use these subtitles** (one Ctrl+Z
-takes it back).
+line on the shot it falls in (a shot with several keeps each as a timed cue), and shows the result
+before **Use these subtitles** (one Ctrl+Z takes it back).
 
 ## Missing media
 

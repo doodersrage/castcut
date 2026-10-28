@@ -3,7 +3,11 @@
  * or text you set, shown from / to where you set it — as film-time cues; an .srt read back in
  * and matched to the shots by time; and the checks a subtitle file should pass (overlaps, cues
  * too short or too long to read, more than two rows, characters an .srt can't carry). Pure.
+ *
+ * A shot's subtitle can also be your own timed cues (M10 T3): split from its text, each with its
+ * text and times, over the text and window — the monitor, the .srt and the burn-in all use them.
  */
+import type { ShotSubtitleCue } from '../media/kind';
 import { SUBTITLE_MAX_CHARS, subtitleCues, type SubtitleCue } from './cut-subtitles';
 
 export type SubtitleShotSpan = { key: string; startSec: number; durSec: number };
@@ -13,7 +17,101 @@ export type ShotSubtitle = SubtitleShotSpan & {
   /** Shot seconds; unset: from just after the shot starts to just before it ends. */
   fromSec?: number;
   toSec?: number;
+  /** Timed cues you set (shot seconds): used instead of the text and window. */
+  cues?: readonly ShotSubtitleCue[];
 };
+
+export const SUBTITLE_CUES_MAX = 40;
+
+/** Stored cues, tidied: text, times in order inside 0–600 s, in time order; junk dropped. */
+export function cleanSubtitleCues(raw: unknown): ShotSubtitleCue[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ShotSubtitleCue[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const cue = entry as Record<string, unknown>;
+    const text =
+      typeof cue.text === 'string'
+        ? cue.text
+            .replace(/[ \t]+/g, ' ')
+            .trim()
+            .slice(0, 300)
+        : '';
+    const from =
+      typeof cue.fromSec === 'number' && Number.isFinite(cue.fromSec) ? cue.fromSec : NaN;
+    const to = typeof cue.toSec === 'number' && Number.isFinite(cue.toSec) ? cue.toSec : NaN;
+    if (!text || !(from >= 0) || !(to > from)) continue;
+    out.push({ text, fromSec: round(Math.min(600, from)), toSec: round(Math.min(600, to)) });
+  }
+  return out.sort((a, b) => a.fromSec - b.fromSec).slice(0, SUBTITLE_CUES_MAX);
+}
+
+/**
+ * A shot's subtitle as timed cues to edit (M10 T3): the phrases it shows now (sentences first),
+ * at their times; one phrase is split at the word nearest its middle. Fewer than two: none.
+ */
+export function splitShotSubtitle(shot: ShotSubtitle): ShotSubtitleCue[] {
+  const text = shot.text.trim();
+  if (!text) return [];
+  const window = shotSubtitleWindow(shot);
+  let phrases = subtitleCues(text, window);
+  if (phrases.length === 1) {
+    const words = text.split(' ');
+    if (words.length < 2) return [];
+    const middle = text.length / 2;
+    let at = 1;
+    let best = Infinity;
+    let length = 0;
+    words.forEach((word, i) => {
+      length += word.length + 1;
+      if (i < words.length - 1 && Math.abs(length - middle) < best) {
+        best = Math.abs(length - middle);
+        at = i + 1;
+      }
+    });
+    const first = words.slice(0, at).join(' ');
+    const share = (window.to - window.from) * (first.length / text.length);
+    phrases = [
+      { text: first, from: window.from, to: round(window.from + share) },
+      { text: words.slice(at).join(' '), from: round(window.from + share), to: window.to },
+    ];
+  }
+  return phrases.map(cue => ({ text: cue.text, fromSec: cue.from, toSec: cue.to }));
+}
+
+/** One cue split in two at its sentence break (else its middle word), its time shared by length. */
+export function splitSubtitleCue(
+  cues: readonly ShotSubtitleCue[],
+  index: number
+): ShotSubtitleCue[] {
+  const cue = cues[index];
+  if (!cue) return [...cues];
+  const parts = splitShotSubtitle({
+    key: '',
+    startSec: 0,
+    durSec: cue.toSec,
+    text: cue.text,
+    fromSec: cue.fromSec,
+    toSec: cue.toSec,
+  });
+  if (parts.length < 2) return [...cues];
+  return [...cues.slice(0, index), ...parts, ...cues.slice(index + 1)];
+}
+
+/** A cue joined to the next: one cue, their text, from the first's start to the second's end. */
+export function joinSubtitleCues(
+  cues: readonly ShotSubtitleCue[],
+  index: number
+): ShotSubtitleCue[] {
+  const cue = cues[index];
+  const next = cues[index + 1];
+  if (!cue || !next) return [...cues];
+  return [
+    ...cues.slice(0, index),
+    { text: `${cue.text} ${next.text}`, fromSec: cue.fromSec, toSec: next.toSec },
+    ...cues.slice(index + 2),
+  ];
+}
 
 /** Below this a cue can't be read; above it, it overstays. */
 export const SUBTITLE_MIN_SEC = 0.8;
@@ -40,6 +138,23 @@ export function filmSubtitleCues(
   return shots.flatMap(shot => {
     const text = shot.text.trim();
     if (!text) return [];
+    if (shot.cues?.length) {
+      // Your cues, kept inside the shot.
+      return shot.cues.flatMap(cue => {
+        const from = Math.min(shot.durSec, cue.fromSec);
+        const to = Math.min(shot.durSec, cue.toSec);
+        return to > from
+          ? [
+              {
+                key: shot.key,
+                text: cue.text,
+                from: round(shot.startSec + from),
+                to: round(shot.startSec + to),
+              },
+            ]
+          : [];
+      });
+    }
     return subtitleCues(text, shotSubtitleWindow(shot)).map(cue => ({
       key: shot.key,
       text: cue.text,
@@ -88,7 +203,14 @@ export function parseSrt(raw: string): { cues: SubtitleCue[]; unread: number } {
   return { cues, unread };
 }
 
-export type SrtShotMatch = { key: string; text: string; fromSec: number; toSec: number };
+export type SrtShotMatch = {
+  key: string;
+  text: string;
+  fromSec: number;
+  toSec: number;
+  /** The file's cues on the shot when it has more than one (shot seconds, M10 T3). */
+  cues?: ShotSubtitleCue[];
+};
 
 /**
  * An .srt's cues on the cut's shots: each cue goes to the shot its middle falls in; a shot's
@@ -121,6 +243,17 @@ export function matchSrtToShots(
       text: mine.map(cue => cue.text.replace(/\s*\n\s*/g, ' ')).join(' '),
       fromSec: round(Math.max(0, mine[0]!.from - shot.startSec)),
       toSec: round(Math.min(shot.durSec, mine[mine.length - 1]!.to - shot.startSec)),
+      ...(mine.length > 1
+        ? {
+            cues: cleanSubtitleCues(
+              mine.map(cue => ({
+                text: cue.text,
+                fromSec: Math.max(0, cue.from - shot.startSec),
+                toSec: Math.min(shot.durSec, cue.to - shot.startSec),
+              }))
+            ),
+          }
+        : {}),
     });
   }
   return { matches, outside };

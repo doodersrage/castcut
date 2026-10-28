@@ -2204,6 +2204,14 @@ and the phone has no Script or run.
 - A shot's subtitle split into timed cues (at a sentence break, editable times), shown in the
   monitor, exported to .srt and burned in by the server encode at their times.
 - Acceptance: unit tests (split, the .srt, the burn-in filter); e2e: split, exported.
+- Status 2026-10-28: done. A shot's subtitle can be timed cues (`subtitleCues` on the shot edit
+  and the playlist shot; `cut-subtitle-track.ts` `splitShotSubtitle`, `splitSubtitleCue`,
+  `joinSubtitleCues`, `cleanSubtitleCues`): **Split into cues** in Subtitles, each cue's text and
+  times, Split / Join / One subtitle. The cues replace the auto-split in the .srt, the checks, the
+  server burn-in (`server-encode.ts`, no speech detection then) and an imported .srt keeps each
+  cue. The monitor now shows the subtitle at the playhead (**CC**). Checked with a real encode: a
+  4 s still with cues at 0.5–1.5 and 2–3.5 s shows the first at 1.0 s, nothing at 1.8 s, the
+  second at 2.7 s; its .srt has both. The browser encode still burns in none (M6 D5).
 
 **T4 — A sound-effects track.** · M
 - A track of placed sounds: a sound (from the Gallery or a file) at a time, with its level and

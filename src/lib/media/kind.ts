@@ -115,7 +115,12 @@ export type FilmPlaylistShot = {
   /** Where in the shot (seconds) it shows, as set; unset: where it's said. */
   subtitleFromSec?: number;
   subtitleToSec?: number;
+  /** Its subtitle as timed cues you set (M10 T3), shot seconds; over text and window when set. */
+  subtitleCues?: ShotSubtitleCue[];
 };
+
+/** One timed subtitle cue inside a shot (shot seconds). */
+export type ShotSubtitleCue = { text: string; fromSec: number; toSec: number };
 
 /** The subtitle a shot carries: its spoken line, else its narration ('' = none). */
 export function filmShotSubtitle(

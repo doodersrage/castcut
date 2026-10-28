@@ -627,6 +627,58 @@ test('subtitles: typed, set to none, imported from an .srt and exported', async 
   expect(text).toContain('A walk in the park.');
 });
 
+// M10 T3: a shot's subtitle split into timed cues — edited, on the monitor at their times, out in
+// the .srt — and back to one.
+test('subtitles: split into timed cues, shown on the monitor, exported, and back to one', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const summary = page.getByTestId('cut-subtitles-summary');
+  await expect(summary).toContainText('No subtitles yet', { timeout: 30_000 });
+  const text = page.getByTestId('cut-subtitle-text-day:morning');
+  await text.fill('Coffee first. You always say that.');
+  await text.blur();
+  await page.getByTestId('cut-subtitle-split-day:morning').click();
+  const second = page.getByTestId('cut-subtitle-cue-day:morning-1');
+  await expect(page.getByTestId('cut-subtitle-cue-day:morning-0')).toBeVisible();
+  await expect(page.getByTestId('cut-subtitle-cue-text-day:morning-1')).toHaveValue(
+    'You always say that.'
+  );
+  await expect(summary).toContainText('2 subtitles on 1 shot');
+
+  // The first cue's times, set by hand.
+  await page.getByTestId('cut-subtitle-cue-from-day:morning-0').fill('0.5');
+  await page.getByTestId('cut-subtitle-cue-from-day:morning-0').blur();
+  await page.getByTestId('cut-subtitle-cue-to-day:morning-0').fill('1.5');
+  await page.getByTestId('cut-subtitle-cue-to-day:morning-0').blur();
+  await expect(page.getByTestId('cut-subtitle-cue-from-day:morning-0')).toHaveValue('0.5');
+
+  // On the monitor at its time; CC hides it.
+  await page.getByTestId('cut-preview-scrub').fill('1');
+  await expect(page.getByTestId('cut-preview-subtitle')).toHaveText('Coffee first.');
+  await page.getByTestId('cut-preview-cc').click();
+  await expect(page.getByTestId('cut-preview-subtitle')).toHaveCount(0);
+  await page.getByTestId('cut-preview-cc').click();
+
+  const download = page.waitForEvent('download');
+  await page.getByTestId('cut-subtitles-export').click();
+  const srt = readFileSync((await (await download).path())!, 'utf8');
+  expect(srt).toContain('00:00:00,500 --> 00:00:01,500\nCoffee first.');
+  expect(srt).toContain('You always say that.');
+
+  // Split again, then join; One subtitle goes back to one over the shot.
+  await page.getByTestId('cut-subtitle-cue-split-day:morning-1').click();
+  await expect(page.getByTestId('cut-subtitle-cue-day:morning-2')).toBeVisible();
+  await page.getByTestId('cut-subtitle-cue-join-day:morning-1').click();
+  await expect(page.getByTestId('cut-subtitle-cue-day:morning-2')).toHaveCount(0);
+  await expect(second).toBeVisible();
+  await page.getByTestId('cut-subtitle-cues-one-day:morning').click();
+  await expect(text).toHaveValue('Coffee first. You always say that.');
+  await expect(page.getByTestId('cut-subtitle-cue-day:morning-0')).toHaveCount(0);
+});
+
 // M4 F6: a profile sets the film up for where it goes; the preflight says what's checked now.
 test('export: a profile sets the shape, and the preflight flags too little disk space', async ({
   page,

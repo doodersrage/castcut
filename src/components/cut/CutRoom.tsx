@@ -101,10 +101,12 @@ export default function CutRoom() {
           sourceText: filmShotSubtitle({ spoken: shot.spoken, narrationText: shot.narrationText }),
           ...(edit?.subtitleFromSec !== undefined ? { fromSec: edit.subtitleFromSec } : {}),
           ...(edit?.subtitleToSec !== undefined ? { toSec: edit.subtitleToSec } : {}),
+          ...(edit?.subtitleCues?.length ? { cues: edit.subtitleCues } : {}),
           set: {
             ...(edit?.subtitle !== undefined ? { text: edit.subtitle } : {}),
             ...(edit?.subtitleFromSec !== undefined ? { fromSec: edit.subtitleFromSec } : {}),
             ...(edit?.subtitleToSec !== undefined ? { toSec: edit.subtitleToSec } : {}),
+            ...(edit?.subtitleCues?.length ? { cues: edit.subtitleCues } : {}),
           },
         },
       ];
@@ -551,6 +553,10 @@ export default function CutRoom() {
                   onSeek={preview.seek}
                   onPrev={() => step(-1)}
                   onNext={() => step(1)}
+                  subtitle={
+                    preflightCues.find(cue => preview.time >= cue.from && preview.time < cue.to)
+                      ?.text ?? null
+                  }
                   extra={
                     <>
                       <Button
