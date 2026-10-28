@@ -5,6 +5,7 @@ import { studioHistoryUrl } from '@/lib/prompt/lineage';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
 import { useOpenInComfy } from '@/components/OpenInComfyButton';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 export function GalleryExportSection({
   entry,
@@ -47,7 +48,7 @@ export function GalleryExportSection({
       ) : null}
       {entry.status === 'completed' &&
       (entry.engineId ?? 'comfyui') === 'comfyui' &&
-      (entry.promptId?.trim() || entry.hasStoredWorkflow || entry.workflowJson?.trim()) ? (
+      (entry.promptId?.trim() || hasLocalStoredWorkflow(entry)) ? (
         <GalleryMenuButton
           label={openingInComfy ? 'Opening in ComfyUI…' : 'Open in ComfyUI'}
           data-testid="gallery-open-in-comfy"

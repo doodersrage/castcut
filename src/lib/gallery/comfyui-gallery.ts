@@ -74,7 +74,7 @@ export {
   MAX_GALLERY_ENTRIES,
 } from './comfyui-gallery-storage-meta';
 export { initAppDb, initGalleryStore, isAppDbReady, isGalleryStoreReady } from '../app/db-init';
-export { getGalleryCache, getGalleryEntryById } from './db-store';
+export { getGalleryCache, getGalleryEntryById, hasLocalStoredWorkflow } from './db-store';
 
 export type ComfyGalleryFilter = {
   status?: ComfyGalleryJobStatus | 'all';

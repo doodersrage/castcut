@@ -17,6 +17,7 @@ import {
 } from '@/lib/gallery/stack-restore';
 import { applyGalleryFaceToSession, galleryEntryCanLockFace } from '@/lib/gallery/identity-lock';
 import { galleryToolHrefForEntry } from '@/lib/gallery/tool-href';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 type Props = {
   entry: ComfyGalleryEntry;
@@ -82,7 +83,7 @@ export function GalleryCardHoverActions({
                     Inpaint
                   </Button>
                 ) : null}
-                {entry.hasStoredWorkflow || entry.workflowJson ? (
+                {hasLocalStoredWorkflow(entry) ? (
                   <Button
                     onClick={() => onRequeue(false, undefined, { exactGraph: true })}
                     variant="overlay"

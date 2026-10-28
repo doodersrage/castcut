@@ -192,6 +192,25 @@ export function getGalleryEntryById(id: string): ComfyGalleryEntry | undefined {
   return allEntries.find(entry => entry.id === id);
 }
 
+let graphIdsOf: ComfyGalleryEntry[] | null = null;
+let graphIds = new Set<string>();
+
+/**
+ * Whether this browser holds the entry's exact graph (M6 D19). `hasStoredWorkflow` travels with
+ * the entry through sync, but the graph itself doesn't — the projection pushed leaves it out — so
+ * another browser, the phone or a restore from the server has the flag without the graph.
+ */
+export function hasLocalStoredWorkflow(
+  entry: Pick<ComfyGalleryEntry, 'id' | 'workflowJson'>
+): boolean {
+  if (entry.workflowJson?.trim()) return true;
+  if (graphIdsOf !== allEntries) {
+    graphIds = new Set(allEntries.filter(full => full.workflowJson?.trim()).map(full => full.id));
+    graphIdsOf = allEntries;
+  }
+  return graphIds.has(entry.id);
+}
+
 function assignLegacyGalleryEntriesToActiveUser(): void {
   if (!isUserScoped()) {
     return;

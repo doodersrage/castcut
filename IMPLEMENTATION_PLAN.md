@@ -1713,6 +1713,20 @@ depends on it.
 
 - Done: V1–V4, V6, V7, V8 (but its desktop smoke test), D1–D17; released as **v3.0.1**.
 - Two stale e2e tests fixed after CI was found red since D1 (`10ac9705`, `3f7ea131`).
+- The audit's checks that need no one, run 2026-10-27/28: axe clean on the production pages
+  (empty and populated); a Cut package restores on a second server with its own data; exact replay
+  on the real engine is pixel-identical (and so, today, is the rebuild without the graph); shot
+  matching tightens real takes' colour ~25 % and the preview matches the render. Found and fixed:
+  - D18: a gone original was served as its 512 px thumbnail (200), so Cut never listed it missing
+    and encoded or packaged the thumbnail. `variant=original` is now the original or a 404
+    (`readGalleryMediaVariant`).
+  - D19: the exact graph never syncs (the pushed list leaves it out) but its flag does, so other
+    browsers, the phone or a restore showed "Exact graph" and called a rebuild from the current
+    template an exact replay. The Gallery now asks whether this device has the graph
+    (`hasLocalStoredWorkflow`), and a replay says where its graph came from
+    (`replayOutcomeLabel`). Keeping the graph on the server is T4.
+  - D20: the FCPXML music under a trimmed first clip was anchored before the cut began; its offset
+    is now in the clip's own time (its `start`). To confirm in an editor with the NLE round trip.
 - Left, each needing the user:
   - the real Docker upgrade to v3.0.1 with `scripts/upgrade-check.mjs` before and after (V1);
   - the desktop smoke test from the v3.0.1 `.deb` (V8);

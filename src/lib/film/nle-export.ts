@@ -90,13 +90,15 @@ export function buildFcpxml(input: NleTimelineInput): string {
   const musicFrames = input.music ? Math.min(total, nleFrames(input.music.durationSec)) : 0;
   const spine = layout.map(({ shot, offset, frames }, index) => {
     const ref = `a${index + 1}`;
-    // The music rides under the whole cut, connected to the first shot (lane -1).
+    const start = shot.kind === 'clip' ? fcpTime(nleFrames(shot.sourceStartSec ?? 0)) : '0s';
+    // The music rides under the whole cut, connected to the first shot (lane -1). A connected
+    // clip's offset is in its parent's own time, which begins at the parent's `start` — a trimmed
+    // first clip's trim, not 0 (M6 D20: at 0 the music sat that far before the cut began).
     const music =
       index === 0 && input.music && musicFrames > 0
-        ? `\n          <asset-clip ref="${musicId}" lane="-1" offset="0s" name="Music" duration="${fcpTime(musicFrames)}"/>\n        `
+        ? `\n          <asset-clip ref="${musicId}" lane="-1" offset="${start}" name="Music" duration="${fcpTime(musicFrames)}"/>\n        `
         : '';
     if (shot.kind === 'clip') {
-      const start = fcpTime(nleFrames(shot.sourceStartSec ?? 0));
       return `        <asset-clip ref="${ref}" offset="${fcpTime(offset)}" name="${xmlText(shot.name)}" start="${start}" duration="${fcpTime(frames)}">${music}</asset-clip>`;
     }
     return `        <video ref="${ref}" offset="${fcpTime(offset)}" name="${xmlText(shot.name)}" start="0s" duration="${fcpTime(frames)}">${music}</video>`;

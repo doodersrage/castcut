@@ -12,6 +12,7 @@ import {
 } from '@/lib/gallery/comfyui-gallery';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import type { UseGalleryPanelActionsInput } from '@/hooks/gallery/gallery-panel-actions-types';
+import { replayOutcomeLabel } from '@/lib/gallery/provenance';
 
 const loadGalleryRequeue = () => import('@/lib/comfyui/requeue');
 
@@ -132,7 +133,7 @@ export function useGalleryCardActions({
             }
             const profileNote = qualityProfile ? `${qualityProfile} quality · ` : '';
             const message = [
-              'queued variation',
+              replayOutcomeLabel({ newSeed, qualityProfile, replayedFrom: result.replayedFrom }),
               profileNote,
               result.promptId ? `prompt_id ${result.promptId}` : null,
               result.comfyUrl,

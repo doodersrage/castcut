@@ -61,6 +61,7 @@ describe("gallery-db-store", async () => {
     clearGalleryDb,
     awaitFullGalleryHydration,
     withStoredWorkflows,
+    hasLocalStoredWorkflow,
   } = await import("./db-store");
 
   describe("projectGalleryEntryForList", () => {
@@ -155,6 +156,22 @@ describe("gallery-db-store", async () => {
       ]);
       assert.equal(kept?.workflowJson, graph);
       assert.equal(gone?.workflowJson, undefined);
+    });
+
+    it("hasLocalStoredWorkflow: the graph on this device, not the synced flag (D19)", () => {
+      setGalleryCache([
+        makeEntry({ id: "made-here", workflowJson: graph, hasStoredWorkflow: true }),
+        // Pulled from the server: the flag came, the graph didn't.
+        makeEntry({ id: "from-server", hasStoredWorkflow: true }),
+      ]);
+      const [madeHere, fromServer] = getGalleryCache();
+      assert.equal(madeHere?.hasStoredWorkflow, true);
+      assert.equal(hasLocalStoredWorkflow(madeHere!), true, "the projection, by its full entry");
+      assert.equal(fromServer?.hasStoredWorkflow, true);
+      assert.equal(hasLocalStoredWorkflow(fromServer!), false);
+      // A new list is read again.
+      setGalleryCache([makeEntry({ id: "from-server", workflowJson: graph, hasStoredWorkflow: true })]);
+      assert.equal(hasLocalStoredWorkflow({ id: "from-server" }), true);
     });
   });
 

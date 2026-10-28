@@ -11,6 +11,7 @@ import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery';
 import { loadCharacters } from '@/lib/character/os';
 import { partitionGalleryForArchivePurge } from '@/lib/gallery/protected-ids';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 export type UseGalleryPanelRecoveryOptions = {
   entries: ComfyGalleryEntry[];
@@ -112,7 +113,7 @@ export function useGalleryPanelRecovery({
         .then(({ requeueComfyJobs }) =>
           requeueComfyJobs(
             failed.map(entry => {
-              const canExact = Boolean(entry.hasStoredWorkflow || entry.workflowJson);
+              const canExact = hasLocalStoredWorkflow(entry);
               const exactGraph = mode === 'exact' && canExact;
               return {
                 prompt: entry.prompt,

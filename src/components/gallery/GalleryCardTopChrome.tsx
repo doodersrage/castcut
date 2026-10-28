@@ -5,6 +5,7 @@ import GalleryPlayChecksBadge from '@/components/gallery/GalleryPlayChecksBadge'
 import type { AestheticScoreResult } from '@/lib/vision/aesthetic-score';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/galleryCardStatus';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 type Props = {
   entry: ComfyGalleryEntry;
@@ -81,7 +82,7 @@ export function GalleryCardTopChrome({
               Note
             </span>
           ) : null}
-          {entry.hasStoredWorkflow || entry.workflowJson ? (
+          {hasLocalStoredWorkflow(entry) ? (
             <span
               className="ui-badge"
               data-size="xs"

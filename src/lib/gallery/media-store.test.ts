@@ -33,6 +33,7 @@ describe('gallery-media-store', async () => {
     persistGalleryOriginalFile,
     persistGalleryThumbFile,
     persistIdentityFile,
+    readGalleryMediaVariant,
     readGalleryOriginalFile,
     readGalleryThumbFile,
     readIdentityFile,
@@ -239,6 +240,27 @@ describe('gallery-media-store', async () => {
       fs.rmSync(metaPath);
       const read = readIdentityFile({ userId: 'user-4' });
       assert.equal(read?.contentType, 'application/octet-stream');
+    });
+
+    it('the original variant is the original or nothing — never the thumbnail (D18)', () => {
+      process.env.PROMPT_DATA_DIR = dataDir;
+      persistGalleryOriginalFile({
+        entryId: 'entry-gone',
+        buffer: Buffer.from('full-size'),
+        contentType: 'image/png',
+        filename: 'still.png',
+      });
+      persistGalleryThumbFile({ entryId: 'entry-gone', buffer: Buffer.from('thumb') });
+      const read = readGalleryMediaVariant({ entryId: 'entry-gone', variant: 'original' });
+      assert.equal(read?.buffer.toString(), 'full-size');
+      assert.equal(read?.contentType, 'image/png');
+
+      fs.rmSync(path.join(dataDir, 'gallery-media', '_global', 'entry-gone', 'original'));
+      assert.equal(readGalleryMediaVariant({ entryId: 'entry-gone', variant: 'original' }), null);
+      // The thumbnail is still there, and still served as one.
+      const thumb = readGalleryMediaVariant({ entryId: 'entry-gone', variant: 'thumb' });
+      assert.equal(thumb?.buffer.toString(), 'thumb');
+      assert.equal(thumb?.contentType, 'image/webp');
     });
   });
 });

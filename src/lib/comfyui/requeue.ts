@@ -181,6 +181,8 @@ export type RequeueComfyJobResult = {
   /** Max job parked until ComfyUI queue is idle. */
   held?: boolean;
   vramDowngraded?: boolean;
+  /** A replay (`requeueComfyJobFromEntry`, exact graph asked): where its graph came from. */
+  replayedFrom?: import('../gallery/provenance').ReplayGraphSource;
 };
 
 async function resolveEnhanceQualityProfile(input: {
@@ -1355,8 +1357,23 @@ export async function requeueComfyJobFromEntry(
       // Fall back to library/scaffold rebuild.
     }
   }
+  const replayedFrom =
+    options?.exactGraph === false || isVariation
+      ? undefined
+      : !workflowJson
+        ? ('rebuilt' as const)
+        : options?.workflowJson?.trim() ||
+            entry.workflowJson?.trim() ||
+            storedEntry?.workflowJson?.trim()
+          ? ('stored' as const)
+          : ('history' as const);
+  if (replayedFrom === 'rebuilt') {
+    options?.onStatus?.(
+      'The exact graph isn’t on this device or in ComfyUI’s history — rebuilding it from the current template.'
+    );
+  }
 
-  return requeueComfyJob({
+  const result = await requeueComfyJob({
     prompt: entry.prompt,
     negativePrompt: entry.negativePrompt,
     tool: entry.tool,
@@ -1377,6 +1394,7 @@ export async function requeueComfyJobFromEntry(
     derivedKind: isVariation ? 'variation' : undefined,
     onStatus: options?.onStatus,
   });
+  return replayedFrom ? { ...result, replayedFrom } : result;
 }
 
 /** Fetch Comfy history graph for an entry and persist it for later exact replay. */

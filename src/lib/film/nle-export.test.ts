@@ -57,6 +57,12 @@ describe('film-nle-export', () => {
     }
   });
 
+  it('anchors the music at a trimmed first clip’s start, in the clip’s own time (D20)', () => {
+    const xml = buildFcpxml({ ...timeline, shots: [shots[1]!, shots[0]!] });
+    assert.match(xml, /<asset-clip ref="a1" offset="0s" name="Walk &amp; talk" start="1200\/2400s"/);
+    assert.match(xml, /<asset-clip ref="a3" lane="-1" offset="1200\/2400s" name="Music"/);
+  });
+
   it('writes subtitles and an EDL in cut order', () => {
     assert.equal(
       buildSrt(shots),

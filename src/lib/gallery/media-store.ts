@@ -184,6 +184,22 @@ export function readGalleryThumbFile(input: {
   };
 }
 
+/**
+ * What `GET /api/gallery/media/[id]` serves. `original` is the original or nothing (M6 D18): it
+ * used to fall back to the 512 px thumbnail, served as the original with a 200 — so a gone
+ * original was never listed as missing, and Cut encoded and packaged the thumbnail.
+ */
+export function readGalleryMediaVariant(input: {
+  userId?: string | null;
+  entryId: string;
+  index?: number;
+  variant: 'original' | 'thumb';
+}): (DurableMediaFile & { filename?: string }) | null {
+  return input.variant === 'original'
+    ? readGalleryOriginalFile(input)
+    : readGalleryThumbFile(input);
+}
+
 export function persistIdentityFile(input: {
   userId?: string | null;
   buffer: Buffer;

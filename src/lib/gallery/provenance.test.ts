@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   formatRenderDuration,
   galleryEntryProvenance,
+  replayOutcomeLabel,
   storedGraphNote,
   type ProvenanceEntry,
 } from './provenance';
@@ -84,5 +85,22 @@ describe('gallery entry provenance (R4)', () => {
     assert.equal(formatRenderDuration(400), '1 s');
     assert.equal(formatRenderDuration(185_000), '3 min 5 s');
     assert.equal(formatRenderDuration(120_000), '2 min');
+  });
+});
+
+describe('replayOutcomeLabel (D19)', () => {
+  it('says a replay used the exact graph only when it did', () => {
+    assert.equal(replayOutcomeLabel({ replayedFrom: 'stored' }), 'replayed the exact graph');
+    assert.equal(replayOutcomeLabel({ replayedFrom: 'history' }), 'replayed the exact graph');
+    assert.match(
+      replayOutcomeLabel({ replayedFrom: 'rebuilt' }),
+      /^rebuilt from the current template — the exact graph isn’t on this device/
+    );
+  });
+
+  it('a new seed or quality is a variation, whatever the graph', () => {
+    assert.equal(replayOutcomeLabel({ newSeed: true, replayedFrom: 'stored' }), 'queued variation');
+    assert.equal(replayOutcomeLabel({ qualityProfile: 'final' }), 'queued variation');
+    assert.equal(replayOutcomeLabel({}), 'queued again');
   });
 });

@@ -38,6 +38,8 @@ import {
   type ComfyGalleryFilter,
 } from '@/lib/gallery/comfyui-gallery';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
+import { replayOutcomeLabel } from '@/lib/gallery/provenance';
 
 export type BuildGalleryLightboxSlideChromeArgs = {
   resolvedLightbox: ImageLightboxState | null;
@@ -143,7 +145,7 @@ export function buildGalleryLightboxSlideChrome({
     showImprove: completed && !isVideo,
     showCompose: completed && !isVideo,
     showInpaint: completed && !isVideo,
-    showExact: Boolean(entry.hasStoredWorkflow || entry.workflowJson),
+    showExact: hasLocalStoredWorkflow(entry),
     showUseStack: galleryEntryHasRestorableStack(entry),
     showUsePromptStack: galleryEntryHasRestorableStack(entry) && Boolean(entry.prompt?.trim()),
     showUseFace: galleryEntryCanLockFace(entry),
@@ -159,7 +161,13 @@ export function buildGalleryLightboxSlideChrome({
           newSeed: false,
           exactGraph: true,
           onStatus: setRequeueStatus,
-        })
+        }).then(result =>
+          setRequeueStatus(
+            result.ok
+              ? replayOutcomeLabel({ replayedFrom: result.replayedFrom })
+              : (result.error ?? 'Re-queue failed.')
+          )
+        )
       );
     },
     onUseStack: galleryEntryHasRestorableStack(entry)
@@ -210,7 +218,7 @@ export function buildGalleryLightboxSlideChrome({
           void import('@/lib/comfyui/requeue').then(({ requeueComfyJobFromEntry }) =>
             requeueComfyJobFromEntry(entry, {
               newSeed: false,
-              exactGraph: Boolean(entry.hasStoredWorkflow || entry.workflowJson),
+              exactGraph: hasLocalStoredWorkflow(entry),
               comfyUrlOverride: entry.comfyUrl,
               onStatus: setRequeueStatus,
             })

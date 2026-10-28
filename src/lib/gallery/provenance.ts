@@ -82,6 +82,29 @@ export function storedGraphNote(
   return 'Not stored with this render';
 }
 
+/** Where a replay's graph came from (requeue.ts `requeueComfyJobFromEntry`). */
+export type ReplayGraphSource = 'stored' | 'history' | 'rebuilt';
+
+/**
+ * What a requeue says it did (M6 D19). A replay that couldn't find the exact graph — not on this
+ * device, not in ComfyUI's history — is rebuilt from the current template, and says so: after an
+ * update that changed the template it is not the same render.
+ */
+export function replayOutcomeLabel(input: {
+  newSeed?: boolean;
+  qualityProfile?: string;
+  replayedFrom?: ReplayGraphSource;
+}): string {
+  if (input.newSeed || input.qualityProfile) return 'queued variation';
+  if (input.replayedFrom === 'stored' || input.replayedFrom === 'history') {
+    return 'replayed the exact graph';
+  }
+  if (input.replayedFrom === 'rebuilt') {
+    return 'rebuilt from the current template — the exact graph isn’t on this device or in ComfyUI’s history';
+  }
+  return 'queued again';
+}
+
 export function galleryEntryProvenance(
   entry: ProvenanceEntry,
   options: {

@@ -8,6 +8,7 @@ import { CustomGroupBadge, statusLabel, statusTone } from '@/components/gallery/
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import { isHtmlVideoViewUrl } from '@/lib/comfyui/outputs';
 import { Button } from '@/components/ui/Button';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 export type GalleryCardBodyBlockProps = {
   entry: ComfyGalleryEntry;
@@ -196,7 +197,7 @@ export default function GalleryCardBodyBlock({
               Note · {entry.reviewNote.trim()}
             </span>
           ) : null}
-          {entry.hasStoredWorkflow || entry.workflowJson ? (
+          {hasLocalStoredWorkflow(entry) ? (
             <span className="ui-badge" data-size="xs">
               Exact graph
             </span>

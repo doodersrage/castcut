@@ -11,6 +11,7 @@ import { loadEngineSettings } from '@/lib/engine/settings';
 import { isCloudEngine } from '@/lib/engine/capabilities';
 import { GalleryMenuButton, GalleryMenuGroup } from '@/components/gallery/GalleryMenuPrimitives';
 import type { GalleryCardMenuSectionProps } from '@/components/gallery/gallery-card-menu-types';
+import { hasLocalStoredWorkflow } from '@/lib/gallery/comfyui-gallery';
 
 export function GalleryQueueSection({
   entry,
@@ -81,7 +82,7 @@ export function GalleryQueueSection({
           }}
         />
       ) : null}
-      {entry.hasStoredWorkflow || entry.workflowJson ? (
+      {hasLocalStoredWorkflow(entry) ? (
         <GalleryMenuButton
           label="Replay exact graph"
           data-testid="gallery-replay-exact"
@@ -112,7 +113,7 @@ export function GalleryQueueSection({
           label={`Retry on this host (${comfyHostLabel ?? entry.comfyUrl})`}
           onClick={() => {
             onRequeue(false, undefined, {
-              exactGraph: Boolean(entry.hasStoredWorkflow || entry.workflowJson),
+              exactGraph: hasLocalStoredWorkflow(entry),
               stickyHost: true,
             });
             setMenuOpen(false);
