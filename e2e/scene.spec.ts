@@ -388,6 +388,43 @@ test('takes are marked good or rejected, survive a reload, and compare side by s
   await expect(takes.nth(1)).toHaveAttribute('data-kept', 'false');
 });
 
+// The last edit before a reload: settings reach IndexedDB on a short debounce, and a reload inside
+// it lost the edit; the page journals what's pending as it goes, and the next load replays it.
+test('an edit made just before a reload is kept', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { scene: sceneWithTakes() },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const takes = page.getByTestId('scene-take');
+  await expect(takes).toHaveCount(2, { timeout: 60_000 });
+  // The page goes before IndexedDB has the edit (here: IndexedDB refuses settings writes, so the
+  // timing is the same on every machine).
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (this: IDBObjectStore, ...args) {
+      if (this.name === 'kv') throw new DOMException('Settings writes refused', 'UnknownError');
+      return put.apply(this, args);
+    } as typeof put;
+  });
+  await page.getByTestId('scene-take-reject-0').click();
+  await expect(takes).toHaveCount(1);
+  await page.waitForTimeout(1000);
+
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-takes-show-rejected')).toHaveText('Show 1 rejected', {
+    timeout: 60_000,
+  });
+  await expect(takes).toHaveCount(1);
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

@@ -619,4 +619,137 @@ describe('browser-storage', () => {
 
     assert.deepEqual(mod.readBrowserValue('timed-key'), { updatedAt: 200, v: 'new' });
   });
+
+  describe('the unsaved-writes journal', () => {
+    // A page whose pending writes were journaled as it hid, and the journal as it was then.
+    async function pageThatHides(change: (mod: typeof import('./browser-storage')) => void) {
+      currentAppDb = makeFakeAppDb();
+      currentAppDb.store.set('comfyui-settings-v4', { updatedAt: 1, theme: 'dark' });
+      const page = installFakeWindow();
+      installFakeTimers();
+      const mod = await import('./browser-storage');
+      mod.resetBrowserStorageCache();
+      await mod.initBrowserStorage();
+      change(mod);
+      for (const listener of page.listeners.pagehide ?? []) listener();
+      const journal = [...page.localStorage._data.entries()].filter(([key]) =>
+        key.startsWith(mod.UNSAVED_JOURNAL_PREFIX)
+      );
+      return { mod, page, journal };
+    }
+
+    // The next load: IndexedDB as `stored`, localStorage holding the journal.
+    async function nextLoad(
+      mod: typeof import('./browser-storage'),
+      journal: Array<[string, string]>,
+      stored: unknown
+    ) {
+      currentAppDb = makeFakeAppDb();
+      if (stored !== undefined) currentAppDb.store.set('comfyui-settings-v4', stored);
+      const page = installFakeWindow();
+      for (const [key, value] of journal) page.localStorage.setItem(key, value);
+      mod.resetBrowserStorageCache();
+      await mod.initBrowserStorage();
+      return page;
+    }
+
+    it('journals a write still pending as the page hides, and drops the journal once it lands', async () => {
+      const { mod, page, journal } = await pageThatHides(mod =>
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' })
+      );
+      assert.equal(journal.length, 1);
+      assert.deepEqual(JSON.parse(journal[0]![1]).writes, [
+        { key: 'comfyui-settings-v4', value: { updatedAt: 2, theme: 'light' } },
+      ]);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(currentAppDb!.store.get('comfyui-settings-v4'), { updatedAt: 2, theme: 'light' });
+      assert.equal(
+        [...page.localStorage._data.keys()].some(key => key.startsWith(mod.UNSAVED_JOURNAL_PREFIX)),
+        false
+      );
+    });
+
+    it('a write IndexedDB refused stays journaled until one lands', async () => {
+      const { mod, page, journal } = await pageThatHides(mod => {
+        const put = currentAppDb!.kv.put;
+        currentAppDb!.kv.put = async () => {
+          currentAppDb!.kv.put = put;
+          throw new Error('quota exceeded');
+        };
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' });
+      });
+      assert.equal(journal.length, 1);
+      await new Promise(resolve => setImmediate(resolve));
+      // The flush failed: the journal stays, and the next hide writes it again.
+      const journaled = () =>
+        [...page.localStorage._data.keys()].filter(key => key.startsWith(mod.UNSAVED_JOURNAL_PREFIX));
+      assert.equal(journaled().length, 1);
+      page.localStorage._data.clear();
+      for (const listener of page.listeners.pagehide ?? []) listener();
+      assert.equal(journaled().length, 1);
+      // A write that lands clears it.
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(currentAppDb!.store.get('comfyui-settings-v4'), { updatedAt: 2, theme: 'light' });
+      assert.equal(journaled().length, 0);
+    });
+
+    it('nothing pending, nothing journaled', async () => {
+      const { journal } = await pageThatHides(() => {});
+      assert.equal(journal.length, 0);
+    });
+
+    it('the next load replays a write the page lost, into IndexedDB, and removes the journal', async () => {
+      const { mod, journal } = await pageThatHides(mod =>
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' })
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      // The page went before IndexedDB had it.
+      const page = await nextLoad(mod, journal, { updatedAt: 1, theme: 'dark' });
+      assert.deepEqual(mod.readBrowserValue('comfyui-settings-v4'), { updatedAt: 2, theme: 'light' });
+      await new Promise(resolve => setImmediate(resolve));
+      assert.deepEqual(currentAppDb!.store.get('comfyui-settings-v4'), { updatedAt: 2, theme: 'light' });
+      assert.equal(page.localStorage._data.size, 0);
+    });
+
+    it('replays a removal too', async () => {
+      const { mod, journal } = await pageThatHides(mod => mod.removeBrowserKey('comfyui-settings-v4'));
+      await new Promise(resolve => setImmediate(resolve));
+      await nextLoad(mod, journal, { updatedAt: 1, theme: 'dark' });
+      assert.equal(mod.readBrowserValue('comfyui-settings-v4'), null);
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(currentAppDb!.store.has('comfyui-settings-v4'), false);
+    });
+
+    it('a value another tab saved later wins over the journal', async () => {
+      const { mod, journal } = await pageThatHides(mod =>
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' })
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      const later = { updatedAt: Date.now() + 60_000, theme: 'sepia' };
+      const page = await nextLoad(mod, journal, later);
+      assert.deepEqual(mod.readBrowserValue('comfyui-settings-v4'), later);
+      assert.equal(page.localStorage._data.size, 0);
+    });
+
+    it('so does one saved after the edit but before the page hid', async () => {
+      const { mod, journal } = await pageThatHides(mod =>
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' })
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      await nextLoad(mod, journal, { updatedAt: 3, theme: 'sepia' });
+      assert.deepEqual(mod.readBrowserValue('comfyui-settings-v4'), { updatedAt: 3, theme: 'sepia' });
+    });
+
+    it('a journal is not migrated into IndexedDB as a key of its own', async () => {
+      const { mod, journal } = await pageThatHides(mod =>
+        mod.writeBrowserValue('comfyui-settings-v4', { updatedAt: 2, theme: 'light' })
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      await nextLoad(mod, journal, undefined);
+      assert.equal(
+        [...currentAppDb!.store.keys()].some(key => key.startsWith(mod.UNSAVED_JOURNAL_PREFIX)),
+        false
+      );
+    });
+  });
 });

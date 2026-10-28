@@ -1825,10 +1825,14 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
   V3 take; the server kept the graph it submitted; browser B, with no graphs of its own, got it
   from Castcut, replayed it uncached (0 of 23 nodes) — submitted graph identical node for node,
   output pixel-identical.
-- Known (not fixed): settings reach IndexedDB on a 350 ms debounce; a reload or tab close inside
-  that window can lose the last edit (the keepalive server flush covers it only when the page has
-  synced and the settings fit 60 KB). Seen as a CI-only failure of T3's e2e (fixed in the test,
-  `2474d685`).
+- Fixed after T4: settings reach IndexedDB on a 350 ms debounce, and a reload or tab close inside
+  that window (or during the write, or after a refused one) could lose the last edit (seen as a
+  CI-only failure of T3's e2e, `2474d685`). The page now journals what is pending to localStorage
+  as it hides (synchronous; one journal per page, removed once its writes land, at most 1.5 MB);
+  the next load replays it after the IndexedDB hydrate, unless that page has edited the key itself
+  or the stored value is stamped later than the journal. A refused write is retried with the next
+  flush. Unit tests in `browser-storage.test.ts`; e2e "an edit made just before a reload is kept"
+  (`scene.spec.ts`; IndexedDB refuses the write, so it fails without the journal on any machine).
 
 **T5 — Re-run the reviewed set.** · M + _GPU_ + _you_
 - V3's set again with two Casts of different faces, Auto-review on, the review sheet extended to

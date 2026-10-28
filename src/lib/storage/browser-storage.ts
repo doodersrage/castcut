@@ -271,6 +271,12 @@ export function resetBrowserStorageCache(): void {
   // settings writes are not refused. Real browsers keep ready=false until init.
   ready = !appDb;
   readyPromise = null;
+  // A fresh page, as far as the journal and the flush listeners go (tests only).
+  inFlightKeys.clear();
+  failedKeys.clear();
+  journalKey = null;
+  journalWritten = false;
+  flushListenersAttached = false;
 }
 
 export function readBrowserValue<T>(key: string): T | null {
@@ -448,6 +454,7 @@ function attachBrowserStorageFlushListeners(): void {
   }
   flushListenersAttached = true;
   const flush = () => {
+    journalUnsavedWrites();
     flushBrowserStorage();
   };
   window.addEventListener('pagehide', flush);
@@ -460,16 +467,150 @@ function attachBrowserStorageFlushListeners(): void {
   }
 }
 
-async function persistBrowserKey(key: string): Promise<void> {
+/**
+ * Writes not yet in IndexedDB when the page goes away. The debounce, or an IndexedDB write still in
+ * flight, lost the last edit to a reload or a tab close; localStorage is synchronous, so the page
+ * journals what is pending as it hides and the next load replays it. One journal per page, removed
+ * once its writes land.
+ */
+export const UNSAVED_JOURNAL_PREFIX = 'castcut-unsaved-writes-v1:';
+/** A journal past this (a huge settings blob) keeps what fits; localStorage holds about 5 MB. */
+const UNSAVED_JOURNAL_MAX_CHARS = 1_500_000;
+const inFlightKeys = new Set<string>();
+/** Keys whose last IndexedDB write failed (quota, say): journaled too, until a write lands. */
+const failedKeys = new Set<string>();
+let journalKey: string | null = null;
+let journalWritten = false;
+
+type UnsavedJournal = {
+  at: number;
+  writes: Array<{ key: string; value?: unknown; removed?: true }>;
+};
+
+function journalUnsavedWrites(): void {
+  const keys = new Set([...dirtyKeys, ...inFlightKeys, ...failedKeys]);
+  if (keys.size === 0) {
+    return;
+  }
+  const writes: UnsavedJournal['writes'] = [];
+  let size = 0;
+  for (const key of keys) {
+    const write = cache.has(key) ? { key, value: cache.get(key) } : { key, removed: true as const };
+    let json: string;
+    try {
+      json = JSON.stringify(write);
+    } catch {
+      continue;
+    }
+    if (size + json.length > UNSAVED_JOURNAL_MAX_CHARS) {
+      continue;
+    }
+    size += json.length;
+    writes.push(write);
+  }
+  if (writes.length === 0) {
+    return;
+  }
+  journalKey ??= `${UNSAVED_JOURNAL_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    window.localStorage.setItem(journalKey, JSON.stringify({ at: Date.now(), writes }));
+    journalWritten = true;
+  } catch {
+    // quota / privacy mode: the IndexedDB flush is all there is
+  }
+}
+
+function clearOwnUnsavedJournal(): void {
+  if (
+    !journalWritten ||
+    !journalKey ||
+    dirtyKeys.size > 0 ||
+    inFlightKeys.size > 0 ||
+    failedKeys.size > 0
+  ) {
+    return;
+  }
+  journalWritten = false;
+  try {
+    window.localStorage.removeItem(journalKey);
+  } catch {
+    /* ignore */
+  }
+}
+
+function readUnsavedJournals(): Array<{ key: string; journal: UnsavedJournal }> {
+  const found: Array<{ key: string; journal: UnsavedJournal }> = [];
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(UNSAVED_JOURNAL_PREFIX) || key === journalKey) {
+        continue;
+      }
+      try {
+        const journal = JSON.parse(window.localStorage.getItem(key) ?? '') as UnsavedJournal;
+        if (typeof journal?.at === 'number' && Array.isArray(journal.writes)) {
+          found.push({ key, journal });
+          continue;
+        }
+      } catch {
+        /* unreadable: dropped below */
+      }
+      found.push({ key, journal: { at: 0, writes: [] } });
+    }
+  } catch {
+    return [];
+  }
+  return found.sort((a, b) => a.journal.at - b.journal.at);
+}
+
+/**
+ * Replays journals left by pages that closed before their writes landed, oldest first, after the
+ * IndexedDB hydrate. This page's own edits since load win, and so does a stored value stamped later
+ * than the edit (another tab saved the key since).
+ */
+function replayUnsavedJournals(): void {
+  for (const { key: storageKey, journal } of readUnsavedJournals()) {
+    for (const write of journal.writes) {
+      if (
+        typeof write?.key !== 'string' ||
+        dirtyKeys.has(write.key) ||
+        localWriteAt.has(write.key)
+      ) {
+        continue;
+      }
+      // The edit's own stamp when it has one (the journal is written later, as the page hides).
+      const editedAt = readStorageUpdatedAt(write.value) || journal.at;
+      if (readStorageUpdatedAt(cache.get(write.key)) > editedAt) {
+        continue;
+      }
+      if (write.removed) {
+        cache.delete(write.key);
+      } else if (write.value !== undefined) {
+        cache.set(write.key, write.value);
+        mirrorToLocalStorageIfAllowed(write.key);
+      } else {
+        continue;
+      }
+      dirtyKeys.add(write.key);
+    }
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+async function persistBrowserKey(key: string): Promise<boolean> {
   const db = appDb;
   if (!db) {
     const value = cache.get(key);
     if (value === undefined) {
       removeLegacyLocalStorageValue(key);
-      return;
+      return true;
     }
     writeLegacyLocalStorageValue(key, value);
-    return;
+    return true;
   }
 
   try {
@@ -478,7 +619,7 @@ async function persistBrowserKey(key: string): Promise<void> {
       if (!usesIndexedDbOnly(key)) {
         removeLegacyLocalStorageValue(key);
       }
-      return;
+      return true;
     }
 
     await db.kv.put({ key, value: cache.get(key) });
@@ -488,6 +629,7 @@ async function persistBrowserKey(key: string): Promise<void> {
         writeLegacyLocalStorageValue(key, value);
       }
     }
+    return true;
   } catch (error) {
     lastError = error instanceof Error ? error.message : 'Browser storage write failed';
     notifyBrowserStorageHealth();
@@ -498,16 +640,30 @@ async function persistBrowserKey(key: string): Promise<void> {
     ) {
       writeLegacyLocalStorageValue(key, value);
     }
+    return false;
   }
 }
 
 async function persistDirtyBrowserKeys(): Promise<void> {
-  const keys = [...dirtyKeys];
+  // A key whose last write failed goes again with the next flush.
+  const keys = [...new Set([...dirtyKeys, ...failedKeys])];
   dirtyKeys.clear();
   if (keys.length === 0) {
     return;
   }
-  await Promise.all(keys.map(key => persistBrowserKey(key)));
+  for (const key of keys) {
+    inFlightKeys.add(key);
+  }
+  const saved = await Promise.all(keys.map(key => persistBrowserKey(key)));
+  keys.forEach((key, index) => {
+    inFlightKeys.delete(key);
+    if (saved[index]) {
+      failedKeys.delete(key);
+    } else {
+      failedKeys.add(key);
+    }
+  });
+  clearOwnUnsavedJournal();
   lastSavedAt = Date.now();
   if (!lastError) {
     lastError = null;
@@ -570,7 +726,12 @@ async function migrateLocalStorageToBrowserDb(): Promise<void> {
   const keysToMigrate: string[] = [];
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const key = window.localStorage.key(index);
-    if (!key || key === COMFYUI_GALLERY_KEY || cache.has(key)) {
+    if (
+      !key ||
+      key === COMFYUI_GALLERY_KEY ||
+      key.startsWith(UNSAVED_JOURNAL_PREFIX) ||
+      cache.has(key)
+    ) {
       continue;
     }
     if (IDB_ONLY_KEYS.has(key) || SYNC_LOCALSTORAGE_KEYS.has(key)) {
@@ -635,6 +796,7 @@ export async function initBrowserStorage(): Promise<void> {
         }
         adoptStorageValue(record.key, record.value);
       }
+      replayUnsavedJournals();
       await migrateLocalStorageToBrowserDb();
       reconcileCriticalSidecarPrefs();
       await persistDirtyBrowserKeys();
@@ -668,6 +830,14 @@ export async function clearBrowserKvStore(): Promise<void> {
 
   if (typeof window === 'undefined') {
     return;
+  }
+
+  for (const { key } of readUnsavedJournals()) {
+    window.localStorage.removeItem(key);
+  }
+  if (journalKey) {
+    window.localStorage.removeItem(journalKey);
+    journalWritten = false;
   }
 
   if (appDb) {
