@@ -9,6 +9,30 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.1.0] - 2026-10-28
+
+- M8 T3: Make its picture — a location's picture rendered from its words
+- Room photos reach Qwen-Image 2.1 from a dressed plate
+- M8 T7 done: shots set in a location, judged; M8 met
+- M8 T7 tooling: pairs set in location records, and a Same place? review
+- M8 T5-T6: a shot's story state, and state that carries over
+- M8 T4: checks that know the location
+- M8 T3 (the user's photo): a location's picture goes with a take set there
+- M8 T2 (second half): script places resolve to locations
+- M8 T2 (first half): a Scene set in a location draws its look
+- M8 plan; T1: location records
+- M7 T5 done: the reviewed set's per-rule numbers, two faces, Auto-review on
+- M7 T5: re-run the reviewed set (two faces, Auto-review on); fix D24, D25
+- Keep the last settings edit across a reload or tab close
+- M7 T4 + M6 D23: keep every submitted graph; replay a finished graph as it is
+- Fix T3's e2e on CI: wait for the reject to reach IndexedDB before reloading
+- M7 T3: take review states and compare
+- M7 T2: Auto-review's outfit, place and gesture verdicts become findings
+- M6 D21–D22: Gallery edits reach IndexedDB; cards show checks as they land
+- M7 T1: a release refuses a commit CI hasn't passed
+- M6 D18–D20: no thumbnail as an original, honest exact replay, FCPXML music anchor
+- Docs: feature-gap audit into the roadmap and the M7 plan
+
 ## [v3.0.1] - 2026-10-27
 
 - e2e: the disk-space test encodes whether or not the shot checks ask
