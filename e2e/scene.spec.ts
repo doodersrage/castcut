@@ -2466,3 +2466,80 @@ test('mood fit never replaces the scene’s own Setting (a blank beat is filled 
   expect(promptOf(queued[0]!)).toContain('attic studio');
   await expect(page.getByTestId('day-slot-location')).toHaveValue(setting);
 });
+
+// M10 T5: the phone has the Script and the run — a script imported, a scene drafted, a shot made
+// a Scene, a run prepared and started — and the page still fits the phone.
+test('phone: a script imported, a shot made a Scene, and a run prepared and started', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    storageState: undefined,
+  });
+  const page = await context.newPage();
+  await isolateServerStorage(page);
+  await ensureAuthenticated(page);
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+    await page.route(`**/api/${check}**`, route =>
+      route.fulfill({ json: { ok: true, skipped: true } })
+    );
+  }
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await gotoStable(page, `/m/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-phone')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
+
+  await page.getByTestId('script-import').click();
+  await page
+    .getByTestId('script-import-text')
+    .fill('Title: Morning\n\nINT. KITCHEN - MORNING\n\nShe pours coffee. She sits down.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toBeVisible();
+  await page.getByTestId('script-scene-int-kitchen-morning').locator('summary').click();
+  await page.getByTestId('script-shots-draft-int-kitchen-morning').click();
+  await expect(page.getByTestId('script-shot-int-kitchen-morning~1')).toBeVisible();
+  await page.getByTestId('script-shot-make-int-kitchen-morning~1').click();
+  await expect(page.getByTestId('script-shot-int-kitchen-morning~1')).toHaveAttribute(
+    'data-status',
+    'made',
+    { timeout: 30_000 }
+  );
+
+  await page.getByTestId('script-prepare-run').click();
+  const run = page.getByTestId('scene-run');
+  await expect(run).toBeVisible();
+  await page.getByTestId('scene-run-max-takes').fill('1');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('1 take, one at a time');
+  // Fits the phone: nothing wider than the screen.
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
+  ).toBe(true);
+  if (SHOTS) {
+    await page.getByTestId('scene-scripts').screenshot({ path: `${SHOTS}/phone-script.png` });
+    await run.screenshot({ path: `${SHOTS}/phone-run.png` });
+  }
+  await page.getByTestId('scene-run-start').click();
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  expect(queued).toHaveLength(1);
+  await context.close();
+});

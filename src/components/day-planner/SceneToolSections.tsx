@@ -1,13 +1,8 @@
 'use client';
 
-import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
-import LocationsSection from '@/components/location/LocationsSection';
 import { useLocations } from '@/components/location/useLocations';
-import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
-import SceneRunControls from '@/components/day-planner/SceneRunControls';
+import SceneScriptAndRun from '@/components/day-planner/SceneScriptAndRun';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
-import { loadCharacters } from '@/lib/character/os';
-import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { useId, useRef, useState } from 'react';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
@@ -46,8 +41,8 @@ const PART_LABELS: Record<(typeof DAY_PARTS)[number], string> = {
 type Props = {
   vm: ReturnType<typeof useDayPlannerToolOrchestration>;
   page: ReturnType<typeof useScenePage>;
-  /** The run's runner (M5 W4); the phone layout has none. */
-  runner?: ReturnType<typeof useSceneRun>;
+  /** The run's runner (M5 W4). */
+  runner: ReturnType<typeof useSceneRun>;
 };
 
 /**
@@ -560,44 +555,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
             </ToolSection>
           </>
         ) : null}
-        {character ? (
-          <SceneScriptsSection
-            castId={character.id}
-            castName={character.name}
-            cast={loadCharacters().map(member => ({ id: member.id, name: member.name }))}
-            // Scripts keep their own store (M6 V6); any still in the settings move there.
-            sceneTool={{
-              mounted: vm.mounted,
-              toolSettings: vm.toolSettings as ScriptsCache,
-              updateToolSettings: vm.updateToolSettings as (patch: ScriptsCache) => void,
-            }}
-            scenes={page.castScenes}
-            makeScene={page.makeSceneFrom}
-            openScene={page.openScene}
-            prepareRun={page.prepareRun}
-          />
-        ) : null}
-        <LocationsSection scenes={page.scenes} />
-        {page.run ? (
-          <SceneRunPanel
-            run={page.run}
-            scenes={page.castScenes}
-            disabled={page.inFlight || runner?.looping}
-            onChange={page.updateRun}
-          >
-            {runner ? (
-              <SceneRunControls
-                run={page.run}
-                scenes={page.castScenes}
-                looping={runner.looping}
-                stopping={runner.stopping}
-                disabled={page.inFlight && !runner.looping}
-                onStart={runner.start}
-                onStop={runner.stop}
-              />
-            ) : null}
-          </SceneRunPanel>
-        ) : null}
+        <SceneScriptAndRun vm={vm} page={page} runner={runner} />
         {note ? (
           <p
             className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"

@@ -22,6 +22,8 @@ import { FieldError, TextInput } from '@/components/ui/Field';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
 import SideSheet from '@/components/ui/SideSheet';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
+import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
+import SceneScriptAndRun from '@/components/day-planner/SceneScriptAndRun';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import { DAY_PARTS, dayPartOf } from '@/lib/day/parts';
@@ -48,6 +50,7 @@ type Sheet = 'shot' | 'mood' | 'engine' | 'send' | null;
 type Props = {
   vm: ReturnType<typeof useDayPlannerToolOrchestration>;
   page: ReturnType<typeof useScenePage>;
+  runner: ReturnType<typeof useSceneRun>;
 };
 
 /**
@@ -118,7 +121,7 @@ function SummaryRow({
  * move, Send to Day — and Queue a take always in reach in a bar above the dock. The same state
  * and sheets as the desk page (useSceneToolViews), laid out for one thumb.
  */
-export default function MobileSceneToolSections({ vm, page }: Props) {
+export default function MobileSceneToolSections({ vm, page, runner }: Props) {
   const views = useSceneToolViews(vm, page);
   const actionBarRef = useActionBarHeightRef();
   const {
@@ -488,6 +491,8 @@ export default function MobileSceneToolSections({ vm, page }: Props) {
           </section>
         </>
       ) : null}
+      {/* The Cast's scripts, the locations and the run (M10 T5), as on the desk. */}
+      <SceneScriptAndRun vm={vm} page={page} runner={runner} />
       {note ? (
         <p
           className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
