@@ -48,6 +48,9 @@ it move starts from it. **×** drops a take from the scene — it stays in the G
 take on the card (or the kept take under Make it move) opens it full size: its clip when it has
 one, playing, else the picture.
 
+A dropped take waits under the takes in **Recently deleted takes** for 14 days: **Restore** puts it
+back where it stood, kept again if it was the kept take and nothing else is kept since.
+
 **Good** and **Reject** judge a take without rendering it again. A rejected take leaves the strip
 (**Show n rejected** brings them back, **Restore** puts one back); the kept take can't be rejected.
 **Compare takes** shows two side by side with how each was made.

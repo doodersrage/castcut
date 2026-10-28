@@ -118,6 +118,7 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 - **Audio and 3D gallery media** — Stable Audio wav/flac/mp3 and Hunyuan3D glb/gltf/obj are captured from Comfy history, persisted as originals, playable (audio) or downloadable (3D) from cards/lightbox, and included in ZIP export. Filter chips: Audio / 3D.
 - **Import completed host jobs** — Gallery import prefers Comfy `GET /api/jobs` and falls back to `/history`; walks every pool host; imported rows keep the workflow graph when present
 - **Failed-job node install** — missing `class_type` errors offer Install missing nodes (Manager + restart + retry) on Queue, Gallery, and workflow preview
+- **Recently deleted** — a render removed from the Gallery (one, or a selection) waits for 14 days under the grid, with **Restore** and an **Undo** on the toast; its kept copy stays on the server meanwhile, and the trash syncs across devices. Purges, cap clean-ups and Best-of-N culls are not kept. A take dropped from a Scene has its own list under the takes
 - **Gallery stats bar** — at-a-glance totals (completed, in queue, favorites, unreviewed, avg rating) with one-click filter chips
 - **Gallery layout modes** — Grid, Dense, or List view (persisted)
 - **Gallery review focus** — review mode auto-selects the first card; keyboard 1–5 / F / N / P

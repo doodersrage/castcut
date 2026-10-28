@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import GalleryDuplicateClustersPanel from '@/components/gallery/GalleryDuplicateClustersPanel';
+import GalleryTrash from '@/components/gallery/GalleryTrash';
 import GalleryVisionInbox from '@/components/gallery/GalleryVisionInbox';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
@@ -110,6 +111,8 @@ export default function GalleryPanelAuxiliarySection({
           }}
         />
       ) : null}
+
+      <GalleryTrash />
     </>
   );
 }

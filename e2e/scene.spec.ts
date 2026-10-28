@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { ensureAuthenticated } from './helpers/auth';
 import { replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
 import { openDaySlotSheet } from './helpers/day';
@@ -856,6 +857,94 @@ test('a script is seen as a storyboard: kept takes and cards, a card makes its S
   await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.1')).toBeVisible();
   await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.2')).toBeVisible();
   await shot(page, 'cut-animatic');
+});
+
+/** Serious or critical WCAG 2.1 A/AA violations on the page as it is now (M10 T1). */
+async function axeBlocking(page: Page): Promise<string[]> {
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every(
+            animation =>
+              animation.playState !== 'running' ||
+              animation.effect?.getTiming().iterations === Infinity
+          ),
+      undefined,
+      { timeout: 10_000 }
+    )
+    .catch(() => undefined);
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations
+    .filter(violation => violation.impact === 'critical' || violation.impact === 'serious')
+    .map(violation => `${violation.id} (${violation.impact}): ${violation.help} — ${violation.nodes.map(node => node.target.join(' ')).join(', ')}`);
+}
+
+// M10 T1: the production pages with what M7–M9 put on them pass the axe check — a Scene with takes,
+// a location and the storyboard; Cut playing the animatic.
+test('Scene with takes, a location and the storyboard, and Cut\'s animatic, pass the axe check', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const scene = sceneWithTakes();
+  scene.scenes[0] = { ...scene.scenes[0]!, keptTakeId: 'take-1' };
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...scene,
+        scripts: [
+          {
+            id: 'script-axe',
+            castId: CAST,
+            name: 'Axe test',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee. She sits down.\n',
+            shots: [
+              {
+                id: 'int-kitchen-morning~1',
+                sceneId: 'int-kitchen-morning',
+                purpose: 'action',
+                framing: 'waist',
+                who: [],
+                seconds: 3,
+                action: 'She pours coffee.',
+                madeSceneId: 'scene-e2e',
+              },
+              {
+                id: 'int-kitchen-morning~2',
+                sceneId: 'int-kitchen-morning',
+                purpose: 'action',
+                framing: 'waist',
+                who: [],
+                seconds: 3,
+                action: 'She sits down.',
+              },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}&script=script-axe`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  const section = page.getByTestId('locations-section');
+  await section.getByTestId('location-new-name').fill('Corner café');
+  await section.getByTestId('location-add').click();
+  await page.getByTestId('script-board-toggle').click();
+  await expect(page.getByTestId('storyboard')).toBeVisible();
+  expect(await axeBlocking(page)).toEqual([]);
+
+  await page.getByTestId('script-animatic').click();
+  await expect(page.getByTestId('cut-animatic')).toBeVisible({ timeout: 60_000 });
+  await dismissBlockingOverlays(page);
+  expect(await axeBlocking(page)).toEqual([]);
 });
 
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
@@ -1758,7 +1847,7 @@ test('a take says how it was made, and when its Gallery entry is gone', async ({
 });
 
 // R7: the kept take is what Cut uses — removing it asks first; deleting the scene says so.
-test('removing the kept take asks first, and deleting a scene says what Cut loses', async ({
+test('removing the kept take asks first, removed takes restore, and deleting a scene says what Cut loses', async ({
   page,
 }) => {
   const seeded = sceneWithTakes();
@@ -1798,6 +1887,21 @@ test('removing the kept take asks first, and deleting a scene says what Cut lose
   await page.getByTestId('scene-take-remove-0').click();
   await expect(takes).toHaveCount(0);
   await expect(page.getByTestId('scene-remove-kept-confirm')).toHaveCount(0);
+
+  // M10 T2: both are in Recently deleted; the kept one comes back kept, the other where it stood.
+  const trash = page.getByTestId('scene-takes-trash');
+  await expect(trash).toContainText('Recently deleted takes (2)');
+  await trash.locator('summary').click();
+  await trash.getByTestId('scene-takes-trash-restore').nth(1).click();
+  await expect(takes).toHaveCount(1);
+  await expect(takes.nth(0)).toHaveAttribute('data-kept', 'true');
+  await trash.getByTestId('scene-takes-trash-restore').click();
+  await expect(takes).toHaveCount(2);
+  await expect(takes.nth(0)).toHaveAttribute('data-kept', 'true');
+  await expect(trash).toHaveCount(0);
+  // And still there after a reload (the removal tombstones are for the old ids).
+  await page.reload();
+  await expect(takes).toHaveCount(2, { timeout: 60_000 });
 });
 
 test('Open as Scene from a Day slot copies its shot and take', async ({ page }) => {

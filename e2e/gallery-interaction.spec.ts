@@ -85,3 +85,30 @@ test("gallery card menu: portalled panel, keyboard, Escape and outside click", a
   await page.mouse.click(5, 5);
   await expect(panel).toHaveCount(0);
 });
+
+// M10 T2: a render removed from the Gallery waits in Recently deleted, and Restore brings it back.
+test("a removed render is in Recently deleted and Restore brings it back", async ({ page }) => {
+  await seedGalleryFixture(page);
+  await gotoStable(page, "/gallery");
+  await dismissBlockingOverlays(page);
+  // The fixture's card (the Gallery may also list the server's assembled films).
+  const card = page.getByRole("article").filter({ hasText: "e2e gallery fixture" });
+  await expect(card).toHaveCount(1, { timeout: 15_000 });
+  // The Gallery's store loads after the first paint; a delete before then is undone by it.
+  await page.waitForLoadState("networkidle");
+  await card.getByTestId("gallery-card-menu").click();
+  await page.getByRole("menuitem", { name: "Remove from gallery" }).click();
+  const confirm = page.getByTestId("confirm-dialog-confirm");
+  if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  await expect(card).toHaveCount(0);
+
+  const trash = page.getByTestId("gallery-trash");
+  await expect(trash).toContainText("Recently deleted renders");
+  await trash.locator("summary").click();
+  const item = trash.getByRole("listitem").filter({ hasText: "e2e gallery fixture" });
+  await expect(item).toHaveCount(1);
+  await item.getByTestId("gallery-trash-restore").click();
+  // (The first restore compiles its route on the dev server.)
+  await expect(card).toHaveCount(1, { timeout: 30_000 });
+  await expect(item).toHaveCount(0);
+});

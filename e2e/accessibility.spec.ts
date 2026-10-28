@@ -39,6 +39,11 @@ const ROUTES: Array<{ path: string; label: string }> = [
   { path: '/m/day', label: 'Mobile Day' },
   { path: '/m/fitting', label: 'Mobile Outfit' },
   { path: '/m/story', label: 'Mobile Story' },
+  // The production pages (M10 T1); with content in e2e/scene.spec.ts ("…pass the axe check").
+  { path: '/scene', label: 'Scene' },
+  { path: '/cut', label: 'Cut' },
+  { path: '/production', label: 'Film Director' },
+  { path: '/m/scene', label: 'Mobile Scene' },
 ];
 
 test.beforeEach(async ({ page }) => {

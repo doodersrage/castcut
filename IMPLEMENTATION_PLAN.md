@@ -2153,3 +2153,77 @@ doesn't find a Scene, a script or a location by name.
 ## 11.4 Recommended first task
 
 **T1** (small, independent), then **T2**: the board and the animatic are only as good as the list.
+
+# Part 12 — M10 plan: finishing and reach (2026-10-28)
+
+From the feature-gap audit (2026-10-27, areas 4, 6 and 8). A mis-clicked delete of a take or a
+Gallery entry is gone for good; a door slam has nowhere to go but the music bed; a long spoken take
+gets one subtitle for its whole length; the pages M3–M9 built aren't in the accessibility check;
+and the phone has no Script or run.
+
+## 12.1 What exists (audited 2026-10-28)
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| axe on 14 pages | `e2e/accessibility.spec.ts` | verified; not `/scene`, `/cut`, `/production` (checked by hand in the audit: clean) |
+| Deleting a Gallery entry or a Scene take | confirm dialogs, protected renders, sync tombstones | no undo, no trash (only the workflow library has "Recently deleted") |
+| Sound tracks: clip sound, narration, music, ambience; mute / solo; ducking | `video/cut-sound.ts`, `components/cut/CutTracks.tsx` | verified; no effects track |
+| Subtitles: per-shot text and window, checks, SRT import / export | `video/cut-subtitle-track.ts`, `components/cut/CutSubtitles.tsx` | one cue per shot; the browser encode burns in none |
+| Phone Scene page | `/m/scene`, `MobileSceneToolSections.tsx` | no Script section, no run controls |
+
+## 12.2 Tasks (ordered)
+
+**T1 — Accessibility of the production pages.** · S
+- `/scene` (with takes, a script, the storyboard, locations), `/cut` (with shots, the animatic) and
+  `/production` in the axe spec, no serious or critical violations; fix what it finds.
+- Status 2026-10-28: `/scene`, `/cut`, `/production` and `/m/scene` are in
+  `e2e/accessibility.spec.ts`; and with content (`scene.spec.ts`, `axeBlocking`): a Scene with two
+  takes, a location and the storyboard open, then Cut playing that script's animatic. No serious
+  or critical WCAG 2.1 A/AA violations; nothing to fix. A screen reader on Scene and Cut still
+  needs a person.
+
+**T2 — A trash for takes and Gallery entries.** · M
+- Removing a Scene take or deleting a Gallery entry puts it in a trash for 14 days; **Restore**
+  puts it back where it was; the media stays until the trash is emptied or the days run out.
+  Sync and backup carry the trash; nothing is purged without the user's say or the time limit.
+- Acceptance: unit tests (into the trash, restore, expiry); e2e: a take removed and restored, a
+  Gallery entry deleted and restored.
+- Status 2026-10-28: done. `gallery/trash.ts` (a synced studio-extras record list, 14 days, 200
+  items): the Gallery's own deletes (one, or a selection; `removeComfyGalleryEntries(…, { trash })`)
+  and a take dropped from a Scene go there; **Recently deleted** under the grid and under the takes,
+  and **Undo** on the Gallery's toast. A restored item comes back under a new id (the old id's
+  removal is a synced tombstone); a Gallery entry's kept media is copied to it
+  (`POST /api/gallery/media/restore`). The media stays while the item is in the trash: the trash
+  item links it, the server keeps what a stored row links, and the trash is pushed before the
+  deletion. A take comes back where it stood, kept again if it was. Not in the trash: Purge, the
+  cap clean-up, Best-of-N culls and a deleted Scene. Unit tests (trash, restore, media kept and
+  copied); e2e both restores. Checked on a copy of the T5 install: an entry deleted, its folder
+  kept, restored with its media copied and its picture loading.
+
+**T3 — Multi-cue subtitles.** · M
+- A shot's subtitle split into timed cues (at a sentence break, editable times), shown in the
+  monitor, exported to .srt and burned in by the server encode at their times.
+- Acceptance: unit tests (split, the .srt, the burn-in filter); e2e: split, exported.
+
+**T4 — A sound-effects track.** · M
+- A track of placed sounds: a sound (from the Gallery or a file) at a time, with its level and
+  mute, played in the monitor and mixed by the encode.
+- Acceptance: a sound at 12.4 s plays there in the monitor and the encode (unit tests on the
+  mix graph; e2e placed, moved, muted).
+
+**T5 — Script and runs on the phone.** · M
+- `/m/scene` gains the Script section (import, read, shots, storyboard) and the run controls.
+- Acceptance: e2e on a phone viewport: a script imported, a shot made a Scene, a run prepared and
+  started.
+
+## 12.3 Definition of done
+
+- A removed take or deleted Gallery entry can be restored for 14 days.
+- Effects and multi-cue subtitles play in the monitor and come out in the encode.
+- The production pages pass the axe check; the phone has Script and runs.
+- CI green on every M10 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
+- Not in scope: keyframes, gain automation, credits rolls, templates, in-app help.
+
+## 12.4 Recommended first task
+
+**T1** (small, protects what M7–M9 built), then **T2** (data safety before features).

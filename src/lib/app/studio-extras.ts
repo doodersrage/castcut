@@ -22,6 +22,7 @@ import {
   type FindingDecision,
 } from '@/lib/checks/finding-decisions';
 import { loadLocations, replaceLocations, type LocationRecord } from '@/lib/location/records';
+import { loadTrash, replaceTrash, type TrashItem } from '@/lib/gallery/trash';
 import {
   readBrowserValue,
   withSuppressedDurableSyncPush,
@@ -252,6 +253,8 @@ export type StudioExtrasPayload = {
   continuityDecisions?: FindingDecision[];
   /** Location records (location/records.ts, M8 T1). */
   locations?: LocationRecord[];
+  /** Deleted Gallery entries and removed takes, restorable for 14 days (gallery/trash.ts). */
+  trash?: TrashItem[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -325,6 +328,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     myPoses: loadMyPoses(),
     continuityDecisions: loadFindingDecisions(),
     locations: loadLocations(),
+    trash: loadTrash(),
     ...Object.assign({}, ...[...studioExtrasSections.values()].map(section => section.collect())),
   };
 }
@@ -478,6 +482,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.locations) {
       replaceLocations(payload.locations);
+    }
+    if (payload.trash) {
+      replaceTrash(payload.trash);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);
@@ -688,6 +695,8 @@ export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): bo
         replaceFindingDecisions(value);
       } else if (field === 'locations') {
         replaceLocations(value);
+      } else if (field === 'trash') {
+        replaceTrash(value);
       } else if (field === 'comfyWorkflowFiles' && Array.isArray(value)) {
         saveComfyWorkflowFiles(value as ReturnType<typeof loadComfyWorkflowFiles>, {
           fromSync: true,

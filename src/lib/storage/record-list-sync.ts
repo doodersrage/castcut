@@ -121,6 +121,8 @@ export const RECORD_LISTS: readonly RecordListSpec[] = [
   { field: 'continuityDecisions', idOf: e => str(e.id) },
   // Location records (location/records.ts, M8 T1).
   { field: 'locations', idOf: e => str(e.id) },
+  // The trash (gallery/trash.ts, M10 T2).
+  { field: 'trash', idOf: e => str(e.id) },
   // The Director's saved directions: one name per Cast member.
   {
     field: 'directorDirections',

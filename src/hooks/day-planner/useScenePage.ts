@@ -20,6 +20,7 @@ import {
   recordSceneJobs,
   removeSceneTake,
   resolveSceneChecks,
+  restoreSceneTake,
   sceneCardBusy,
   sceneCutNote,
   sceneCutUse,
@@ -44,6 +45,7 @@ import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comf
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { daySlotsForScene } from '@/lib/day/scenes';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { addToTrash, sceneTakeTrashItem, takeFromTrash } from '@/lib/gallery/trash';
 import { loadSettingsCache } from '@/lib/settings/cache';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -384,9 +386,43 @@ export function useScenePage(vm: DayEngineView) {
         });
         if (!ok) return;
       }
+      const index = active.takes.findIndex(take => take.id === takeId);
+      const take = active.takes[index];
+      if (!take) return;
+      // Into the trash first (M10 T2): Recently deleted, under the takes, puts it back.
+      addToTrash([
+        sceneTakeTrashItem({
+          take,
+          sceneId: active.id,
+          sceneName: active.name,
+          index,
+          wasKept: take.id === active.keptTakeId,
+          castId: active.castId,
+        }),
+      ]);
       write({ scenes: upsertScene(scenes, removeSceneTake(active, takeId)) });
     },
     [active, cutNoteFor, scenes, write]
+  );
+
+  /** Put a removed take back from the trash, where it stood (kept again if it was). */
+  const restoreTake = useCallback(
+    (trashId: string): boolean => {
+      const item = takeFromTrash(trashId);
+      const scene = item?.sceneId ? scenes.find(entry => entry.id === item.sceneId) : undefined;
+      const restored =
+        item && scene
+          ? restoreSceneTake(scene, item.take, { index: item.index, keep: item.wasKept })
+          : null;
+      if (!item || !restored) {
+        if (item) addToTrash([item]);
+        setNote('That take could not be put back — its scene is gone.');
+        return false;
+      }
+      write({ scenes: upsertScene(scenes, restored.scene) });
+      return true;
+    },
+    [scenes, write]
   );
 
   /** Make it move starts from the kept take: put it on the card first. */
@@ -454,6 +490,7 @@ export function useScenePage(vm: DayEngineView) {
     keepTake,
     reviewTake,
     removeTake,
+    restoreTake,
     cutNoteFor,
     keptOnCard,
     daySlots,

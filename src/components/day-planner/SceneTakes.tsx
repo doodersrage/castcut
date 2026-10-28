@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import DaySlotBoard from '@/components/day-planner/DaySlotBoard';
 import type { SceneToolViews } from '@/components/day-planner/useSceneToolViews';
+import { TrashRecentlyDeleted, useTrash } from '@/components/trash/TrashRecentlyDeleted';
 import { Button } from '@/components/ui/Button';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import type { SceneTake } from '@/lib/day/scenes';
+import { trashedTakesOf } from '@/lib/gallery/trash';
 import {
   SceneTakeCompareDialog,
   SceneTakeProvenanceDialog,
@@ -84,17 +86,30 @@ export function SceneTakeCard({
 
 /**
  * The scene's takes: tap one to put it on the card, ★ keeps it (Cut uses it, Make it move starts
- * from it), i says how it was made, × drops it from the scene (it stays in the Gallery). Good
- * and Reject are your verdict, without rendering again (M7 T3): rejected takes are hidden until
- * shown, and restorable; Compare puts two side by side. `strip`: one swipeable row with 44 px
+ * from it), i says how it was made, × drops it from the scene (it stays in the Gallery, and Recently
+ * deleted puts it back for 14 days). Good and Reject are your verdict, without rendering again
+ * (M7 T3): rejected takes are hidden until shown, and restorable; Compare puts two side by side. `strip`: one swipeable row with 44 px
  * buttons (the phone); else a wrapping grid.
  */
 export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boolean }) {
-  const { active, still, showTake, keepTake, reviewTake, removeTake } = page;
+  const { active, still, showTake, keepTake, reviewTake, removeTake, restoreTake } = page;
   const [madeIndex, setMadeIndex] = useState<number | null>(null);
   const [showRejected, setShowRejected] = useState(false);
   const [comparing, setComparing] = useState(false);
-  if (!active || active.takes.length === 0) return null;
+  const trash = useTrash();
+  if (!active) return null;
+  // Takes removed from this scene (M10 T2): Restore puts one back where it stood. Keyed, so it
+  // stays open as the first take comes back.
+  const removed = (
+    <TrashRecentlyDeleted
+      key="trash"
+      items={trashedTakesOf(trash, active.id)}
+      what="takes"
+      onRestore={item => restoreTake(item.id)}
+      testId="scene-takes-trash"
+    />
+  );
+  if (active.takes.length === 0) return <>{removed}</>;
   const madeTake = madeIndex === null ? null : (active.takes[madeIndex] ?? null);
   const rejected = active.takes.filter(take => take.review === 'rejected').length;
   const linkButton = strip
@@ -310,6 +325,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
         castId={active.castId}
         onClose={() => setMadeIndex(null)}
       />
+      {removed}
     </>
   );
 }

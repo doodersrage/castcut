@@ -173,3 +173,27 @@ export async function removeDeletedGalleryEntryMedia(input: {
     [...input.ids].filter(id => !named.has(id))
   );
 }
+
+/**
+ * A Gallery entry restored from the trash (M10 T2) comes back under a new id: copy its kept media
+ * to that id's folder. The old folder stays until nothing links to it. False: nothing to copy.
+ */
+export function copyGalleryEntryMedia(input: {
+  userId?: string | null;
+  from: string;
+  to: string;
+}): boolean {
+  if (!ENTRY_ID.test(input.from) || !ENTRY_ID.test(input.to) || input.from === input.to) {
+    return false;
+  }
+  const root = mediaOwnerDir(input.userId);
+  const from = path.join(root, input.from);
+  const to = path.join(root, input.to);
+  try {
+    if (!fs.statSync(from).isDirectory() || fs.existsSync(to)) return false;
+    fs.cpSync(from, to, { recursive: true, errorOnExist: true });
+    return true;
+  } catch {
+    return false;
+  }
+}

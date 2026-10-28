@@ -2,6 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState, startTransition } from 'react';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { pushAppToast } from '@/lib/app/toast';
+import { restoreGalleryTrashItem } from '@/lib/gallery/trash-restore';
+
+/** A delete from the Gallery went to the trash (M10 T2): say so, with Undo. */
+function undoToast(trashIds: string[]): void {
+  if (!trashIds.length) return;
+  pushAppToast({
+    text: `Deleted ${trashIds.length === 1 ? 'a render' : `${trashIds.length} renders`} — kept in Recently deleted for 14 days.`,
+    action: {
+      label: 'Undo',
+      onClick: () => {
+        for (const id of trashIds) void restoreGalleryTrashItem(id);
+      },
+    },
+  });
+}
 import {
   clearComfyGallery,
   COMFYUI_GALLERY_UPDATED_EVENT,
@@ -278,7 +294,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
   const removeEntry = useCallback(
     (id: string) => {
       notePoseOutcomeForEntries([id], 'deleted');
-      removeComfyGalleryEntry(id);
+      undoToast(removeComfyGalleryEntry(id, { trash: true }));
       refresh();
     },
     [refresh]
@@ -297,7 +313,7 @@ export function useComfyUiGallery(initialFilter?: ComfyGalleryFilter) {
   const removeEntries = useCallback(
     (ids: string[]) => {
       notePoseOutcomeForEntries(ids, 'deleted');
-      removeComfyGalleryEntries(ids);
+      undoToast(removeComfyGalleryEntries(ids, { trash: true }));
       refresh();
     },
     [refresh]

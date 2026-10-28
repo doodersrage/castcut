@@ -12,10 +12,15 @@ type Cleanup = typeof import('./media-cleanup-server');
 let scanGalleryMediaLeftovers: Cleanup['scanGalleryMediaLeftovers'];
 let removeGalleryMediaLeftovers: Cleanup['removeGalleryMediaLeftovers'];
 let removeDeletedGalleryEntryMedia: Cleanup['removeDeletedGalleryEntryMedia'];
+let copyGalleryEntryMedia: Cleanup['copyGalleryEntryMedia'];
 
 before(async () => {
-  ({ scanGalleryMediaLeftovers, removeGalleryMediaLeftovers, removeDeletedGalleryEntryMedia } =
-    await import('./media-cleanup-server'));
+  ({
+    scanGalleryMediaLeftovers,
+    removeGalleryMediaLeftovers,
+    removeDeletedGalleryEntryMedia,
+    copyGalleryEntryMedia,
+  } = await import('./media-cleanup-server'));
 });
 
 const id = (n: number) => `0000000${n}-aaaa-4bbb-8ccc-dddddddddddd`;
@@ -85,6 +90,24 @@ describe('gallery-media-cleanup-server', () => {
     assert.equal(result.removed, 1);
     assert.equal(exists('user-1', LIVE), false);
     assert.ok(exists('user-1', LINKED));
+  });
+
+  // M10 T2: an entry in the trash keeps its media; restoring it copies the media to its new id.
+  it('a deleted entry in the trash keeps its copy; restored, the copy goes to its new id', async () => {
+    copy('_global', OLD, 0);
+    writeNamespaceStorage('studio-extras', {
+      trash: [{ id: 'trash-1', kind: 'gallery-entry', at: Date.now(), entry: { id: OLD }, links: [`/api/gallery/media/${OLD}`] }],
+    });
+    assert.deepEqual(await removeDeletedGalleryEntryMedia({ ids: [OLD] }), { removed: 0, freedBytes: 0 });
+    assert.ok(exists('_global', OLD));
+
+    assert.equal(copyGalleryEntryMedia({ from: OLD, to: RECENT }), true);
+    assert.ok(exists('_global', RECENT));
+    assert.ok(fs.existsSync(path.join(dir, 'gallery-media', '_global', RECENT, 'original')));
+    // Never over a folder that is there, never outside an entry id, never from nothing.
+    assert.equal(copyGalleryEntryMedia({ from: OLD, to: RECENT }), false);
+    assert.equal(copyGalleryEntryMedia({ from: OLD, to: '../x' }), false);
+    assert.equal(copyGalleryEntryMedia({ from: LIVE, to: BROWSER }), false);
   });
 
   it('writing the deleted-ids list triggers that removal for the newly deleted', async () => {

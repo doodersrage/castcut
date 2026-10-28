@@ -45,6 +45,7 @@ import { loadCharacters, looksOf } from '../character/os';
 import { galleryEntryMatchesLook } from './look-filter';
 import { collectGalleryProtectedEntryIds, collectGalleryReferencedEntryIds } from './protected-ids';
 import { rememberGalleryDeletedIds } from './deleted-ids';
+import { addToTrash, galleryEntryTrashItem } from './trash';
 import { galleryEntryCorpus } from '../search/embedding-rank';
 import {
   galleryEntryMatchesCustomGroup,
@@ -76,6 +77,7 @@ export {
 } from './comfyui-gallery-storage-meta';
 export { initAppDb, initGalleryStore, isAppDbReady, isGalleryStoreReady } from '../app/db-init';
 export { getGalleryCache, getGalleryEntryById, hasLocalStoredWorkflow } from './db-store';
+import { getGalleryEntryById } from './db-store';
 
 export type ComfyGalleryFilter = {
   status?: ComfyGalleryJobStatus | 'all';
@@ -1157,32 +1159,42 @@ function pruneComfyHistoryForEntries(entries: ComfyGalleryEntry[]): void {
   });
 }
 
-export function removeComfyGalleryEntry(id: string): void {
-  const existing = loadComfyGallery().find(entry => entry.id === id);
-  const deletedIds = rememberGalleryDeletedIds([id]);
-  const next = loadComfyGallery().filter(entry => entry.id !== id);
-  saveComfyGallery(next, { syncRemote: false });
-  void import('./server-sync').then(({ pushGalleryDeletionsToServer }) =>
-    pushGalleryDeletionsToServer(next, deletedIds)
-  );
-  if (existing) {
-    pruneComfyHistoryForEntries([existing]);
-  }
+/**
+ * `trash` (a delete the player asked for, M10 T2): the entries go to the trash, restorable for
+ * 14 days — their kept media and ComfyUI history stay meanwhile. Without it (culls, purges) they
+ * are gone.
+ */
+export function removeComfyGalleryEntry(id: string, options: { trash?: boolean } = {}): string[] {
+  return removeComfyGalleryEntries([id], options);
 }
 
-export function removeComfyGalleryEntries(ids: string[]): void {
+/** The trash items made (to undo with). */
+export function removeComfyGalleryEntries(
+  ids: string[],
+  options: { trash?: boolean } = {}
+): string[] {
   if (ids.length === 0) {
-    return;
+    return [];
   }
   const idSet = new Set(ids);
   const removed = loadComfyGallery().filter(entry => idSet.has(entry.id));
+  const trashed =
+    options.trash && removed.length > 0
+      ? removed.map(entry =>
+          galleryEntryTrashItem(getGalleryEntryById(entry.id) ?? entry, {
+            thumbUrl: galleryEntryPrimaryViewUrl(entry) ?? undefined,
+          })
+        )
+      : [];
+  addToTrash(trashed);
   const deletedIds = rememberGalleryDeletedIds(ids);
   const next = loadComfyGallery().filter(entry => !idSet.has(entry.id));
   saveComfyGallery(next, { syncRemote: false });
   void import('./server-sync').then(({ pushGalleryDeletionsToServer }) =>
     pushGalleryDeletionsToServer(next, deletedIds)
   );
-  pruneComfyHistoryForEntries(removed);
+  if (!options.trash) pruneComfyHistoryForEntries(removed);
+  return trashed.map(item => item.id);
 }
 
 export function setComfyGalleryProjectIds(ids: string[], projectId: string | undefined): void {

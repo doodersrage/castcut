@@ -228,6 +228,16 @@ export async function pushGalleryDeletionsToServer(
   if (!(await isServerStorageEnabledClient())) {
     return;
   }
+  // The trash first (M10 T2): the server removes a deleted entry's media unless a stored row
+  // links to it, and the trash item is that link.
+  // (Only after this page's startup pull: before it, its extras may be a fresh profile's.)
+  const [{ collectStudioExtras }, { isSettingsSyncedWithServer }] = await Promise.all([
+    import('../app/studio-extras'),
+    import('../settings/push-flush'),
+  ]);
+  if (isSettingsSyncedWithServer()) {
+    await syncNamespaceToServer('studio-extras', collectStudioExtras());
+  }
   await Promise.all([
     syncNamespaceToServer(GALLERY_NAMESPACE, gallery),
     syncNamespaceToServer(DELETED_IDS_NAMESPACE, deletedIds),

@@ -39,6 +39,7 @@ export const DURABLE_BROWSER_SYNC_KEYS = new Set([
   'comfy-my-poses-v1',
   'comfy-continuity-decisions-v1',
   'castcut-locations-v1',
+  'castcut-trash-v1',
   'comfy-my-pose-packs-v1',
   'castcut-directions-v2',
   // Deletions from the synced record lists (record-tombstones.ts).

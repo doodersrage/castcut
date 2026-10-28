@@ -18,6 +18,7 @@ import {
   SCENE_JOB_LOG_LIMIT,
   SCENE_LIMIT_PER_CAST,
   removeSceneTake,
+  restoreSceneTake,
   setSceneTakeReview,
   resolveSceneChecks,
   SCENE_TAKE_LIMIT,
@@ -287,6 +288,35 @@ describe('scenes: the open scene follows the engine', () => {
       removed.takes.map(take => take.id),
       ['p1']
     );
+  });
+
+  // M10 T2: a removed take back from the trash — a new id, where it stood, kept again if it was.
+  it('restores a removed take where it stood, kept again when nothing is kept', () => {
+    const scene = {
+      ...kitchen(),
+      takes: [
+        { id: 'p1', imageUrl: '/1.png', at: 1 },
+        { id: 'p2', imageUrl: '/2.png', at: 2 },
+        { id: 'p3', imageUrl: '/3.png', at: 3 },
+      ],
+      keptTakeId: 'p2',
+    };
+    const removed = removeSceneTake(scene, 'p2', 7);
+    const back = restoreSceneTake(removed, scene.takes[1], { index: 1, keep: true, now: 8 });
+    assert.ok(back);
+    assert.notEqual(back.takeId, 'p2');
+    assert.deepEqual(
+      back.scene.takes.map(take => take.imageUrl),
+      ['/1.png', '/2.png', '/3.png']
+    );
+    assert.equal(back.scene.keptTakeId, back.takeId);
+    // The old id's removal stays (a synced tombstone): the restored take is not it.
+    assert.ok(back.scene.removedTakeIds?.includes('p2'));
+    assert.equal(normalizeSavedScene(back.scene)?.takes.length, 3);
+    // Something else kept since: it stays kept.
+    const other = restoreSceneTake(keepSceneTake(removed, 'p3', 9), scene.takes[1], { keep: true });
+    assert.equal(other?.scene.keptTakeId, 'p3');
+    assert.equal(restoreSceneTake(removed, { nope: true }), null);
   });
 
   // M7 T3: a verdict on a take, set without rendering it again.

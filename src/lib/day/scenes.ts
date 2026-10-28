@@ -756,6 +756,33 @@ export function removeSceneTake(scene: SavedScene, takeId: string, now = Date.no
   };
 }
 
+/**
+ * Put a removed take back (M10 T2, from the trash) under a new id — the old id's removal is a
+ * synced tombstone — where it stood, and kept again when it was and nothing is kept now.
+ */
+export function restoreSceneTake(
+  scene: SavedScene,
+  raw: unknown,
+  options: { index?: number; keep?: boolean; now?: number } = {}
+): { scene: SavedScene; takeId: string } | null {
+  const now = options.now ?? Date.now();
+  const take = normalizeTake(raw, now);
+  if (!take) return null;
+  const takeId = `${take.id.slice(0, 140)}-r${now.toString(36)}`;
+  const takes = [...scene.takes];
+  takes.splice(Math.min(options.index ?? takes.length, takes.length), 0, { ...take, id: takeId });
+  const keep = options.keep && !scene.keptTakeId;
+  return {
+    takeId,
+    scene: {
+      ...scene,
+      takes: boundedTakes(takes, keep ? takeId : scene.keptTakeId),
+      ...(keep ? { keptTakeId: takeId } : {}),
+      updatedAt: now,
+    },
+  };
+}
+
 export function upsertScene(
   scenes: ReadonlyArray<SavedScene> | undefined,
   scene: SavedScene
