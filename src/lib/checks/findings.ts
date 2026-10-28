@@ -34,7 +34,9 @@ export type ContinuityRule =
   /** A dialogue exchange with no reaction shot. */
   | 'coverage-reaction'
   /** Shots made into Scenes, none with a kept take. */
-  | 'coverage-kept';
+  | 'coverage-kept'
+  /** A place two or more planned shots go to, with no location record (M8 T4). */
+  | 'location-unset';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

@@ -8,7 +8,7 @@ import type { ContinuityFinding, ContinuityRule } from '../checks/findings';
 import type { ScriptScene } from '../script/parse';
 import { sceneCutUse, type SavedScene } from './scenes';
 import type { PlannedShot } from './script-shots';
-import { speakerKey } from './script-cast';
+import { placeKey, resolvePlaces, speakerKey, type ScriptPlaceMap } from './script-cast';
 
 export type SceneCoverage = {
   planned: number;
@@ -75,11 +75,38 @@ function hasExchange(scene: ScriptScene): boolean {
  * What looks missing from a planned scene's coverage. Only a scene with shots planned is looked
  * at (an unplanned one is simply not planned yet).
  */
+/**
+ * Each script place that resolves to "somewhere else" (no location record, not her home or
+ * workplace), with how many planned shots go there across the script (M8 T4). Keyed by place.
+ */
+export function unsetPlaceShots(input: {
+  scenes: readonly Pick<ScriptScene, 'id' | 'place'>[];
+  shots: readonly PlannedShot[];
+  placeMap: ScriptPlaceMap | undefined;
+  locations: Parameters<typeof resolvePlaces>[2];
+}): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const scene of input.scenes) {
+    const place = placeKey(scene.place);
+    if (!place) continue;
+    const planned = input.shots.filter(shot => shot.sceneId === scene.id).length;
+    counts.set(place, (counts.get(place) ?? 0) + planned);
+  }
+  const resolved = resolvePlaces([...counts.keys()], input.placeMap, input.locations);
+  return new Map(
+    resolved
+      .filter(entry => entry.choice === 'elsewhere')
+      .map(entry => [entry.place, counts.get(entry.place) ?? 0])
+  );
+}
+
 export function coverageFindings(input: {
   scriptId: string;
   scene: ScriptScene;
   shots: readonly PlannedShot[];
   coverage: SceneCoverage;
+  /** Planned shots across the script at each place with no location record (unsetPlaceShots). */
+  unsetPlaces?: ReadonlyMap<string, number>;
 }): ContinuityFinding[] {
   const { scene, shots, coverage } = input;
   if (!shots.length) return [];
@@ -107,6 +134,16 @@ export function coverageFindings(input: {
       'coverage-reaction',
       'A dialogue exchange with no reaction shot',
       'Add a reaction (the listener, close) to cut away to, or say it is fine.'
+    );
+  }
+  // The same café drawn fresh in every shot set there (V3, T5): worth a location record.
+  const placeShots = input.unsetPlaces?.get(placeKey(scene.place)) ?? 0;
+  if (placeShots >= 2) {
+    const place = scene.place.trim().toLowerCase();
+    add(
+      'location-unset',
+      `${placeShots} shots go to the ${place}, and each draws its own`,
+      `Make the ${place} a location (Locations) — every shot set there then shows the same room — or say it is fine.`
     );
   }
   if (coverage.made > 0 && coverage.kept === 0) {

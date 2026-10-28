@@ -8,6 +8,7 @@ import {
   coverageSubject,
   coverageSummary,
   sceneCoverage,
+  unsetPlaceShots,
 } from './script-coverage';
 import { draftShots } from './script-shots';
 
@@ -81,5 +82,67 @@ describe('script coverage (M3 S5)', () => {
       quality.rows.map(row => [row.rule, row.dismissed]),
       [['coverage-establishing', 1]]
     );
+  });
+
+  // M8 T4: the same café drawn fresh in each shot set there (V3, T5) is worth a location.
+  it('flags a place two or more shots go to that has no location record', () => {
+    const script = parseScript(
+      [
+        'INT. CAFE - DAY',
+        '',
+        'She orders.',
+        '',
+        'INT. KITCHEN - NIGHT',
+        '',
+        'She cooks.',
+        '',
+        'INT. CAFE - DAY',
+        '',
+        'She pays.',
+        '',
+        'EXT. PIER - NIGHT',
+        '',
+        'She waits.',
+        '',
+      ].join('\n')
+    );
+    const [cafe1, home, cafe2, pier] = script.scenes;
+    const shots = [cafe1!, home!, cafe2!, pier!].flatMap(entry => draftShots(entry).slice(0, 1));
+    const unset = unsetPlaceShots({ scenes: script.scenes, shots, placeMap: undefined, locations: [] });
+    // The kitchen reads as her home (its own design); the pier has one shot.
+    assert.deepEqual([...unset], [
+      ['CAFE', 2],
+      ['PIER', 1],
+    ]);
+    const findings = (subject: typeof cafe1) =>
+      coverageFindings({
+        scriptId: 's',
+        scene: subject!,
+        shots: shots.filter(shot => shot.sceneId === subject!.id),
+        coverage: { planned: 1, made: 0, withTakes: 0, kept: 0, inCut: 0 },
+        unsetPlaces: unset,
+      }).filter(finding => finding.rule === 'location-unset');
+    assert.deepEqual(
+      findings(cafe1).map(finding => [finding.id, finding.evidence]),
+      [[`script:s:${cafe1!.id}:location-unset`, '2 shots go to the cafe, and each draws its own']]
+    );
+    assert.equal(findings(cafe2).length, 1, 'on each scene set there');
+    assert.equal(findings(pier).length, 0, 'one shot: nothing to keep alike');
+    // A location record for it: nothing to flag.
+    const located = unsetPlaceShots({
+      scenes: script.scenes,
+      shots,
+      placeMap: undefined,
+      locations: [{ id: 'loc-cafe', name: 'Corner café', aliases: ['cafe'] }],
+    });
+    assert.equal(located.has('CAFE'), false);
+    // Two shots of one scene count too (V3's pairs were one place, one time).
+    const twoShots = unsetPlaceShots({
+      scenes: [pier!],
+      shots: draftShots(pier!).slice(0, 1).flatMap(shot => [shot, { ...shot, id: `${shot.id}-2` }]),
+      placeMap: undefined,
+      locations: [],
+    });
+    assert.equal(twoShots.get('PIER'), 2);
   });
 });

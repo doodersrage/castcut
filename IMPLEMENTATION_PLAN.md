@@ -1971,6 +1971,15 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - A deterministic finding: a script place used by two or more shots with no location record
   ("the café in 6A and 7A is drawn fresh each time — make it a location").
 - Acceptance: unit tests per rule; findings decided and counted like the rest (C2, C5).
+- Status 2026-10-28: Auto-review's place check gets a shot's location — its words with the
+  location's name and look (`withLocation`) — so a café is judged as that café. A new script
+  rule, `location-unset` ("Script: recurring place with no location"): a place that resolves to
+  somewhere else (no location record, not her home or workplace) and that two or more planned
+  shots go to — across scenes or within one — is flagged on each of its scenes, with "make it a
+  location" as the suggestion (`unsetPlaceShots`, `coverageFindings`; the Scene page's script and
+  the Film Director's count both pass the records). Decided and counted like the other coverage
+  rules. Unit tests. The place-miss finding still says what the check saw, not the location's
+  name (the Gallery entry doesn't carry it) — left as is.
 
 **T5 — Editable scene state.** · L
 - Per Scene: props carried or used, physical changes (an injury, wet hair), story day and time,

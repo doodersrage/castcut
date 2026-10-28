@@ -9,7 +9,12 @@ import {
   undecideFinding,
   type FindingDecision,
 } from '@/lib/checks/finding-decisions';
-import { coverageFindings, coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
+import {
+  coverageFindings,
+  coverageSummary,
+  sceneCoverage,
+  unsetPlaceShots,
+} from '@/lib/day/script-coverage';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
@@ -423,6 +428,12 @@ export default function SceneScripts({
     if (!open || !openParsed) return null;
     const cut = loadSettingsCache().tools.cut;
     const decided = findingDecisionMap(decisions);
+    const unsetPlaces = unsetPlaceShots({
+      scenes: openParsed.scenes,
+      shots: open.shots ?? [],
+      placeMap: open.placeMap,
+      locations,
+    });
     const byScene = new Map(
       openParsed.scenes.map(scene => {
         const shots = shotsForScene(open.shots, scene.id);
@@ -432,6 +443,7 @@ export default function SceneScripts({
           scene,
           shots,
           coverage: counts,
+          unsetPlaces,
         }).map(finding => ({ finding, decision: decided.get(finding.id) }));
         return [scene.id, { counts, findings }] as const;
       })
@@ -454,7 +466,7 @@ export default function SceneScripts({
       .filter(Boolean)
       .join(' · ');
     return { byScene, total };
-  }, [decisions, open, openParsed, scenes]);
+  }, [decisions, locations, open, openParsed, scenes]);
 
   const keep = () => {
     if (!draft) return;

@@ -15,7 +15,7 @@ import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { parseScript } from '../script/parse';
 import { keptTakeOf, sceneCutUse, type SavedScene } from '../day/scenes';
 import type { SavedScript } from '../day/scene-scripts';
-import { coverageFindings, sceneCoverage } from '../day/script-coverage';
+import { coverageFindings, sceneCoverage, unsetPlaceShots } from '../day/script-coverage';
 import { shotsForScene } from '../day/script-shots';
 
 export type OverviewEntry = FindingsEntry &
@@ -89,6 +89,8 @@ export function productionOverview(input: {
   gallery: readonly OverviewEntry[];
   decisions: ReadonlyMap<string, FindingDecision>;
   cut: { versions?: readonly unknown[] } & Parameters<typeof sceneCutUse>[0];
+  /** Location records (a script place that is one isn't a recurring unset place, M8 T4). */
+  locations?: Parameters<typeof unsetPlaceShots>[0]['locations'];
   now?: number;
 }): ProductionOverview {
   const now = input.now ?? Date.now();
@@ -137,6 +139,12 @@ export function productionOverview(input: {
   };
   for (const saved of scripts) {
     const parsed = parseScript(saved.source);
+    const unsetPlaces = unsetPlaceShots({
+      scenes: parsed.scenes,
+      shots: saved.shots ?? [],
+      placeMap: saved.placeMap,
+      locations: input.locations,
+    });
     for (const scene of parsed.scenes) {
       script.scenes += 1;
       const shots = shotsForScene(saved.shots, scene.id);
@@ -150,6 +158,7 @@ export function productionOverview(input: {
         scene,
         shots,
         coverage,
+        unsetPlaces,
       }).filter(finding => !input.decisions.has(finding.id)).length;
       if (shots.length && coverage.made === 0) {
         script.uncovered.push({

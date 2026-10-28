@@ -1,6 +1,7 @@
 'use client';
 
 import { isRestoredTake } from '@/lib/day/planner';
+import { loadLocations, withLocation } from '@/lib/location/records';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import {
@@ -305,9 +306,13 @@ export function useDaySlotQualityGate(
         // How real it looks: its own vision call (in the review prompt it never fired).
         // And where it is: the place check rides the same upload (still-place.ts).
         const { checkStillRealismAndPlace } = await import('@/lib/pose/gesture-vision-client');
+        // A shot set in a location record (M8 T4) is checked against that place: its name and look.
+        const location = target.locationId
+          ? loadLocations().find(entry => entry.id === target.locationId)
+          : undefined;
         const looked = await checkStillRealismAndPlace({
           imageUrl: checkUrl,
-          place: target.location,
+          place: location ? withLocation(target.location, location) : target.location,
           shared,
         }).catch(() => ({ realism: null, place: null }));
         const realism = looked.realism;

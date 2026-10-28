@@ -26,6 +26,7 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'coverage-establishing': 'Script: no establishing shot',
   'coverage-reaction': 'Script: no reaction',
   'coverage-kept': 'Script: nothing kept',
+  'location-unset': 'Script: recurring place with no location',
 };
 
 const RULES = Object.keys(CONTINUITY_RULE_LABELS) as ContinuityRule[];

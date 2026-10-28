@@ -13,6 +13,7 @@ import {
 import { getCharacter } from '@/lib/character/os';
 import { normalizeSavedScenes } from '@/lib/day/scenes';
 import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
+import { useLocations } from '@/components/location/useLocations';
 import { DEFAULT_CUT_TOOL_CACHE } from '@/lib/film/cut-room';
 import { productionOverview, type SceneState } from '@/lib/film/production-overview';
 import { nextProductionActions } from '@/lib/film/production-next';
@@ -134,6 +135,7 @@ export default function FilmDirector() {
   const settings = sceneTool.toolSettings;
   // Scripts keep their own store (M6 V6); any still in the settings move there.
   const { scripts } = useSceneScripts(sceneTool);
+  const locations = useLocations();
 
   const overview = useMemo(() => {
     if (!castId) return null;
@@ -146,8 +148,9 @@ export default function FilmDirector() {
       gallery,
       decisions: findingDecisionMap(decisions),
       cut: cut.toolSettings,
+      locations,
     });
-  }, [castId, cut.toolSettings, decisions, gallery, scripts, settings]);
+  }, [castId, cut.toolSettings, decisions, gallery, locations, scripts, settings]);
 
   // The Scene page's run (M5 W4), as recorded — what automation did, step by step (W5).
   const run = useMemo(() => {
