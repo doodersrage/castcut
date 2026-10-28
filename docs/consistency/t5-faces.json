@@ -1,0 +1,541 @@
+[
+  {
+    "promptId": "6e15798e-6c80-41ac-84de-e028266f0380",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.586,
+    "cross": 0.192
+  },
+  {
+    "promptId": "517765b1-d885-48f7-9666-e424a16c52c7",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.655,
+    "cross": 0.28
+  },
+  {
+    "promptId": "3d56a915-847e-457f-acec-f563188d869a",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.653,
+    "cross": 0.219
+  },
+  {
+    "promptId": "ce467e3c-b51d-40d6-a5b3-f2ce2984acbe",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.637,
+    "cross": 0.211
+  },
+  {
+    "promptId": "aa7d9bc2-9ff2-4097-b2f4-058ed1c0b16f",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.609,
+    "cross": 0.193
+  },
+  {
+    "promptId": "6083c7d8-3177-4df2-ad6e-2d70dbe26c04",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.692,
+    "cross": 0.236
+  },
+  {
+    "promptId": "44755cf9-04b1-4257-a95c-79b054ca47c4",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.688,
+    "cross": 0.253
+  },
+  {
+    "promptId": "13a645bd-4792-46a0-bebb-b5b20bef0f52",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.625,
+    "cross": 0.214
+  },
+  {
+    "promptId": "344433a7-7379-43ac-8b2d-322a5fc67bee",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.576,
+    "cross": 0.228
+  },
+  {
+    "promptId": "dbc35c4e-6d8d-4d95-bd81-38e9863e0bc6",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.655,
+    "cross": 0.144
+  },
+  {
+    "promptId": "b7550553-95a9-4b86-8c9d-67b9793315b6",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.645,
+    "cross": 0.197
+  },
+  {
+    "promptId": "e8fc079c-1c1e-4f54-8b35-d2c7dcc781ac",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.697,
+    "cross": 0.254
+  },
+  {
+    "promptId": "c46be273-d0f5-414d-889c-0b64dcd65e42",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.65,
+    "cross": 0.194
+  },
+  {
+    "promptId": "a247b77b-11ef-4e59-8cf3-65e09024e180",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.644,
+    "cross": 0.225
+  },
+  {
+    "promptId": "c0e67e32-38a8-47fc-8935-04d34439aa87",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.658,
+    "cross": 0.243
+  },
+  {
+    "promptId": "543ed765-7ef0-44d5-9e89-346aec7fa398",
+    "cast": "cast-mara",
+    "engine": "qwen-image-2.1",
+    "own": 0.691,
+    "cross": 0.242
+  },
+  {
+    "promptId": "bd9fc24b-8ce7-4f05-aa59-4b152d0be345",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.51,
+    "cross": 0.109
+  },
+  {
+    "promptId": "f98b128a-a284-401e-94ee-6e15877c18f2",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.63,
+    "cross": 0.154
+  },
+  {
+    "promptId": "62fb9527-11d6-45d3-a2e3-21ed564fa6d9",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.614,
+    "cross": 0.176
+  },
+  {
+    "promptId": "88b2372f-97a9-4469-863e-8816a7c1dd71",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.614,
+    "cross": 0.266
+  },
+  {
+    "promptId": "2972b7d1-ce2e-4319-a005-6fa8e1a1eff4",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.628,
+    "cross": 0.284
+  },
+  {
+    "promptId": "8920e847-0a86-47f4-82a5-470dc42b8168",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.57,
+    "cross": 0.234
+  },
+  {
+    "promptId": "12da95da-069e-4eb0-aec3-228e10703255",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.688,
+    "cross": 0.267
+  },
+  {
+    "promptId": "ae890320-4c80-4dde-989b-76040c50ddce",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.649,
+    "cross": 0.198
+  },
+  {
+    "promptId": "f8aa8f8e-9557-48ed-b13c-b967e327e010",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.623,
+    "cross": 0.263
+  },
+  {
+    "promptId": "6eb3e6a6-3ef6-4d6f-ad25-d87b08841f40",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.616,
+    "cross": 0.232
+  },
+  {
+    "promptId": "bfeb74fd-9bd6-4981-ba24-cf2bc43e7019",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.608,
+    "cross": 0.23
+  },
+  {
+    "promptId": "8920e847-0a86-47f4-82a5-470dc42b8168",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.57,
+    "cross": 0.234
+  },
+  {
+    "promptId": "b4b61eff-b01e-44ac-8cda-d9d742ae202e",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.533,
+    "cross": 0.095
+  },
+  {
+    "promptId": "013e9043-1b8b-4305-9764-549364c2b024",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.611,
+    "cross": 0.158
+  },
+  {
+    "promptId": "0117a043-b457-460c-8b79-d6e307782de3",
+    "cast": "cast-lena",
+    "engine": "qwen-image-2.1",
+    "own": 0.602,
+    "cross": 0.238
+  },
+  {
+    "promptId": "a8e6214c-bd03-4152-ba8c-0758663f3b5b",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.636,
+    "cross": 0.218
+  },
+  {
+    "promptId": "90a70770-6f5b-4ee3-9cc1-c19fb077052e",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.633,
+    "cross": 0.205
+  },
+  {
+    "promptId": "eb3de8fc-c7ca-475d-8f18-cdace84f6c0d",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.612,
+    "cross": 0.226
+  },
+  {
+    "promptId": "fadef75e-9646-48a1-9afd-1f3a3ef098f0",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.592,
+    "cross": 0.199
+  },
+  {
+    "promptId": "73ce6c51-460e-4334-9d3b-751be64edc82",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.647,
+    "cross": 0.206
+  },
+  {
+    "promptId": "5aff3ed8-fc7a-4e72-ad49-9302c8134fd6",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.659,
+    "cross": 0.189
+  },
+  {
+    "promptId": "10ce1daa-dfcb-4b07-8f4d-f3c616655b18",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.639,
+    "cross": 0.257
+  },
+  {
+    "promptId": "bb288444-518d-4d0e-8c1c-483a8ed5375e",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.634,
+    "cross": 0.242
+  },
+  {
+    "promptId": "d0dcfa34-a1bb-4808-8748-9092df6913c5",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.632,
+    "cross": 0.258
+  },
+  {
+    "promptId": "f892a30f-6f52-425d-aa89-3f2011d81103",
+    "cast": "cast-mara",
+    "engine": "rapid-aio",
+    "own": 0.626,
+    "cross": 0.222
+  },
+  {
+    "promptId": "1f05209d-307d-45c2-a5e0-57ad57ae8f19",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.681,
+    "cross": 0.219
+  },
+  {
+    "promptId": "d3eba3f8-2858-446c-993e-c2a93ec901cf",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.625,
+    "cross": 0.205
+  },
+  {
+    "promptId": "3131df99-5741-4970-91cf-6f51147265aa",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.663,
+    "cross": 0.23
+  },
+  {
+    "promptId": "f29bf427-57ea-4c50-91a1-71e8d04dc88f",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.673,
+    "cross": 0.276
+  },
+  {
+    "promptId": "ca224881-f9d9-4b32-8626-4d922831cbb3",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.651,
+    "cross": 0.248
+  },
+  {
+    "promptId": "6bd2eefd-16dd-402f-a24b-018ec117ae89",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.61,
+    "cross": 0.18
+  },
+  {
+    "promptId": "367c457f-7d90-40a5-a36d-5e7a94572c4b",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.635,
+    "cross": 0.239
+  },
+  {
+    "promptId": "dc48779e-bfa5-4aeb-bc83-d3d07636c2b4",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.66,
+    "cross": 0.267
+  },
+  {
+    "promptId": "a29903d5-8bc8-4d1d-a777-86a8924fe168",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.671,
+    "cross": 0.249
+  },
+  {
+    "promptId": "19f637e7-343e-4bb6-82f5-abefaea33197",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.631,
+    "cross": 0.28
+  },
+  {
+    "promptId": "c16e2312-3157-4ca2-9b82-33add67434ff",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.655,
+    "cross": 0.233
+  },
+  {
+    "promptId": "db4ba3b1-39b0-4328-9019-825abfb29153",
+    "cast": "cast-mara",
+    "engine": "qwen-edit-2511",
+    "own": 0.673,
+    "cross": 0.289
+  },
+  {
+    "promptId": "60d69123-fcd4-4be0-818e-cd76777f7363",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.573,
+    "cross": 0.106
+  },
+  {
+    "promptId": "5ae7d631-5786-465b-8ec5-bdd33c79cf12",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.553,
+    "cross": 0.168
+  },
+  {
+    "promptId": "16e0bbf3-2618-4bae-886e-9736e061da56",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.438,
+    "cross": 0.137
+  },
+  {
+    "promptId": "762a6040-4342-4614-a689-8beafb87fa5c",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.519,
+    "cross": 0.202
+  },
+  {
+    "promptId": "7e59cc1d-7f51-4b42-9610-bb36b80f761e",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.649,
+    "cross": 0.103
+  },
+  {
+    "promptId": "e1637933-326b-4bfa-b72e-60e83bbf0163",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.566,
+    "cross": 0.126
+  },
+  {
+    "promptId": "07ec3e18-aa47-43e0-9688-e367647c3e28",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.607,
+    "cross": 0.152
+  },
+  {
+    "promptId": "fe13d38a-6414-449e-aaab-4cdae5df6749",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.423,
+    "cross": 0.151
+  },
+  {
+    "promptId": "efb45724-7bd0-4d79-853f-e61a4bc9ae06",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.583,
+    "cross": 0.206
+  },
+  {
+    "promptId": "20927a74-f065-4348-ac5e-5e25cb99c257",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.504,
+    "cross": 0.158
+  },
+  {
+    "promptId": "92e6ae7c-5e02-43b7-98a1-e46121e4898a",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.419,
+    "cross": 0
+  },
+  {
+    "promptId": "d312fe18-dcc7-4ffd-97a4-63f0b3bd9627",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.47,
+    "cross": 0.114
+  },
+  {
+    "promptId": "b3d86410-d09f-46ae-9fbb-ca355d336452",
+    "cast": "cast-lena",
+    "engine": "rapid-aio",
+    "own": 0.395,
+    "cross": 0.05
+  },
+  {
+    "promptId": "05834882-ea93-4802-bde4-b6fc08ea8436",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.556,
+    "cross": 0.149
+  },
+  {
+    "promptId": "c73e7d65-3a55-4c7f-8396-0436e7f84c0c",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.571,
+    "cross": 0.179
+  },
+  {
+    "promptId": "c247a89f-c695-40b1-a3e9-5b7d498a6444",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.575,
+    "cross": 0.16
+  },
+  {
+    "promptId": "bd6dd5dd-7eb3-4fdb-80ce-8c0192f4ca3f",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.552,
+    "cross": 0.174
+  },
+  {
+    "promptId": "d3a64924-2620-4e41-8bc7-2adc0fd8ec93",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.585,
+    "cross": 0.148
+  },
+  {
+    "promptId": "5293b68e-6117-4d3e-b04c-0f372e4ec8fe",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.546,
+    "cross": 0.143
+  },
+  {
+    "promptId": "0e3a2dab-7646-4776-b760-fe7eec164648",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.555,
+    "cross": 0.217
+  },
+  {
+    "promptId": "02dc3c6b-6256-4da9-b70f-7174e74a6ad5",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.55,
+    "cross": 0.172
+  },
+  {
+    "promptId": "1a59dabc-96c8-4931-a47e-92dc8c9cdb03",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.568,
+    "cross": 0.181
+  },
+  {
+    "promptId": "1156911e-47bb-4f88-a362-debcea274301",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.603,
+    "cross": 0.16
+  },
+  {
+    "promptId": "59808262-cf2f-40b4-b5f5-df8a3dc88429",
+    "cast": "cast-lena",
+    "engine": "qwen-edit-2511",
+    "own": 0.568,
+    "cross": 0.155
+  }
+]

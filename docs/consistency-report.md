@@ -4,6 +4,9 @@ M6 V3. How good are Castcut's continuity checks (M2 C1–C5) on real renders? A 
 every finding judged by a person, counted with C5's own `checkQuality`: what each check found,
 how much of it was real, and what it missed. Any change to a check's threshold should cite this.
 
+The set was re-run for M7 T5 (2026-10-28) with two different faces and Auto-review on: see
+[T5: two faces, Auto-review on](#t5-two-faces-auto-review-on-2026-10-28) below.
+
 ## The set
 
 |         |                                                                                                                                              |
@@ -124,3 +127,105 @@ SCENE_V3_LABELS=<saved v3-review.json> npx tsx scripts/scene-real-render.mts v3r
 ```
 
 A new set renders new pictures, so its labels are its own; the tables above are for this set.
+
+## T5: two faces, Auto-review on (2026-10-28)
+
+M7 T5. V3's set again, with what V3 could not test: two people, and Auto-review's own verdicts
+(outfit, place, gesture — M7 T2) as findings.
+
+|         |                                                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------------------------------- |
+| Castcut | `main` at `b1039007` (with D24, D25 below), `next dev`, a fresh data folder, ComfyUI 0.42.5 on an RTX 4090          |
+| Cast    | Mara as in V3; Lena's plate re-made with another face and hair (an edit of her V3 plate: same body, dress, framing) |
+| Scenes  | As V3: per Cast five scenes on each of the three engines, plus the pairs on Qwen-Image 2.1                          |
+| Checks  | Every run with **Auto-review on**: face match, pose match and the gesture check, the vision review (outfit, place)  |
+| Review  | One reviewer, in the sheet: each finding right or wrong, each take **Good** or **Reject** with what is wrong        |
+| Takes   | 77: 40 queued, 37 more Auto-review's rerolls; 76 checked (Lena's first take was not), all 76 by Auto-review         |
+
+The reviewer read the sheet's finding buttons the other way round (_It’s fine_ as "the check is
+right"); every finding label was flipped before counting, as they confirmed. The sheet now says
+**Check is right** / **Check is wrong**.
+
+### Per rule
+
+| Rule             | Found | Check right | Check wrong | Precision | Rejected for its reason | Missed |
+| ---------------- | ----: | ----------: | ----------: | --------: | ----------------------: | -----: |
+| Pose match       |    40 |          17 |          22 |   44% (¹) |                       7 |      0 |
+| Outfit check     |    13 |           9 |           4 |       69% |                      13 |      1 |
+| Place check      |     0 |           — |           — |         — |                       2 |      2 |
+| Face match       |     0 |           — |           — |         — |                       0 |      0 |
+| Marks check      |     0 |           — |           — |         — |                       0 |      0 |
+| Cut: outfit jump |     3 |           0 |           3 |    0% (²) |                       — |      — |
+
+¹ One pose finding left undecided. ² See below.
+
+"Missed" counts the takes rejected for that rule's reason that it did not flag (`ruleMisses`). 27
+takes were rejected; **5 had no finding at all**: one for the place, one for the place and hands,
+one for hands, one for the outfit (on Edit 2511, a pose score of 0.98), and one with no reason.
+
+**Per engine** (checked takes):
+
+| Engine         | Takes | Pose: found / right | Outfit: found / right | Rejected |
+| -------------- | ----: | ------------------: | --------------------: | -------: |
+| Qwen-Image 2.1 |    30 |              12 / 6 |                 0 / 0 |        2 |
+| Rapid AIO      |    23 |              14 / 4 |                11 / 7 |       13 |
+| Edit 2511      |    23 |              14 / 7 |                 2 / 2 |       11 |
+
+### What the labels say
+
+**Face match tells the two people apart.** Measured without labels (`v3faces`: every take against
+both Casts' plates, through the app's face-match route): against its own Cast's plate 0.40–0.70
+(median 0.62), against the other's 0.00–0.29 (median 0.21). At the still bar (0.4,
+`STILL_MIN_FACE_MATCH`) all 77 wrong-person pairs fall under it and one right-person take does
+(0.395). No take was a wrong person, so the check never fired, and no take was rejected for its
+face. The bar stands.
+
+**Pose match: still about half right, and still no threshold change.** 17 of 39 decided findings
+were right (V3: 47%), and it missed none of the 7 takes rejected for the pose. The right ones score
+0.18–0.35, the wrong ones 0.23–0.40: a bar at 0.3 instead of 0.5 would flag 19 takes, 13 of them
+right (68%), but let 4 real misses through. The largest group of wrong findings is the kitchen
+beat (holding a cup: 9 of 22, 0.31–0.40). One reviewer and 40 findings: a direction for the next
+set, not a change.
+
+**The outfit check is the useful new one.** 9 of 13 right, and it flagged 12 of the 13 takes
+rejected for the outfit. Its findings say "another outfit" rather than what it saw: the second look
+did not name the garment.
+
+**The place check never fired.** Two takes rejected for the place, neither flagged — as in V3,
+where the pairs' rooms changed and nothing noticed.
+
+**Cut's outfit jump: judged noise this time.** The same three changed pairs were flagged (exact,
+as in V3), but here the reviewer marked all three as not a problem — the change was planned, which
+the rule cannot know. V3's reviewer judged the same three real. Either way the rule does what it
+says; whether a planned change should warn is a product question.
+
+**Lena's outfit does not hold on two engines.** 21 of the 27 rejected takes are Lena's, 12 of them
+for the outfit, all on Rapid AIO and Edit 2511 — a printed or striped dress, a blazer, a white lace
+dress instead of the mint shirt dress — while Mara's hold it on the same engines and Lena's hold it
+on Qwen-Image 2.1. The prompts are the same word for word and her dressed plate is right; the
+difference is her plate (re-made by an edit of an edit). Worth a second re-made Cast before
+calling it an engine limit.
+
+### Defects found
+
+- **D24** — with Auto-review on, a Scene run opened the next Scene while the review still ran, so
+  the next take replaced the still: 9 of the first 20 takes were never reviewed, and nothing was
+  rerolled. Fixed: the run waits for Auto-review (and the reroll it sets off). This set is after
+  the fix.
+- **D25** — a run gave a take 60 s to be queued, but the first take in an outfit dresses the plate
+  first (about 3 minutes on a fresh install): every run on a fresh install paused on its first
+  Scene. Now 5 minutes.
+
+### Limits
+
+- One reviewer; one re-made face; one outfit; establishing wides only.
+- Face match was measured, not judged: no take put the wrong person on screen.
+- The labels were flipped after the fact (above); 1 finding and 4 takes were left undecided.
+
+### Data and re-run
+
+[`consistency/t5-set.json`](consistency/t5-set.json) (each take's checks, Auto-review's verdicts),
+[`consistency/t5-labels.json`](consistency/t5-labels.json) (finding labels as meant, the takes'
+Good / Reject and why) and [`consistency/t5-faces.json`](consistency/t5-faces.json) (both face
+scores per take). As V3's re-run above, with `SCENE_AUTO_REVIEW=1` on each `v3run`, the Cast files
+of two faces in `SCENE_CASTS`, and `v3faces` before `v3report`.

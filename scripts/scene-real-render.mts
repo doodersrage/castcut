@@ -2964,12 +2964,15 @@ const phases: Record<string, Phase> = {
     }));
     const quality = checkQuality(setEntries, decisions);
     const lines = [
-      '| Rule | Found | Confirmed (It’s real) | False positives (It’s fine) | Not decided |',
+      '| Rule | Found | Confirmed (check right) | False positives (check wrong) | Not decided |',
       '| --- | --- | --- | --- | --- |',
-      ...quality.rows.map(
-        row =>
-          `| ${row.label}${row.decidedOnly ? ' ¹' : ''} | ${row.found} | ${row.accepted} | ${row.dismissed} | ${row.found - row.accepted - row.dismissed} |`
-      ),
+      // Your own Rejects are labels, not a check.
+      ...quality.rows
+        .filter(row => row.rule !== 'looks-wrong')
+        .map(
+          row =>
+            `| ${row.label}${row.decidedOnly ? ' ¹' : ''} | ${row.found} | ${row.accepted} | ${row.dismissed} | ${row.found - row.accepted - row.dismissed} |`
+        ),
       '',
       `Misses (marked Looks wrong, no check flagged it): ${quality.missed}`,
       '',

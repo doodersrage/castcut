@@ -275,8 +275,8 @@
     </header>
     <main>
       <p class="help">
-        For each finding: <b>It’s fine</b> if the check is wrong about this picture,
-        <b>It’s real</b> if it’s right. Then each take, whether or not a check flagged it:
+        For each finding: <b>Check is right</b> if the problem it names is really in the picture,
+        <b>Check is wrong</b> if it isn’t. Then each take, whether or not a check flagged it:
         <b>Good</b> if you would use it, <b>Reject</b> if not — and what is wrong with it (face,
         pose, outfit, place…). That is how each check’s misses are counted. Your answers are kept in
         this browser as you go; <b>Save</b> writes the file the report reads.
@@ -355,8 +355,8 @@
           'div',
           { className: 'choice' },
           ...[
-            ['dismissed', 'It’s fine', 'fine'],
-            ['accepted', 'It’s real', 'real'],
+            ['dismissed', 'Check is wrong', 'fine'],
+            ['accepted', 'Check is right', 'real'],
           ].map(([value, text, cls]) =>
             el('button', {
               type: 'button',

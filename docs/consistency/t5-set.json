@@ -1,0 +1,1381 @@
+[
+  {
+    "promptId": "6e15798e-6c80-41ac-84de-e028266f0380",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.34,
+    "poseMiss": true,
+    "face": 0.7736550569534302,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "517765b1-d885-48f7-9666-e424a16c52c7",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.94,
+    "poseMiss": false,
+    "face": 0.8280194401741028,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "3d56a915-847e-457f-acec-f563188d869a",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.24,
+    "poseMiss": true,
+    "face": 0.8440496325492859,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "ce467e3c-b51d-40d6-a5b3-f2ce2984acbe",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.83,
+    "poseMiss": false,
+    "face": 0.7944496870040894,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "aa7d9bc2-9ff2-4097-b2f4-058ed1c0b16f",
+    "cast": "cast-mara",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.76,
+    "poseMiss": false,
+    "face": 0.8184190988540649,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "6083c7d8-3177-4df2-ad6e-2d70dbe26c04",
+    "cast": "cast-mara",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "face": 0.8433442711830139,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": ""
+    }
+  },
+  {
+    "promptId": "44755cf9-04b1-4257-a95c-79b054ca47c4",
+    "cast": "cast-mara",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.97,
+    "poseMiss": false,
+    "face": 0.8380612134933472,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "13a645bd-4792-46a0-bebb-b5b20bef0f52",
+    "cast": "cast-mara",
+    "scene": "6A CAFE · Establishing",
+    "role": "pair-first",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.96,
+    "poseMiss": false,
+    "face": 0.7969498634338379,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "344433a7-7379-43ac-8b2d-322a5fc67bee",
+    "cast": "cast-mara",
+    "scene": "7A CAFE · Establishing",
+    "role": "pair-second",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-tailored-ink-mechanic-coveralls",
+    "checked": true,
+    "pose": 0.94,
+    "poseMiss": false,
+    "face": 0.7018086910247803,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "dbc35c4e-6d8d-4d95-bd81-38e9863e0bc6",
+    "cast": "cast-mara",
+    "scene": "8A GYM · Establishing",
+    "role": "pair-first",
+    "changed": false,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.87,
+    "poseMiss": false,
+    "face": 0.7967595458030701,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "b7550553-95a9-4b86-8c9d-67b9793315b6",
+    "cast": "cast-mara",
+    "scene": "8A GYM · Establishing",
+    "role": "pair-first",
+    "changed": false,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.83,
+    "poseMiss": false,
+    "face": 0.7878454923629761,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "e8fc079c-1c1e-4f54-8b35-d2c7dcc781ac",
+    "cast": "cast-mara",
+    "scene": "9A GYM · Establishing",
+    "role": "pair-second",
+    "changed": false,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.93,
+    "poseMiss": false,
+    "face": 0.803800642490387,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "c46be273-d0f5-414d-889c-0b64dcd65e42",
+    "cast": "cast-mara",
+    "scene": "10A LIBRARY · Establishing",
+    "role": "pair-first",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.25,
+    "poseMiss": true,
+    "face": 0.8026301860809326,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "a247b77b-11ef-4e59-8cf3-65e09024e180",
+    "cast": "cast-mara",
+    "scene": "10A LIBRARY · Establishing",
+    "role": "pair-first",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.83,
+    "poseMiss": false,
+    "face": 0.7962135672569275,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "c0e67e32-38a8-47fc-8935-04d34439aa87",
+    "cast": "cast-mara",
+    "scene": "11A LIBRARY · Establishing",
+    "role": "pair-second",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-tailored-ink-mechanic-coveralls",
+    "checked": true,
+    "pose": 0.25,
+    "poseMiss": true,
+    "face": 0.8187119960784912,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "543ed765-7ef0-44d5-9e89-346aec7fa398",
+    "cast": "cast-mara",
+    "scene": "11A LIBRARY · Establishing",
+    "role": "pair-second",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-tailored-ink-mechanic-coveralls",
+    "checked": true,
+    "pose": 0.71,
+    "poseMiss": false,
+    "face": 0.8215190172195435,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "bd9fc24b-8ce7-4f05-aa59-4b152d0be345",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.34,
+    "poseMiss": true,
+    "face": 0.5651863813400269,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "f98b128a-a284-401e-94ee-6e15877c18f2",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": false
+  },
+  {
+    "promptId": "62fb9527-11d6-45d3-a2e3-21ed564fa6d9",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.25,
+    "poseMiss": true,
+    "face": 0.7419779896736145,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "88b2372f-97a9-4469-863e-8816a7c1dd71",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.25,
+    "poseMiss": true,
+    "face": 0.7465768456459045,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "2972b7d1-ce2e-4319-a005-6fa8e1a1eff4",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.22,
+    "poseMiss": true,
+    "face": 0.7983182668685913,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "8920e847-0a86-47f4-82a5-470dc42b8168",
+    "cast": "cast-lena",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.76,
+    "poseMiss": false,
+    "face": 0.7956649661064148,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "12da95da-069e-4eb0-aec3-228e10703255",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.26,
+    "poseMiss": true,
+    "face": 0.7591269016265869,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "ae890320-4c80-4dde-989b-76040c50ddce",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.23,
+    "poseMiss": true,
+    "face": 0.7762249708175659,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "f8aa8f8e-9557-48ed-b13c-b967e327e010",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.23,
+    "poseMiss": true,
+    "face": 0.7964236736297607,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "6eb3e6a6-3ef6-4d6f-ad25-d87b08841f40",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.98,
+    "poseMiss": false,
+    "face": 0.7710663676261902,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "bfeb74fd-9bd6-4981-ba24-cf2bc43e7019",
+    "cast": "cast-lena",
+    "scene": "6A CAFE · Establishing",
+    "role": "pair-first",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.31,
+    "poseMiss": true,
+    "face": 0.8215855956077576,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "8920e847-0a86-47f4-82a5-470dc42b8168",
+    "cast": "cast-lena",
+    "scene": "6A CAFE · Establishing",
+    "role": "pair-first",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.76,
+    "poseMiss": false,
+    "face": 0.7956649661064148,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "b4b61eff-b01e-44ac-8cda-d9d742ae202e",
+    "cast": "cast-lena",
+    "scene": "7A CAFE · Establishing",
+    "role": "pair-second",
+    "changed": true,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-tailored-ink-mechanic-coveralls",
+    "checked": true,
+    "pose": 0.97,
+    "poseMiss": false,
+    "face": 0.6266090273857117,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "013e9043-1b8b-4305-9764-549364c2b024",
+    "cast": "cast-lena",
+    "scene": "8A BEACH · Establishing",
+    "role": "pair-first",
+    "changed": false,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.76,
+    "poseMiss": false,
+    "face": 0.7783010005950928,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "0117a043-b457-460c-8b79-d6e307782de3",
+    "cast": "cast-lena",
+    "scene": "9A BEACH · Establishing",
+    "role": "pair-second",
+    "changed": false,
+    "engine": "qwen-image-2.1",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "face": 0.8243321180343628,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": ""
+    }
+  },
+  {
+    "promptId": "a8e6214c-bd03-4152-ba8c-0758663f3b5b",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.4,
+    "poseMiss": true,
+    "face": 0.8532757759094238,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "90a70770-6f5b-4ee3-9cc1-c19fb077052e",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.38,
+    "poseMiss": true,
+    "face": 0.8436954617500305,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "eb3de8fc-c7ca-475d-8f18-cdace84f6c0d",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.31,
+    "poseMiss": true,
+    "face": 0.782624363899231,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "fadef75e-9646-48a1-9afd-1f3a3ef098f0",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.34,
+    "poseMiss": true,
+    "face": 0.7812838554382324,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "73ce6c51-460e-4334-9d3b-751be64edc82",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.34,
+    "poseMiss": true,
+    "face": 0.8276064991950989,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "5aff3ed8-fc7a-4e72-ad49-9302c8134fd6",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.33,
+    "poseMiss": true,
+    "face": 0.8364618420600891,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "10ce1daa-dfcb-4b07-8f4d-f3c616655b18",
+    "cast": "cast-mara",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.77,
+    "poseMiss": false,
+    "face": 0.8226733207702637,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "bb288444-518d-4d0e-8c1c-483a8ed5375e",
+    "cast": "cast-mara",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "face": 0.7812792062759399,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": ""
+    }
+  },
+  {
+    "promptId": "d0dcfa34-a1bb-4808-8748-9092df6913c5",
+    "cast": "cast-mara",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.95,
+    "poseMiss": false,
+    "face": 0.863741397857666,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "f892a30f-6f52-425d-aa89-3f2011d81103",
+    "cast": "cast-mara",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.85,
+    "poseMiss": false,
+    "face": 0.7521151900291443,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "1f05209d-307d-45c2-a5e0-57ad57ae8f19",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.38,
+    "poseMiss": true,
+    "face": 0.8102247714996338,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "d3eba3f8-2858-446c-993e-c2a93ec901cf",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.39,
+    "poseMiss": true,
+    "face": 0.7365687489509583,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "3131df99-5741-4970-91cf-6f51147265aa",
+    "cast": "cast-mara",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.4,
+    "poseMiss": true,
+    "face": 0.7664608359336853,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "f29bf427-57ea-4c50-91a1-71e8d04dc88f",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.32,
+    "poseMiss": true,
+    "face": 0.7867685556411743,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "ca224881-f9d9-4b32-8626-4d922831cbb3",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.26,
+    "poseMiss": true,
+    "face": 0.7745378613471985,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "6bd2eefd-16dd-402f-a24b-018ec117ae89",
+    "cast": "cast-mara",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.2,
+    "poseMiss": true,
+    "face": 0.7541083693504333,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "367c457f-7d90-40a5-a36d-5e7a94572c4b",
+    "cast": "cast-mara",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.78,
+    "poseMiss": false,
+    "face": 0.7850071787834167,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "dc48779e-bfa5-4aeb-bc83-d3d07636c2b4",
+    "cast": "cast-mara",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "face": 0.7507375478744507,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": ""
+    }
+  },
+  {
+    "promptId": "a29903d5-8bc8-4d1d-a777-86a8924fe168",
+    "cast": "cast-mara",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.28,
+    "poseMiss": true,
+    "face": 0.7911187410354614,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "19f637e7-343e-4bb6-82f5-abefaea33197",
+    "cast": "cast-mara",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.28,
+    "poseMiss": true,
+    "face": 0.7074023485183716,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "c16e2312-3157-4ca2-9b82-33add67434ff",
+    "cast": "cast-mara",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.98,
+    "poseMiss": false,
+    "face": 0.8224954605102539,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "db4ba3b1-39b0-4328-9019-825abfb29153",
+    "cast": "cast-mara",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.89,
+    "poseMiss": false,
+    "face": 0.8548751473426819,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "60d69123-fcd4-4be0-818e-cd76777f7363",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.92,
+    "poseMiss": false,
+    "face": 0.6822566390037537,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "5ae7d631-5786-465b-8ec5-bdd33c79cf12",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.32,
+    "poseMiss": true,
+    "face": 0.7036534547805786,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "16e0bbf3-2618-4bae-886e-9736e061da56",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.37,
+    "poseMiss": true,
+    "face": 0.4266456365585327,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "762a6040-4342-4614-a689-8beafb87fa5c",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.3,
+    "poseMiss": true,
+    "face": 0.7077126502990723,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "7e59cc1d-7f51-4b42-9610-bb36b80f761e",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.18,
+    "poseMiss": true,
+    "face": 0.68257737159729,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "e1637933-326b-4bfa-b72e-60e83bbf0163",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.23,
+    "poseMiss": true,
+    "face": 0.7266952395439148,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": "working on the laptop"
+    }
+  },
+  {
+    "promptId": "07ec3e18-aa47-43e0-9688-e367647c3e28",
+    "cast": "cast-lena",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.94,
+    "poseMiss": false,
+    "face": 0.677448034286499,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "fe13d38a-6414-449e-aaab-4cdae5df6749",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.24,
+    "poseMiss": true,
+    "face": 0.4579808712005615,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "efb45724-7bd0-4d79-853f-e61a4bc9ae06",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.29,
+    "poseMiss": true,
+    "face": 0.7863671183586121,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "20927a74-f065-4348-ac5e-5e25cb99c257",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.35,
+    "poseMiss": true,
+    "face": 0.7614051103591919,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "92e6ae7c-5e02-43b7-98a1-e46121e4898a",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.97,
+    "poseMiss": false,
+    "face": 0.420695424079895,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "d312fe18-dcc7-4ffd-97a4-63f0b3bd9627",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.9,
+    "poseMiss": false,
+    "face": 0.6291666030883789,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "b3d86410-d09f-46ae-9fbb-ca355d336452",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "rapid-aio",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.83,
+    "poseMiss": false,
+    "face": 0.6100386381149292,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "05834882-ea93-4802-bde4-b6fc08ea8436",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.35,
+    "poseMiss": true,
+    "face": 0.6978463530540466,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "c73e7d65-3a55-4c7f-8396-0436e7f84c0c",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.35,
+    "poseMiss": true,
+    "face": 0.6664047241210938,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "c247a89f-c695-40b1-a3e9-5b7d498a6444",
+    "cast": "cast-lena",
+    "scene": "1A KITCHEN · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.34,
+    "poseMiss": true,
+    "face": 0.7335449457168579,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "bd6dd5dd-7eb3-4fdb-80ce-8c0192f4ca3f",
+    "cast": "cast-lena",
+    "scene": "2A OFFICE · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.79,
+    "poseMiss": false,
+    "face": 0.8252885341644287,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "d3a64924-2620-4e41-8bc7-2adc0fd8ec93",
+    "cast": "cast-lena",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.77,
+    "poseMiss": false,
+    "face": 0.69489586353302,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "5293b68e-6117-4d3e-b04c-0f372e4ec8fe",
+    "cast": "cast-lena",
+    "scene": "3A PARK · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.98,
+    "poseMiss": false,
+    "face": 0.6910539865493774,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "0e3a2dab-7646-4776-b760-fe7eec164648",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.2,
+    "poseMiss": true,
+    "face": 0.6697109937667847,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "02dc3c6b-6256-4da9-b70f-7174e74a6ad5",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.21,
+    "poseMiss": true,
+    "face": 0.6614704728126526,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "1a59dabc-96c8-4931-a47e-92dc8c9cdb03",
+    "cast": "cast-lena",
+    "scene": "4A BAR · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.22,
+    "poseMiss": true,
+    "face": 0.694566547870636,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": "holding the cup"
+    }
+  },
+  {
+    "promptId": "1156911e-47bb-4f88-a362-debcea274301",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.98,
+    "poseMiss": false,
+    "face": 0.7074864506721497,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "another outfit",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  },
+  {
+    "promptId": "59808262-cf2f-40b4-b5f5-df8a3dc88429",
+    "cast": "cast-lena",
+    "scene": "5A ROOFTOP · Establishing",
+    "role": "eval",
+    "engine": "qwen-edit-2511",
+    "outfit": "outfit-wide-leg-mint-shirt-dress",
+    "checked": true,
+    "pose": 0.91,
+    "poseMiss": false,
+    "face": 0.7198028564453125,
+    "faceMiss": false,
+    "autoReview": {
+      "outfitMiss": "",
+      "placeMiss": "",
+      "gestureMiss": ""
+    }
+  }
+]

@@ -1758,7 +1758,7 @@ it right, can it be made again — mostly with checks that already run.
 | A take is kept or not: no approved / rejected state, no compare within a Scene; "Looks wrong" re-renders | `SceneTakes.tsx`, `keptTakeId` (`day/scenes.ts`), `playerVerdict` | shallow |
 | Auto-review's outfit and place verdicts (and the gesture check) never become findings | `play/slot-quality.ts` (`outfitSeen`, `place`), `useDaySlotQualityGate.ts`, `checks/findings.ts` | partial |
 | A take stores the template graph and its params, not the graph that was submitted; replay tested against a mock only | `queue-single-post-prompt.ts` (`workflowJson: runtime?.workflowJson`), `e2e/gallery-exact-replay.spec.ts` | unverified |
-| Face match never measured against two different people | V3: both Casts shared one plate | unverified |
+| Face match never measured against two different people | V3: both Casts shared one plate | measured (T5: own 0.40–0.70, other 0.00–0.29) |
 
 Left for later milestones (the audit's sequence): location records and editable scene state
 (M8); storyboard, animatic, shot-list editing and production search (M9); a sound-effects track,
@@ -1839,7 +1839,17 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
   the new rules and the review states.
 - Acceptance: `docs/consistency-report.md` gains per-rule precision and misses for every rule;
   no rule becomes a gate without its number.
-- Status 2026-10-28: rendered; the labels are the user's. Lena's plate re-made with another face
+- Done 2026-10-28 (`docs/consistency-report.md`, "T5"; data in `docs/consistency/t5-*.json`).
+  Per rule, labelled: pose match 17 of 39 right (44%), missed none of 7 pose rejects; Auto-review's
+  outfit check 9 of 13 right (69%), caught 12 of 13 outfit rejects; the place check never fired
+  (missed both place rejects); face match never fired, and separates the two people (below); Cut's
+  outfit jump flagged the 3 changed pairs, judged noise this time (the change was planned). 5 of
+  27 rejected takes had no finding. No threshold changed: pose's right and wrong scores overlap
+  (a 0.3 bar would be 68% precise but miss 4). Seen, not a defect yet: Lena's outfit does not hold
+  on Rapid AIO and Edit 2511 (12 of 13 outfit rejects), Mara's does — one re-made plate.
+  The reviewer read the sheet's finding buttons the other way round; their labels were flipped as
+  they confirmed, and the sheet now says Check is right / Check is wrong.
+- How it ran: Lena's plate re-made with another face
   (the same body, outfit and framing; an Edit 2.1 pass on her V3 plate), so the two Casts differ
   in face only. 77 takes on a fresh install (`next dev`, ComfyUI 0.42.5): both Casts × the three
   engines × five scenes, plus the pairs on Qwen-Image 2.1, every run with Auto-review on (40
