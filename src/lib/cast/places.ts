@@ -389,6 +389,35 @@ export function withPlacePhotoInPrompt(
 }
 
 /**
+ * The still's prompt with a room photo as Image 2, where nothing else takes Image 2 — Qwen-Image
+ * 2.1 starting from a dressed plate (the plate is Image 1 and wears the outfit, so no clothing
+ * image rides along). The room's words become that room ({@link withPlacePhotoInPrompt}); the beat
+ * leads as the pose, the photo is said to be empty, and one person is said to be in the picture.
+ * Null when the prompt names no place to replace (nothing to anchor the photo to).
+ *
+ * Live (Turbo, a Harbour café location, Lena's dressed plate, 2026-10-28): the photo as Image 2
+ * with only the place words swapped kept the exact room 3/3 but put a second woman at a table 2/3
+ * and lost the pose 3/3; saying the photo is empty and that there is one person: no second woman
+ * 4/4, pose still lost; the beat as the first line too: exact room 6/6, no second person 6/6,
+ * seated reading 4/6 (words alone, no photo: the room's layout changed every seed, seated 1/3).
+ */
+export function withRoomPhotoAsImage2(
+  prompt: string,
+  options: { beat?: string; place?: string } = {}
+): string | null {
+  const placed = withPlacePhotoInPrompt(prompt, 2, { place: options.place });
+  if (!placed.includes('in the room shown in Image 2')) return null;
+  const beat = options.beat?.trim().replace(/[.\s]+$/, '');
+  const pose = beat
+    ? `POSE (most important): ${beat} — the body as that says, never standing square-on to the camera with arms at the sides. `
+    : '';
+  return (
+    `${pose}Image 2 is a photo of an EMPTY room — the place only, with nobody in it. ${placed}` +
+    ' Exactly one person in the whole picture: the one from Image 1, doing the beat — never a second person anywhere.'
+  );
+}
+
+/**
  * The long adult brief (qwen-rapid-nude-edit.ts, where Image 3 is the two-skeleton map) with a
  * room photo as Image `image`: its "Change the scene so she is indoors at …" names that room.
  * Live (Rapid AIO NSFW v23, 2026-10-17, the room as Image 4 with only its ReferenceLatent): see

@@ -11,6 +11,7 @@ import {
   withPlacePhotoInAdultPrompt,
   withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
+  withRoomPhotoAsImage2,
 } from './places';
 
 describe('recurring places', () => {
@@ -210,5 +211,32 @@ describe('withPlacePhotoInLongAdultBrief', () => {
     assert.doesNotMatch(out, /green tiles/);
     // Without the name it is left as it was (no other place's words are touched).
     assert.equal(withPlacePhotoInPrompt(prompt, 3), prompt);
+  });
+
+  // Qwen-Image 2.1 from a dressed plate: the room photo as Image 2 (live 2026-10-28).
+  it('puts a room photo as Image 2: the beat first, the room empty, one person', () => {
+    const brief =
+      'Edit Image 1. SETTING (mandatory — replace Image 1 background entirely): cafe, at Harbour café: pale blue counter, a copper machine — put them in this real location. Beat: Lena reads a book at a corner table.';
+    const out = withRoomPhotoAsImage2(brief, {
+      beat: 'Lena reads a book at a corner table.',
+      place: 'Harbour café',
+    });
+    assert.ok(out);
+    assert.match(
+      out,
+      /^POSE \(most important\): Lena reads a book at a corner table — the body as that says, never standing square-on/
+    );
+    assert.match(out, /Image 2 is a photo of an EMPTY room/);
+    assert.match(out, /cafe, in the room shown in Image 2 — the same walls/);
+    assert.doesNotMatch(out, /pale blue counter/);
+    assert.match(out, /Exactly one person in the whole picture: the one from Image 1/);
+    // Her own apartment's words too; no beat: no pose line.
+    const home = withRoomPhotoAsImage2(
+      'SETTING: kitchen, in her apartment: white walls, oak floors — put them here.'
+    );
+    assert.match(home ?? '', /^Image 2 is a photo of an EMPTY room/);
+    assert.match(home ?? '', /kitchen, in the room shown in Image 2/);
+    // Nothing to replace: no photo.
+    assert.equal(withRoomPhotoAsImage2('SETTING: a street at night.', { place: 'Harbour café' }), null);
   });
 });

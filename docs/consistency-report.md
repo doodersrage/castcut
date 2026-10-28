@@ -259,3 +259,25 @@ Not measured, and why:
 
 Data: the labels are in the T5 install's review file (pairs only, no pictures):
 `cast:<number>:<variant>` → same / different.
+
+### Follow-up: the picture on Qwen-Image 2.1, and carried state (2026-10-28)
+
+**A room photo now reaches Qwen-Image 2.1 from a dressed plate.** It was never sent there (the
+room path needed an Image 2, and a dressed plate leaves none): it now goes as Image 2
+(`withRoomPhotoAsImage2`). Live, Turbo, the Harbour café location and Lena's dressed plate:
+
+| Prompt around the photo                         | Seeds |    Exact room | Second person | Seated, reading |
+| ----------------------------------------------- | ----: | ------------: | ------------: | --------------: |
+| No photo (the location's words)                 |     3 | layout varies |             0 |               1 |
+| Photo; only the place words swapped             |     3 |             3 |             2 |               0 |
+| Photo; "an EMPTY room" and "exactly one person" |     4 |             4 |             0 |               0 |
+| Photo; the beat first as the pose, as shipped   |     6 |             6 |             0 |               4 |
+
+Through the app (the Scene's take, the same location): the photo as `<image2>`, the exact room,
+seated reading, one person. The same holds for a Cast's own room photo on that engine.
+
+**Carried state in the picture** (Edit 2511, the park Scene, "a red umbrella" carried, "left hand
+bandaged"): the umbrella drawn in 4 of 5 takes; the bandage in none (one take put a small white
+object in her hand). A firmer sentence for the bandage ("on her body, clearly visible…") did not
+change it (0 of 3). A small change on a full-body shot is past what the engine draws from words;
+the rule (T6) still catches a shot that drops it from its state.

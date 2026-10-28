@@ -2037,6 +2037,13 @@ add to it. Records sync and back up like the other studio extras; storage budget
   place check (T4); a shot names its state and what carries over, and Cut flags a drop (T5–T6);
   CI green on each M8 commit. Left open: "Make its picture" (T3), a location's picture on Qwen-Image
   2.1 with a dressed plate (T7), and a set that can show the location's gain (T7).
+- Follow-up 2026-10-28: the room photo on Qwen-Image 2.1 with a dressed plate now goes as Image 2
+  (`withRoomPhotoAsImage2`: the beat first as the pose, the photo said to be an empty room, one
+  person) — a location's picture and a Cast's own room photo alike. Live: exact room 6/6, no
+  second person 6/6, the beat's pose 4/6 (the wording iterations are in the consistency report);
+  through the app the same. Carried state in the picture: a carried thing drawn 4/5, a bodily
+  change (a bandaged hand on a full-body shot) 0/5, a firmer sentence no better — recorded, not
+  changed.
 
 ## 10.4 Recommended first task
 

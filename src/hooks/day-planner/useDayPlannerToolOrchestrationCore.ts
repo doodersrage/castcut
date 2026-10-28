@@ -8,6 +8,7 @@ import {
   withPlacePhotoInAdultPrompt,
   withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
+  withRoomPhotoAsImage2,
 } from '@/lib/cast/places';
 import { applyDayNarration } from '@/lib/day/narration';
 import type { KeyedShot } from '@/lib/film/cut-plan';
@@ -2573,23 +2574,38 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         const slotLocation = slotLocationId
           ? loadLocations().find(entry => entry.id === slotLocationId)
           : undefined;
-        const placePhoto: { filename: string; locationName?: string } | null =
+        const roomPhoto: { filename: string; locationName?: string } | null =
           !adultStill &&
           !queueTarget.thirdCastId?.trim() &&
           // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so).
           (!vacationFaceBreak || Boolean(partnerFace)) &&
-          !kleinFaceFilename &&
-          clothedRoomEngine &&
-          Boolean(extraFilenames[1]?.trim() || extraUrls[1])
+          !kleinFaceFilename
             ? slotLocationId
               ? slotLocation?.photo
                 ? { filename: slotLocation.photo, locationName: slotLocation.name }
                 : null
               : castPlacePhotoFor(lookCharacter, queueTarget.location)
             : null;
-        if (placePhoto) {
+        // Image 3 beside an Image 2; or, on Qwen-Image 2.1 with Image 2 free (a dressed plate wears
+        // the outfit, so no clothing image rides along), Image 2 itself — the photo was never sent
+        // there before (M8 follow-up, live 2026-10-28: withRoomPhotoAsImage2).
+        const imageTwoFree = !extraFilenames[1]?.trim() && !extraUrls[1];
+        const placePhoto: { filename: string; locationName?: string; asImage: 2 | 3 } | null =
+          roomPhoto && clothedRoomEngine && !imageTwoFree
+            ? { ...roomPhoto, asImage: 3 }
+            : roomPhoto &&
+                imageTwoFree &&
+                !partnerFace &&
+                poseModelFamily(stillModel) === 'qwen-image-2.1' &&
+                withRoomPhotoAsImage2(finalized, { place: roomPhoto.locationName })
+              ? { ...roomPhoto, asImage: 2 }
+              : null;
+        if (placePhoto?.asImage === 3) {
           extraUrls[2] = undefined;
           extraFilenames[2] = placePhoto.filename;
+        } else if (placePhoto?.asImage === 2) {
+          extraUrls[1] = undefined;
+          extraFilenames[1] = placePhoto.filename;
         }
         // Group still: a third Cast member's face as Image 3 (day-group.ts) — clothed Edit 2511
         // two-person stills only; elsewhere the card says why they were left out.
@@ -3070,28 +3086,33 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                   : withThirdPerson(finalized, thirdPerson, fourthPerson)
               : roomAsImage4
                 ? withPlacePhotoInLongAdultBrief(finalized, 4)
-                : placePhoto
-                  ? withPlacePhotoInPrompt(finalized, 3, {
-                      lead: roomLedEngine,
+                : placePhoto?.asImage === 2
+                  ? (withRoomPhotoAsImage2(finalized, {
+                      beat: queueTarget.sceneHints,
                       place: placePhoto.locationName,
-                    })
-                  : adultPlacePhoto
-                    ? withPlacePhotoInAdultPrompt(finalized)
-                    : adultDuoPlacePhoto
-                      ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
-                      : nudeBodyAttached
-                        ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
-                        : duoBodyAttached || partnerBodySlot !== null
-                          ? withDuoPartnerSlotLine(
-                              duoBodyAttached
-                                ? withDuoLeadBodyLine(
-                                    finalized,
-                                    leadNoun === 'man',
-                                    duoBodySlot === 3 ? 'fourth' : 'third'
-                                  )
-                                : finalized
-                            )
-                          : finalized
+                    }) ?? finalized)
+                  : placePhoto
+                    ? withPlacePhotoInPrompt(finalized, 3, {
+                        lead: roomLedEngine,
+                        place: placePhoto.locationName,
+                      })
+                    : adultPlacePhoto
+                      ? withPlacePhotoInAdultPrompt(finalized)
+                      : adultDuoPlacePhoto
+                        ? withPlacePhotoInAdultPrompt(finalized, 3, { replacesMap: true })
+                        : nudeBodyAttached
+                          ? withNudeBodyPlateLine(finalized, leadNoun === 'man')
+                          : duoBodyAttached || partnerBodySlot !== null
+                            ? withDuoPartnerSlotLine(
+                                duoBodyAttached
+                                  ? withDuoLeadBodyLine(
+                                      finalized,
+                                      leadNoun === 'man',
+                                      duoBodySlot === 3 ? 'fourth' : 'third'
+                                    )
+                                  : finalized
+                              )
+                            : finalized
           ),
           {
             second: Boolean(extraFilenames[1]?.trim() || extraUrls[1]),
