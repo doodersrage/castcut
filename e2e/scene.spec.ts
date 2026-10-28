@@ -330,6 +330,33 @@ test('takes are marked good or rejected, survive a reload, and compare side by s
   await page.getByTestId('scene-take-reject-0').click();
   await expect(takes).toHaveCount(1);
   await expect(page.getByTestId('scene-takes-show-rejected')).toHaveText('Show 1 rejected');
+  // Saved before the reload (settings are written to IndexedDB on a short debounce).
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string>(resolve => {
+            const request = indexedDB.open('comfy-prompt-studio-v1');
+            request.onerror = () => resolve('');
+            request.onsuccess = () => {
+              const get = request.result
+                .transaction('kv', 'readonly')
+                .objectStore('kv')
+                .get('comfy-prompt-tool-settings-tools-v1');
+              get.onsuccess = () => {
+                const scene = get.result?.value?.tools?.scene?.scenes?.[0];
+                resolve(
+                  (scene?.takes ?? [])
+                    .map((take: { review?: string }) => take.review ?? '-')
+                    .join(',')
+                );
+              };
+              get.onerror = () => resolve('');
+            };
+          })
+      )
+    )
+    .toBe('rejected,approved');
 
   await page.reload();
   await dismissBlockingOverlays(page);
