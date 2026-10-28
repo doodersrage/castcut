@@ -6,6 +6,14 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SelectInput, TextArea, TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
+import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
+import {
+  LOCATION_PICTURE_MODEL,
+  LOCATION_PICTURE_NEGATIVE,
+  locationPictureGraph,
+  locationPicturePrompt,
+} from '@/lib/location/picture';
 import {
   LOCATION_LOOK_MAX,
   LOCATION_NAME_MAX,
@@ -35,6 +43,49 @@ export default function LocationsSection({
   const [refused, setRefused] = useState<{ id: string; usedBy: string[] } | null>(null);
   const [photoBusy, setPhotoBusy] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<{ id: string; message: string } | null>(null);
+  // "Make its picture" (M8 T3): the empty place rendered from its words, kept as its photo.
+  const [rendering, setRendering] = useState<{ id: string; status: string } | null>(null);
+  const makePicture = async (location: LocationRecord) => {
+    setPhotoError(null);
+    setRendering({ id: location.id, status: 'Rendering its picture…' });
+    try {
+      const { requeueComfyJob } = await import('@/lib/comfyui/requeue');
+      const queued = await requeueComfyJob({
+        prompt: locationPicturePrompt(location),
+        negativePrompt: LOCATION_PICTURE_NEGATIVE,
+        model: LOCATION_PICTURE_MODEL,
+        tool: 'scene',
+        workflowJson: JSON.stringify(
+          locationPictureGraph(location, Math.floor(Math.random() * 2 ** 31))
+        ),
+        workflowFinal: true,
+      });
+      if (!queued.ok || !queued.promptId) {
+        throw new Error(queued.error ?? 'ComfyUI did not take the render — is it running?');
+      }
+      const [entry] = await waitForGalleryPromptIds([queued.promptId], {
+        timeoutMs: 5 * 60_000,
+        pollMs: 2_500,
+      });
+      const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+      if (!url) throw new Error('The picture did not finish (it needs Qwen-Image 2.1 Turbo).');
+      setRendering({ id: location.id, status: 'Keeping it…' });
+      const response = await fetch(url, { credentials: 'same-origin' });
+      if (!response.ok) throw new Error('The picture could not be read back.');
+      const file = new File([await response.blob()], `location-${location.id}.png`, {
+        type: 'image/png',
+      });
+      const uploaded = await uploadComfyInputImage({ file });
+      saveLocation({ ...location, photo: uploaded.name });
+    } catch (error) {
+      setPhotoError({
+        id: location.id,
+        message: error instanceof Error ? error.message : 'The picture could not be made.',
+      });
+    } finally {
+      setRendering(null);
+    }
+  };
   // Its picture (M8 T3): a photo of the empty place, sent to ComfyUI's inputs like a room photo.
   const setPhoto = async (location: LocationRecord, file: File | null) => {
     setPhotoError(null);
@@ -190,6 +241,15 @@ export default function LocationsSection({
                     >
                       Remove picture
                     </button>
+                    <button
+                      type="button"
+                      className="ui-chip"
+                      data-testid="location-picture-again"
+                      disabled={rendering !== null || !location.look.trim()}
+                      onClick={() => void makePicture(location)}
+                    >
+                      Make another
+                    </button>
                   </>
                 ) : (
                   <label className="type-caption space-y-1 text-[var(--text-muted)]">
@@ -207,8 +267,29 @@ export default function LocationsSection({
                     />
                   </label>
                 )}
+                {!location.photo ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    data-testid="location-picture-make"
+                    disabled={rendering !== null || !location.look.trim()}
+                    title={
+                      location.look.trim()
+                        ? 'Render the empty place from its words (Qwen-Image 2.1 Turbo, about 30 s)'
+                        : 'Describe it first — the picture is made from its words'
+                    }
+                    onClick={() => void makePicture(location)}
+                  >
+                    Make its picture
+                  </Button>
+                ) : null}
                 {photoBusy === location.id ? (
                   <span className="type-caption text-[var(--text-muted)]">Adding…</span>
+                ) : null}
+                {rendering?.id === location.id ? (
+                  <span className="type-caption text-[var(--text-muted)]" role="status">
+                    {rendering.status}
+                  </span>
                 ) : null}
               </div>
               {photoError?.id === location.id ? (

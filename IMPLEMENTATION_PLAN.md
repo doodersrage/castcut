@@ -1962,9 +1962,13 @@ add to it. Records sync and back up like the other studio extras; storage budget
   with a dressed plate), and its words (", at Corner café: …") become "the room shown in Image 3"
   (`withPlacePhotoInPrompt`'s `place`); her home's photo is never sent for a shot set elsewhere.
   Unit test (the prompt) and an e2e (added, shown, removed); the e2e Cast has no dressed plate,
-  so the queued photo is checked on the real engine with T7. **Not done: "Make its picture"** —
-  the app's Qwen-Image 2.1 models are edit models sent with an input picture; an empty-place
-  render needs a text-only path first. Left until a user asks for it over a photo.
+  so the queued photo is checked on the real engine with T7.
+- "Make its picture" (follow-up 2026-10-28): a location with a look gets its picture rendered —
+  the empty place from its words, as a finished Qwen-Image 2.1 Turbo graph (`location/picture.ts`,
+  queued like an exact replay: `workflowFinal`), read back from the Gallery and kept as its photo;
+  "Make another" renders it again. Live through the app: the Corner café as described and empty,
+  about 40 s. Unit tests (the prompt, the graph) and an e2e (made from its words, a finished
+  graph, kept). Needs Qwen-Image 2.1 Turbo; without it the location says so.
 
 **T4 — Checks that know the location.** · M
 - Auto-review's place check asks about the location (its name and look), and its finding names it.

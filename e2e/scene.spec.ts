@@ -675,6 +675,51 @@ test('Cut flags a shot that drops what the shot before it carries over', async (
   await expect(page.locator('[data-testid="cut-finding-scenes:scene-6a:state-dropped"]')).toHaveCount(0);
 });
 
+// M8 T3: "Make its picture" — the empty place rendered from its words (a finished graph), kept as
+// the location's photo.
+test('a location\'s picture is made from its words and kept', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-location.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('locations-section');
+  await expect(section).toBeVisible({ timeout: 60_000 });
+  await section.getByTestId('location-new-name').fill('Harbour café');
+  await section.getByTestId('location-add').click();
+  const cafe = section.locator('[data-testid^="location-loc-"]').first();
+  // Made from its words: none yet, nothing to make.
+  await expect(cafe.getByTestId('location-picture-make')).toBeDisabled();
+  await cafe.getByTestId('location-look').fill('pale blue wooden counter, a copper espresso machine');
+  await cafe.getByTestId('location-look').blur();
+  await cafe.getByTestId('location-picture-make').click();
+
+  await expect(cafe.getByRole('img', { name: 'Harbour café, as it looks' })).toHaveAttribute(
+    'src',
+    /filename=e2e-upload-\d+\.png&type=input/,
+    { timeout: 60_000 }
+  );
+  const body = JSON.parse(queued[0]!) as { comfy?: { workflowFinal?: boolean; workflowJson?: string } };
+  expect(body.comfy?.workflowFinal).toBe(true);
+  expect(body.comfy?.workflowJson).toContain(
+    'A wide photograph of Harbour café, indoors: pale blue wooden counter, a copper espresso machine. Empty'
+  );
+  await expect(cafe.getByTestId('location-picture-again')).toBeEnabled();
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,
