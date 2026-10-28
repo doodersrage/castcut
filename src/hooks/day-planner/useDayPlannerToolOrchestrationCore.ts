@@ -2568,17 +2568,24 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         const clothedRoomEngine =
           /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
           (roomLedEngine && !partnerFace && /\bSCENE: /.test(finalized));
-        const placePhoto =
+        // Set in a location record (M8): its picture, when it has one — never a room of her home.
+        const slotLocationId = queueTarget.locationId?.trim();
+        const slotLocation = slotLocationId
+          ? loadLocations().find(entry => entry.id === slotLocationId)
+          : undefined;
+        const placePhoto: { filename: string; locationName?: string } | null =
           !adultStill &&
-          // Set in a location record (M8 T2): its own place, never a room of her home.
-          !queueTarget.locationId?.trim() &&
           !queueTarget.thirdCastId?.trim() &&
           // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so).
           (!vacationFaceBreak || Boolean(partnerFace)) &&
           !kleinFaceFilename &&
           clothedRoomEngine &&
           Boolean(extraFilenames[1]?.trim() || extraUrls[1])
-            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? slotLocationId
+              ? slotLocation?.photo
+                ? { filename: slotLocation.photo, locationName: slotLocation.name }
+                : null
+              : castPlacePhotoFor(lookCharacter, queueTarget.location)
             : null;
         if (placePhoto) {
           extraUrls[2] = undefined;
@@ -3064,7 +3071,10 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               : roomAsImage4
                 ? withPlacePhotoInLongAdultBrief(finalized, 4)
                 : placePhoto
-                  ? withPlacePhotoInPrompt(finalized, 3, { lead: roomLedEngine })
+                  ? withPlacePhotoInPrompt(finalized, 3, {
+                      lead: roomLedEngine,
+                      place: placePhoto.locationName,
+                    })
                   : adultPlacePhoto
                     ? withPlacePhotoInAdultPrompt(finalized)
                     : adultDuoPlacePhoto

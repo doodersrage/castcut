@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SelectInput, TextArea, TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
+import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
 import {
   LOCATION_LOOK_MAX,
   LOCATION_NAME_MAX,
@@ -32,6 +33,28 @@ export default function LocationsSection({
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [newName, setNewName] = useState('');
   const [refused, setRefused] = useState<{ id: string; usedBy: string[] } | null>(null);
+  const [photoBusy, setPhotoBusy] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<{ id: string; message: string } | null>(null);
+  // Its picture (M8 T3): a photo of the empty place, sent to ComfyUI's inputs like a room photo.
+  const setPhoto = async (location: LocationRecord, file: File | null) => {
+    setPhotoError(null);
+    if (!file) {
+      saveLocation({ ...location, photo: undefined });
+      return;
+    }
+    setPhotoBusy(location.id);
+    try {
+      const uploaded = await uploadComfyInputImage({ file });
+      saveLocation({ ...location, photo: uploaded.name });
+    } catch (error) {
+      setPhotoError({
+        id: location.id,
+        message: error instanceof Error ? error.message : 'The photo could not be added.',
+      });
+    } finally {
+      setPhotoBusy(null);
+    }
+  };
 
   const draftOf = (location: LocationRecord) => ({
     name: location.name,
@@ -150,6 +173,49 @@ export default function LocationsSection({
                 onChange={event => edit(location.id, { aliases: event.target.value })}
                 onBlur={() => commit(location)}
               />
+              <div className="flex flex-wrap items-center gap-3" data-testid="location-photo">
+                {location.photo ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a ComfyUI input */}
+                    <img
+                      src={`/api/comfyui/view?${new URLSearchParams({ filename: location.photo, type: 'input' }).toString()}`}
+                      alt={`${location.name}, as it looks`}
+                      className="aspect-[4/3] w-32 rounded-[var(--radius-sm)] object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="ui-chip"
+                      data-testid="location-photo-remove"
+                      onClick={() => void setPhoto(location, null)}
+                    >
+                      Remove picture
+                    </button>
+                  </>
+                ) : (
+                  <label className="type-caption space-y-1 text-[var(--text-muted)]">
+                    <span className="block">
+                      A photo of it, no people in it — shots set here are built around it
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={photoBusy !== null}
+                      aria-label={`A photo of ${location.name}`}
+                      data-testid="location-photo-input"
+                      className="block w-full text-xs"
+                      onChange={event => void setPhoto(location, event.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+                {photoBusy === location.id ? (
+                  <span className="type-caption text-[var(--text-muted)]">Adding…</span>
+                ) : null}
+              </div>
+              {photoError?.id === location.id ? (
+                <p className="type-caption ui-status-danger" role="alert">
+                  {photoError.message}
+                </p>
+              ) : null}
               {refused?.id === location.id ? (
                 <p
                   className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"

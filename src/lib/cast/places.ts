@@ -333,6 +333,11 @@ export function withPlacePhotoInPrompt(
      * 2026-10-16, the same seeds).
      */
     lead?: boolean;
+    /**
+     * A location record's name (M8): its words (", at Corner café: …") become the room in the
+     * photo, as her home's do.
+     */
+    place?: string;
   } = {}
 ): string {
   const room = `in the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours`;
@@ -365,6 +370,9 @@ export function withPlacePhotoInPrompt(
           `$1the room shown in Image ${image} is where the subject is — exactly that room: `
         )
     : unmapped;
+  const placeWords = options.place?.trim()
+    ? `|at ${options.place.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
+    : '';
   return placed
     .replace(/,? exactly as the pose map in Image \d shows/g, '')
     .replace(
@@ -372,7 +380,10 @@ export function withPlacePhotoInPrompt(
       ''
     )
     .replace(
-      /, (?:in (?:her|his) (?:apartment|home)|at (?:her|his) office): .*?(?= — |\.(?:\s|$)|\n)/g,
+      new RegExp(
+        `, (?:in (?:her|his) (?:apartment|home)|at (?:her|his) office${placeWords}): .*?(?= — |\\.(?:\\s|$)|\\n)`,
+        'g'
+      ),
       `, ${room}`
     );
 }

@@ -200,4 +200,15 @@ describe('withPlacePhotoInLongAdultBrief', () => {
       /Moment: on the sofa\. Room: the room shown in Image 4/
     );
   });
+
+  // M8 T3: a location record's picture stands for its words, as her home's photo does.
+  it('makes a location\'s words the room in its photo, given its name', () => {
+    const prompt =
+      'SCENE: she is in at the counter, at Corner café (2): green tiles, a brass machine. She orders.';
+    const out = withPlacePhotoInPrompt(prompt, 3, { place: 'Corner café (2)' });
+    assert.match(out, /at the counter, in the room shown in Image 3 — the same walls/);
+    assert.doesNotMatch(out, /green tiles/);
+    // Without the name it is left as it was (no other place's words are touched).
+    assert.equal(withPlacePhotoInPrompt(prompt, 3), prompt);
+  });
 });

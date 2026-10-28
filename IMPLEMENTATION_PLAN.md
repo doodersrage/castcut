@@ -1956,6 +1956,15 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - "Make its picture": one render of the empty place from its words (no people), kept as the
   location's photo when the user keeps it; or the user's own photo.
 - Acceptance: a kept picture is used by T2's path; a real render on one engine.
+- Status 2026-10-28 (the user's photo): a location takes a photo of the empty place (Locations:
+  add / remove, sent to ComfyUI's inputs like a Cast's room photo). A shot set there sends it as
+  Image 3 where her home's room photo would go (clothed Edit 2511, Rapid AIO and Qwen-Image 2.1
+  with a dressed plate), and its words (", at Corner café: …") become "the room shown in Image 3"
+  (`withPlacePhotoInPrompt`'s `place`); her home's photo is never sent for a shot set elsewhere.
+  Unit test (the prompt) and an e2e (added, shown, removed); the e2e Cast has no dressed plate,
+  so the queued photo is checked on the real engine with T7. **Not done: "Make its picture"** —
+  the app's Qwen-Image 2.1 models are edit models sent with an input picture; an empty-place
+  render needs a text-only path first. Left until a user asks for it over a photo.
 
 **T4 — Checks that know the location.** · M
 - Auto-review's place check asks about the location (its name and look), and its finding names it.

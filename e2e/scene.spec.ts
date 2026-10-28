@@ -558,6 +558,41 @@ test('a script place resolves to a location, and its shot\'s Scene is set there'
   await expect(page.getByTestId('day-slot-location')).toHaveValue('cafe');
 });
 
+// M8 T3: a location's picture — a photo of the empty place — is added, shown and removed. (Sent as
+// Image 3 with a take set there only beside a dressed plate, which this Cast has none of: the
+// prompt side is unit-tested, cast/places.test.ts.)
+test('a location\'s picture is added, shown and removed', async ({ page }) => {
+  await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('locations-section');
+  await expect(section).toBeVisible({ timeout: 60_000 });
+  await section.getByTestId('location-new-name').fill('Corner café');
+  await section.getByTestId('location-add').click();
+  const cafe = section.locator('[data-testid^="location-loc-"]').first();
+  await cafe.getByTestId('location-photo-input').setInputFiles({
+    name: 'cafe.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  });
+  await expect(cafe.getByRole('img', { name: 'Corner café, as it looks' })).toHaveAttribute(
+    'src',
+    /filename=e2e-upload-\d+\.png&type=input/,
+    { timeout: 30_000 }
+  );
+  await cafe.getByTestId('location-photo-remove').click();
+  await expect(cafe.getByRole('img')).toHaveCount(0);
+  await expect(cafe.getByTestId('location-photo-input')).toBeVisible();
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,
