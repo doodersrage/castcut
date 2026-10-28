@@ -88,6 +88,11 @@ export type ComfyGalleryEntry = {
   hasStoredWorkflow?: boolean;
   /** Set when the queued graph was too large to persist for exact replay. */
   workflowJsonOmitted?: boolean;
+  /**
+   * `workflowJson` is a finished graph — as submitted, from Castcut's record or ComfyUI's history
+   * (M7 T4) — replayed exactly as it is. Unset: it is the template the render was filled from.
+   */
+  workflowJsonFinal?: boolean;
   /** Original source image URL at queue time (Comfy view or app proxy). */
   sourceImageUrl?: string;
   /** Inpaint mask URL at queue time when available. */

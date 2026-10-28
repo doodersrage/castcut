@@ -1,6 +1,7 @@
 'use client';
 
 import type { ComfyImageModel } from '../comfy-models/client';
+import type { ReplayGraphSource } from '../gallery/provenance';
 import {
   registerComfyGalleryJob,
   inheritGallerySessionFields,
@@ -156,6 +157,11 @@ export type RequeueComfyJobInput = {
    */
   workflowJson?: string;
   /**
+   * `workflowJson` is a finished graph (as submitted, M7 T4): queued exactly as it is, no
+   * patching. Only for an exact replay — a variation adapts the graph.
+   */
+  workflowFinal?: boolean;
+  /**
    * LoRA library ids to restore for this re-queue (from the gallery entry).
    * When omitted, falls back to the current Shared stack for the entry model.
    */
@@ -182,7 +188,7 @@ export type RequeueComfyJobResult = {
   held?: boolean;
   vramDowngraded?: boolean;
   /** A replay (`requeueComfyJobFromEntry`, exact graph asked): where its graph came from. */
-  replayedFrom?: import('../gallery/provenance').ReplayGraphSource;
+  replayedFrom?: ReplayGraphSource;
 };
 
 async function resolveEnhanceQualityProfile(input: {
@@ -1337,15 +1343,21 @@ export async function requeueComfyJobFromEntry(
         const history = (await response.json()) as {
           ok?: boolean;
           workflow?: Record<string, unknown>;
+          source?: 'castcut' | 'comfyui';
         };
         if (history.workflow && typeof history.workflow === 'object') {
           workflowJson = JSON.stringify(history.workflow);
-          options?.onStatus?.('Replaying exact graph from ComfyUI history.');
+          options?.onStatus?.(
+            history.source === 'castcut'
+              ? 'Replaying the exact graph Castcut kept when it was rendered.'
+              : 'Replaying exact graph from ComfyUI history.'
+          );
           void import('../gallery/comfyui-gallery').then(({ updateComfyGalleryEntryById }) => {
             updateComfyGalleryEntryById(entry.id, {
               workflowJson,
               hasStoredWorkflow: true,
               workflowJsonOmitted: false,
+              workflowJsonFinal: true,
             });
           });
           void import('../server/local-observability').then(({ noteExactReplayMetric }) => {
@@ -1357,16 +1369,14 @@ export async function requeueComfyJobFromEntry(
       // Fall back to library/scaffold rebuild.
     }
   }
-  const replayedFrom =
-    options?.exactGraph === false || isVariation
-      ? undefined
-      : !workflowJson
-        ? ('rebuilt' as const)
-        : options?.workflowJson?.trim() ||
-            entry.workflowJson?.trim() ||
-            storedEntry?.workflowJson?.trim()
-          ? ('stored' as const)
-          : ('history' as const);
+  const { replayedFrom, workflowFinal } = replayGraphPlan({
+    exactGraph: options?.exactGraph !== false,
+    isVariation,
+    graph: workflowJson,
+    passed: options?.workflowJson,
+    stored: entry.workflowJson || storedEntry?.workflowJson,
+    storedFinal: Boolean(entry.workflowJsonFinal || storedEntry?.workflowJsonFinal),
+  });
   if (replayedFrom === 'rebuilt') {
     options?.onStatus?.(
       'The exact graph isn’t on this device or in ComfyUI’s history — rebuilding it from the current template.'
@@ -1390,11 +1400,38 @@ export async function requeueComfyJobFromEntry(
     qualityProfile: options?.qualityProfile,
     comfyUrlOverride: options?.comfyUrlOverride,
     workflowJson,
+    ...(workflowFinal ? { workflowFinal: true } : {}),
     parentGalleryEntryId: isVariation ? entry.id : undefined,
     derivedKind: isVariation ? 'variation' : undefined,
     onStatus: options?.onStatus,
   });
   return replayedFrom ? { ...result, replayedFrom } : result;
+}
+
+/**
+ * Where a replay's graph comes from, and whether it is a finished graph to queue as it is (M7 T4,
+ * M6 D23): one from the history route (Castcut's record or ComfyUI's), or a stored one marked
+ * finished. A template — what a render stores of itself — still gets filled and patched. Only an
+ * exact replay: a variation adapts the graph. Pure.
+ */
+export function replayGraphPlan(input: {
+  exactGraph: boolean;
+  isVariation: boolean;
+  /** The graph the replay will use, wherever it came from. */
+  graph?: string;
+  /** A graph the caller passed in. */
+  passed?: string;
+  /** The entry's own stored graph. */
+  stored?: string;
+  storedFinal?: boolean;
+}): { replayedFrom?: ReplayGraphSource; workflowFinal: boolean } {
+  if (!input.exactGraph || input.isVariation) return { workflowFinal: false };
+  if (!input.graph?.trim()) return { replayedFrom: 'rebuilt', workflowFinal: false };
+  if (input.passed?.trim()) return { replayedFrom: 'stored', workflowFinal: false };
+  if (input.stored?.trim()) {
+    return { replayedFrom: 'stored', workflowFinal: input.storedFinal === true };
+  }
+  return { replayedFrom: 'history', workflowFinal: true };
 }
 
 /** Fetch Comfy history graph for an entry and persist it for later exact replay. */
@@ -1412,7 +1449,7 @@ export async function restoreExactGraphFromComfyHistory(
     if (comfyUrl) {
       params.set('comfyUrl', comfyUrl);
     }
-    options?.onStatus?.('Fetching exact graph from ComfyUI history…');
+    options?.onStatus?.('Fetching the exact graph…');
     const response = await fetch(`/api/comfyui/history/workflow?${params.toString()}`);
     if (!response.ok) {
       return {
@@ -1424,6 +1461,7 @@ export async function restoreExactGraphFromComfyHistory(
       ok?: boolean;
       workflow?: Record<string, unknown>;
       error?: string;
+      source?: 'castcut' | 'comfyui';
     };
     if (!history.workflow || typeof history.workflow !== 'object') {
       return {
@@ -1437,12 +1475,15 @@ export async function restoreExactGraphFromComfyHistory(
       workflowJson,
       hasStoredWorkflow: true,
       workflowJsonOmitted: false,
+      workflowJsonFinal: true,
     });
     void import('../server/local-observability').then(({ noteExactReplayMetric }) => {
       noteExactReplayMetric();
     });
-    options?.onStatus?.('Exact graph restored to gallery entry.');
-    return { ok: true, message: 'Exact graph restored from ComfyUI history.', workflowJson };
+    const from =
+      history.source === 'castcut' ? 'Castcut’s record of the render' : 'ComfyUI history';
+    options?.onStatus?.(`Exact graph restored from ${from}.`);
+    return { ok: true, message: `Exact graph restored from ${from}.`, workflowJson };
   } catch (error) {
     return {
       ok: false,
@@ -1608,12 +1649,14 @@ export async function requeueComfyJob(input: RequeueComfyJobInput): Promise<Requ
 
   const workflowJson = input.workflowJson?.trim();
   const comfyPayload = workflowJson
-    ? {
-        ...comfyRuntime,
-        workflowJson,
-        directWorkflowPatching: true,
-        workflowQueueOptimize: true,
-      }
+    ? input.workflowFinal
+      ? { ...comfyRuntime, workflowJson, workflowFinal: true }
+      : {
+          ...comfyRuntime,
+          workflowJson,
+          directWorkflowPatching: true,
+          workflowQueueOptimize: true,
+        }
     : comfyRuntime;
 
   const queued = await getEngineAdapter().postPrompt({
@@ -1648,6 +1691,7 @@ export async function requeueComfyJob(input: RequeueComfyJobInput): Promise<Requ
     engineId: queued.engineId,
     queueParams: params,
     workflowJson,
+    ...(input.workflowFinal ? { workflowJsonFinal: true } : {}),
     sourceImageUrl: input.sourceImageUrl,
     maskImageUrl: input.maskImageUrl,
     queueQualityProfile: effectiveQualityProfile,

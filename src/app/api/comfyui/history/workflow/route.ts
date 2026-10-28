@@ -1,4 +1,5 @@
-import { fetchComfyUiHistoryWorkflow } from '@/lib/comfyui/history-workflow';
+import { fetchComfyUiHistoryWorkflow, workflowLookupResult } from '@/lib/comfyui/history-workflow';
+import { readSubmittedGraph } from '@/lib/sqlite/submitted-graphs';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
@@ -16,6 +17,17 @@ export async function GET(request: Request) {
   const runtime = stripEmptyComfyUiRuntime({
     apiUrl: searchParams.get('comfyUrl') ?? undefined,
   });
+
+  // The graph as Castcut submitted it (M7 T4), when it kept one: on any device, and after
+  // ComfyUI restarts. Else ComfyUI's own history.
+  try {
+    const kept = readSubmittedGraph(promptId);
+    if (kept) {
+      return apiJson(workflowLookupResult(promptId, kept.comfyUrl ?? '', kept.graph, 'castcut'));
+    }
+  } catch {
+    // the store is best-effort: fall back to ComfyUI
+  }
 
   try {
     const result = await fetchComfyUiHistoryWorkflow(promptId, runtime);

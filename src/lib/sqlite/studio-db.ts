@@ -120,6 +120,17 @@ CREATE TABLE IF NOT EXISTS scene_scripts (
   PRIMARY KEY (scope, id)
 );
 
+-- The graph each render was submitted with, as ComfyUI received it (M7 T4): the exact replay
+-- of a take on any device, and after ComfyUI restarts (its history lives in memory).
+CREATE TABLE IF NOT EXISTS submitted_graphs (
+  prompt_id TEXT PRIMARY KEY,
+  comfy_url TEXT,
+  model TEXT,
+  graph TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS submitted_graphs_created ON submitted_graphs (created_at);
+
 CREATE TABLE IF NOT EXISTS collab_rooms (
   project_id TEXT PRIMARY KEY,
   json TEXT NOT NULL,

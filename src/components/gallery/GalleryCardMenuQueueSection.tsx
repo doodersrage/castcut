@@ -93,7 +93,7 @@ export function GalleryQueueSection({
         />
       ) : entry.promptId?.trim() && onRestoreExactGraph ? (
         <GalleryMenuButton
-          label="Restore exact graph from Comfy history"
+          label="Restore the exact graph"
           data-testid="gallery-restore-exact"
           onClick={() => {
             onRestoreExactGraph();

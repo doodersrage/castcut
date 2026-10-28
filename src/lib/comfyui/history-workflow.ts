@@ -23,9 +23,33 @@ export type ComfyHistoryWorkflowResult = {
     value: string | number | boolean;
   }>;
   truncated?: boolean;
+  /** Where the graph came from: Castcut's own record of what it submitted (M7 T4), or ComfyUI. */
+  source?: 'castcut' | 'comfyui';
 };
 
 const MAX_WORKFLOW_CHARS = 12000;
+
+/** A found graph as the history route answers it (the JSON trimmed for display). */
+export function workflowLookupResult(
+  promptId: string,
+  comfyUrl: string,
+  workflow: Record<string, unknown>,
+  source: 'castcut' | 'comfyui'
+): ComfyHistoryWorkflowResult {
+  const workflowJson = JSON.stringify(workflow, null, 2);
+  const truncated = workflowJson.length > MAX_WORKFLOW_CHARS;
+  return {
+    ok: true,
+    promptId,
+    comfyUrl,
+    workflow,
+    workflowJson: truncated ? `${workflowJson.slice(0, MAX_WORKFLOW_CHARS)}\n…` : workflowJson,
+    extractedParams: extractParamsFromWorkflow(workflow),
+    nodeInputs: listWorkflowNodeInputs(workflow),
+    truncated,
+    source,
+  };
+}
 
 function extractWorkflowFromHistoryEntry(entry: ComfyHistoryEntry): Record<string, unknown> | null {
   const promptField = entry.prompt;
@@ -135,19 +159,7 @@ export async function fetchComfyUiHistoryWorkflow(
       };
     }
 
-    const workflowJson = JSON.stringify(workflow, null, 2);
-    const truncated = workflowJson.length > MAX_WORKFLOW_CHARS;
-
-    return {
-      ok: true,
-      promptId: trimmedId,
-      comfyUrl,
-      workflow,
-      workflowJson: truncated ? `${workflowJson.slice(0, MAX_WORKFLOW_CHARS)}\n…` : workflowJson,
-      extractedParams: extractParamsFromWorkflow(workflow),
-      nodeInputs: listWorkflowNodeInputs(workflow),
-      truncated,
-    };
+    return workflowLookupResult(trimmedId, comfyUrl, workflow, 'comfyui');
   } catch (error) {
     return {
       ok: false,

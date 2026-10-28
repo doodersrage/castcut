@@ -1812,6 +1812,23 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
 - A real-engine check: a stored take replayed reproduces its seed and inputs, or names the input
   that is gone.
 - Acceptance: unit test of what is stored; one real-engine replay recorded.
+- Status 2026-10-28: the server keeps every submitted graph (`submitted_graphs`, SQLite, by
+  ComfyUI prompt id; additive table, newest 20 000, best-effort at both submit paths), and the
+  history route reads it before asking ComfyUI (`source: 'castcut'`), so "Restore" and "Replay
+  exact graph" work on any device and after a ComfyUI restart (closes D19's gap). A missing input
+  was already named before queueing (`comfy-input-presence.ts`, restored first from the app's own
+  copy). Found on the way, D23: an exact replay re-ran the engine patches over the finished graph
+  (a second reference chain, pictures rescaled 464×544 → 960×1280, the sampler rewired); a
+  finished graph is now queued as it is (`workflowFinal`; `workflowJsonFinal` on an entry whose
+  graph came from the history route; a graph with `{{…}}` placeholders never counts). Real engine
+  (production build, a copy of the V3 install, ComfyUI 0.42.5): browser A restored and replayed a
+  V3 take; the server kept the graph it submitted; browser B, with no graphs of its own, got it
+  from Castcut, replayed it uncached (0 of 23 nodes) — submitted graph identical node for node,
+  output pixel-identical.
+- Known (not fixed): settings reach IndexedDB on a 350 ms debounce; a reload or tab close inside
+  that window can lose the last edit (the keepalive server flush covers it only when the page has
+  synced and the settings fit 60 KB). Seen as a CI-only failure of T3's e2e (fixed in the test,
+  `2474d685`).
 
 **T5 — Re-run the reviewed set.** · M + _GPU_ + _you_
 - V3's set again with two Casts of different faces, Auto-review on, the review sheet extended to

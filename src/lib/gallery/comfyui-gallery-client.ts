@@ -91,6 +91,8 @@ export type RegisterComfyGalleryJobInput = {
   queueParams?: WorkflowParamValues;
   /** Exact workflow JSON used at queue time (capped). */
   workflowJson?: string;
+  /** `workflowJson` is a finished graph, not a template (M7 T4). */
+  workflowJsonFinal?: boolean;
   sourceImageUrl?: string;
   maskImageUrl?: string;
   controlImageUrls?: string[];
@@ -284,7 +286,11 @@ export function registerComfyGalleryJob(input: RegisterComfyGalleryJobInput): Co
     derivedKind: input.derivedKind,
     queueParams: input.queueParams,
     ...(clamped.workflowJson
-      ? { workflowJson: clamped.workflowJson, hasStoredWorkflow: true }
+      ? {
+          workflowJson: clamped.workflowJson,
+          hasStoredWorkflow: true,
+          ...(input.workflowJsonFinal ? { workflowJsonFinal: true } : {}),
+        }
       : {}),
     ...(clamped.omitted ? { workflowJsonOmitted: true } : {}),
     sourceImageUrl: imageUrls.sourceImageUrl,

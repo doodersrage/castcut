@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import {
+  replayGraphPlan,
   requeueSourceImageUrlFromEntry,
   resolveRequeueSessionLoraIds,
   restoreExactGraphFromComfyHistory,
@@ -135,6 +136,42 @@ describe('comfyui-requeue pure/self-contained helpers', () => {
       const result = await restoreExactGraphFromComfyHistory(baseHistoryEntry);
 
       assert.deepEqual(result, { ok: false, message: 'network down' });
+    });
+  });
+});
+
+// M7 T4 / M6 D23: a finished graph is queued as it is; a template is filled and patched.
+describe('replayGraphPlan', () => {
+  const base = { exactGraph: true, isVariation: false };
+  it('a graph from the history route (Castcut or ComfyUI) is finished', () => {
+    assert.deepEqual(replayGraphPlan({ ...base, graph: '{"1":{}}' }), {
+      replayedFrom: 'history',
+      workflowFinal: true,
+    });
+  });
+  it("a render's own stored graph is a template, unless it was marked finished", () => {
+    assert.deepEqual(replayGraphPlan({ ...base, graph: 'g', stored: 'g' }), {
+      replayedFrom: 'stored',
+      workflowFinal: false,
+    });
+    assert.deepEqual(replayGraphPlan({ ...base, graph: 'g', stored: 'g', storedFinal: true }), {
+      replayedFrom: 'stored',
+      workflowFinal: true,
+    });
+    assert.equal(
+      replayGraphPlan({ ...base, graph: 'g', passed: 'g', stored: 'g', storedFinal: true })
+        .workflowFinal,
+      false,
+      'a graph the caller passes is adapted as before'
+    );
+  });
+  it('no graph found is a rebuild; a variation or a non-exact requeue is never finished', () => {
+    assert.deepEqual(replayGraphPlan({ ...base }), { replayedFrom: 'rebuilt', workflowFinal: false });
+    assert.deepEqual(replayGraphPlan({ ...base, isVariation: true, graph: 'g' }), {
+      workflowFinal: false,
+    });
+    assert.deepEqual(replayGraphPlan({ exactGraph: false, isVariation: false, graph: 'g' }), {
+      workflowFinal: false,
     });
   });
 });

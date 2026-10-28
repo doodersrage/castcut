@@ -312,6 +312,12 @@ export type CustomWorkflowToken = {
 export type ComfyUiRuntimeConfig = {
   apiUrl?: string;
   workflowJson?: string;
+  /**
+   * `workflowJson` is a finished graph — as a render was submitted (M7 T4) — to queue exactly as
+   * it is: no placeholders filled, no engine patches (patching a finished graph again doubled its
+   * reference chain and rescaled its pictures: M6 D23).
+   */
+  workflowFinal?: boolean;
   /** Server-side workflow file path from COMFYUI_WORKFLOW_DIR / COMFYUI_WORKFLOW_PATHS. */
   workflowFileId?: string;
   positiveToken?: string;
@@ -2185,6 +2191,7 @@ export function stripEmptyComfyUiRuntime(
   const workflowJson = runtime.workflowJson?.trim();
   if (workflowJson) {
     result.workflowJson = workflowJson;
+    if (runtime.workflowFinal === true) result.workflowFinal = true;
   }
 
   const workflowFileId = runtime.workflowFileId?.trim();

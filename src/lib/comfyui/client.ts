@@ -228,6 +228,22 @@ function rememberQueuedGraphForWarmUp(graph: unknown, model: string | undefined)
     .catch(() => undefined);
 }
 
+/**
+ * Keep the graph as ComfyUI received it, for exact replay on any device and after ComfyUI
+ * restarts (M7 T4, sqlite/submitted-graphs.ts); best-effort.
+ */
+function rememberSubmittedGraph(input: {
+  promptId: string | undefined;
+  comfyUrl: string;
+  model: string | undefined;
+  graph: unknown;
+}): void {
+  if (!input.promptId) return;
+  void import('../sqlite/submitted-graphs')
+    .then(module => module.recordSubmittedGraph(input))
+    .catch(() => undefined);
+}
+
 /** Max prompts accepted by /api/comfyui in one request. */
 export const COMFYUI_MAX_BATCH_PROMPTS = 12;
 
@@ -435,6 +451,11 @@ function rememberOptimizedWorkflowByHash(
   }
 }
 
+/** Whether a graph still has `{{TOKEN}}` placeholders (a template, not a finished graph). */
+export function hasWorkflowPlaceholders(workflow: Record<string, unknown>): boolean {
+  return /\{\{[A-Z0-9_]+\}\}/.test(JSON.stringify(workflow));
+}
+
 function injectPromptsIntoWorkflow(
   workflow: Record<string, unknown>,
   request: ComfyQueueRequest,
@@ -455,6 +476,16 @@ function injectPromptsIntoWorkflow(
     fibo2Inventory?: import('../engine/fibo2-renderer').Fibo2Inventory | null;
   }
 ) {
+  // A finished graph (an exact replay, M7 T4) goes as it is — unless it still has placeholders,
+  // which only a template has.
+  if (runtime?.workflowFinal === true && !hasWorkflowPlaceholders(workflow)) {
+    return {
+      workflow: structuredClone(workflow),
+      positiveReplacements: 0,
+      negativeReplacements: 0,
+      paramReplacements: {},
+    };
+  }
   const { params, loaders, customTokens } = resolveQueueInjectionContext({
     runtime,
     override: request.params,
@@ -1039,6 +1070,12 @@ export async function queuePromptToComfyUi(
       });
 
       rememberQueuedGraphForWarmUp(graph, activeRequest.model);
+      rememberSubmittedGraph({
+        promptId: data.prompt_id,
+        comfyUrl: routedUrl,
+        model: activeRequest.model,
+        graph,
+      });
       const success: ComfyQueueResult = {
         ok: true,
         promptId: data.prompt_id,
@@ -1136,6 +1173,12 @@ export async function queuePromptToComfyUi(
     });
 
     rememberQueuedGraphForWarmUp(activePromptBody.prompt, activeRequest.model);
+    rememberSubmittedGraph({
+      promptId: data.prompt_id,
+      comfyUrl: routedUrl,
+      model: activeRequest.model,
+      graph: activePromptBody.prompt,
+    });
     const success: ComfyQueueResult = {
       ok: true,
       promptId: data.prompt_id,

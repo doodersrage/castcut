@@ -842,6 +842,7 @@ export function updateComfyGalleryEntryById(
       | 'workflowJson'
       | 'hasStoredWorkflow'
       | 'workflowJsonOmitted'
+      | 'workflowJsonFinal'
       | 'durableThumbPath'
       | 'durableOriginalPath'
       | 'sourceImageUrl'
