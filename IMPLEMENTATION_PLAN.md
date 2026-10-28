@@ -1727,6 +1727,17 @@ depends on it.
     (`replayOutcomeLabel`). Keeping the graph on the server is T4.
   - D20: the FCPXML music under a trimmed first clip was anchored before the cut began; its offset
     is now in the clip's own time (its `start`). To confirm in an editor with the NLE round trip.
+  - D21 (data loss): the Gallery's IndexedDB writer skips an entry whose fingerprint is unchanged,
+    and the fingerprint listed fields by hand — not the marks, clip and miss checks, the adult
+    check, the review note or the stored-media paths. A change to one of those alone stayed in
+    memory (and went to the server) but never reached IndexedDB: after a reload it was gone, and the
+    server's copy doesn't win the merge (same `completedAt`). Seen in the browser: a review note
+    gone after a reload. The fingerprint now covers every field but four heavy ones (prompt,
+    negative prompt, graph, search corpus — by length / ends): ~20 ms for 5000 entries, ~1 ms for
+    250 (was ~4 ms). What was lost before the fix stays lost on that browser.
+  - D22: a card re-renders only when `galleryEntryRenderKey` changes, and the key left out what the
+    checks badge, the score and the graph badge show — a check finishing while the Gallery was open
+    showed nothing on its card. The key now covers them.
 - Left, each needing the user:
   - the real Docker upgrade to v3.0.1 with `scripts/upgrade-check.mjs` before and after (V1);
   - the desktop smoke test from the v3.0.1 `.deb` (V8);

@@ -56,6 +56,27 @@ describe('comfyui-gallery pure/self-contained helpers', () => {
       assert.equal(galleryEntryRenderKey(a), galleryEntryRenderKey(b));
     });
 
+    it('changes when a check the card shows comes in (M6 D22)', () => {
+      const base = makeEntry({ playChecks: { pose: 0.5, face: 0.8, at: 1 } });
+      const key = galleryEntryRenderKey(base);
+      for (const change of [
+        { playChecks: { pose: 0.5, face: 0.8, at: 1, clipSilent: true } },
+        { playChecks: { pose: 0.5, face: 0.8, at: 1, clipCutAt: 2.5 } },
+        { playChecks: { pose: 0.5, face: 0.8, at: 1, marksMissing: 'tattoo' } },
+        { playChecks: { pose: 0.5, face: 0.8, at: 1, poseMiss: true } },
+        { aestheticScore: 72, aestheticScoreMethod: 'vision' as const },
+        { workflowJsonOmitted: true },
+        { hasStoredWorkflow: true },
+      ]) {
+        assert.notEqual(galleryEntryRenderKey({ ...base, ...change }), key, JSON.stringify(change));
+      }
+      // When it was checked is not shown.
+      assert.equal(
+        galleryEntryRenderKey({ ...base, playChecks: { pose: 0.5, face: 0.8, at: 99 } }),
+        key
+      );
+    });
+
     it('includes progress fields only while queued/running', () => {
       const running = makeEntry({ status: 'running', queuePosition: 2, progressValue: 4 });
       const runningNoProgress = makeEntry({ status: 'running' });

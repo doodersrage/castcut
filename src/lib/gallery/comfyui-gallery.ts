@@ -32,6 +32,7 @@ import {
   persistGalleryCache,
   setGalleryCache,
   clearGalleryDb,
+  hasLocalStoredWorkflow,
   withStoredWorkflows,
 } from './db-store';
 import { COMFYUI_GALLERY_KEY, MAX_GALLERY_ENTRIES } from './comfyui-gallery-storage-meta';
@@ -137,6 +138,12 @@ export type ComfyGallerySort =
 export const GALLERY_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
 export const GALLERY_PAGE_SIZE_ALL = 'all' as const;
 
+function playChecksShown(checks: ComfyGalleryEntry['playChecks']): string {
+  if (!checks) return '';
+  const { at: _at, ...shown } = checks;
+  return JSON.stringify(shown);
+}
+
 export function galleryEntryRenderKey(entry: ComfyGalleryEntry): string {
   // Use a more efficient key generation approach
   // Only include fields that actually affect rendering and don't change frequently
@@ -156,6 +163,12 @@ export function galleryEntryRenderKey(entry: ComfyGalleryEntry): string {
     entry.projectId ?? '',
     `${entry.playChecks?.pose ?? ''}:${entry.playChecks?.face ?? ''}`,
     entry.playerVerdict?.verdict ?? '',
+    // What the card's badges show (M6 D22): the checks' verdicts (not when they ran), the score,
+    // and whether the exact graph is here — a check finishing while the Gallery is open showed
+    // nothing until something else about the card changed.
+    playChecksShown(entry.playChecks),
+    `${entry.aestheticScore ?? ''}:${entry.aestheticScoreMethod ?? ''}`,
+    `${entry.hasStoredWorkflow ? 1 : 0}:${entry.workflowJsonOmitted ? 1 : 0}:${hasLocalStoredWorkflow(entry) ? 1 : 0}`,
   ];
 
   // For in-flight entries, include progress info to prevent unnecessary re-renders

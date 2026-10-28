@@ -22,12 +22,18 @@ let fullLoadPromise: Promise<void> | null = null;
 /** Fingerprints of entries last written to IndexedDB (incremental sync). */
 let persistedFingerprints = new Map<string, string>();
 
+/** Long text stood in for by its length (a graph by its ends): fingerprinting stays cheap. */
+const FINGERPRINT_HEAVY_FIELDS = new Set(['workflowJson', 'prompt', 'negativePrompt', '_corpus']);
+
 function galleryEntryFingerprint(entry: ComfyGalleryEntry): string {
-  // Must cover every field that can change without a new entry id — otherwise
-  // incremental IndexedDB sync silently skips vision tags, project moves, progress, etc.
-  const images = entry.images
-    .map(image => `${image.filename}:${image.subfolder}:${image.type}`)
-    .join(',');
+  // Covers every field but the heavy ones, so incremental IndexedDB sync can't skip a change.
+  // It used to list the fields by hand and missed the marks / clip / miss checks, the adult
+  // check, the review note and the stored-media paths: an edit to one of those alone never
+  // reached IndexedDB and was gone after a reload (M6 D21). ~20 ms for 5000 entries, ~1 ms for 250.
+  const light: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(entry)) {
+    if (!FINGERPRINT_HEAVY_FIELDS.has(key)) light[key] = value;
+  }
   const workflowLen = entry.workflowJson?.length ?? 0;
   const workflowSig = workflowLen
     ? `${workflowLen}:${entry.workflowJson!.slice(0, 24)}:${entry.workflowJson!.slice(-24)}`
@@ -35,29 +41,9 @@ function galleryEntryFingerprint(entry: ComfyGalleryEntry): string {
       ? 'omitted'
       : '';
   return [
-    entry.status,
-    entry.completedAt ?? 0,
-    entry.favorite ? 1 : 0,
-    entry.reviewRating ?? 0,
-    images,
-    entry.statusMessage ?? '',
-    entry.queuePosition ?? '',
-    entry.progressValue ?? '',
-    entry.progressMax ?? '',
-    entry.progressNode ?? '',
-    entry.visionTags?.join(',') ?? '',
-    entry.userTags?.join(',') ?? '',
-    entry.customGroup ?? '',
-    entry.projectId ?? '',
-    entry.promptId ?? '',
-    entry.prompt.length,
+    JSON.stringify(light),
+    entry.prompt?.length ?? 0,
     entry.negativePrompt?.length ?? 0,
-    entry.derivedKind ?? '',
-    entry.parentGalleryEntryId ?? '',
-    entry.characterId ?? '',
-    entry.lookId ?? '',
-    `${entry.playChecks?.pose ?? ''}:${entry.playChecks?.face ?? ''}`,
-    entry.playerVerdict?.verdict ?? '',
     workflowSig,
   ].join('|');
 }
