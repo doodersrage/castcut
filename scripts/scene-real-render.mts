@@ -904,6 +904,8 @@ type V3Take = {
   sceneId: string;
   scene: string;
   role: string;
+  /** M8 T7: how its place was given — none (words), a location's words, or its words and photo. */
+  variant?: string;
   changed?: boolean;
   engine: string;
   outfit?: string;
@@ -976,6 +978,139 @@ async function v3Stored(page: Page) {
     if (url && V3_CASTS.includes(character.id)) plates[character.id] = url;
   }
   return { takes, byPrompt, scenes, plates };
+}
+
+/**
+ * M8 T7: the pairs' places as location records — one fixed look each. Mara's are words only; Lena's
+ * also get a picture of the empty place (`photo`), rendered here on Qwen-Image 2.1.
+ */
+const V3_PLACE_LOOKS: Record<string, { name: string; look: string; photo: boolean }> = {
+  'cast-mara:CAFE': {
+    name: 'Corner café',
+    look: 'green subway-tiled counter, a brass espresso machine, a chalkboard menu on a red-brick wall, round white marble tables, bentwood chairs, a big front window with gold lettering',
+    photo: false,
+  },
+  'cast-mara:GYM': {
+    name: 'Boutique gym',
+    look: 'black rubber floor, one mirrored wall, a rack of chrome dumbbells, white-painted brick, a row of wooden plyo boxes',
+    photo: false,
+  },
+  'cast-mara:LIBRARY': {
+    name: 'Old library',
+    look: "tall dark-oak bookshelves, a long oak reading table with green banker's lamps, a tall arched window, a worn red runner on a parquet floor",
+    photo: false,
+  },
+  'cast-lena:CAFE': {
+    name: 'Harbour café',
+    look: 'pale blue wooden counter, a copper espresso machine, open shelves of white cups, small square oak tables, rattan chairs, a window onto boats in a harbour',
+    photo: true,
+  },
+  'cast-lena:BEACH': {
+    name: 'Rocky cove beach',
+    look: 'pale sand, a weathered blue wooden lifeguard tower, dark rocks on the left, a long wooden pier in the distance',
+    photo: true,
+  },
+};
+
+/** A picture of an empty place on Qwen-Image 2.1 (ComfyUI direct): its uploaded input name. */
+async function renderEmptyPlace(page: Page, name: string, look: string, outdoors: boolean) {
+  const comfy = process.env.SCENE_COMFY ?? 'http://127.0.0.1:8188';
+  const prompt = `A wide photograph of ${name}, ${outdoors ? 'outdoors' : 'indoors'}: ${look}. Empty — no people anywhere. Eye-level, natural light, sharp, realistic.`;
+  const graph = {
+    '1': {
+      class_type: 'UNETLoader',
+      inputs: {
+        unet_name: 'qwen_image_2.1_turbo_int8_convrot.safetensors',
+        weight_dtype: 'default',
+      },
+    },
+    '2': {
+      class_type: 'CLIPLoader',
+      inputs: {
+        clip_name: 'qwen3vl_8b_int8_convrot.safetensors',
+        type: 'qwen_image',
+        device: 'default',
+      },
+    },
+    '3': { class_type: 'VAELoader', inputs: { vae_name: 'qwen_image_2.1_vae_bf16.safetensors' } },
+    '4': {
+      class_type: 'QwenImage21Cache',
+      inputs: { model: ['1', 0], device: 'auto', dtype: 'default' },
+    },
+    '5': {
+      class_type: 'TextEncodeQwenImage21',
+      inputs: {
+        clip: ['2', 0],
+        vae: ['3', 0],
+        prompt,
+        negative_prompt: 'people, person, woman, man, crowd',
+        resolution: 1280,
+      },
+    },
+    '6': { class_type: 'EmptyLatentImage', inputs: { width: 1472, height: 1104, batch_size: 1 } },
+    '7': { class_type: 'RandomNoise', inputs: { noise_seed: 424242 } },
+    '8': { class_type: 'BasicGuider', inputs: { model: ['4', 0], conditioning: ['5', 0] } },
+    '9': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'er_sde' } },
+    '10': {
+      class_type: 'ManualSigmas',
+      inputs: {
+        sigmas:
+          '1.000000, 0.978453, 0.954180, 0.926626, 0.895080, 0.845148, 0.704534, 0.414568, 0.000000',
+      },
+    },
+    '11': {
+      class_type: 'SamplerCustomAdvanced',
+      inputs: {
+        noise: ['7', 0],
+        guider: ['8', 0],
+        sampler: ['9', 0],
+        sigmas: ['10', 0],
+        latent_image: ['6', 0],
+      },
+    },
+    '12': { class_type: 'VAEDecode', inputs: { samples: ['11', 0], vae: ['3', 0] } },
+    '13': {
+      class_type: 'SaveImage',
+      inputs: { images: ['12', 0], filename_prefix: 'CastcutT7/place' },
+    },
+  };
+  const queued = (await (
+    await page.request.post(`${comfy}/prompt`, { data: { prompt: graph } })
+  ).json()) as {
+    prompt_id?: string;
+  };
+  if (!queued.prompt_id) throw new Error(`ComfyUI refused the place render (${name})`);
+  for (let tries = 0; tries < 180; tries += 1) {
+    const history = (await (
+      await page.request.get(`${comfy}/history/${queued.prompt_id}`)
+    ).json()) as Record<
+      string,
+      {
+        status?: { completed?: boolean };
+        outputs?: Record<string, { images?: Array<{ filename: string; subfolder: string }> }>;
+      }
+    >;
+    const entry = history[queued.prompt_id];
+    const image = entry?.status?.completed
+      ? Object.values(entry.outputs ?? {}).flatMap(output => output.images ?? [])[0]
+      : undefined;
+    if (image) {
+      const picture = await page.request.get(
+        `${comfy}/view?${new URLSearchParams({ filename: image.filename, subfolder: image.subfolder, type: 'output' })}`
+      );
+      const upload = `t7-place-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+      const uploaded = await page.request.post(`${comfy}/upload/image`, {
+        multipart: {
+          image: { name: upload, mimeType: 'image/png', buffer: await picture.body() },
+          overwrite: 'true',
+        },
+      });
+      if (!uploaded.ok()) throw new Error(`upload failed (${name})`);
+      return ((await uploaded.json()) as { name: string }).name;
+    }
+    await page.waitForTimeout(2000);
+  }
+  throw new Error(`the place render did not finish (${name})`);
 }
 
 /** M7 T5: Auto-review on for the open Scene page, as a person turns it on (Advanced). */
@@ -2630,7 +2765,11 @@ const phases: Record<string, Phase> = {
       await openScene(page, castId);
       if (process.env.SCENE_AUTO_REVIEW === '1') await autoReviewOn(page);
       const made = await v3Scenes(page, castId);
-      const included = made.filter(entry => entry.role === 'eval' || pairs);
+      // M8 T7: SCENE_V3_ONLY_PAIRS=1 renders the pairs alone (their places are locations now).
+      const onlyPairs = process.env.SCENE_V3_ONLY_PAIRS === '1';
+      const included = made.filter(entry =>
+        onlyPairs ? entry.role !== 'eval' : entry.role === 'eval' || pairs
+      );
       await patchSceneSlots(
         page,
         Object.fromEntries(included.map(({ scene }) => [scene.id, { engine }]))
@@ -2644,6 +2783,18 @@ const phases: Record<string, Phase> = {
           .getByTestId(`scene-run-item-${scene.id}`)
           .locator('input[type="checkbox"]');
         if (await box.isChecked()) await box.uncheck();
+      }
+      // The pairs were kept for Cut (v3cut): a pairs-only run renders them again all the same — a
+      // prepared run leaves kept Scenes out, so each is put back in.
+      if (onlyPairs) {
+        const skipKept = page.getByTestId('scene-run-skip-kept');
+        if (await skipKept.isChecked()) await skipKept.uncheck();
+        for (const { scene } of included) {
+          const box = page
+            .getByTestId(`scene-run-item-${scene.id}`)
+            .locator('input[type="checkbox"]');
+          if (!(await box.isChecked())) await box.check();
+        }
       }
       await page.getByTestId('scene-run-max-takes').fill('60');
       await page.getByTestId('scene-run-max-minutes').fill('600');
@@ -2688,6 +2839,7 @@ const phases: Record<string, Phase> = {
             scene: scene.name,
             role,
             ...(role === 'eval' ? {} : { changed }),
+            ...(process.env.SCENE_V3_VARIANT ? { variant: process.env.SCENE_V3_VARIANT } : {}),
             engine,
             outfit: (scene.slot as { wardrobeId?: string }).wardrobeId,
             takeId: take.id,
@@ -2799,6 +2951,32 @@ const phases: Record<string, Phase> = {
         picture ?? `no picture (${url ?? 'no take'})`
       );
     }
+    // M8 T7: each pair's two shots side by side, per way its place was given — the same room?
+    const placePairs: Array<Record<string, unknown>> = [];
+    for (const first of rows.filter(row => row.role === 'pair-first' && row.picture)) {
+      const number = Number.parseInt(first.scene, 10);
+      const variant = first.variant ?? 'none';
+      const id = `${first.castId}:${number}:${variant}`;
+      if (placePairs.some(pair => pair.id === id)) continue;
+      const second = rows.find(
+        row =>
+          row.castId === first.castId &&
+          row.role === 'pair-second' &&
+          Number.parseInt(row.scene, 10) === number + 1 &&
+          (row.variant ?? 'none') === variant &&
+          row.picture
+      );
+      if (!second) continue;
+      placePairs.push({
+        id,
+        castId: first.castId,
+        variant,
+        first: first.scene,
+        second: second.scene,
+        firstPicture: first.picture,
+        secondPicture: second.picture,
+      });
+    }
     // Cut's cross-shot findings: each pair's second Scene against its first.
     const pairs = [];
     for (const castId of V3_CASTS) {
@@ -2845,7 +3023,13 @@ const phases: Record<string, Phase> = {
       readFileSync(join(import.meta.dirname, 'v3-review-sheet.html'), 'utf8').replace(
         /\/\*DATA\*\/\s*null/,
         // Answers are kept per set (pages opened from disk can share one storage).
-        JSON.stringify({ rows, pairs, plates: castPlates, key: `castcut-review:${OUT}` })
+        JSON.stringify({
+          rows,
+          pairs,
+          placePairs,
+          plates: castPlates,
+          key: `castcut-review:${OUT}`,
+        })
       )
     );
     log(
@@ -2857,6 +3041,47 @@ const phases: Record<string, Phase> = {
       pairs.length,
       'Cut findings'
     );
+  },
+
+  /**
+   * M8 T7: each pair's place as a location record (V3_PLACE_LOOKS; Lena's with a rendered picture),
+   * and the pair Scenes set there. Then `SCENE_V3_ONLY_PAIRS=1 SCENE_V3_VARIANT=location v3run`.
+   */
+  async v3places(_ctx, page) {
+    const locations: Array<Record<string, unknown>> = [];
+    const set: Record<string, Record<string, unknown>> = {};
+    for (const castId of V3_CASTS) {
+      await openScene(page, castId);
+      const made = await v3Scenes(page, castId);
+      for (const { scene, role } of made) {
+        if (role === 'eval') continue;
+        const place = scene.name.match(/^\d+A (\S+)/)?.[1] ?? '';
+        const spec = V3_PLACE_LOOKS[`${castId}:${place}`];
+        if (!spec) continue;
+        const id = `loc-t7-${castId.replace(/^cast-/, '')}-${place.toLowerCase()}`;
+        if (!locations.some(entry => entry.id === id)) {
+          const outdoors = /beach/i.test(place);
+          const photo = spec.photo
+            ? await renderEmptyPlace(page, spec.name, spec.look, outdoors)
+            : undefined;
+          locations.push({
+            id,
+            name: spec.name,
+            setting: outdoors ? 'EXT' : 'INT',
+            look: spec.look,
+            aliases: [],
+            ...(photo ? { photo } : {}),
+            createdAt: Date.now(),
+          });
+          log('  location', spec.name, photo ? `with picture ${photo}` : 'words only');
+        }
+        set[scene.id] = { locationId: id };
+      }
+    }
+    await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+    await putAppKv(page, { 'castcut-locations-v1': locations });
+    const changed = await patchSceneSlots(page, set);
+    log('pair Scenes set in their locations:', changed);
   },
 
   /**
@@ -2942,6 +3167,8 @@ const phases: Record<string, Phase> = {
       /** M7 T5's sheet: the takes marked Good, and why each rejected one is wrong. */
       approved?: string[];
       wrongBecause?: Record<string, WrongReason[]>;
+      /** M8 T7: each pair (cast:number:variant) — the same room, or not. */
+      places?: Record<string, 'same' | 'different'>;
     };
     const looksWrong = new Set(review.looksWrong);
     const wrongBecause = review.wrongBecause ?? {};
@@ -3005,6 +3232,25 @@ const phases: Record<string, Phase> = {
       };
       lines.push(
         `| ${engine} | ${mine.length} | ${tally('face-miss')} | ${tally('pose-miss')} | ${tally('outfit-miss')} | ${tally('place-miss')} | ${mine.filter(entry => looksWrong.has(entry.promptId)).length} |`
+      );
+    }
+    // M8 T7: is a pair's place the same room, by how it was given?
+    if (review.places && Object.keys(review.places).length) {
+      const byVariant = new Map<string, { same: number; judged: number }>();
+      for (const [id, verdict] of Object.entries(review.places)) {
+        const variant = id.split(':').at(-1) ?? 'none';
+        const entry = byVariant.get(variant) ?? { same: 0, judged: 0 };
+        entry.judged += 1;
+        if (verdict === 'same') entry.same += 1;
+        byVariant.set(variant, entry);
+      }
+      lines.push(
+        '',
+        "| The pair's place given as | Pairs judged | Same room |",
+        '| --- | --- | --- |',
+        ...[...byVariant].map(
+          ([variant, entry]) => `| ${variant} | ${entry.judged} | ${entry.same} |`
+        )
       );
     }
     // M7 T5: does the face check tell the two Casts apart? (v3faces; the still bar is 0.4.)

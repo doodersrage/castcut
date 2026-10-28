@@ -285,6 +285,14 @@
       <div class="plates" id="plates"></div>
       <h2>Cut: outfit jumps between shots</h2>
       <div class="grid" id="pairs"></div>
+      <section id="places-section" hidden>
+        <h2>Same place? (two shots set in one place)</h2>
+        <p class="help">
+          Is it the same room — the same walls, counter, windows, furniture? The outfit may change
+          on purpose; judge the place only.
+        </p>
+        <div class="grid" id="places"></div>
+      </section>
       <h2>Takes</h2>
       <div class="grid" id="takes"></div>
     </main>
@@ -298,6 +306,7 @@
         looksWrong: saved.looksWrong || [],
         approved: saved.approved || [],
         wrongBecause: saved.wrongBecause || {},
+        places: saved.places || {},
       });
       let state = fresh({});
       try {
@@ -445,6 +454,67 @@
                 el('ul', {}, findingItem(pair))
               )
             )
+        );
+
+        const placePairs = DATA.placePairs || [];
+        document.getElementById('places-section').hidden = placePairs.length === 0;
+        const variantName = {
+          none: 'No location (words per shot)',
+          'location-words': 'A location: its words',
+          'location-photo': 'A location: its words and picture',
+        };
+        document.getElementById('places').replaceChildren(
+          ...placePairs
+            .filter(
+              pair =>
+                (!cast || pair.castId === cast) && (!openOnly.checked || !state.places[pair.id])
+            )
+            .map(pair => {
+              const verdict = state.places[pair.id];
+              return el(
+                'article',
+                { className: `card${verdict ? ' done' : ''}` },
+                el(
+                  'div',
+                  { className: 'pics' },
+                  picture(pair.firstPicture, pair.first),
+                  picture(pair.secondPicture, pair.second)
+                ),
+                el(
+                  'div',
+                  { className: 'meta' },
+                  el('strong', {
+                    textContent: `${castName(pair.castId)} · ${pair.first} → ${pair.second}`,
+                  }),
+                  el('span', { textContent: variantName[pair.variant] || pair.variant })
+                ),
+                el(
+                  'div',
+                  { className: 'verdict' },
+                  el(
+                    'div',
+                    { className: 'choice' },
+                    ...[
+                      ['same', 'Same room', 'fine'],
+                      ['different', 'Different room', 'real'],
+                    ].map(([value, text, cls]) =>
+                      el('button', {
+                        type: 'button',
+                        className: cls,
+                        textContent: text,
+                        ariaPressed: String(verdict === value),
+                        onclick: () => {
+                          if (state.places[pair.id] === value) delete state.places[pair.id];
+                          else state.places[pair.id] = value;
+                          persist();
+                          render();
+                        },
+                      })
+                    )
+                  )
+                )
+              );
+            })
         );
 
         const takes = document.getElementById('takes');
