@@ -1798,6 +1798,14 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
 - Two takes side by side with their provenance.
 - Acceptance: a rejected take stays rejected across reload, sync and backup / restore (unit and
   e2e); Cut's pins unaffected.
+- Status 2026-10-28: `SceneTake.review` ('approved' | 'rejected'; unset = candidate), set by
+  `setSceneTakeReview` (bumps the scene's `updatedAt`, so the per-scene merge carries it). The
+  kept take can't be rejected; keeping a rejected take restores it; past the take limit rejected
+  takes go first. The strip: Good / Reject per take, rejected hidden behind "Show N rejected" and
+  restorable; "Compare takes": two side by side (pair fixed while open) with how each was made,
+  keep or reject from there. Tested: unit (model, normalise, limit), merge (either way round),
+  backup round trip, e2e (mark, reload, restore, kept can't be rejected, compare and keep). Cut
+  reads only `keptTakeId`, so its pins are untouched.
 
 **T4 — The submitted graph, and replay on the real engine.** · S–M
 - Keep the graph as submitted (with its input file names) beside the template.

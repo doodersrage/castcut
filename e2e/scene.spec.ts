@@ -298,6 +298,69 @@ test('keep a take, the Director from it, and the kept take in Cut', async ({ pag
   await shot(page, 'scene-cut-source');
 });
 
+// M7 T3: a verdict on a take without rendering it again — good, rejected (hidden, restorable),
+// never the kept one — kept after a reload; and two takes compared side by side.
+test('takes are marked good or rejected, survive a reload, and compare side by side', async ({
+  page,
+}) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { scene: sceneWithTakes() },
+    },
+    // The reload must read what the page saved, not the seed again.
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const takes = page.getByTestId('scene-take');
+  await expect(takes).toHaveCount(2, { timeout: 60_000 });
+
+  // Take 2 is on the card; keep it. The kept take can't be rejected.
+  await page.getByTestId('scene-take-keep-1').click();
+  await expect(takes.nth(1)).toHaveAttribute('data-kept', 'true');
+  await expect(page.getByTestId('scene-take-reject-1')).toBeDisabled();
+  await page.getByTestId('scene-take-approve-1').click();
+  await expect(takes.nth(1)).toHaveAttribute('data-review', 'approved');
+  await shot(page, 'scene-take-review');
+
+  // Reject take 1: it leaves the strip (it isn't on the card), and can be shown and restored.
+  await page.getByTestId('scene-take-reject-0').click();
+  await expect(takes).toHaveCount(1);
+  await expect(page.getByTestId('scene-takes-show-rejected')).toHaveText('Show 1 rejected');
+
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(takes).toHaveCount(1, { timeout: 60_000 });
+  await expect(takes.first()).toHaveAttribute('data-review', 'approved');
+  await expect(takes.first()).toHaveAttribute('data-kept', 'true');
+  await page.getByTestId('scene-takes-show-rejected').click();
+  await expect(takes).toHaveCount(2);
+  await expect(takes.nth(0)).toHaveAttribute('data-review', 'rejected');
+  await page.getByTestId('scene-take-restore-0').click();
+  await expect(takes.nth(0)).toHaveAttribute('data-review', 'candidate');
+  await expect(page.getByTestId('scene-takes-show-rejected')).toHaveCount(0);
+
+  // Compare: the kept take and the other, side by side; keep the other from there.
+  await page.getByTestId('scene-takes-compare').click();
+  const compare = page.getByTestId('scene-take-compare');
+  await expect(compare).toBeVisible();
+  await expect(page.getByTestId('scene-take-compare-0')).toHaveAttribute('data-take', 'take-2');
+  await expect(page.getByTestId('scene-take-compare-1')).toHaveAttribute('data-take', 'take-1');
+  // No Gallery entries in this fixture: each side says so (the rows are R4's, tested there).
+  await expect(page.getByTestId('scene-take-compare-1')).toContainText(
+    'no longer has this take’s Gallery entry'
+  );
+  await page.getByTestId('scene-take-compare-keep-1').click();
+  await expect(page.getByTestId('scene-take-compare-keep-1')).toHaveAttribute('aria-pressed', 'true');
+  await shot(page, 'scene-take-compare');
+  await page.keyboard.press('Escape');
+  await expect(takes.nth(0)).toHaveAttribute('data-kept', 'true');
+  await expect(takes.nth(1)).toHaveAttribute('data-kept', 'false');
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

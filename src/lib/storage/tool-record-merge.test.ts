@@ -42,6 +42,24 @@ describe('record lists inside tool settings (R6)', () => {
     );
   });
 
+  // M7 T3: a take rejected on one device stays rejected after the other device's copy merges in.
+  it('a take rejected on one device stays rejected, either way round', () => {
+    const phone = { scene: { scenes: [scene('a', 10, [take('t1'), take('t2', 2)])] } };
+    const desk = {
+      scene: {
+        scenes: [
+          scene('a', 20, [take('t1'), { ...take('t2', 2), review: 'rejected' } as ReturnType<typeof take>]),
+        ],
+      },
+    };
+    for (const merged of [withMergedToolRecords(phone, desk), withMergedToolRecords(desk, phone)]) {
+      const t2 = (merged.scene.scenes[0]!.takes as Array<{ id: string; review?: string }>).find(
+        t => t.id === 't2'
+      );
+      assert.equal(t2?.review, 'rejected');
+    }
+  });
+
   it('a take removed on one device is not brought back by the other', () => {
     const removedHere = {
       scene: { scenes: [scene('a', 20, [take('t1')], { removedTakeIds: ['t2'] })] },

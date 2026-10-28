@@ -18,6 +18,7 @@ import {
   SCENE_JOB_LOG_LIMIT,
   SCENE_LIMIT_PER_CAST,
   removeSceneTake,
+  setSceneTakeReview,
   resolveSceneChecks,
   SCENE_TAKE_LIMIT,
   sceneCardBusy,
@@ -277,6 +278,66 @@ describe('scenes: the open scene follows the engine', () => {
       removed.takes.map(take => take.id),
       ['p1']
     );
+  });
+
+  // M7 T3: a verdict on a take, set without rendering it again.
+  it('approves and rejects takes, never the kept one, and keeping a rejected take restores it', () => {
+    const scene = {
+      ...kitchen(),
+      takes: [
+        { id: 'p1', imageUrl: '/1.png', at: 1 },
+        { id: 'p2', imageUrl: '/2.png', at: 2 },
+      ],
+      keptTakeId: 'p1',
+      updatedAt: 1,
+    };
+    const approved = setSceneTakeReview(scene, 'p2', 'approved', 5);
+    assert.equal(approved.takes[1]!.review, 'approved');
+    assert.equal(approved.updatedAt, 5, 'a newer copy, so it wins the merge across devices');
+    const rejected = setSceneTakeReview(approved, 'p2', 'rejected', 6);
+    assert.equal(rejected.takes[1]!.review, 'rejected');
+    assert.equal(setSceneTakeReview(rejected, 'p2', null, 7).takes[1]!.review, undefined);
+    // The kept take can't be rejected; an unknown take or the same verdict changes nothing.
+    assert.equal(setSceneTakeReview(scene, 'p1', 'rejected', 8), scene);
+    assert.equal(setSceneTakeReview(scene, 'nope', 'approved', 8), scene);
+    assert.equal(setSceneTakeReview(rejected, 'p2', 'rejected', 9), rejected);
+    // Keeping a rejected take restores it.
+    const keptAgain = keepSceneTake(rejected, 'p2', 10);
+    assert.equal(keptAgain.keptTakeId, 'p2');
+    assert.equal(keptAgain.takes[1]!.review, undefined);
+    assert.equal(keepSceneTake(scene, 'p2', 11).takes, scene.takes, 'nothing to restore: same list');
+  });
+
+  it('keeps a verdict through a save and a reload, and drops rejected takes first past the limit', () => {
+    const [read] = normalizeSavedScenes([
+      {
+        ...kitchen(),
+        takes: [
+          { id: 'a', imageUrl: '/a.png', at: 1, review: 'approved' },
+          { id: 'b', imageUrl: '/b.png', at: 2, review: 'rejected' },
+          { id: 'c', imageUrl: '/c.png', at: 3, review: 'bogus' },
+        ],
+      },
+    ]);
+    assert.deepEqual(
+      read!.takes.map(take => [take.id, take.review]),
+      [
+        ['a', 'approved'],
+        ['b', 'rejected'],
+        ['c', undefined],
+      ]
+    );
+    const takes = Array.from({ length: SCENE_TAKE_LIMIT + 3 }, (_, at) => ({
+      id: `p${at}`,
+      imageUrl: `/p${at}.png`,
+      at: at + 1,
+      // The three newest are rejected: they go before any older candidate.
+      ...(at >= SCENE_TAKE_LIMIT ? { review: 'rejected' as const } : {}),
+    }));
+    const [bounded] = normalizeSavedScenes([{ ...kitchen(), takes }]);
+    assert.equal(bounded!.takes.length, SCENE_TAKE_LIMIT);
+    assert.ok(bounded!.takes.every(take => take.review !== 'rejected'));
+    assert.equal(bounded!.takes[0]!.id, 'p0', 'the oldest candidate stays');
   });
 
   it('opens with the kept take on the card and its mood in the working fields', () => {

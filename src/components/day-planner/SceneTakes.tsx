@@ -8,7 +8,10 @@ import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import type { SceneTake } from '@/lib/day/scenes';
-import { SceneTakeProvenanceDialog } from '@/components/day-planner/SceneTakeProvenance';
+import {
+  SceneTakeCompareDialog,
+  SceneTakeProvenanceDialog,
+} from '@/components/day-planner/SceneTakeProvenance';
 
 type Vm = ReturnType<typeof useDayPlannerToolOrchestration>;
 type Page = ReturnType<typeof useScenePage>;
@@ -81,14 +84,22 @@ export function SceneTakeCard({
 
 /**
  * The scene's takes: tap one to put it on the card, ★ keeps it (Cut uses it, Make it move starts
- * from it), i says how it was made, × drops it from the scene (it stays in the Gallery). `strip`:
- * one swipeable row with 44 px buttons (the phone); else a wrapping grid.
+ * from it), i says how it was made, × drops it from the scene (it stays in the Gallery). Good
+ * and Reject are your verdict, without rendering again (M7 T3): rejected takes are hidden until
+ * shown, and restorable; Compare puts two side by side. `strip`: one swipeable row with 44 px
+ * buttons (the phone); else a wrapping grid.
  */
 export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boolean }) {
-  const { active, still, showTake, keepTake, removeTake } = page;
+  const { active, still, showTake, keepTake, reviewTake, removeTake } = page;
   const [madeIndex, setMadeIndex] = useState<number | null>(null);
+  const [showRejected, setShowRejected] = useState(false);
+  const [comparing, setComparing] = useState(false);
   if (!active || active.takes.length === 0) return null;
   const madeTake = madeIndex === null ? null : (active.takes[madeIndex] ?? null);
+  const rejected = active.takes.filter(take => take.review === 'rejected').length;
+  const linkButton = strip
+    ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center no-underline'
+    : 'ui-text-link type-caption whitespace-nowrap';
   return (
     <>
       <ol
@@ -103,6 +114,9 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
         {active.takes.map((take, index) => {
           const isKept = take.id === active.keptTakeId;
           const onCard = Boolean(still?.promptId && still.promptId === take.promptId);
+          const isRejected = take.review === 'rejected';
+          // A rejected take is hidden — but not while it's on the card.
+          if (isRejected && !showRejected && !onCard) return null;
           return (
             <li
               key={take.id}
@@ -119,12 +133,15 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
               data-take={take.id}
               data-kept={isKept ? 'true' : 'false'}
               data-on-card={onCard ? 'true' : 'false'}
+              data-review={take.review ?? 'candidate'}
             >
               <button
                 type="button"
-                className="ui-btn-ghost block w-full !p-0"
+                className="ui-btn-ghost relative block w-full !p-0"
                 title={onCard ? 'On the card' : 'Show this take on the card'}
-                aria-label={`Take ${index + 1}${onCard ? ' (on the card)' : ''}`}
+                aria-label={`Take ${index + 1}${onCard ? ' (on the card)' : ''}${
+                  isRejected ? ', rejected' : take.review === 'approved' ? ', good' : ''
+                }`}
                 aria-pressed={onCard}
                 data-testid={`scene-take-show-${index}`}
                 onClick={() => showTake(take)}
@@ -133,9 +150,18 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                 <img
                   src={take.imageUrl}
                   alt=""
-                  className="aspect-[3/4] w-full object-cover"
+                  className={`aspect-[3/4] w-full object-cover ${isRejected ? 'opacity-40' : ''}`}
                   loading="lazy"
                 />
+                {isRejected || take.review === 'approved' ? (
+                  <span
+                    className={`type-caption pointer-events-none absolute bottom-1 left-1 rounded bg-[var(--bg-base)]/85 px-1 ${
+                      isRejected ? 'text-[var(--text-muted)]' : 'text-[var(--tint-success-text)]'
+                    }`}
+                  >
+                    {isRejected ? 'Rejected' : '✓ Good'}
+                  </span>
+                ) : null}
               </button>
               {onCard ? (
                 <span className="type-caption pointer-events-none absolute left-1 top-1 rounded bg-[var(--bg-base)]/85 px-1 text-[var(--accent-text)]">
@@ -188,10 +214,96 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                   ×
                 </button>
               </div>
+              <div
+                className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 pb-0.5'}`}
+              >
+                {isRejected ? (
+                  <button
+                    type="button"
+                    className={linkButton}
+                    data-testid={`scene-take-restore-${index}`}
+                    title="Put it back with the other takes"
+                    onClick={() => reviewTake(take.id, null)}
+                  >
+                    Restore
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className={linkButton}
+                      aria-pressed={take.review === 'approved'}
+                      aria-label={`Take ${index + 1} is good`}
+                      data-testid={`scene-take-approve-${index}`}
+                      title={
+                        take.review === 'approved'
+                          ? 'Marked good — tap to make it a candidate again'
+                          : 'Good — a take you could use'
+                      }
+                      onClick={() =>
+                        reviewTake(take.id, take.review === 'approved' ? null : 'approved')
+                      }
+                    >
+                      Good
+                    </button>
+                    <button
+                      type="button"
+                      className={`${linkButton} disabled:cursor-not-allowed disabled:opacity-40`}
+                      aria-label={`Reject take ${index + 1}`}
+                      data-testid={`scene-take-reject-${index}`}
+                      disabled={isKept}
+                      title={
+                        isKept
+                          ? 'Keep another take first — Cut uses this one'
+                          : 'Reject — hide it from the takes (it stays in the Gallery)'
+                      }
+                      onClick={() => reviewTake(take.id, 'rejected')}
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
             </li>
           );
         })}
       </ol>
+      {rejected > 0 || active.takes.length - rejected >= 2 ? (
+        <div className="mt-1 flex flex-wrap gap-3">
+          {active.takes.length - rejected >= 2 ? (
+            <button
+              type="button"
+              className="ui-text-link type-caption"
+              data-testid="scene-takes-compare"
+              onClick={() => setComparing(true)}
+            >
+              Compare takes
+            </button>
+          ) : null}
+          {rejected > 0 ? (
+            <button
+              type="button"
+              className="ui-text-link type-caption"
+              aria-pressed={showRejected}
+              data-testid="scene-takes-show-rejected"
+              onClick={() => setShowRejected(value => !value)}
+            >
+              {showRejected ? 'Hide rejected' : `Show ${rejected} rejected`}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {comparing ? (
+        <SceneTakeCompareDialog
+          open
+          takes={active.takes}
+          keptTakeId={active.keptTakeId}
+          castId={active.castId}
+          onKeep={keepTake}
+          onReview={reviewTake}
+          onClose={() => setComparing(false)}
+        />
+      ) : null}
       <SceneTakeProvenanceDialog
         take={madeTake}
         index={madeIndex ?? 0}

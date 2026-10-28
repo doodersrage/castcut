@@ -210,7 +210,14 @@ describe('studio backup round trip (M1)', () => {
         slot: { id: 'evening', label: 'Evening', location: 'rooftop' },
         takes: [
           { id: 'p-take-1', promptId: 'p-take-1', imageUrl: takeUrl, at: 1 },
-          { id: 'p-take-2', promptId: 'p-take-2', imageUrl: '/api/gallery/media/other', at: 2 },
+          // Rejected (M7 T3): the verdict comes back with the backup.
+          {
+            id: 'p-take-2',
+            promptId: 'p-take-2',
+            imageUrl: '/api/gallery/media/other',
+            at: 2,
+            review: 'rejected',
+          },
         ],
         keptTakeId: 'p-take-1',
         createdAt: 1,
@@ -258,7 +265,7 @@ describe('studio backup round trip (M1)', () => {
       importStudioBackup(parseStudioBackupFile(file));
 
       const tools = loadSettingsCache().tools as unknown as {
-        scene: { scenes: Array<{ keptTakeId?: string; takes: unknown[] }> };
+        scene: { scenes: Array<{ keptTakeId?: string; takes: Array<{ review?: string }> }> };
         cut: {
           options: { shotEdits: { shots: Record<string, { pin?: { url: string } }> } };
           versions: Array<{ name: string }>;
@@ -266,6 +273,7 @@ describe('studio backup round trip (M1)', () => {
       };
       assert.equal(tools.scene.scenes[0]?.keptTakeId, 'p-take-1');
       assert.equal(tools.scene.scenes[0]?.takes.length, 2);
+      assert.equal(tools.scene.scenes[0]?.takes[1]?.review, 'rejected');
       assert.equal(tools.cut.options.shotEdits.shots['scenes:scene-roof']?.pin?.url, takeUrl);
       assert.equal(tools.cut.versions[0]?.name, 'Long');
       const entry = getGalleryEntryById('8a6c1f8e-0000-4000-8000-0000000000aa');

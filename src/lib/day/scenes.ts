@@ -44,8 +44,15 @@ export type SceneTake = {
   /** Its clip (Animate, Copy moves, the Director), once one landed. */
   clipUrl?: string;
   clipPromptId?: string;
+  /**
+   * Your verdict on it, without rendering again (M7 T3): approved — a good alternative to the
+   * kept take — or rejected: hidden from the strip until you restore it. Unset: a candidate.
+   */
+  review?: SceneTakeReview;
   at: number;
 };
+
+export type SceneTakeReview = 'approved' | 'rejected';
 
 export type SavedScene = {
   id: string;
@@ -292,19 +299,34 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
     ...(framedUrl ? { framedUrl } : {}),
     ...(clipUrl ? { clipUrl } : {}),
     ...(clipUrl && clipPromptId ? { clipPromptId } : {}),
+    ...(take.review === 'approved' || take.review === 'rejected' ? { review: take.review } : {}),
     at: time(take.at, now),
   };
 }
 
-/** Takes oldest first, one per id, at most {@link SCENE_TAKE_LIMIT} (the kept one stays). */
+/**
+ * Takes oldest first, one per id, at most {@link SCENE_TAKE_LIMIT}: the kept one stays, and past
+ * the limit rejected takes go first (M7 T3), then the oldest.
+ */
 function boundedTakes(takes: SceneTake[], keptTakeId: string | undefined): SceneTake[] {
   const byId = new Map<string, SceneTake>();
   for (const take of takes) byId.set(take.id, take);
   const ordered = [...byId.values()].sort((a, b) => a.at - b.at);
   if (ordered.length <= SCENE_TAKE_LIMIT) return ordered;
   const kept = ordered.find(take => take.id === keptTakeId);
-  const newest = ordered.filter(take => take !== kept).slice(-(SCENE_TAKE_LIMIT - (kept ? 1 : 0)));
-  return kept ? [...newest, kept].sort((a, b) => a.at - b.at) : newest;
+  const rest = ordered.filter(take => take !== kept);
+  const room = SCENE_TAKE_LIMIT - (kept ? 1 : 0);
+  const unrejected = rest.filter(take => take.review !== 'rejected');
+  const chosen = new Set(
+    unrejected.length >= room
+      ? unrejected.slice(-room)
+      : [
+          ...unrejected,
+          ...rest.filter(take => take.review === 'rejected').slice(-(room - unrejected.length)),
+        ]
+  );
+  if (kept) chosen.add(kept);
+  return ordered.filter(take => chosen.has(take));
 }
 
 function moodFieldsOf(
@@ -684,9 +706,41 @@ export function recordSceneFromWorking(
 export function keepSceneTake(scene: SavedScene, takeId: string, now = Date.now()): SavedScene {
   if (!scene.takes.some(take => take.id === takeId)) return scene;
   const { keptTakeId: _kept, ...rest } = scene;
-  return scene.keptTakeId === takeId
-    ? { ...rest, updatedAt: now }
-    : { ...rest, keptTakeId: takeId, updatedAt: now };
+  if (scene.keptTakeId === takeId) return { ...rest, updatedAt: now };
+  // Keeping a rejected take restores it (M7 T3): Cut never plays a rejected take.
+  const takes = scene.takes.some(take => take.id === takeId && take.review === 'rejected')
+    ? scene.takes.map(take => {
+        if (take.id !== takeId) return take;
+        const { review: _rejected, ...restored } = take;
+        return restored;
+      })
+    : scene.takes;
+  return { ...rest, takes, keptTakeId: takeId, updatedAt: now };
+}
+
+/**
+ * Mark a take approved or rejected, or back to a candidate (`null`), without rendering it again
+ * (M7 T3). The kept take can't be rejected — keep another first, so Cut never plays a rejected
+ * take; keeping a rejected take restores it (keepSceneTake).
+ */
+export function setSceneTakeReview(
+  scene: SavedScene,
+  takeId: string,
+  review: SceneTakeReview | null,
+  now = Date.now()
+): SavedScene {
+  const index = scene.takes.findIndex(take => take.id === takeId);
+  if (index < 0) return scene;
+  if (review === 'rejected' && takeId === scene.keptTakeId) return scene;
+  const take = scene.takes[index]!;
+  if ((take.review ?? null) === review) return scene;
+  const { review: _old, ...rest } = take;
+  const next: SceneTake = review ? { ...rest, review } : rest;
+  return {
+    ...scene,
+    takes: scene.takes.map((entry, at) => (at === index ? next : entry)),
+    updatedAt: now,
+  };
 }
 
 /** Drop a take from the scene (it stays in the Gallery). */

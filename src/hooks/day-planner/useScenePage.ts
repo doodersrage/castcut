@@ -25,12 +25,14 @@ import {
   sceneCutUse,
   sceneSlotAt,
   scenesForCast,
+  setSceneTakeReview,
   scenesWithWorking,
   swapSceneForCast,
   takeAsStill,
   upsertScene,
   type SavedScene,
   type SceneTake,
+  type SceneTakeReview,
   type SceneToolCache,
 } from '@/lib/day/scenes';
 import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/scene-links';
@@ -344,6 +346,16 @@ export function useScenePage(vm: DayEngineView) {
     [active, inFlight, scenes, slot.id, stillPromptId, write]
   );
 
+  /** Approve or reject a take, or make it a candidate again (M7 T3). Cut is untouched. */
+  const reviewTake = useCallback(
+    (takeId: string, review: SceneTakeReview | null) => {
+      if (!active) return;
+      const next = setSceneTakeReview(active, takeId, review);
+      if (next !== active) write({ scenes: upsertScene(scenes, next) });
+    },
+    [active, scenes, write]
+  );
+
   /** What deleting this scene, or letting its kept take go, does to Cut (R7). */
   const cutNoteFor = useCallback(
     (scene: Pick<SavedScene, 'id' | 'keptTakeId'> | null | undefined) =>
@@ -440,6 +452,7 @@ export function useScenePage(vm: DayEngineView) {
     setTimeOfDay,
     showTake,
     keepTake,
+    reviewTake,
     removeTake,
     cutNoteFor,
     keptOnCard,
