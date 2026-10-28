@@ -19,6 +19,22 @@ export function defaultDayClipDirection(slot: DaySlot, characterName?: string): 
   return slot.sceneHints?.trim() || buildDaySlotMotionSubject(slot, characterName);
 }
 
+/**
+ * A longer clip's part (M11 T1): its prompt built the way the first clip's was, from the part's
+ * own beat — so the part does what its beat says, not the first clip's action again.
+ */
+export function dayPartClipPrompt(
+  input: Omit<
+    Parameters<typeof buildDaySlotClipPrompt>[0],
+    'direction' | 'durationSec' | 'endPoseWords'
+  > & {
+    beat: string;
+  }
+): string {
+  const { beat, ...rest } = input;
+  return buildDaySlotClipPrompt({ ...rest, direction: beat, durationSec: 5 });
+}
+
 export function buildDaySlotClipPrompt(input: {
   slot: DaySlot;
   /** What happens in the clip (unset / empty: the slot's beat). */

@@ -13,6 +13,9 @@ import {
   patchWanReplayGraph,
 } from './extend';
 import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from '../video/ltx25-renderer';
+import { h3PartPrompt } from '../engine/h3-renderer';
+import { buildDaySlotClipPrompt, dayPartClipPrompt } from '../day/clip-direction';
+import type { DaySlot } from '../day/planner';
 
 describe('Make it 30 s', () => {
   it('counts the segments to about 30 s', () => {
@@ -57,6 +60,30 @@ describe('Make it 30 s', () => {
     assert.equal(out.graph['4']!.inputs!.end_image, undefined);
     assert.equal(out.graph['5']!.inputs!.seed, 42);
     assert.equal(wan['1'].inputs.image, 'still.png');
+  });
+
+  // M11 T1: a part does its own beat; the first clip's action (the player's direction) stays there.
+  it('a part says its own beat, not the first clip’s direction again', () => {
+    const slot = { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' } as DaySlot;
+    const first = buildDaySlotClipPrompt({ slot, direction: 'She throws the mug at the wall' });
+    assert.match(first, /throws the mug/);
+    const part = dayPartClipPrompt({ slot, beat: 'She sweeps up the pieces' });
+    assert.match(part, /sweeps up the pieces/);
+    assert.doesNotMatch(part, /throws the mug/);
+    // H3: the part's prompt in place of the clip's.
+    const h3 = h3PartPrompt(part, { beat: 'She sweeps up the pieces', place: 'kitchen' });
+    assert.doesNotMatch(h3, /throws the mug/);
+    assert.match(h3, /sweeps up the pieces/);
+    // WAN: the part's own text in place of the clip's.
+    const wan = {
+      '1': { class_type: 'LoadImage', inputs: { image: 'still.png' } },
+      '2': { class_type: 'CLIPTextEncode', inputs: { text: first } },
+      '4': { class_type: 'WanImageToVideo', inputs: { start_image: ['1', 0], positive: ['2', 0] } },
+      '6': { class_type: 'SaveAnimatedWEBP', inputs: { filename_prefix: 'x' } },
+    };
+    const out = patchWanReplayGraph(wan, { lastFrame: 'l.png', beat: 'Then.', seed: 1, prefix: 'p', ownText: part })!;
+    assert.doesNotMatch(String(out.graph['2']!.inputs!.text), /throws the mug/);
+    assert.match(String(out.graph['2']!.inputs!.text), /^Then\. .*sweeps up the pieces/);
   });
 
   it('crossfades video and sound across the seams', () => {

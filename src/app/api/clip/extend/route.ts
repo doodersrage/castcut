@@ -66,6 +66,12 @@ export async function POST(request: Request) {
           .filter(Boolean)
           .slice(0, 8)
       : undefined,
+    // Kept in place (a part with '' falls back to the clip's own prompt).
+    partPrompts: Array.isArray(body.partPrompts)
+      ? body.partPrompts
+          .slice(0, 8)
+          .map(entry => (typeof entry === 'string' ? entry.trim().slice(0, 2000) : ''))
+      : undefined,
     lines: Array.isArray(body.lines)
       ? body.lines
           .slice(0, 8)

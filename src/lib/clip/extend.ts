@@ -181,7 +181,14 @@ function findTextNode(graph: Graph, ref: unknown, depth = 0): GraphNode | null {
  */
 export function patchWanReplayGraph(
   source: Graph,
-  input: { lastFrame: string; beat: string; seed: number; prefix: string }
+  input: {
+    lastFrame: string;
+    beat: string;
+    seed: number;
+    prefix: string;
+    /** The part's own prompt in place of the clip's (M11 T1). */
+    ownText?: string;
+  }
 ): { graph: Graph; saveNode: string } | null {
   const graph = JSON.parse(JSON.stringify(source)) as Graph;
   const i2v = Object.values(graph).find(node => WAN_I2V.test(node?.class_type ?? ''));
@@ -192,7 +199,8 @@ export function patchWanReplayGraph(
   delete i2v.inputs.end_image;
   const text = findTextNode(graph, i2v.inputs.positive);
   if (text?.inputs) {
-    text.inputs.text = `${input.beat.trim()} ${String(text.inputs.text ?? '')}`.trim();
+    const own = input.ownText?.trim() || String(text.inputs.text ?? '');
+    text.inputs.text = `${input.beat.trim()} ${own}`.trim();
   }
   let seeded = 0;
   for (const node of Object.values(graph)) {
@@ -258,6 +266,11 @@ export type ClipExtendRequest = {
   direction?: string;
   /** The player's own beats, one per part, used as written. */
   beats?: string[];
+  /**
+   * Each part's own prompt (same order as the beats), built the way the first clip's was from the
+   * part's beat (M11 T1): an H3 or WAN part says it instead of the first clip's prompt again.
+   */
+  partPrompts?: string[];
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
   /** How each line is said (same order; '' / 'natural' = plainly). */

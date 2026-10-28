@@ -283,6 +283,8 @@ export type ClipExtendInput = {
   direction?: string;
   /** The player's beats, used as written (more beats than needed make it longer, up to the cap). */
   beats?: string[];
+  /** Each part's own prompt (same order): an H3 / WAN part's in place of the clip's (M11 T1). */
+  partPrompts?: string[];
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
   /** How each line is said (same order). */
@@ -497,12 +499,16 @@ export async function extendClip(
         )?.inputs?.prompt;
         const patched = patchH3ReplayGraph(h3, {
           lastFrame: lastFrame.name,
-          prompt: h3PartPrompt(typeof clipPrompt === 'string' ? clipPrompt : '', {
-            beat: beats[k]!,
-            place: input.setting,
-            line: input.lines?.[k],
-            speaker: input.lead === 'man' ? 'He' : 'She',
-          }),
+          // The part's own prompt when the page built one: the first clip's action stays there.
+          prompt: h3PartPrompt(
+            input.partPrompts?.[k]?.trim() || (typeof clipPrompt === 'string' ? clipPrompt : ''),
+            {
+              beat: beats[k]!,
+              place: input.setting,
+              line: input.lines?.[k],
+              speaker: input.lead === 'man' ? 'He' : 'She',
+            }
+          ),
           seed: seed + k * 7,
           prefix,
         });
@@ -516,6 +522,7 @@ export async function extendClip(
           beat: `${beats[k]!} The camera stays still; the framing stays exactly as in the first frame.`,
           seed: seed + k * 7,
           prefix,
+          ownText: input.partPrompts?.[k],
         });
         if (!patched) throw new Error('Could not replay this clip’s WAN graph.');
         prompt = patched.graph;

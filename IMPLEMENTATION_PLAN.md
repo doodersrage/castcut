@@ -2252,3 +2252,60 @@ and the phone has no Script or run.
 ## 12.4 Recommended first task
 
 **T1** (small, protects what M7–M9 built), then **T2** (data safety before features).
+
+# Part 13 — M11 plan: longer clips that hold together (2026-10-28)
+
+From the user's report on Animate's longer clips (Day / Scene, MiniMax-H3 parts and "Make it
+30 s"): the first clip's action happens again in every part; the clothes and the look drift from
+part to part; the picture gets worse with each part. And a request: per-part beats and lengths in
+the Animate sheet, with **Write the beats** as "Make it 30 s" has.
+
+## 13.1 What exists (audited 2026-10-28)
+
+| Piece | Where | Finding |
+| --- | --- | --- |
+| Parts after the first clip | `clip/extend-server.ts` `extendClip` | each part starts on the last frame of the part before |
+| An H3 part's prompt | `engine/h3-renderer.ts` `h3PartPrompt(clipPrompt, { beat })` | the first clip's whole prompt — the player's "What happens in the clip" with it — follows the part's beat: the action repeats |
+| A WAN part's prompt | `clip/extend.ts` `patchWanReplayGraph` | the beat is put in front of the clip's own text: the same |
+| The Animate sheet's H3 chain | `DayAnimateSheet.tsx` | every part gets `DAY_H3_CARRY_ON_BEAT`; no per-part beat, length or Write the beats |
+| The start frame | `extendClip` | grabbed from the re-encoded piece (engine output → x264 → PNG), colour-matched; sharpened back only on WAN |
+| The Cast | — | nothing re-anchors a part to the Cast's face, outfit or look |
+
+## 13.2 Tasks (ordered)
+
+**T1 — Each part does its own thing.** · S
+- `partPrompts` on the extend request: each part's prompt built the way the first clip's was
+  (`buildDaySlotClipPrompt`) from that part's beat, used in place of the replayed clip prompt (H3,
+  WAN). The first clip's direction stays in the first clip.
+- Acceptance: unit tests (an H3 / WAN part's prompt has its beat and not the first clip's
+  direction); a real H3 chain where part 2 does not redo part 1.
+- Status 2026-10-28: code done, not yet rendered. `partPrompts` on the extend request
+  (`dayPartClipPrompt` from each beat; beats written first by the plan when none are given); H3
+  parts use it in place of the clip's prompt, WAN parts via `patchWanReplayGraph` `ownText`; LTX
+  parts never replayed the clip's prompt. Unit test: a part's prompt has its beat and not the
+  first clip's direction. The real chain check waits for the user (H3 may be a paid node).
+
+**T2 — Per-part beats and lengths in Animate.** · M
+- The Animate sheet's longer clip lists its parts: each with what happens in it, **Write the
+  beats** (the plan endpoint "Make it 30 s" uses), and its length where the engine allows one
+  (a shorter part is trimmed; the next starts from its new last frame).
+- Acceptance: e2e (parts listed, beats written and edited, sent); unit tests (trimmed lengths).
+
+**T3 — Picture quality from part to part.** · M
+- The start frame from the part's own download (one encode fewer), sharpened back toward the first
+  clip's detail on every engine, not only WAN. Measured: detail (Laplacian variance) of each part's
+  last frame on real chains, before and after.
+
+**T4 — The Cast holds from part to part.** · M–L
+- The outfit and look words of the still in every part's prompt; each part checked against the
+  Cast (face match, outfit check — the existing checks) and the result shown; measured on real
+  chains. Re-anchoring the face per part (a face pass on the start frame) only if the measurement
+  says the prompt is not enough.
+
+## 13.3 Definition of done
+
+- A longer clip's parts each do what their beat says; the first action does not repeat.
+- Per-part beats, Write the beats and lengths in the Animate sheet.
+- Measured on real chains: detail per part no longer falls part over part (T3), and the Cast's
+  face and outfit checks hold (T4) — with the numbers in `docs/`.
+- Unit, lint, `tsc` and the touched e2e pass; CI green.
