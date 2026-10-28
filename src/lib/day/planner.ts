@@ -1,4 +1,5 @@
 import { danceMoveWords } from '@/lib/pose/dance-move';
+import { normalizeStoryState, type ShotStoryState } from './story-state';
 import { normalizeDubLanguage } from './dub';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import {
@@ -401,6 +402,8 @@ export type DaySlot = {
   outfitByHand?: boolean;
   /** The location record it is set in (location/records.ts, M8); its words stay in `location`. */
   locationId?: string;
+  /** The shot's story state: what she carries, what has changed, emotion, story day (M8 T5). */
+  state?: ShotStoryState;
   /** What the lead says in this slot's clip — set, Animate makes a talking clip (LTX-2.5). */
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up (talking-clip-framing). */
@@ -885,6 +888,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,
       locationId: readText(slot.locationId, 80) || undefined,
+      state: normalizeStoryState(slot.state),
       engine: normalizeDaySlotEngine(slot.engine),
       outfitByHand: slot.outfitByHand === true || undefined,
       eventMove: readEditableText(slot.eventMove, 160) || undefined,

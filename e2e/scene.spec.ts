@@ -593,6 +593,88 @@ test('a location\'s picture is added, shown and removed', async ({ page }) => {
   await expect(cafe.getByTestId('location-photo-input')).toBeVisible();
 });
 
+// M8 T5: a shot's story state — what she carries, what changed, the story day — is kept with the
+// Scene and shown on its shot in Cut.
+test('a shot\'s story state is kept after a reload and shown on its Cut card', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene: sceneWithTakes() } },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  await page.getByTestId('scene-take-keep-0').click();
+
+  const fields = page.getByTestId('shot-story-state');
+  await fields.getByTestId('shot-state-carries').fill('the red umbrella, a paper bag');
+  await fields.getByTestId('shot-state-changes').fill('left hand bandaged');
+  await fields.getByTestId('shot-state-changes').blur();
+  await fields.getByTestId('shot-state-day').fill('2');
+
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(fields.getByTestId('shot-state-carries')).toHaveValue(
+    'the red umbrella, a paper bag',
+    { timeout: 60_000 }
+  );
+  await expect(fields.getByTestId('shot-state-changes')).toHaveValue('left hand bandaged');
+  await expect(fields.getByTestId('shot-state-day')).toHaveValue('2');
+  // M8 T6: marked to carry over to the shots after it.
+  const carry = fields.getByTestId('shot-state-carry-the red umbrella');
+  await carry.click();
+  await expect(carry).toHaveAttribute('aria-pressed', 'true');
+  await expect(carry).toContainText('carries over');
+
+  await page.getByTestId('scene-open-cut').click();
+  await expect(page).toHaveURL(/\/cut\?from=scenes/, { timeout: 60_000 });
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-shot-state-scenes:scene-e2e')).toContainText(
+    'Day 2 · Evening · carries the red umbrella, a paper bag · left hand bandaged',
+    { timeout: 60_000 }
+  );
+});
+
+// M8 T6: the audit's example — 6A carries the red umbrella; 7A, at the same story time, doesn't.
+test('Cut flags a shot that drops what the shot before it carries over', async ({ page }) => {
+  const base = sceneWithTakes();
+  const shot = (state: Record<string, unknown>) => ({ ...base.slots[0]!, state });
+  const keptScene = (id: string, name: string, state: Record<string, unknown>, at: number) => ({
+    ...base.scenes[0]!,
+    id,
+    name,
+    slot: shot(state),
+    takes: base.scenes[0]!.takes.map(take => ({ ...take, id: `${id}-${take.id}` })),
+    keptTakeId: `${id}-take-1`,
+    createdAt: at,
+    updatedAt: at,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...base,
+        scenes: [
+          keptScene('scene-6a', '6A BUS STOP', {
+            carries: [{ text: 'the red umbrella', carriesOver: true }],
+            storyDay: 2,
+          }),
+          keptScene('scene-7a', '7A BUS STOP', { storyDay: 2 }, 3),
+        ].map((entry, index) => ({ ...entry, createdAt: index + 1, updatedAt: index + 1 })),
+        activeSceneId: 'scene-6a',
+      },
+    },
+  });
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-finding-scenes:scene-7a:state-dropped')).toContainText(
+    'the red umbrella',
+    { timeout: 60_000 }
+  );
+  await expect(page.locator('[data-testid="cut-finding-scenes:scene-6a:state-dropped"]')).toHaveCount(0);
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

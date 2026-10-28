@@ -212,6 +212,45 @@ describe('a Scene set in a location record (M8 T2)', () => {
   });
 });
 
+describe('a shot\'s story state (M8 T5)', () => {
+  it('follows the beat in the prompt, and a typed beat stays typed', async () => {
+    const { buildDaySlotPromptForStill } = await import('./still-prompt');
+    const { resolveDayQueueIdentityPlate } = await import('./plate');
+    const plate = { filename: 'cast-plate-mara.png', source: 'cast' as const };
+    const character = { id: 'char-mara', name: 'Mara', version: 1, updatedAt: 1 };
+    const beat = 'waits at the bus stop in the rain';
+    const prompt = buildDaySlotPromptForStill(
+      {
+        id: 'evening',
+        label: 'evening',
+        location: 'bus stop',
+        sceneHints: beat,
+        sceneHintsTyped: beat,
+        state: {
+          carries: [{ text: 'the red umbrella' }],
+          changes: [{ text: 'left hand bandaged' }],
+        },
+      } as never,
+      {
+        plate,
+        queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate: plate } as never),
+        character,
+        hasPlate: true,
+        leadNoun: 'woman',
+        dayMood: 'everyday',
+        intimateEnabled: false,
+        allowCompanions: false,
+        model: 'qwen-image-edit-2511-lightning-8',
+        defaultPoseGuideStyle: 'openpose',
+      } as never
+    );
+    assert.match(
+      prompt,
+      /waits at the bus stop in the rain\. She carries the red umbrella\. Keep visible: left hand bandaged\./
+    );
+  });
+});
+
 describe('pubic hair (a Cast trait)', () => {
   it('is said on a nude Raunchy still and never on a clothed one', async () => {
     const { buildDaySlotPromptForStill } = await import('./still-prompt');

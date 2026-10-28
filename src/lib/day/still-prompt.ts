@@ -11,6 +11,7 @@
 
 import { withCastPlace } from '../cast/places';
 import { withLocation, type LocationRecord } from '../location/records';
+import { withStoryState } from './story-state';
 import { castRelationSentence } from '../cast/relationships';
 import { withEatingUtensil } from '../wardrobe/eating-utensil';
 import { dayClothedLeadLines } from '@/lib/day/clothed-lead';
@@ -903,6 +904,16 @@ export function buildDaySlotPromptForStill(
       slot = { ...slot, sceneHints: inDayPromptVoice(slot.sceneHints, state.leadNoun) };
     }
     state = { ...state, notes: inDayPromptVoice(state.notes, state.leadNoun) };
+  }
+  // The shot's story state (M8 T5) follows the beat: what she carries, what has changed, how she
+  // feels. A typed beat stays "typed" with it.
+  const storyBeat = withStoryState(slot.sceneHints, slot.state);
+  if (storyBeat !== slot.sceneHints) {
+    slot = {
+      ...slot,
+      sceneHints: storyBeat,
+      ...(dayBeatIsTyped(slot) ? { sceneHintsTyped: storyBeat } : {}),
+    };
   }
   const garmentReinforce = Boolean(
     !options?.dressPlate &&

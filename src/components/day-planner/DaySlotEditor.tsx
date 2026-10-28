@@ -19,6 +19,7 @@ import { DayBeatOwnership } from '@/components/day-planner/DayBeatOwnership';
 import { DaySameSeedRedo } from '@/components/day-planner/DaySameSeedRedo';
 import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import DaySlotEnginePicker from '@/components/day-planner/DaySlotEnginePicker';
+import ShotStoryStateFields from '@/components/day-planner/ShotStoryStateFields';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
 import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
@@ -80,6 +81,8 @@ export type DaySlotEditorProps = {
    * location's delete guard does not count).
    */
   locations?: readonly LocationRecord[];
+  /** The shot's story state fields (M8 T5, Scene only). */
+  storyState?: boolean;
 };
 
 /**
@@ -117,6 +120,7 @@ export default function DaySlotEditor({
   groupOptions = [],
   clothingTitle,
   locations,
+  storyState = false,
 }: DaySlotEditorProps) {
   const [clothingOpen, setClothingOpen] = useState(false);
   const outfitRef = useRef<HTMLDivElement>(null);
@@ -240,6 +244,12 @@ export default function DaySlotEditor({
                 ))}
               </SelectInput>
             </label>
+          ) : null}
+          {storyState ? (
+            <ShotStoryStateFields
+              state={slot.state}
+              onChange={next => updateSlot(slot.id, { state: next })}
+            />
           ) : null}
           <label className="space-y-1.5">
             <FieldLabel>

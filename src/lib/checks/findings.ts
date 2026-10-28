@@ -36,7 +36,9 @@ export type ContinuityRule =
   /** Shots made into Scenes, none with a kept take. */
   | 'coverage-kept'
   /** A place two or more planned shots go to, with no location record (M8 T4). */
-  | 'location-unset';
+  | 'location-unset'
+  /** A shot drops what an earlier shot at the same story time carries over (M8 T6). */
+  | 'state-dropped';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

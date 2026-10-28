@@ -1989,12 +1989,31 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - Story order is its own (day / time), not the edit order.
 - Acceptance: state survives reload, sync and backup / restore; unit tests on the merge with the
   derived state; e2e edit → reload → shown in Cut.
+- Status 2026-10-28: the state is the shot's (`DaySlot.state`, `day/story-state.ts`): what she
+  carries, what has changed, how she feels, the story day — so it travels with the Scene record
+  (sync and backup as before; an edit stamps the Scene) and reaches Cut through the derived state
+  (`slotShotState` adds `carries`, `changes`, `emotion`, `storyDay`; the shot card's summary says
+  them). The still prompt says it after the beat ("She carries the red umbrella. Keep visible:
+  left hand bandaged. She feels anxious."; a typed beat stays typed). The Scene editor's **Story
+  state** fields (Scene only; comma lists kept when the field is left). Items can be marked to
+  carry over (T6). Unit tests (normalise, the comma lists, the prompt line, the slot, the
+  derived state) and an e2e (set, kept after a reload, on the Cut card). Story day only for
+  now: time within a day is the shot's time of day.
 
 **T6 — State that carries over.** · M
 - A state item can carry over ("until stated otherwise"): later shots in story order inherit it.
 - Cut rule: a later shot at the same story time without a carried item gets a finding
   ("6A carries the red umbrella; 7A, a minute later, doesn't").
 - Acceptance: the audit's example as a test; findings decided and counted like the rest.
+- Status 2026-10-28: a story state item can be marked **carries over** (a chip under its list in
+  the Scene editor). Cut's new rule `state-dropped` ("Cut: carried state dropped",
+  `continuity-rules.ts` `droppedCarriedState`): an earlier shot of the same Cast at the same
+  story time — the same story day and time of day — carries an item over that this shot lists
+  neither as carried nor as a change. Said once per item, from the first shot that carries it;
+  decided and counted like the other Cut rules. Unit tests (the audit's example; another day,
+  time, Cast, or no carry-over: nothing) and e2e (the chip; Cut flags 7A, not 6A — and fails
+  with the rule off). "Until stated otherwise" is the user's dismissal or the item's mark; no
+  "put down" record yet.
 
 **T7 — Measure.** · M + _GPU_ + _you_
 - V3's pairs again with location records (with and without a picture): is it the same room?

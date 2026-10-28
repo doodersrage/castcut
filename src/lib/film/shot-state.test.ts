@@ -92,4 +92,30 @@ describe('per-shot state (M2 C3)', () => {
     });
     assert.equal(shotStateSummary(state), 'Nora · Main look · Linen sundress · dog');
   });
+
+  // M8 T5: the user's story state on the shot joins what is derived, on the shot's card.
+  it('adds the shot\'s story state: what she carries, what changed, how she feels, the day', () => {
+    const state = slotShotState(
+      {
+        slot: {
+          id: 'evening',
+          label: 'Evening',
+          location: 'bus stop',
+          state: {
+            carries: [{ text: 'the red umbrella', carriesOver: true }],
+            changes: [{ text: 'left hand bandaged' }],
+            emotion: 'anxious',
+            storyDay: 2,
+          },
+        },
+        castId: 'nora',
+      },
+      resolve
+    );
+    assert.deepEqual(state.carries, [{ text: 'the red umbrella', carriesOver: true }]);
+    assert.equal(
+      shotStateSummary(state),
+      'Nora · Main look · bus stop · Day 2 · Evening · carries the red umbrella · left hand bandaged · anxious'
+    );
+  });
 });

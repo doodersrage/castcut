@@ -395,6 +395,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                   onPickTwoTake={keep => vm.pickTwoTake(slot.id, keep)}
                   groupOptions={partnerOptions.filter(option => option.id !== partnerCharacterId)}
                   locations={locations}
+                  storyState
                 />
               </div>
             </ToolSection>

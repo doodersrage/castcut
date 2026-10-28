@@ -8,6 +8,10 @@
  * - `look-mismatch`: a shot rendered in another look than the one its slot or scene uses now
  *   (the Cast's active look switched after it was made).
  * - `plate-drift`: the look a shot uses has a plate the likeness guard flagged.
+ * - `state-dropped` (M8 T6): an earlier shot of the same Cast at the same story time — the same
+ *   story day and time of day — carries something over (her red umbrella, a bandaged hand) that
+ *   this shot doesn't have. Story time, not the edit's order, decides "the same time"; the edit's
+ *   order decides which shot came first.
  * Pure.
  */
 import type { ContinuityFinding } from '../checks/findings';
@@ -28,6 +32,35 @@ export type CrossShotFinding = { finding: ContinuityFinding; shotKey: string; sh
 
 const same = (a?: string, b?: string) =>
   (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase();
+
+/** What earlier shots at the same story time carry over that `state` doesn't have (M8 T6). */
+export function droppedCarriedState(
+  earlier: readonly RuleShot[],
+  state: ShotState
+): Array<{ text: string; from: string }> {
+  if (!state.time) return [];
+  const has = new Set(
+    [...(state.carries ?? []), ...(state.changes ?? [])].map(item => item.text.toLowerCase())
+  );
+  const out = new Map<string, { text: string; from: string }>();
+  for (const shot of earlier) {
+    const before = shot.state;
+    if (
+      before.time !== state.time ||
+      before.storyDay !== state.storyDay ||
+      !same(before.castName, state.castName)
+    ) {
+      continue;
+    }
+    for (const item of [...(before.carries ?? []), ...(before.changes ?? [])]) {
+      const key = item.text.toLowerCase();
+      if (item.carriesOver && !has.has(key) && !out.has(key)) {
+        out.set(key, { text: item.text, from: shot.title });
+      }
+    }
+  }
+  return [...out.values()];
+}
 
 /** Findings for the film's included shots, in film order. */
 export function crossShotFindings(
@@ -59,6 +92,15 @@ export function crossShotFindings(
   shots.forEach((shot, index) => {
     const { state } = shot;
     const previous = shots[index - 1];
+    const dropped = droppedCarriedState(shots.slice(0, index), state);
+    if (dropped.length) {
+      add(
+        shot,
+        'state-dropped',
+        `${dropped.map(entry => `${entry.text} (from “${entry.from}”)`).join(', ')} — not in this shot, at the same story time`,
+        'Add it to this shot’s story state, or say it is fine (it was put down, or healed).'
+      );
+    }
     if (
       previous &&
       state.place &&

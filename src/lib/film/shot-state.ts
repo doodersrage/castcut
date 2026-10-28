@@ -9,6 +9,7 @@ import type { CastProp } from '../character/os';
 import { castPropMentioned } from '../cast/props';
 import { dayPartOf, type DayPart } from '../day/parts';
 import type { DaySlot } from '../day/planner';
+import type { StoryStateItem } from '../day/story-state';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 
 export type ShotState = {
@@ -29,6 +30,11 @@ export type ShotState = {
   /** Her things the shot names ("phone", "dog"). */
   props: string[];
   line?: string;
+  /** The user's story state on the shot (M8 T5): what she carries, what has changed, … */
+  carries?: StoryStateItem[];
+  changes?: StoryStateItem[];
+  emotion?: string;
+  storyDay?: number;
 };
 
 export type ShotStateResolve = {
@@ -103,6 +109,10 @@ export function slotShotState(
     time: dayPartOf(slot.id),
     props: propsIn(castId, `${slot.sceneHints ?? ''} ${slot.location ?? ''}`, resolve),
     line: clean(slot.line),
+    carries: slot.state?.carries?.length ? slot.state.carries : undefined,
+    changes: slot.state?.changes?.length ? slot.state.changes : undefined,
+    emotion: slot.state?.emotion,
+    storyDay: slot.state?.storyDay,
   });
 }
 
@@ -140,8 +150,14 @@ export function shotStateSummary(state: ShotState): string {
     state.outfit,
     state.shoes,
     state.place,
+    state.storyDay ? `Day ${state.storyDay}` : undefined,
     time,
     state.props.length ? state.props.join(', ') : undefined,
+    state.carries?.length
+      ? `carries ${state.carries.map(item => item.text).join(', ')}`
+      : undefined,
+    state.changes?.length ? state.changes.map(item => item.text).join(', ') : undefined,
+    state.emotion,
   ]
     .filter(Boolean)
     .join(' · ');
