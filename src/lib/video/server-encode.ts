@@ -58,6 +58,8 @@ import {
 } from './cut-overlay';
 import { cuesToSrt, speechSpanFromSilence, subtitleCues, type SubtitleCue } from './cut-subtitles';
 import {
+  effectsFilterParts,
+  heardEffects,
   normalizeAmbienceLevel,
   normalizeMusicFadeInSec,
   normalizeMusicFadeOutSec,
@@ -483,6 +485,8 @@ export function buildFilterComplex(input: {
   sound?: CutSoundOptions | null;
   /** The ambience track's ffmpeg input index (looped), when there is one. */
   ambienceInput?: number | null;
+  /** The effects track (cut-sound.ts, M10 T4): each placed sound's input, film time and level. */
+  effectInputs?: ReadonlyArray<{ input: number; atSec: number; level?: number }>;
   /**
    * Per shot: the input to read a clip's sound from (its own sound-only input), else the clip's
    * own input. M6 D17: the sound is mixed in parallel, so reading it from the picture's input
@@ -785,6 +789,22 @@ export function buildFilterComplex(input: {
       audioLabel = 'amb';
     }
   }
+  // Effects: each placed sound at its time, on top of everything (they don't duck the music).
+  const effects = effectsFilterParts({
+    effects: input.effectInputs ?? [],
+    endSec: end,
+    stereo,
+    fadeOut,
+  });
+  if (effects) {
+    parts.push(...effects.parts);
+    if (audioLabel) {
+      parts.push(`[${audioLabel}][${effects.label}]amix=inputs=2:duration=first:normalize=0[afx]`);
+      audioLabel = 'afx';
+    } else {
+      audioLabel = effects.label;
+    }
+  }
 
   if (input.sharpen) {
     parts.push(`[${videoLabel}]unsharp=5:5:0.55:5:5:0[vsharp]`);
@@ -1004,6 +1024,22 @@ export async function encodeFilmPlaylistServer(
         await fs.writeFile(/* turbopackIgnore: true */ ambiencePath, fetched.buffer);
       } catch {
         options.onProgress?.(0.43, 'Ambience could not be fetched — left out');
+      }
+    }
+
+    // The effects track (M10 T4): each placed sound the cut hears.
+    const effectFiles: Array<{ path: string; atSec: number; level?: number }> = [];
+    for (const [k, effect] of heardEffects(options.sound).entries()) {
+      try {
+        const fetched = await fetchShotBytes(effect.url, requestOrigin, undefined, options.userId);
+        const filePath = path.join(/* turbopackIgnore: true */ workDir, `effect-${k}.audio`);
+        await fs.writeFile(/* turbopackIgnore: true */ filePath, fetched.buffer);
+        effectFiles.push({ path: filePath, atSec: effect.atSec, level: effect.level });
+      } catch {
+        options.onProgress?.(
+          0.43,
+          `${effect.name || 'A sound effect'} could not be fetched — left out`
+        );
       }
     }
 
@@ -1384,6 +1420,20 @@ export async function encodeFilmPlaylistServer(
         }
         return out;
       })(),
+      // After the clips' sound-only inputs: the effects, in order.
+      effectInputs: effectFiles.map((effect, k) => ({
+        input:
+          graphKinds.length +
+          (audioPath ? 1 : 0) +
+          narrationFiles.length +
+          (ambiencePath ? 1 : 0) +
+          graphPipFiles.filter(Boolean).length +
+          (logoFile ? 1 : 0) +
+          localFiles.filter((_, i) => kinds[i] === 'clip').length +
+          k,
+        atSec: effect.atSec,
+        level: effect.level,
+      })),
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
       // Graph shot index = shot index + the title card when there is one; narration inputs follow
@@ -1416,6 +1466,8 @@ export async function encodeFilmPlaylistServer(
     for (const [i, file] of localFiles.entries()) {
       if (kinds[i] === 'clip') args.push('-vn', '-i', file);
     }
+    // The effects, after them (as effectInputs said).
+    for (const effect of effectFiles) args.push('-vn', '-i', effect.path);
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {
       args.push('-map', `[${audioLabel}]`, '-c:a', 'aac', '-b:a', '192k');

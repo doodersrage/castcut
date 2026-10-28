@@ -103,8 +103,15 @@ Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, an
 | **Music** | Your track or **Score this film** |
 
 **Tracks**, under the timeline: **M** mutes a track — clip sound (talking clips' lines with it),
-narration, music or ambience — silent in the monitor and the mix preview, and left out of the
-film (the status says which). **S** solos one in the monitor only; it is never saved or encoded.
+narration, music, ambience or effects — silent in the monitor and the mix preview, and left out
+of the film (the status says which). **S** solos one in the monitor only; it is never saved or
+encoded.
+
+**Effects**, under the tracks: a door slam, a phone buzz. **+ Sound at 0:12** places an audio file
+where the playhead is; each sound has its start (**at**, seconds into the film), its level and
+its own **M**, and **×** removes it (Ctrl+Z puts it back). Clicking its name moves the playhead
+there. The monitor plays them and the encode mixes them on top of everything else — they don't
+duck the music. They stay at their film time: if the shots before one change length, move it.
 
 **Measure loudness** on a film in **Your films** reads its loudness (LUFS), range and true peak
 and says how it sits against the web's −14 LUFS or broadcast's −23 (EBU R128): what to turn up or

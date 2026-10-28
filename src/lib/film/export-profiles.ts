@@ -8,6 +8,7 @@
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import type { FilmOutputProbe } from '../video/output-probe';
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions, type FilmShape } from '../video/resolution';
+import { heardEffects } from '../video/cut-sound';
 import { LOUDNESS_TARGETS, loudnessNotes, loudnessSummary, type LoudnessTarget } from './loudness';
 
 export type ExportProfileId = 'review' | 'master' | 'vertical' | 'square';
@@ -205,7 +206,7 @@ export function cutPreflight(input: {
   };
 }
 
-/** Anything to hear in a cut, after mutes: music, ambience, narration or a clip's sound. */
+/** Anything to hear in a cut, after mutes: music, ambience, effects, narration or a clip's sound. */
 export function cutHasSound(
   options: FilmCutOptionsValue,
   shots: ReadonlyArray<{ kind: string; volume?: number }>
@@ -214,6 +215,7 @@ export function cutHasSound(
   if (options.audioBedUrl.trim() && !muted.has('music') && (options.musicLevel ?? 1) > 0)
     return true;
   if (options.sound?.ambienceUrl?.trim() && !muted.has('ambience')) return true;
+  if (!muted.has('effects') && heardEffects(options.sound).length) return true;
   if (options.narrate && !muted.has('narration')) return true;
   return !muted.has('clips') && shots.some(shot => shot.kind === 'clip' && shot.volume !== 0);
 }

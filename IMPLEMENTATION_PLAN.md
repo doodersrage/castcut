@@ -2218,11 +2218,25 @@ and the phone has no Script or run.
   mute, played in the monitor and mixed by the encode.
 - Acceptance: a sound at 12.4 s plays there in the monitor and the encode (unit tests on the
   mix graph; e2e placed, moved, muted).
+- Status 2026-10-28: done. `CutSoundOptions.effects` (`cut-sound.ts`: `CutEffect`, `withCutEffect`,
+  `normalizeCutEffects`, `heardEffects`, `effectsFilterParts`) and a fifth track, **Effects** (mute
+  / solo with the others). **Effects** under the tracks places a file at the playhead; each sound
+  has its time, level (0–2), mute and remove, all undoable. The monitor plays each from its time
+  (`useCutPreview`); the server encode fetches each heard sound, delays it to its time at its
+  level and mixes it on top (no ducking). Checked with a real encode: a 0.4 s beep placed at
+  2.0 s measures −24 dB at 2.1 s and −91 dB (silence) elsewhere; a muted one at 4.0 s is absent.
+  Unit tests (model, mute, graph); e2e placed, moved, muted, removed, undone. Not checked by a
+  test: the monitor's playback (headless browsers play no sound). Sounds stay at film time when
+  shots before them change length; the browser encode leaves them out.
 
 **T5 — Script and runs on the phone.** · M
 - `/m/scene` gains the Script section (import, read, shots, storyboard) and the run controls.
 - Acceptance: e2e on a phone viewport: a script imported, a shot made a Scene, a run prepared and
   started.
+- Status 2026-10-28: done. The Script section, the locations and the run (panel and controls) are
+  one component, `SceneScriptAndRun`, on the desk and on `/m/scene` (the phone now runs
+  `useSceneRun`). e2e at 390×844: a script imported, its scene drafted, a shot made a Scene, a run
+  prepared, limited to one take and started to done — the page no wider than the phone.
 
 ## 12.3 Definition of done
 
@@ -2231,6 +2245,9 @@ and the phone has no Script or run.
 - The production pages pass the axe check; the phone has Script and runs.
 - CI green on every M10 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
 - Not in scope: keyframes, gain automation, credits rolls, templates, in-app help.
+- Status 2026-10-28: met — T1–T5 done. Unit tests 9,008; the Scene, Cut, Gallery and axe specs
+  pass (load failures re-run alone). Left: the monitor's effect playback has no automated check
+  (headless browsers play no sound); a screen reader on Scene and Cut needs a person.
 
 ## 12.4 Recommended first task
 

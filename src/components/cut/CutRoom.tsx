@@ -19,6 +19,7 @@ import CutShotPin from '@/components/cut/CutShotPin';
 import CutTimeline from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
+import CutEffects from '@/components/cut/CutEffects';
 import CutTracks from '@/components/cut/CutTracks';
 import CutExport from '@/components/cut/CutExport';
 import CutPackage from '@/components/cut/CutPackage';
@@ -708,6 +709,15 @@ export default function CutRoom() {
                 disabled={busy}
                 onMute={vm.setTrackMuted}
                 onSolo={setSolo}
+              />
+            </div>
+            <div className="mt-2">
+              <CutEffects
+                sound={vm.options.sound}
+                time={preview.time}
+                disabled={busy}
+                onChange={vm.setEffect}
+                onSeek={preview.seek}
               />
             </div>
             <p className="type-caption mt-2 text-[var(--text-muted)]">

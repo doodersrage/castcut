@@ -679,6 +679,63 @@ test('subtitles: split into timed cues, shown on the monitor, exported, and back
   await expect(page.getByTestId('cut-subtitle-cue-day:morning-0')).toHaveCount(0);
 });
 
+/** A short silent WAV (mono, 8 kHz) to place as a sound. */
+function silentWav(seconds: number): Buffer {
+  const rate = 8000;
+  const samples = Math.round(rate * seconds);
+  const buffer = Buffer.alloc(44 + samples * 2);
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(36 + samples * 2, 4);
+  buffer.write('WAVEfmt ', 8);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(rate, 24);
+  buffer.writeUInt32LE(rate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(samples * 2, 40);
+  return buffer;
+}
+
+// M10 T4: a sound placed on the effects track at the playhead, moved, muted, removed and undone.
+test('effects: a sound placed at the playhead, moved, muted, removed and back with undo', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const effects = page.getByTestId('cut-effects');
+  await expect(effects).toContainText('placed where the playhead is', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-track-effects')).toBeVisible();
+  await page.getByTestId('cut-preview-scrub').fill('1');
+  await expect(page.getByTestId('cut-effect-add')).toContainText('0:01');
+  await page.getByTestId('cut-effect-file').setInputFiles({
+    name: 'door.wav',
+    mimeType: 'audio/wav',
+    buffer: silentWav(0.5),
+  });
+  const row = effects.locator('li');
+  await expect(row).toHaveCount(1, { timeout: 30_000 });
+  await expect(row).toContainText('door.wav');
+  const at = row.locator('[data-testid^="cut-effect-at-"]');
+  await expect(at).toHaveValue('1');
+  await at.fill('1.5');
+  await at.blur();
+  await expect(row.locator('[data-testid^="cut-effect-at-"]')).toHaveValue('1.5');
+  await row.locator('[data-testid^="cut-effect-mute-"]').click();
+  await expect(row.locator('[data-testid^="cut-effect-mute-"]')).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await row.locator('[data-testid^="cut-effect-remove-"]').click();
+  await expect(row).toHaveCount(0);
+  await page.getByTestId('cut-undo').click();
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('[data-testid^="cut-effect-at-"]')).toHaveValue('1.5');
+});
+
 // M4 F6: a profile sets the film up for where it goes; the preflight says what's checked now.
 test('export: a profile sets the shape, and the preflight flags too little disk space', async ({
   page,

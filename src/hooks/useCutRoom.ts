@@ -176,8 +176,10 @@ import {
 import type { FilmOutputProbe } from '@/lib/video/output-probe';
 import {
   CUT_TRACK_LABELS,
+  withCutEffect,
   withMutedTracksLeftOut,
   withTrackMuted,
+  type CutEffect,
   type CutTrack,
 } from '@/lib/video/cut-sound';
 import { checkMediaUrls } from '@/lib/film/cut-media-check';
@@ -1681,6 +1683,17 @@ export function useCutRoom() {
     [commitEdit]
   );
   /**
+   * The effects track (M10 T4): add a placed sound, change one (time, level, mute) or remove it
+   * (patch null). Adding and removing are their own steps; a slider's changes merge.
+   */
+  const setEffect = useCallback(
+    (id: string, patch: Partial<CutEffect> | null, step = false) => {
+      const now = stateRef.current.options;
+      commitEdit({ options: { ...now, sound: withCutEffect(now.sound, id, patch) } }, step, false);
+    },
+    [commitEdit]
+  );
+  /**
    * Package the cut (M4 F7): every shot pinned to what it plays first (as a version is), then
    * the cut, its versions and — full — its media, in one .zip to import elsewhere.
    */
@@ -2575,6 +2588,7 @@ export function useCutRoom() {
     relink,
     relinkFromGallery,
     setTrackMuted,
+    setEffect,
     packaging,
     packageCut,
     importPackage,

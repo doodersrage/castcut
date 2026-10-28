@@ -38,6 +38,7 @@ import {
   cutTrackGain,
   musicFadeGainAt,
   normalizeAmbienceLevel,
+  normalizeEffectLevel,
   normalizeMusicStartSec,
   soundOverlap,
   type CutTrack,
@@ -205,6 +206,8 @@ export function useCutPreview(input: {
   const bedRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
   /** The ambience track (cut-sound.ts), looped under everything. */
   const ambienceRef = useRef<{ url: string; audio: HTMLAudioElement } | null>(null);
+  /** The effects track (M10 T4): a player per placed sound, by id. */
+  const effectsRef = useRef(new Map<string, HTMLAudioElement>());
 
   const signature = useMemo(() => buildSignature(shots, value, titles), [shots, value, titles]);
   const builtOnce = useRef(false);
@@ -335,6 +338,7 @@ export function useCutPreview(input: {
     const bed = bedRef;
     const ambience = ambienceRef;
     const overlaps = overlapAudio;
+    const effects = effectsRef;
     return () => {
       for (const pending of videos.current.values()) {
         void pending
@@ -349,6 +353,7 @@ export function useCutPreview(input: {
       bed.current?.audio.pause();
       ambience.current?.audio.pause();
       for (const audio of overlaps.current.values()) audio.pause();
+      for (const audio of effects.current.values()) audio.pause();
     };
   }, []);
 
@@ -700,6 +705,7 @@ export function useCutPreview(input: {
         narration: cutTrackGain(value.sound, 'narration', solo),
         music: cutTrackGain(value.sound, 'music', solo),
         ambience: cutTrackGain(value.sound, 'ambience', solo),
+        effects: cutTrackGain(value.sound, 'effects', solo),
       };
       const on = previewFrameAt(loaded.timeline, t);
       const playingClips = new Set<number>();
@@ -815,6 +821,34 @@ export function useCutPreview(input: {
           Math.min(1, normalizeAmbienceLevel(value.sound?.ambienceLevel) * fadeOut) * gain.ambience,
           running && t < loaded.timeline.totalSec
         );
+      }
+      // Effects (M10 T4): each from its time to its end, at its level; muted ones stay silent.
+      const effects = value.sound?.effects ?? [];
+      const players = effectsRef.current;
+      for (const [id, audio] of players) {
+        if (!effects.some(effect => effect.id === id && effect.url === audio.dataset.url)) {
+          audio.pause();
+          players.delete(id);
+        }
+      }
+      for (const effect of effects) {
+        let audio = players.get(effect.id);
+        if (!audio) {
+          audio = new Audio(effect.url);
+          audio.dataset.url = effect.url;
+          players.set(effect.id, audio);
+        }
+        const local = t - effect.atSec;
+        // Its length once known; until then, a few seconds.
+        const length = Number.isFinite(audio.duration) ? audio.duration : 5;
+        if (!effect.muted && local >= 0 && local < length && t < loaded.timeline.totalSec) {
+          audio.volume = Math.min(1, normalizeEffectLevel(effect.level)) * gain.effects;
+          if (Math.abs(audio.currentTime - local) > 0.3) audio.currentTime = local;
+          if (running && audio.paused) void audio.play().catch(() => undefined);
+          if (!running && !audio.paused) audio.pause();
+        } else if (!audio.paused) {
+          audio.pause();
+        }
       }
     },
     [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound, solo]
