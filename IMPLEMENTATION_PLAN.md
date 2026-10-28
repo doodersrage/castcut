@@ -1759,6 +1759,11 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
 - A check that `main`'s last CI run is green, run before starting a task and before a release
   (a script or the release workflow's first step).
 - Acceptance: a release refuses to start on a red `main`.
+- Status 2026-10-28: `scripts/ci-status.mjs` (`npm run ci:status`) reads CI's runs for a commit —
+  the latest run decides; still running waits (`--wait`), exit 2 — and is the Release workflow's
+  first step (`actions: read`). A workflow-made `Release vX` commit, which no CI run follows, is
+  judged by its parent. Against real commits: `a4ebc79f` (M6's red e2e) refused, v3.0.1's parent
+  passed. Unit-tested (`src/lib/__tests__/ci-status.test.ts`); `docs/releasing.md` says so.
 
 **T2 — Vision verdicts as findings.** · M
 - Auto-review's outfit and place verdicts and the gesture verdict recorded on the Gallery entry

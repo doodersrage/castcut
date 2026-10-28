@@ -18,6 +18,7 @@
     "pack:core": "tsx scripts/pack-core.mts",
     "screenshots": "tsx scripts/screenshots.mts",
     "check:core": "npm run pack:core && node scripts/check-core.mjs",
+    "ci:status": "node scripts/ci-status.mjs",
     "postbuild": "node scripts/prune-standalone.mjs",
     "build:fast": "next build",
     "analyze": "ANALYZE=true next build",

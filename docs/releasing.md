@@ -14,6 +14,8 @@ Clone from [github.com/doodersrage/castcut](https://github.com/doodersrage/castc
 2. Actions → **Release** → **Run workflow**.
 3. Choose **patch** / **minor** / **major** (from `package.json`).
 4. Run. The workflow:
+   - refuses to start unless CI passed on the commit it releases (it waits up to 45 minutes
+     while CI is still running; see below)
    - runs lint, unit tests, and `next build`
    - bumps `package.json` / `package-lock.json` and pushes `Release vX.Y.Z` plus tag `vX.Y.Z`
    - creates the GitHub Release with generated notes
@@ -90,4 +92,9 @@ The script (`scripts/screenshots.mts`, Playwright) seeds a demo install into the
 
 - GitHub auto-generates the changelog from commits since the previous **published** release (today that is `Initial-Release` until the next cut).
 - Source zip/tarball attachments are added by GitHub; there is no npm publish (`private`: true).
-- Playwright e2e is not part of the release job (CI already runs it on `main`). Fix `main` before cutting if CI is red.
+- Playwright e2e is not part of the release job: CI runs it on `main`, and the release's first
+  step (`scripts/ci-status.mjs`) refuses a commit whose CI run failed, was cancelled, or never
+  ran. A `Release vX.Y.Z` commit with no CI run of its own (the workflow's) is judged by its
+  parent. Check any commit yourself with `npm run ci:status` (HEAD) or
+  `node scripts/ci-status.mjs --sha <sha> [--wait <minutes>]` — exit 0 passed, 1 failed or no run,
+  2 still running. Fix `main` before cutting if CI is red.

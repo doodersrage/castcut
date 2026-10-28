@@ -23,6 +23,8 @@ on:
 permissions:
   contents: write
   packages: write
+  # The CI gate reads CI's runs (scripts/ci-status.mjs).
+  actions: read
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}
@@ -55,6 +57,20 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+
+      # M7 T1: no release from a commit CI hasn't passed (in M6 its e2e job was red for 15
+      # commits unnoticed). A republished tag is its "Release vX" commit: judged by its parent.
+      - name: CI passed on the commit being released
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXISTING_TAG: ${{ inputs.existing_tag }}
+        run: |
+          set -euo pipefail
+          SHA="${GITHUB_SHA}"
+          if [ -n "${EXISTING_TAG:-}" ]; then
+            SHA="$(git rev-parse "v${EXISTING_TAG#v}^{commit}")"
+          fi
+          node scripts/ci-status.mjs --sha "$SHA" --wait 45
 
       - run: npm ci
       - run: npm run lint
