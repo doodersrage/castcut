@@ -170,4 +170,28 @@ describe('shot lists from a script (M3 S4)', () => {
     });
     assert.equal(back.partnerCharacterId, 'tomas');
   });
+
+  // M8 T2: a shot at a place that is a location record is set there.
+  it('sets the shot in the location its place resolves to, and keeps its words', () => {
+    const shots = draftShots(kitchen);
+    const draft = (placeMap: Parameters<typeof shotSceneDraft>[0]['placeMap']) =>
+      shotSceneDraft({
+        shot: shots[0]!,
+        scene: kitchen,
+        sceneIndex: 0,
+        shotIndex: 0,
+        castId: 'nora',
+        cast,
+        castMap: undefined,
+        placeMap,
+        locations: [{ id: 'loc-flat', name: "Tomas's flat", aliases: ['kitchen'] }],
+      });
+    const at = draft(undefined);
+    assert.equal(at.slot.locationId, 'loc-flat');
+    assert.equal(at.slot.location, 'kitchen');
+    // Set to her home instead: no location.
+    const home = draft({ KITCHEN: 'home' });
+    assert.equal(home.slot.locationId, undefined);
+    assert.equal(home.slot.location, 'kitchen at home');
+  });
 });

@@ -105,4 +105,12 @@ describe('safe reimport of a script (M3 S6)', () => {
     assert.equal(orphanedShots(v2.shots, v3).length, 0);
     assert.equal(back.find(row => row.newId === 'int-office-day')?.status, 'new');
   });
+
+  // M8 T2: what each place is — a location record too — is the script's, not the text's.
+  it('keeps the places as you set them, a location among them', () => {
+    const script = { ...scriptWithShots(), placeMap: { KITCHEN: 'location:loc-flat' as const } };
+    const rows = reconcileScript(before, after, script.shots, new Set());
+    const next = applyReimport(script, V2, rows, { madeSceneIds: new Set() });
+    assert.deepEqual(next.placeMap, { KITCHEN: 'location:loc-flat' });
+  });
 });

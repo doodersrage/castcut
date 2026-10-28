@@ -226,11 +226,12 @@ export function shotLabel(sceneNumber: string, index: number): string {
 /** Where a script scene is, as a Scene's setting: the Cast's home or office read by Day. */
 export function sceneLocationOf(
   scene: Pick<ScriptScene, 'place' | 'setting'>,
-  placeMap: Parameters<typeof resolvePlaces>[1]
+  placeMap: Parameters<typeof resolvePlaces>[1],
+  locations: Parameters<typeof resolvePlaces>[2] = []
 ): string {
   const place = scene.place.trim();
   if (!place) return '';
-  const resolved = resolvePlaces([place], placeMap)[0];
+  const resolved = resolvePlaces([place], placeMap, locations)[0];
   const words = place.toLowerCase();
   if (!resolved) return words;
   if (resolved.choice === 'home') {
@@ -266,6 +267,8 @@ export function shotSceneDraft(input: {
   cast: readonly ScriptCastMember[];
   castMap: Parameters<typeof resolveSpeakers>[2];
   placeMap: Parameters<typeof resolvePlaces>[1];
+  /** Location records a place can resolve to (M8 T2): the shot is then set there. */
+  locations?: Parameters<typeof resolvePlaces>[2];
 }): ShotSceneDraft {
   const { shot, scene, castId, cast } = input;
   const parts = resolveSpeakers(scene.speakers, cast, input.castMap).filter(
@@ -298,7 +301,10 @@ export function shotSceneDraft(input: {
     .slice(0, TEXT_MAX);
   const id: DayPart =
     scene.dayPart && DAY_PARTS.includes(scene.dayPart) ? scene.dayPart : 'afternoon';
-  const location = sceneLocationOf(scene, input.placeMap);
+  const location = sceneLocationOf(scene, input.placeMap, input.locations);
+  const locationId = scene.place.trim()
+    ? resolvePlaces([scene.place], input.placeMap, input.locations)[0]?.locationId
+    : undefined;
   const label = shotLabel(scene.number ?? String(input.sceneIndex + 1), input.shotIndex);
   return {
     name: `${label} ${scene.place || scene.heading || 'Shot'} · ${SHOT_PURPOSE_LABELS[shot.purpose]}`.slice(
@@ -309,6 +315,7 @@ export function shotSceneDraft(input: {
       id,
       label: label,
       ...(location ? { location } : {}),
+      ...(locationId ? { locationId } : {}),
       ...(beat ? { sceneHints: beat, sceneHintsTyped: beat } : {}),
       poseCamera: { shot: shot.framing },
       ...(leadSpeaks && shot.line ? { line: shot.line } : {}),

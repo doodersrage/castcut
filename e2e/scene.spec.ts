@@ -521,6 +521,43 @@ test('a Scene set in a location queues its take with the location\'s look', asyn
   );
 });
 
+// M8 T2: a script's place resolves to a location by its script names, and a shot made a Scene is
+// set there.
+test('a script place resolves to a location, and its shot\'s Scene is set there', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('locations-section');
+  await expect(section).toBeVisible({ timeout: 60_000 });
+  await section.getByTestId('location-new-name').fill('Corner café');
+  await section.getByTestId('location-add').click();
+  const cafe = section.locator('[data-testid^="location-loc-"]').first();
+  await cafe.getByTestId('location-aliases').fill('cafe');
+  await cafe.getByTestId('location-aliases').blur();
+  const id = (await cafe.getAttribute('data-testid'))!.slice('location-'.length);
+
+  await page.getByTestId('script-import').click();
+  await page
+    .getByTestId('script-import-text')
+    .fill('INT. CAFE - DAY\n\nNora orders a coffee at the counter.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toBeVisible();
+  const place = page.getByTestId('script-place-CAFE');
+  await expect(place).toHaveAttribute('data-choice', `location:${id}`);
+  await expect(place).toContainText('matched by name');
+
+  const scene = page.getByTestId('script-scene-int-cafe-day');
+  if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
+  await page.getByTestId('script-shots-draft-int-cafe-day').click();
+  await page.locator('[data-testid^="script-shot-make-"]').first().click();
+  await expect(page.getByTestId('day-slot-location-record')).toHaveValue(id, { timeout: 30_000 });
+  await expect(page.getByTestId('day-slot-location')).toHaveValue('cafe');
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

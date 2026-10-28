@@ -50,11 +50,14 @@ import {
   type ScriptScene,
 } from '@/lib/script/parse';
 import {
+  locationChoice,
   resolvePlaces,
   resolveSpeakers,
   type ScriptCastMember,
   type ScriptPlaceChoice,
 } from '@/lib/day/script-cast';
+import { useLocations } from '@/components/location/useLocations';
+import type { LocationRecord } from '@/lib/location/records';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
 
@@ -68,20 +71,25 @@ function decisionsSnapshot(): FindingDecision[] {
   return decisionsCache.value;
 }
 
-const PLACE_LABELS: Record<ScriptPlaceChoice, string> = {
+const PLACE_LABELS: Record<'home' | 'work' | 'elsewhere', string> = {
   home: 'Her home',
   work: 'Her workplace',
   elsewhere: 'Somewhere else (as written)',
 };
 
-/** Who's who and where (M3 S3): speaking parts to Cast members, places to home / work. */
+/**
+ * Who's who and where (M3 S3): speaking parts to Cast members, places to home / work or a
+ * location record (M8 T2).
+ */
 function NamesAndPlaces({
   script,
   parsed,
   cast,
+  locations,
   onCast,
   onPlace,
 }: {
+  locations: readonly LocationRecord[];
   script: SavedScript;
   parsed: ParsedScript;
   cast: readonly ScriptCastMember[];
@@ -95,7 +103,8 @@ function NamesAndPlaces({
   );
   const places = resolvePlaces(
     parsed.scenes.map(scene => scene.place).filter(Boolean),
-    script.placeMap
+    script.placeMap,
+    locations
   );
   const nameOf = (id: string | null | undefined) =>
     id === null ? 'Not in the Cast' : (cast.find(member => member.id === id)?.name ?? '');
@@ -176,14 +185,27 @@ function NamesAndPlaces({
                   value={place.choice}
                   onChange={event => onPlace(place.place, event.target.value as ScriptPlaceChoice)}
                 >
-                  {(Object.keys(PLACE_LABELS) as ScriptPlaceChoice[]).map(choice => (
+                  {(Object.keys(PLACE_LABELS) as Array<keyof typeof PLACE_LABELS>).map(choice => (
                     <option key={choice} value={choice}>
                       {PLACE_LABELS[choice]}
                     </option>
                   ))}
+                  {locations.length ? (
+                    <optgroup label="Locations">
+                      {locations.map(location => (
+                        <option key={location.id} value={locationChoice(location.id)}>
+                          {location.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </select>
                 <span className="type-caption text-[var(--text-muted)]">
-                  {place.status === 'suggested' ? 'as Castcut reads it' : 'set by you'}
+                  {place.status === 'suggested'
+                    ? place.locationId
+                      ? 'matched by name'
+                      : 'as Castcut reads it'
+                    : 'set by you'}
                   {place.room ? ` · ${place.room}` : ''}
                 </span>
                 {place.status === 'confirmed' ? (
@@ -373,6 +395,7 @@ export default function SceneScripts({
     [cache.scripts, castId]
   );
   // /scene?script=<id> opens that script (Film Director's next actions, M5 W2).
+  const locations = useLocations();
   const [openId, setOpenId] = useState<string | null>(() =>
     typeof window === 'undefined'
       ? null
@@ -574,6 +597,7 @@ export default function SceneScripts({
                           cast,
                           castMap: open.castMap,
                           placeMap: open.placeMap,
+                          locations,
                         }),
                       },
                     ];
@@ -621,6 +645,7 @@ export default function SceneScripts({
             script={open}
             parsed={openParsed}
             cast={cast}
+            locations={locations}
             onCast={(speaker, member) => {
               const patch = setScriptCastPatch(cache, open.id, speaker, member);
               if (patch) update(patch);
@@ -728,6 +753,7 @@ export default function SceneScripts({
                       cast,
                       castMap: open.castMap,
                       placeMap: open.placeMap,
+                      locations,
                     });
                     makeScene(
                       {

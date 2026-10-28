@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  locationChoice,
   normalizeScriptCastMap,
   normalizeScriptPlaceMap,
   resolvePlaces,
@@ -70,5 +71,32 @@ describe("a script's names to records (M3 S3)", () => {
     });
     assert.deepEqual(normalizeScriptPlaceMap({ den: 'home', roof: 'moon' }), { DEN: 'home' });
     assert.equal(normalizeScriptCastMap('junk'), undefined);
+  });
+
+  // M8 T2: a place can be a location record — found by its name or script names, or set by you.
+  it('reads a place as a location record, and keeps one you set while it exists', () => {
+    const locations = [
+      { id: 'loc-cafe', name: 'Corner café', aliases: ['cafe'] },
+      { id: 'loc-flat', name: "Lena's flat", aliases: ['kitchen'] },
+    ];
+    assert.deepEqual(resolvePlaces(['CAFE', 'KITCHEN', 'OFFICE'], undefined, locations), [
+      { place: 'CAFE', choice: 'location:loc-cafe', locationId: 'loc-cafe', status: 'suggested' },
+      // A script name you gave a location wins over reading it as her kitchen.
+      { place: 'KITCHEN', choice: 'location:loc-flat', locationId: 'loc-flat', status: 'suggested' },
+      { place: 'OFFICE', choice: 'work', room: 'desk', status: 'suggested' },
+    ]);
+    const saved = { OFFICE: locationChoice('loc-cafe'), CAFE: 'elsewhere' as const };
+    assert.deepEqual(resolvePlaces(['OFFICE', 'CAFE'], saved, locations), [
+      { place: 'OFFICE', choice: 'location:loc-cafe', locationId: 'loc-cafe', status: 'confirmed' },
+      { place: 'CAFE', choice: 'elsewhere', status: 'confirmed' },
+    ]);
+    // Its location deleted: read again.
+    assert.deepEqual(resolvePlaces(['OFFICE'], saved, []), [
+      { place: 'OFFICE', choice: 'work', room: 'desk', status: 'suggested' },
+    ]);
+    assert.deepEqual(
+      normalizeScriptPlaceMap({ cafe: 'location: loc-cafe ', bar: 'location:', den: 'home' }),
+      { CAFE: 'location:loc-cafe', DEN: 'home' }
+    );
   });
 });

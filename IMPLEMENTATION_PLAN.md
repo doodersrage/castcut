@@ -1943,6 +1943,14 @@ add to it. Records sync and back up like the other studio extras; storage budget
   they do for home and work. Unit tests (two Scenes in one place; a kitchen at someone else's
   flat; a record that is gone) and an e2e (picked, queued, the look in the prompt). The photo
   path waits for T3 (no location has a picture yet); the script map is the second half.
+- Status 2026-10-28 (second half, the script): a script place can be a location record — the
+  place map stores `location:<id>` beside home / work / elsewhere (older maps read as before).
+  With nothing decided, a place whose name matches a location's name or script names is
+  suggested as it ("matched by name"), ahead of reading it as a room of her home; a decided
+  location that is gone is read again. A shot made a Scene from such a place is set there
+  (`shotSceneDraft` → `locationId`), its words as written. A reimport keeps the place map.
+  Unit tests (resolution, the map, the draft, the reimport) and an e2e (a script's CAFE resolves
+  to the Corner café; its shot's Scene is set there).
 
 **T3 — A location's picture.** · S + _GPU_
 - "Make its picture": one render of the empty place from its words (no people), kept as the

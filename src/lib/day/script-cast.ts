@@ -1,17 +1,32 @@
 /**
  * A script's names to the production's records (M3 S3, ROADMAP §6.2): each speaking part to a
- * Cast member, each scene's place to the Cast's home or workplace. A name that matches is only
+ * Cast member, each scene's place to the Cast's home or workplace or a location record (M8 T2).
+ * A name that matches is only
  * suggested until confirmed; a name that doesn't stays unknown — nothing is created or guessed
  * silently. What is decided is kept on the script (`castMap`, `placeMap`). Pure.
  */
 import { placeRoomOfSetting } from '../cast/places';
+import { locationForPlace, type LocationRecord } from '../location/records';
 
 export type ScriptCastMember = { id: string; name: string };
 
 /** A speaking part's Cast member: an id, or null for "not in the Cast" (a stranger, an extra). */
 export type ScriptCastMap = Record<string, string | null>;
 
-export type ScriptPlaceChoice = 'home' | 'work' | 'elsewhere';
+/** Her home, her workplace, somewhere else, or a location record (`location:<id>`, M8 T2). */
+export type ScriptPlaceChoice = 'home' | 'work' | 'elsewhere' | `location:${string}`;
+
+const LOCATION_CHOICE = 'location:';
+
+export function locationChoice(id: string): ScriptPlaceChoice {
+  return `${LOCATION_CHOICE}${id}`;
+}
+
+/** The location record a place choice names, if it names one. */
+export function locationIdOfChoice(choice: unknown): string | undefined {
+  if (typeof choice !== 'string' || !choice.startsWith(LOCATION_CHOICE)) return undefined;
+  return choice.slice(LOCATION_CHOICE.length).trim().slice(0, 80) || undefined;
+}
 export type ScriptPlaceMap = Record<string, ScriptPlaceChoice>;
 
 export type SpeakerResolution = {
@@ -84,13 +99,20 @@ export type PlaceResolution = {
   choice: ScriptPlaceChoice;
   /** The room of home / work it reads as (kitchen, desk…), when it is one. */
   room?: string;
+  /** The location record it is (with a `location:` choice). */
+  locationId?: string;
   status: 'confirmed' | 'suggested';
 };
 
-/** Each scene place: what you decided, else how Castcut reads it (cast/places.ts). */
+/**
+ * Each scene place: what you decided, else how Castcut reads it — a location record whose name or
+ * script names match (M8 T2), else a room of home / work (cast/places.ts), else somewhere else. A
+ * decided location that is gone is read again.
+ */
 export function resolvePlaces(
   places: readonly string[],
-  saved: ScriptPlaceMap | undefined
+  saved: ScriptPlaceMap | undefined,
+  locations: ReadonlyArray<Pick<LocationRecord, 'id' | 'name' | 'aliases'>> = []
 ): PlaceResolution[] {
   const seen = new Set<string>();
   const out: PlaceResolution[] = [];
@@ -100,6 +122,16 @@ export function resolvePlaces(
     seen.add(place);
     const read = placeRoomOfSetting(place.toLowerCase());
     const choice = saved?.[place];
+    const savedLocation = locationIdOfChoice(choice);
+    if (savedLocation && locations.some(location => location.id === savedLocation)) {
+      out.push({
+        place,
+        choice: locationChoice(savedLocation),
+        locationId: savedLocation,
+        status: 'confirmed',
+      });
+      continue;
+    }
     if (choice === 'home' || choice === 'work' || choice === 'elsewhere') {
       out.push({
         place,
@@ -109,10 +141,18 @@ export function resolvePlaces(
       });
       continue;
     }
+    const location = locationForPlace(place, locations as LocationRecord[]);
     out.push(
-      read
-        ? { place, choice: read.kind, room: read.room, status: 'suggested' }
-        : { place, choice: 'elsewhere', status: 'suggested' }
+      location
+        ? {
+            place,
+            choice: locationChoice(location.id),
+            locationId: location.id,
+            status: 'suggested',
+          }
+        : read
+          ? { place, choice: read.kind, room: read.room, status: 'suggested' }
+          : { place, choice: 'elsewhere', status: 'suggested' }
     );
   }
   return out;
@@ -136,9 +176,10 @@ export function normalizeScriptPlaceMap(value: unknown): ScriptPlaceMap | undefi
   const out: ScriptPlaceMap = {};
   for (const [key, choice] of Object.entries(value as Record<string, unknown>)) {
     const place = placeKey(key).slice(0, 120);
-    if (place && (choice === 'home' || choice === 'work' || choice === 'elsewhere')) {
-      out[place] = choice;
-    }
+    if (!place) continue;
+    if (choice === 'home' || choice === 'work' || choice === 'elsewhere') out[place] = choice;
+    const location = locationIdOfChoice(choice);
+    if (location) out[place] = locationChoice(location);
   }
   return Object.keys(out).length ? out : undefined;
 }
