@@ -105,6 +105,35 @@ export function withOutfitSecondLook(
   return report;
 }
 
+/**
+ * Auto-review's vision verdicts as a still's checks (M7 T2), so they become findings like the
+ * pose and face checks. A check that ran says what it saw on a miss, and '' on a pass (which
+ * clears an earlier miss); a check that didn't run is left out. Pure.
+ */
+export function slotReviewChecks(input: {
+  report: SlotQualityReport;
+  /** The planned outfit, when this day's outfit was checked (everyday moods). */
+  outfit?: string | null;
+  /** The place check's answer (still-place.ts), when it ran. */
+  place?: { match: boolean; seen?: string | null } | null;
+  /** Ran: what the gesture check said the still didn't do (pose/coaching.ts), or null. */
+  gesture?: { missed: string | null } | null;
+}): { outfitMiss?: string; placeMiss?: string; gestureMiss?: string } {
+  return {
+    ...(input.outfit?.trim()
+      ? {
+          outfitMiss: input.report.flags.includes('wrong-outfit')
+            ? input.report.outfitSeen?.trim() || 'another outfit'
+            : '',
+        }
+      : {}),
+    ...(input.place
+      ? { placeMiss: input.place.match ? '' : input.place.seen?.trim() || 'another place' }
+      : {}),
+    ...(input.gesture ? { gestureMiss: input.gesture.missed?.trim() ?? '' } : {}),
+  };
+}
+
 export type SlotQualityAction = 'keep' | 'reroll' | 'flag';
 
 export type SlotQualityDecision = {

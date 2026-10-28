@@ -16,6 +16,7 @@ import {
   slotQualityOverall,
   slotRerollNudge,
   slotRerollsUsed,
+  slotReviewChecks,
   type SlotQualityLedger,
   type SlotQualityReport,
   parseDuoAnatomyProbe,
@@ -381,5 +382,56 @@ describe('outfit second look', () => {
     // An unreadable answer changes nothing.
     assert.equal(withOutfitSecondLook(flaggedReport, { seen: 'x', answer: 'maybe' }), flaggedReport);
     assert.match(outfitJudgePrompt('a red dress', 'red gown'), /"a red dress".*\n.*"red gown"/);
+  });
+});
+
+describe('slotReviewChecks (M7 T2)', () => {
+  const clean = { faceIntegrity: 5, outfitMatch: 5, anatomy: 5, flags: [], note: '' } as Parameters<
+    typeof slotReviewChecks
+  >[0]['report'];
+  const swapped = {
+    ...clean,
+    outfitMatch: 1,
+    flags: ['wrong-outfit'],
+    outfitSeen: 'black top and jeans',
+  } as typeof clean;
+
+  it('says what the review saw on a miss', () => {
+    assert.deepEqual(
+      slotReviewChecks({
+        report: swapped,
+        outfit: 'mint shirt dress',
+        place: { match: false, seen: 'a living room' },
+        gesture: { missed: 'the cup is not at her mouth' },
+      }),
+      {
+        outfitMiss: 'black top and jeans',
+        placeMiss: 'a living room',
+        gestureMiss: 'the cup is not at her mouth',
+      }
+    );
+    // A miss with no words for it still counts.
+    assert.deepEqual(
+      slotReviewChecks({
+        report: { ...swapped, outfitSeen: undefined },
+        outfit: 'mint shirt dress',
+        place: { match: false, seen: ' ' },
+      }),
+      { outfitMiss: 'another outfit', placeMiss: 'another place' }
+    );
+  });
+
+  it('a check that ran and passed clears; one that did not run is left out', () => {
+    assert.deepEqual(
+      slotReviewChecks({
+        report: clean,
+        outfit: 'mint shirt dress',
+        place: { match: true, seen: 'a kitchen' },
+        gesture: { missed: null },
+      }),
+      { outfitMiss: '', placeMiss: '', gestureMiss: '' }
+    );
+    // Heat moods don't check the outfit; no place check, no pose check.
+    assert.deepEqual(slotReviewChecks({ report: swapped, outfit: undefined, place: null }), {});
   });
 });

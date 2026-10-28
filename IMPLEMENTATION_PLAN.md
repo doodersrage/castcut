@@ -1783,6 +1783,14 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
 - No new model calls: they run today with Auto-review on.
 - Acceptance: a still whose outfit or place the check rejects carries a finding; a test for each
   rule; the decisions survive reload and sync.
+- Status 2026-10-28: Auto-review records its verdicts on the still (`slotReviewChecks` →
+  `playChecks.outfitMiss` / `placeMiss` / `gestureMiss`, merged by `mergeGalleryPlayChecks`: a
+  pass clears an earlier miss). They read as findings `outfit-miss` and `place-miss` (warns; the
+  gesture's words join the pose-miss evidence), in Needs a look, the checks badge, a run's
+  "worth another take" and the best-match sort; decided like any finding (id = take + rule, C2),
+  counted by C5 ("Outfit check", "Place check"). Unit-tested; the decisions persist as findings
+  always did (D21 makes the checks themselves survive a reload). Not yet measured on real renders:
+  that is T5, with Auto-review on.
 
 **T3 — Take review states and compare.** · M
 - Candidate / approved / rejected on Scene takes, set without rendering; rejected takes hidden by

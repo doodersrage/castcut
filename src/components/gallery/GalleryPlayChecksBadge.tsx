@@ -17,6 +17,8 @@ export default function GalleryPlayChecksBadge({ entry }: { entry: ComfyGalleryE
     typeof checks.clipCutAt === 'number' ? 'cut' : null,
     checks.clipSilent ? 'silent' : null,
     checks.marksMissing ? 'marks' : null,
+    checks.outfitMiss ? 'outfit' : null,
+    checks.placeMiss ? 'place' : null,
   ].filter(Boolean);
   if (parts.length === 0) return null;
   const title = reasons.length

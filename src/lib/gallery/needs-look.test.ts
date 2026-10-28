@@ -15,4 +15,13 @@ describe('needs a look', () => {
     assert.equal(clipCheckApplies({ derivedKind: 'i2v' }), true);
     assert.equal(clipCheckApplies({}), true);
   });
+
+  it('lists an outfit or place the review saw instead of the planned one (M7 T2)', () => {
+    assert.deepEqual(
+      galleryNeedsLookReasons({
+        playChecks: { outfitMiss: 'a red dress', placeMiss: 'a beach', at: 1 },
+      }),
+      ['wearing a red dress, not the planned outfit', 'in a beach, not the planned place']
+    );
+  });
 });

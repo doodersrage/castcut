@@ -78,4 +78,36 @@ describe('continuity findings, one shape (M2 C1)', () => {
     );
     assert.equal(findingsForGalleryEntry({ promptId: 'clip-1', playChecks: checks }).length, 2);
   });
+
+  // M7 T2: Auto-review's outfit, place and gesture verdicts, findings like the rest.
+  it('reads the outfit, place and gesture verdicts as findings', () => {
+    const findings = findingsForGalleryEntry({
+      promptId: 'p2',
+      playChecks: {
+        pose: 0.31,
+        poseMiss: true,
+        gestureMiss: 'the cup is not at her mouth',
+        outfitMiss: 'black top and jeans',
+        placeMiss: 'a living room',
+        at: 1,
+      },
+    });
+    assert.deepEqual(
+      findings.map(f => f.id),
+      ['p2:pose-miss', 'p2:outfit-miss', 'p2:place-miss']
+    );
+    const byRule = Object.fromEntries(findings.map(f => [f.rule, f]));
+    assert.equal(byRule['pose-miss']!.evidence, 'Pose match 31% · the cup is not at her mouth');
+    assert.match(byRule['outfit-miss']!.evidence, /she is in black top and jeans/);
+    assert.match(byRule['place-miss']!.evidence, /she is in a living room/);
+    assert.ok(findings.every(f => f.severity === 'warns'));
+    // A gesture word alone, with the pose passing, says nothing.
+    assert.deepEqual(
+      findingsForGalleryEntry({
+        promptId: 'p3',
+        playChecks: { pose: 0.8, gestureMiss: 'x', outfitMiss: '  ', at: 1 },
+      }),
+      []
+    );
+  });
 });

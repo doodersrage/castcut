@@ -161,4 +161,13 @@ describe('groupGalleryFilmRuns', () => {
     assert.deepEqual(filmRunMisses(run).map(e => e.id), ['b', 'c']);
     assert.equal(firstUnreviewedInRun(run)?.id, 'c');
   });
+
+  it('counts an outfit or place miss as worth another take (M7 T2)', () => {
+    const run = [
+      entry('a', { playChecks: { outfitMiss: 'jeans', at: 1 } }),
+      entry('b', { playChecks: { placeMiss: 'a beach', at: 1 } }),
+      entry('c', { playChecks: { outfitMiss: '', placeMiss: '', at: 1 } }),
+    ];
+    assert.deepEqual(filmRunMisses(run).map(e => e.id), ['a', 'b']);
+  });
 });

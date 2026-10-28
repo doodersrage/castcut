@@ -40,6 +40,7 @@ import {
   reviewOutfitLabel,
   slotRerollNudge,
   slotRerollsUsed,
+  slotReviewChecks,
   type SlotQualityDecision,
   type SlotQualityLedger,
 } from '@/lib/play/slot-quality';
@@ -411,6 +412,13 @@ export function useDaySlotQualityGate(
         recordGalleryPlayChecks(targetStill.promptId, {
           ...(poseMatch ? { pose: poseMatch.score, poseMiss: Boolean(decision.poseMiss) } : {}),
           ...(faceMatch !== null ? { face: faceMatch, faceMiss: Boolean(decision.faceMiss) } : {}),
+          // And the vision verdicts, so they become findings like the rest (M7 T2).
+          ...slotReviewChecks({
+            report,
+            outfit,
+            place: looked.place,
+            gesture: poseMatch ? { missed: gestureMissWords(poseMatch) } : null,
+          }),
         });
         const attempts = [
           ...(attemptsRef.current[target.id] ?? []),

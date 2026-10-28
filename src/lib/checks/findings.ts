@@ -17,6 +17,10 @@ export type ContinuityRule =
   | 'clip-silent'
   | 'adult-withheld'
   | 'looks-wrong'
+  /** Auto-review saw another outfit than the planned one (M7 T2). */
+  | 'outfit-miss'
+  /** Auto-review's place check saw somewhere other than the planned place (M7 T2). */
+  | 'place-miss'
   /** A shot plays media whose source is gone (Cut's pins, film/cut-pins.ts). */
   | 'source-gone'
   /** Cross-shot (film/continuity-rules.ts): the outfit or look changes with no stated change. */
@@ -113,12 +117,31 @@ export function findingsForGalleryEntry(
     );
   }
   if (checks?.poseMiss) {
+    const gesture = checks.gestureMiss?.trim();
     add(
       'pose-miss',
       'warns',
       'Pose match',
-      `Pose match ${percent(checks.pose) || 'low'}`,
+      `Pose match ${percent(checks.pose) || 'low'}${gesture ? ` · ${gesture}` : ''}`,
       'Redo it, or try another pose.'
+    );
+  }
+  if (checks?.outfitMiss?.trim()) {
+    add(
+      'outfit-miss',
+      'warns',
+      'Auto-review',
+      `Not the planned outfit — she is in ${checks.outfitMiss.trim()}`,
+      'Redo it, or say the outfit changes here.'
+    );
+  }
+  if (checks?.placeMiss?.trim()) {
+    add(
+      'place-miss',
+      'warns',
+      'Auto-review',
+      `Not the planned place — she is in ${checks.placeMiss.trim()}`,
+      'Redo it, or change where the shot is set.'
     );
   }
   if (checks?.marksMissing?.trim()) {

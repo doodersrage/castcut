@@ -11,6 +11,7 @@ import {
   galleryEntryPrimaryPlaybackIndex,
   galleryEntryRenderKey,
   isGalleryPageSize,
+  mergeGalleryPlayChecks,
   isGallerySlideshowIntervalMs,
   isGallerySlideshowTransition,
   loadComfyGallery,
@@ -43,6 +44,31 @@ function makeEntry(overrides: Partial<ComfyGalleryEntry> = {}): ComfyGalleryEntr
 }
 
 describe('comfyui-gallery pure/self-contained helpers', () => {
+  describe('mergeGalleryPlayChecks (M7 T2)', () => {
+    it('keeps what a check did not measure, and a passing check clears its earlier miss', () => {
+      const missed = mergeGalleryPlayChecks(
+        { pose: 0.3, poseMiss: true, face: 0.8, at: 1 },
+        { outfitMiss: 'jeans and a hoodie', placeMiss: 'a kitchen', gestureMiss: 'no cup' },
+        5
+      );
+      assert.deepEqual(missed, {
+        pose: 0.3,
+        poseMiss: true,
+        face: 0.8,
+        outfitMiss: 'jeans and a hoodie',
+        placeMiss: 'a kitchen',
+        gestureMiss: 'no cup',
+        at: 5,
+      });
+      // The redo passed its outfit and place checks; the gesture wasn't checked again.
+      const redo = mergeGalleryPlayChecks(missed, { outfitMiss: '', placeMiss: '' }, 9);
+      assert.equal(redo.outfitMiss, undefined);
+      assert.equal(redo.placeMiss, undefined);
+      assert.equal(redo.gestureMiss, 'no cup');
+      assert.equal(redo.at, 9);
+    });
+  });
+
   describe('galleryEntryRenderKey', () => {
     it('changes when a rendering-relevant field changes', () => {
       const base = makeEntry();

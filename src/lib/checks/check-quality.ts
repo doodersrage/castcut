@@ -17,6 +17,8 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'clip-silent': 'Talking clip silent',
   'adult-withheld': 'Adult check',
   'looks-wrong': 'Your Looks wrong',
+  'outfit-miss': 'Outfit check',
+  'place-miss': 'Place check',
   'source-gone': 'Cut: source gone',
   'outfit-jump': 'Cut: outfit jump',
   'look-mismatch': 'Cut: look mismatch',

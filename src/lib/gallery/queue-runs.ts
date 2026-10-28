@@ -182,7 +182,7 @@ function filmRunGroup(
   };
 }
 
-/** Stills in a run worth another take: rated 2★ or lower, or a missed pose / face check. */
+/** Stills in a run worth another take: rated 2★ or lower, or a missed pose / face / outfit / place check. */
 export function filmRunMisses(entries: readonly ComfyGalleryEntry[]): ComfyGalleryEntry[] {
   return entries.filter(
     entry =>
@@ -190,7 +190,9 @@ export function filmRunMisses(entries: readonly ComfyGalleryEntry[]): ComfyGalle
       !isClipEntry(entry) &&
       ((entry.reviewRating != null && entry.reviewRating <= 2) ||
         entry.playChecks?.poseMiss === true ||
-        entry.playChecks?.faceMiss === true)
+        entry.playChecks?.faceMiss === true ||
+        Boolean(entry.playChecks?.outfitMiss) ||
+        Boolean(entry.playChecks?.placeMiss))
   );
 }
 

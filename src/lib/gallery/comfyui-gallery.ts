@@ -668,8 +668,12 @@ export function sortGalleryEntries(
       const rank = (entry: ComfyGalleryEntry) => {
         const checks = entry.playChecks;
         if (!checks) return -1;
-        const misses = Number(Boolean(checks.poseMiss)) + Number(Boolean(checks.faceMiss));
-        return (2 - misses) * 10 + (checks.pose ?? 0) * 2 + (checks.face ?? 0);
+        const misses =
+          Number(Boolean(checks.poseMiss)) +
+          Number(Boolean(checks.faceMiss)) +
+          Number(Boolean(checks.outfitMiss)) +
+          Number(Boolean(checks.placeMiss));
+        return (4 - misses) * 10 + (checks.pose ?? 0) * 2 + (checks.face ?? 0);
       };
       return sorted.sort((a, b) => rank(b) - rank(a) || b.queuedAt - a.queuedAt);
     }
@@ -1005,6 +1009,34 @@ export function setGalleryReviewRating(
 }
 
 /**
+ * A still's checks with new ones merged in. Measured values only — an unmeasured side keeps what
+ * was there; a check given as empty ran and passed, and clears an earlier miss. Pure.
+ */
+export function mergeGalleryPlayChecks(
+  previous: GalleryPlayChecks | undefined,
+  checks: Omit<GalleryPlayChecks, 'at'>,
+  now = Date.now()
+): GalleryPlayChecks {
+  const merged: GalleryPlayChecks = { ...previous, at: now };
+  if (typeof checks.pose === 'number') {
+    merged.pose = checks.pose;
+    merged.poseMiss = checks.poseMiss === true;
+  }
+  if (typeof checks.face === 'number') {
+    merged.face = checks.face;
+    merged.faceMiss = checks.faceMiss === true;
+  }
+  if ('clipCutAt' in checks) merged.clipCutAt = checks.clipCutAt;
+  if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
+  if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;
+  // Auto-review's verdicts (M7 T2): a check that ran and passed clears an earlier miss.
+  if ('outfitMiss' in checks) merged.outfitMiss = checks.outfitMiss?.trim() || undefined;
+  if ('placeMiss' in checks) merged.placeMiss = checks.placeMiss?.trim() || undefined;
+  if ('gestureMiss' in checks) merged.gestureMiss = checks.gestureMiss?.trim() || undefined;
+  return merged;
+}
+
+/**
  * Store a still's Play checks on its gallery entry (matched by ComfyUI prompt id). Measured
  * values only — an unmeasured side keeps what was there.
  */
@@ -1018,19 +1050,7 @@ export function recordGalleryPlayChecks(
   const next = loadComfyGallery().map(entry => {
     if (entry.promptId !== id) return entry;
     changed = true;
-    const merged: GalleryPlayChecks = { ...entry.playChecks, at: Date.now() };
-    if (typeof checks.pose === 'number') {
-      merged.pose = checks.pose;
-      merged.poseMiss = checks.poseMiss === true;
-    }
-    if (typeof checks.face === 'number') {
-      merged.face = checks.face;
-      merged.faceMiss = checks.faceMiss === true;
-    }
-    if ('clipCutAt' in checks) merged.clipCutAt = checks.clipCutAt;
-    if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
-    if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;
-    return { ...entry, playChecks: merged };
+    return { ...entry, playChecks: mergeGalleryPlayChecks(entry.playChecks, checks) };
   });
   if (changed) saveComfyGallery(next);
   // A judged pose check is a signal for the pose × engine stats (a bare score is not).

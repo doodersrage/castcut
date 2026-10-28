@@ -37,5 +37,7 @@ export function galleryNeedsLookReasons(
       : '',
     checks.clipSilent ? 'no sound' : '',
     checks.marksMissing ? `marks: ${checks.marksMissing}` : '',
+    checks.outfitMiss ? `wearing ${checks.outfitMiss}, not the planned outfit` : '',
+    checks.placeMiss ? `in ${checks.placeMiss}, not the planned place` : '',
   ].filter(Boolean);
 }

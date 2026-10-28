@@ -13,6 +13,15 @@ export type GalleryPlayChecks = {
   clipSilent?: boolean;
   /** The Cast's marks still missing after the repair (what is missing). */
   marksMissing?: string;
+  /**
+   * Auto-review (M7 T2): the outfit it saw when that wasn't the planned one, after its second
+   * look (slot-quality.ts `withOutfitSecondLook`). Empty or absent: not wrong, or not checked.
+   */
+  outfitMiss?: string;
+  /** Auto-review's place check (still-place.ts): where she is when that isn't the planned place. */
+  placeMiss?: string;
+  /** The gesture check (pose/gesture.ts): what the still's hands or action didn't do. */
+  gestureMiss?: string;
   at: number;
 };
 
