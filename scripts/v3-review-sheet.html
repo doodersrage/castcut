@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Consistency Review</title>
-    <!-- M6 V3: filled in by `scene-real-render.mts v3sheet`; opened from disk, nothing is sent anywhere. -->
+    <!-- M6 V3, M7 T5: filled in by `scene-real-render.mts v3sheet`; opened from disk, nothing is sent anywhere. -->
     <style>
       :root {
         --bg: #f4f5f7;
@@ -201,6 +201,33 @@
         font-size: 12px;
         padding: 6px 0;
       }
+      .verdict {
+        padding: 8px 10px 10px;
+        margin-top: auto;
+        border-top: 1px solid var(--border);
+      }
+      .reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+      }
+      .reasons button {
+        padding: 2px 8px;
+        font-size: 12px;
+        border-radius: 999px;
+      }
+      .reasons button[aria-pressed='true'] {
+        background: var(--real-bg);
+        border-color: var(--real);
+        color: var(--real);
+        font-weight: 600;
+      }
+      .reasons .hint {
+        color: var(--muted);
+        font-size: 12px;
+        width: 100%;
+      }
       label.check {
         display: flex;
         gap: 6px;
@@ -244,13 +271,14 @@
       </label>
       <button type="button" id="load">Load…</button>
       <input type="file" id="load-file" accept="application/json" hidden />
-      <button type="button" class="primary" id="save">Save v3-review.json</button>
+      <button type="button" class="primary" id="save">Save the review</button>
     </header>
     <main>
       <p class="help">
         For each finding: <b>It’s fine</b> if the check is wrong about this picture,
-        <b>It’s real</b> if it’s right. Tick <b>Looks wrong</b> on any take you would not use,
-        whether or not a check flagged it — that is how misses are counted. Your answers are kept in
+        <b>It’s real</b> if it’s right. Then each take, whether or not a check flagged it:
+        <b>Good</b> if you would use it, <b>Reject</b> if not — and what is wrong with it (face,
+        pose, outfit, place…). That is how each check’s misses are counted. Your answers are kept in
         this browser as you go; <b>Save</b> writes the file the report reads.
       </p>
       <h2>Cast plates</h2>
@@ -263,11 +291,18 @@
     <dialog id="zoom"><img alt="" /></dialog>
     <script>
       const DATA = /*DATA*/ null;
-      const KEY = 'castcut-v3-review';
-      let state = { decisions: {}, looksWrong: [] };
+      const KEY = DATA.key || 'castcut-v3-review';
+      // looksWrong: the takes you rejected (V3's name for them, kept so its files still load).
+      const fresh = saved => ({
+        decisions: saved.decisions || {},
+        looksWrong: saved.looksWrong || [],
+        approved: saved.approved || [],
+        wrongBecause: saved.wrongBecause || {},
+      });
+      let state = fresh({});
       try {
         const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-        if (saved && saved.decisions) state = saved;
+        if (saved && saved.decisions) state = fresh(saved);
       } catch {
         // storage blocked: answers last only while the page is open
       }
@@ -283,6 +318,15 @@
         'rapid-aio': 'Rapid AIO',
         'qwen-edit-2511': 'Edit 2511',
       };
+      const REASONS = [
+        ['face', 'Face'],
+        ['pose', 'Pose'],
+        ['outfit', 'Outfit'],
+        ['place', 'Place'],
+        ['marks', 'Marks'],
+        ['body', 'Hands / body'],
+        ['other', 'Other'],
+      ];
       const castName = id => id.replace(/^cast-/, '').replace(/^./, c => c.toUpperCase());
       const allFindings = [...DATA.pairs, ...DATA.rows.flatMap(row => row.findings)];
 
@@ -362,11 +406,15 @@
 
       function render() {
         const decided = allFindings.filter(finding => state.decisions[finding.id]).length;
+        const judged = state.approved.length + state.looksWrong.length;
+        const noReason = state.looksWrong.filter(id => !(state.wrongBecause[id] || []).length);
         document.getElementById('progress').textContent =
-          `${decided} of ${allFindings.length} findings decided · ${state.looksWrong.length} marked Looks wrong`;
+          `${decided} of ${allFindings.length} findings decided · ${judged} of ${DATA.rows.length} takes judged (${state.looksWrong.length} rejected${noReason.length ? `, ${noReason.length} without a reason` : ''})`;
         const cast = castSelect.value;
         const engine = engineSelect.value;
         const undecided = items => items.some(finding => !state.decisions[finding.id]);
+        const unjudged = row =>
+          !state.approved.includes(row.promptId) && !state.looksWrong.includes(row.promptId);
 
         const pairs = document.getElementById('pairs');
         pairs.replaceChildren(
@@ -406,11 +454,25 @@
               row =>
                 (!cast || row.castId === cast) &&
                 (!engine || row.engine === engine) &&
-                (!openOnly.checked || undecided(row.findings))
+                (!openOnly.checked || undecided(row.findings) || unjudged(row))
             )
             .map(row => {
               const wrong = state.looksWrong.includes(row.promptId);
-              const done = row.findings.every(finding => state.decisions[finding.id]);
+              const good = state.approved.includes(row.promptId);
+              const reasons = state.wrongBecause[row.promptId] || [];
+              const done =
+                row.findings.every(finding => state.decisions[finding.id]) &&
+                (good || (wrong && reasons.length > 0));
+              const setVerdict = verdict => {
+                const id = row.promptId;
+                state.approved = state.approved.filter(entry => entry !== id);
+                state.looksWrong = state.looksWrong.filter(entry => entry !== id);
+                if (verdict === 'good') state.approved.push(id);
+                if (verdict === 'reject') state.looksWrong.push(id);
+                else delete state.wrongBecause[id];
+                persist();
+                render();
+              };
               return el(
                 'article',
                 { className: `card${done ? ' done' : ''}` },
@@ -437,20 +499,47 @@
                     : [el('li', { className: 'none', textContent: 'No findings' })])
                 ),
                 el(
-                  'label',
-                  { className: 'check' },
-                  el('input', {
-                    type: 'checkbox',
-                    checked: wrong,
-                    onchange: event => {
-                      state.looksWrong = event.target.checked
-                        ? [...new Set([...state.looksWrong, row.promptId])]
-                        : state.looksWrong.filter(id => id !== row.promptId);
-                      persist();
-                      render();
-                    },
-                  }),
-                  'Looks wrong'
+                  'div',
+                  { className: 'verdict' },
+                  el(
+                    'div',
+                    { className: 'choice' },
+                    el('button', {
+                      type: 'button',
+                      className: 'fine',
+                      textContent: 'Good',
+                      ariaPressed: String(good),
+                      onclick: () => setVerdict(good ? null : 'good'),
+                    }),
+                    el('button', {
+                      type: 'button',
+                      className: 'real',
+                      textContent: 'Reject',
+                      ariaPressed: String(wrong),
+                      onclick: () => setVerdict(wrong ? null : 'reject'),
+                    })
+                  ),
+                  wrong
+                    ? el(
+                        'div',
+                        { className: 'reasons', role: 'group', ariaLabel: 'What is wrong' },
+                        el('span', { className: 'hint', textContent: 'What is wrong with it?' }),
+                        ...REASONS.map(([value, text]) =>
+                          el('button', {
+                            type: 'button',
+                            textContent: text,
+                            ariaPressed: String(reasons.includes(value)),
+                            onclick: () => {
+                              state.wrongBecause[row.promptId] = reasons.includes(value)
+                                ? reasons.filter(entry => entry !== value)
+                                : [...reasons, value];
+                              persist();
+                              render();
+                            },
+                          })
+                        )
+                      )
+                    : null
                 )
               );
             })
@@ -464,7 +553,10 @@
             type: 'application/json',
           }
         );
-        const link = el('a', { href: URL.createObjectURL(blob), download: 'v3-review.json' });
+        const link = el('a', {
+          href: URL.createObjectURL(blob),
+          download: DATA.file || 'v3-review.json',
+        });
         link.click();
         URL.revokeObjectURL(link.href);
       });
@@ -476,7 +568,7 @@
         try {
           const loaded = JSON.parse(await file.text());
           if (loaded && loaded.decisions) {
-            state = { decisions: loaded.decisions, looksWrong: loaded.looksWrong || [] };
+            state = fresh(loaded);
             persist();
             render();
           }

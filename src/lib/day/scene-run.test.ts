@@ -172,4 +172,23 @@ describe('automation never chooses for you (M5 W5)', () => {
     assert.equal(withRedo({ ...landed, promptId: 'p0' }, true), true, 'another take is not its redo');
     assert.equal(settled(undefined, false, true), false);
   });
+
+  // M7 T5 (D24): with Auto-review on, the run opened the next Scene while the review still ran,
+  // so every other take was never reviewed (11 of 20 on T5's first run).
+  it('a landed take waits for Auto-review too, and for the reroll it sets off', () => {
+    const landed = { promptId: 'p1', status: 'completed', imageUrl: '/a.png' };
+    const settled = (still: typeof landed, reviewing: boolean) =>
+      runTakeSettled({
+        still,
+        promptId: 'p1',
+        inFlight: false,
+        checksPending: () => false,
+        reviewPending: () => reviewing,
+      });
+    assert.equal(settled(landed, true), false, 'Auto-review still to look at it');
+    assert.equal(settled(landed, false), true);
+    // A reroll the review queued is on the card now: not this take's, still waited for.
+    assert.equal(settled({ ...landed, promptId: 'p9' }, true), false);
+    assert.equal(settled({ ...landed, promptId: 'p9' }, false), true);
+  });
 });

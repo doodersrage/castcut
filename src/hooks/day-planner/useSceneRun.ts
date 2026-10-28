@@ -22,7 +22,12 @@ type ScenePage = ReturnType<typeof useScenePage>;
 const RENDER_TIMEOUT_MS = 30 * 60_000;
 const CHECKS_TIMEOUT_MS = 5 * 60_000;
 const OPEN_TIMEOUT_MS = 20_000;
-const QUEUE_TIMEOUT_MS = 60_000;
+/**
+ * How long a take may take to be queued. The first take in an outfit dresses the plate first (an
+ * Edit pass or two): on a fresh install that took about 3 minutes (M7 T5, D25), and a 60 s wait
+ * paused every run on its first Scene while the take was still on its way.
+ */
+const QUEUE_TIMEOUT_MS = 5 * 60_000;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -190,6 +195,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
                 promptId,
                 inFlight: pageRef.current.inFlight,
                 checksPending: vmRef.current.afterChecksPending,
+                reviewPending: vmRef.current.autoReviewPending,
                 isRedo: still => {
                   const redo = vmRef.current.poseRedoOf(pageRef.current.slot.id);
                   return Boolean(

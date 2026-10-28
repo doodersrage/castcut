@@ -1,7 +1,7 @@
 'use client';
 
 import { isRestoredTake } from '@/lib/day/planner';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import {
   isDayAdultMood,
@@ -120,6 +120,8 @@ export function useDaySlotQualityGate(
   const reviewedRef = useRef<Record<string, string>>({});
   const baselinedRef = useRef(false);
   const runningRef = useRef(false);
+  /** The still being reviewed right now (its image URL), for Scene runs to wait on. */
+  const reviewingUrlRef = useRef<string | null>(null);
   const pausedRef = useRef(false);
   /** Set once the detector reports it is not installed — skip pose checks for the session. */
   const poseCheckOffRef = useRef<string | null>(null);
@@ -185,6 +187,7 @@ export function useDaySlotQualityGate(
     const checkUrl = comfyViewUrlForStill(targetStill, loadComfyGallery()) ?? imageUrl;
     reviewedRef.current[target.id] = imageUrl;
     runningRef.current = true;
+    reviewingUrlRef.current = imageUrl;
 
     const mood = normalizeDayMood(toolSettings.dayMood);
     const companionsPossible =
@@ -549,6 +552,7 @@ export function useDaySlotQualityGate(
         setQualityStatus(`Auto-review paused: ${message}`);
       } finally {
         runningRef.current = false;
+        reviewingUrlRef.current = null;
         setTick(value => value + 1);
       }
     })();
@@ -578,6 +582,38 @@ export function useDaySlotQualityGate(
     wardrobeLabelFor,
   ]);
 
+  /**
+   * A finished still Auto-review will look at and hasn't yet, or is looking at now — the same
+   * stills the review above picks up. A Scene run waits on it as on the after-checks (D24).
+   */
+  const autoReviewPending = useCallback(
+    (still: {
+      slotId?: string;
+      imageUrl?: string;
+      promptId?: string;
+      status?: string;
+      restoredFor?: string;
+    }) => {
+      if (!autoReviewStills || pausedRef.current || !still.slotId) return false;
+      if (still.status !== 'completed' || !still.imageUrl || isRestoredTake(still)) return false;
+      if (!slots.some(slot => slot.id === still.slotId)) return false;
+      const full = stills.find(
+        entry => entry.slotId === still.slotId && entry.imageUrl === still.imageUrl
+      );
+      if (
+        full &&
+        (faceFinish?.holdsStill(full) || dayTwoTakesPending(full) || dayTwoTakesJudged(full))
+      ) {
+        return false;
+      }
+      return (
+        reviewedRef.current[still.slotId] !== still.imageUrl ||
+        reviewingUrlRef.current === still.imageUrl
+      );
+    },
+    [autoReviewStills, faceFinish, slots, stills]
+  );
+
   // Card marks for a slot redone because a take looked computer-made.
   const realismMarks: Record<string, string> = {};
   if (autoReviewStills) {
@@ -591,6 +627,7 @@ export function useDaySlotQualityGate(
   }
 
   return {
+    autoReviewPending,
     realismMarks,
     qualityStatus: autoReviewStills
       ? qualityStatus

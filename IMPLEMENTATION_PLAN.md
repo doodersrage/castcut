@@ -1839,6 +1839,26 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
   the new rules and the review states.
 - Acceptance: `docs/consistency-report.md` gains per-rule precision and misses for every rule;
   no rule becomes a gate without its number.
+- Status 2026-10-28: rendered; the labels are the user's. Lena's plate re-made with another face
+  (the same body, outfit and framing; an Edit 2.1 pass on her V3 plate), so the two Casts differ
+  in face only. 77 takes on a fresh install (`next dev`, ComfyUI 0.42.5): both Casts × the three
+  engines × five scenes, plus the pairs on Qwen-Image 2.1, every run with Auto-review on (40
+  queued, 37 more its rerolls). The sheet now asks **Good** / **Reject** per take and, on a
+  Reject, what is wrong (face, pose, outfit, place, marks, hands / body, other): `ruleMisses`
+  (`check-quality.ts`, unit-tested) turns those into each still rule's misses; the report adds
+  the outfit and place columns and writes the set file itself. Found on the way:
+  - D24: with Auto-review on, a Scene run opened the next Scene while the review still ran, and
+    the next take replaced the still — 9 of the first 20 takes were never reviewed, and nothing
+    was rerolled. `runTakeSettled` now waits on the gate's `autoReviewPending` (the still on the
+    card: the take, or the reroll it set off); unit-tested. Re-run: Auto-review ran on 76 of 76
+    checked takes.
+  - D25: a run waited 60 s for its take to be queued, but the first take in an outfit dresses the
+    plate first (about 3 min on a fresh install), so every run on a fresh install paused on its
+    first Scene ("its take wasn't queued") while the take was still on its way. Now 5 min.
+  - Face match, measured without labels (`v3faces`: every take against both plates, through the
+    app's route): own plate 0.40–0.70 (median 0.62), the other Cast's 0.00–0.29 (median 0.21).
+    At the still bar (0.4) all 77 wrong-person pairs fall under it and 1 right-person take does
+    (0.395). The two people are told apart; V3 could not test this.
 
 ## 9.3 Definition of done
 

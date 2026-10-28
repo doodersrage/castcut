@@ -323,10 +323,17 @@ export function runTakeSettled(input: {
   checksPending: (still: { promptId?: string; status?: string }) => boolean;
   /** The take on the card is the pose redo this take's checks set off (it stands in for it). */
   isRedo?: (still: { promptId?: string }) => boolean;
+  /**
+   * Auto-review has yet to look at the still on the card, or is looking at it — this take or a
+   * reroll the review set off. Without it a run moved on mid-review, the next Scene's take replaced
+   * the still, and every other take went unreviewed (M7 T5, D24).
+   */
+  reviewPending?: (still: { promptId?: string; status?: string }) => boolean;
 }): boolean {
   const { still } = input;
   if (input.inFlight) return false;
   if (!still) return true;
+  if (input.reviewPending?.(still)) return false;
   // Its redo is waited for like the take itself: landed, and checked (the run said done while
   // the last Scene's redo still rendered, and its checks were lost with the page).
   const own = still.promptId === input.promptId || input.isRedo?.(still) === true;

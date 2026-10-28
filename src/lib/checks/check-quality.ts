@@ -108,6 +108,56 @@ export function checkQuality(
   };
 }
 
+/**
+ * Why a take you would not use is wrong (M7 T5's review), and the still check meant to see it.
+ * `body` (hands, limbs) and `other` have no check of their own: counted, never a rule's miss.
+ */
+export type WrongReason = 'face' | 'pose' | 'outfit' | 'place' | 'marks' | 'body' | 'other';
+
+export const WRONG_REASON_RULES: Partial<Record<WrongReason, ContinuityRule>> = {
+  face: 'face-miss',
+  pose: 'pose-miss',
+  outfit: 'outfit-miss',
+  place: 'place-miss',
+  marks: 'marks-missing',
+};
+
+export type RuleMissRow = {
+  rule: ContinuityRule;
+  label: string;
+  /** Takes you said were wrong for this rule's reason. */
+  wrong: number;
+  /** Of those, the ones this rule did not flag: its misses. */
+  missed: number;
+};
+
+/**
+ * Per still rule, its misses: takes you marked wrong for the reason it checks that carry no
+ * finding of it (a pose you said is wrong, and no pose finding). Every rule a reason maps to gets
+ * a row, so a rule nobody tested shows as 0 / 0 rather than vanishing.
+ */
+export function ruleMisses(
+  entries: readonly QualityEntry[],
+  wrongBecause: Readonly<Record<string, readonly WrongReason[]>>
+): RuleMissRow[] {
+  const rows = new Map<ContinuityRule, RuleMissRow>();
+  for (const rule of Object.values(WRONG_REASON_RULES)) {
+    rows.set(rule, { rule, label: CONTINUITY_RULE_LABELS[rule], wrong: 0, missed: 0 });
+  }
+  for (const entry of entries) {
+    const reasons = wrongBecause[entry.promptId] ?? [];
+    if (!reasons.length) continue;
+    const flagged = new Set(findingsForGalleryEntry(entry).map(finding => finding.rule));
+    for (const rule of new Set(reasons.map(reason => WRONG_REASON_RULES[reason]))) {
+      if (!rule) continue;
+      const row = rows.get(rule)!;
+      row.wrong += 1;
+      if (!flagged.has(rule)) row.missed += 1;
+    }
+  }
+  return [...rows.values()];
+}
+
 export type LabelledFinding = {
   id: string;
   rule: ContinuityRule;

@@ -19,7 +19,9 @@
  *
  * Consistency set (M6 V3, docs/consistency-report.md), on one install: setup v3script, then v3run
  * once per engine (SCENE_V3_ENGINE; SCENE_V3_PAIRS=1 on the first), v3cut, v3sheet (a local review
- * page in SCENE_OUT/review), v3report (the tables, from the review's saved labels).
+ * page in SCENE_OUT/review), v3report (the tables, from the review's saved labels). M7 T5 re-runs
+ * it with SCENE_AUTO_REVIEW=1 (each run with Auto-review on) and Casts of two different faces;
+ * v3faces (before v3report) scores every take's face against both Casts' plates.
  */
 import { chromium, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import {
@@ -37,6 +39,8 @@ import {
   CONTINUITY_RULE_LABELS,
   checkQuality,
   labelledFindings,
+  ruleMisses,
+  type WrongReason,
 } from '../src/lib/checks/check-quality';
 import type { FindingDecision } from '../src/lib/checks/finding-decisions';
 import { findingsForGalleryEntry } from '../src/lib/checks/findings';
@@ -82,11 +86,13 @@ async function ready(page: Page, locator: Locator, timeout = 60_000) {
 }
 
 async function go(page: Page, path: string) {
-  // A navigation the page started itself (an import opening its Cast) can abort ours: once more.
+  // A navigation the page started itself (an import opening its Cast) can abort ours, and a dev
+  // server busy with a run's checks can take longer than 30 s to answer (M7 T5): once more.
   await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' }).catch(async error => {
-    if (!/ERR_ABORTED/.test(String(error))) throw error;
+    if (!/ERR_ABORTED|Timeout/.test(String(error))) throw error;
+    log('navigation', /Timeout/.test(String(error)) ? 'timed out' : 'aborted', '— once more');
     await page.waitForTimeout(2000);
-    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 180_000 });
   });
   await dismiss(page);
 }
@@ -970,6 +976,25 @@ async function v3Stored(page: Page) {
     if (url && V3_CASTS.includes(character.id)) plates[character.id] = url;
   }
   return { takes, byPrompt, scenes, plates };
+}
+
+/** M7 T5: Auto-review on for the open Scene page, as a person turns it on (Advanced). */
+async function autoReviewOn(page: Page) {
+  const toggle = page.getByTestId('day-auto-review');
+  if (!(await toggle.isVisible().catch(() => false))) {
+    await page.getByTestId('day-quality-advanced').click();
+  }
+  await toggle.waitFor({ timeout: 30_000 });
+  if ((await toggle.getAttribute('aria-checked')) !== 'true') await toggle.click();
+  await attempt(page, 'Auto-review is on', async () => {
+    await page.waitForTimeout(800);
+    if ((await toggle.getAttribute('aria-checked')) !== 'true') throw new Error('still off');
+  });
+}
+
+/** Which of Auto-review's checks ran on a still: a pass is stored as an empty verdict. */
+function autoReviewed(checks: ComfyGalleryEntry['playChecks']) {
+  return ['outfitMiss', 'placeMiss', 'gestureMiss'].filter(key => checks && key in checks);
 }
 
 type Phase = (ctx: BrowserContext, page: Page) => Promise<void>;
@@ -2541,7 +2566,12 @@ const phases: Record<string, Phase> = {
         await page.getByTestId('script-keep').click();
         await page.getByTestId('script-reading').waitFor({ timeout: 30_000 });
       }
-      const script = await v3Script(page, castId);
+      // Kept to IndexedDB on a short debounce: wait for it.
+      let script = await v3Script(page, castId);
+      for (let tries = 0; !script && tries < 20; tries += 1) {
+        await page.waitForTimeout(500);
+        script = await v3Script(page, castId);
+      }
       if (!script) throw new Error(`${castId}: the script was not kept`);
       await go(page, `/scene?character=${castId}&script=${script.id}`);
       await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
@@ -2598,6 +2628,7 @@ const phases: Record<string, Phase> = {
     const file = join(OUT, 'v3-takes.json');
     for (const castId of V3_CASTS) {
       await openScene(page, castId);
+      if (process.env.SCENE_AUTO_REVIEW === '1') await autoReviewOn(page);
       const made = await v3Scenes(page, castId);
       const included = made.filter(entry => entry.role === 'eval' || pairs);
       await patchSceneSlots(
@@ -2636,9 +2667,10 @@ const phases: Record<string, Phase> = {
       );
       const started = Date.now();
       await page.getByTestId('scene-run-start').click();
+      // A paused run waits for a person: stop watching it (its reason is logged below).
       const run = await waitForRun(
         page,
-        entry => ['done', 'stopped', 'cancelled'].includes(entry.state ?? ''),
+        entry => ['done', 'stopped', 'cancelled', 'paused'].includes(entry.state ?? ''),
         8 * 60
       );
       log(castId, engine, 'run', run.state, 'in', Math.round((Date.now() - started) / 1000), 's');
@@ -2812,7 +2844,8 @@ const phases: Record<string, Phase> = {
       join(dir, 'index.html'),
       readFileSync(join(import.meta.dirname, 'v3-review-sheet.html'), 'utf8').replace(
         /\/\*DATA\*\/\s*null/,
-        JSON.stringify({ rows, pairs, plates: castPlates })
+        // Answers are kept per set (pages opened from disk can share one storage).
+        JSON.stringify({ rows, pairs, plates: castPlates, key: `castcut-review:${OUT}` })
       )
     );
     log(
@@ -2827,6 +2860,72 @@ const phases: Record<string, Phase> = {
   },
 
   /**
+   * M7 T5: face match across the Casts — every take against its own Cast's plate and the other's,
+   * through the app's face-match route (the check's own measure): v3-faces.json, for v3report.
+   */
+  async v3faces(_ctx, page) {
+    const { takes, byPrompt, plates } = await v3Stored(page);
+    // The face-match route reads ComfyUI images only: each Cast's plate goes to ComfyUI's input
+    // folder (as the app uploads it at queue time), each take is its ComfyUI output.
+    const comfy = process.env.SCENE_COMFY ?? 'http://127.0.0.1:8188';
+    const view = (filename: string, subfolder: string, type: string) =>
+      `/api/comfyui/view?${new URLSearchParams({ filename, subfolder, type }).toString()}`;
+    const references: Record<string, string> = {};
+    for (const [castId, url] of Object.entries(plates)) {
+      const picture = await page.request.get(new URL(url, BASE).toString(), {
+        headers: { 'x-prompt-api-token': apiToken() },
+      });
+      if (!picture.ok()) continue;
+      const name = `t5-plate-${castId}.png`;
+      const uploaded = await page.request.post(`${comfy}/upload/image`, {
+        multipart: {
+          image: { name, mimeType: 'image/png', buffer: await picture.body() },
+          overwrite: 'true',
+        },
+      });
+      if (uploaded.ok()) references[castId] = view(name, '', 'input');
+    }
+    const score = async (referenceUrl: string | undefined, imageUrl: string) => {
+      if (!referenceUrl) return null;
+      for (let tries = 0; tries < 5; tries += 1) {
+        const response = await page.request.post(new URL('/api/face-match', BASE).toString(), {
+          headers: { 'x-prompt-api-token': apiToken() },
+          data: { referenceUrl, imageUrl },
+          timeout: 180_000,
+        });
+        // The API's rate limit (120 a minute): wait as asked, then again.
+        if (response.status() === 429) {
+          await page.waitForTimeout(Number(response.headers()['retry-after'] ?? '30') * 1000);
+          continue;
+        }
+        const result = (await response.json().catch(() => ({}))) as {
+          available?: boolean;
+          similarity?: number;
+          reason?: string;
+          error?: string;
+        };
+        if (result.available && typeof result.similarity === 'number')
+          return Math.round(result.similarity * 1000) / 1000;
+        log('   no face match:', response.status(), result.reason ?? result.error ?? '');
+        return null;
+      }
+      return null;
+    };
+    const rows = [];
+    for (const take of takes) {
+      const image = byPrompt.get(take.promptId)?.images?.[0];
+      if (!image?.filename) continue;
+      const url = view(image.filename, image.subfolder ?? '', image.type || 'output');
+      const other = V3_CASTS.find(castId => castId !== take.castId);
+      const own = await score(references[take.castId], url);
+      const cross = other ? await score(references[other], url) : null;
+      rows.push({ promptId: take.promptId, cast: take.castId, engine: take.engine, own, cross });
+      log('  ', take.castId, take.engine, take.scene, 'own', own, 'other', cross);
+    }
+    writeFileSync(join(OUT, 'v3-faces.json'), `${JSON.stringify(rows, null, 2)}\n`);
+  },
+
+  /**
    * M6 V3: the set's checks against your labels (v3-review.json from the sheet; SCENE_V3_LABELS
    * for another path), by C5's checkQuality and labelledFindings — per rule, and per engine:
    * v3-table.md and v3-labels.json (ids and labels only). Takes that were never checked are left
@@ -2838,9 +2937,14 @@ const phases: Record<string, Phase> = {
       readFileSync(process.env.SCENE_V3_LABELS ?? join(OUT, 'v3-review.json'), 'utf8')
     ) as {
       decisions: Record<string, 'dismissed' | 'accepted'>;
+      /** The takes rejected (Looks wrong). */
       looksWrong: string[];
+      /** M7 T5's sheet: the takes marked Good, and why each rejected one is wrong. */
+      approved?: string[];
+      wrongBecause?: Record<string, WrongReason[]>;
     };
     const looksWrong = new Set(review.looksWrong);
+    const wrongBecause = review.wrongBecause ?? {};
     const setEntries = takes.flatMap(take => {
       const entry = byPrompt.get(take.promptId);
       if (!entry?.playChecks || !Object.keys(entry.playChecks).length) return [];
@@ -2869,8 +2973,20 @@ const phases: Record<string, Phase> = {
       '',
       `Misses (marked Looks wrong, no check flagged it): ${quality.missed}`,
       '',
-      '| Engine | Takes checked | Face match: found / real | Pose match: found / real | Looks wrong |',
-      '| --- | --- | --- | --- | --- |',
+      '| Still rule | Rejected for its reason | Flagged by it | Missed |',
+      '| --- | --- | --- | --- |',
+      ...ruleMisses(setEntries, wrongBecause).map(
+        row => `| ${row.label} | ${row.wrong} | ${row.wrong - row.missed} | ${row.missed} |`
+      ),
+      '',
+      `Takes judged: ${review.approved?.length ?? 0} good, ${looksWrong.size} rejected (${
+        [...looksWrong].filter(id => !(wrongBecause[id] ?? []).length).length
+      } with no reason); Auto-review ran on ${
+        setEntries.filter(entry => autoReviewed(entry.playChecks).length).length
+      } of ${setEntries.length} checked takes.`,
+      '',
+      '| Engine | Takes checked | Face match: found / real | Pose match: found / real | Outfit check: found / real | Place check: found / real | Rejected |',
+      '| --- | --- | --- | --- | --- | --- | --- |',
     ];
     for (const engine of V3_ENGINES) {
       const mine = setEntries.filter(
@@ -2885,7 +3001,30 @@ const phases: Record<string, Phase> = {
         return `${ids.length} / ${ids.filter(id => review.decisions[id] === 'accepted').length}`;
       };
       lines.push(
-        `| ${engine} | ${mine.length} | ${tally('face-miss')} | ${tally('pose-miss')} | ${mine.filter(entry => looksWrong.has(entry.promptId)).length} |`
+        `| ${engine} | ${mine.length} | ${tally('face-miss')} | ${tally('pose-miss')} | ${tally('outfit-miss')} | ${tally('place-miss')} | ${mine.filter(entry => looksWrong.has(entry.promptId)).length} |`
+      );
+    }
+    // M7 T5: does the face check tell the two Casts apart? (v3faces; the still bar is 0.4.)
+    const facesFile = join(OUT, 'v3-faces.json');
+    if (existsSync(facesFile)) {
+      const faces = JSON.parse(readFileSync(facesFile, 'utf8')) as Array<{
+        own: number | null;
+        cross: number | null;
+      }>;
+      const spread = (values: number[]) => {
+        const sorted = [...values].sort((a, b) => a - b);
+        return sorted.length
+          ? `${sorted[0]!.toFixed(2)}–${sorted.at(-1)!.toFixed(2)} (median ${sorted[Math.floor(sorted.length / 2)]!.toFixed(2)})`
+          : '—';
+      };
+      const own = faces.flatMap(row => (row.own === null ? [] : [row.own]));
+      const cross = faces.flatMap(row => (row.cross === null ? [] : [row.cross]));
+      lines.push(
+        '',
+        '| Face match, against | Takes | Similarity | Under the still bar (0.4) |',
+        '| --- | --- | --- | --- |',
+        `| Its own Cast’s plate | ${own.length} | ${spread(own)} | ${own.filter(value => value < 0.4).length} (would be flagged: false alarms) |`,
+        `| The other Cast’s plate | ${cross.length} | ${spread(cross)} | ${cross.filter(value => value < 0.4).length} (would be flagged: caught) |`
       );
     }
     writeFileSync(join(OUT, 'v3-table.md'), `${lines.join('\n')}\n`);
@@ -2899,7 +3038,52 @@ const phases: Record<string, Phase> = {
             label,
           })),
           looksWrong: [...looksWrong].sort(),
+          ...(review.approved ? { approved: [...review.approved].sort() } : {}),
+          ...(review.wrongBecause
+            ? {
+                wrongBecause: Object.fromEntries(
+                  Object.entries(wrongBecause)
+                    .filter(([id, reasons]) => looksWrong.has(id) && reasons.length)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                ),
+              }
+            : {}),
         },
+        null,
+        2
+      )}\n`
+    );
+    // The set itself (ids, engines, scenes and each take's check values; no pictures).
+    writeFileSync(
+      join(OUT, 'v3-set.json'),
+      `${JSON.stringify(
+        takes.map(take => {
+          const checks = byPrompt.get(take.promptId)?.playChecks;
+          const reviewed = autoReviewed(checks);
+          return {
+            promptId: take.promptId,
+            cast: take.castId,
+            scene: take.scene,
+            role: take.role,
+            ...(take.changed !== undefined ? { changed: take.changed } : {}),
+            engine: take.engine,
+            outfit: take.outfit,
+            checked: Boolean(checks && Object.keys(checks).length),
+            ...(typeof checks?.pose === 'number'
+              ? { pose: checks.pose, poseMiss: checks.poseMiss === true }
+              : {}),
+            ...(typeof checks?.face === 'number'
+              ? { face: checks.face, faceMiss: checks.faceMiss === true }
+              : {}),
+            ...(reviewed.length
+              ? {
+                  autoReview: Object.fromEntries(
+                    reviewed.map(key => [key, checks?.[key as 'outfitMiss'] ?? ''])
+                  ),
+                }
+              : {}),
+          };
+        }),
         null,
         2
       )}\n`
