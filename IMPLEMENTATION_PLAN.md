@@ -1882,3 +1882,97 @@ multi-cue subtitles, trash / undo, accessibility of the production pages and pho
 
 **T1**, then **T2**: the gate protects everything after it, and T2 makes existing checks visible
 without new GPU cost.
+
+# Part 10 — M8 plan: places and story state (2026-10-28)
+
+From the feature-gap audit (2026-10-27, area 1) and M7's measurements. A recurring place is a
+word typed per shot, so the engine draws a new café every time (V3 and T5: both café shots and
+both library shots were different rooms); and a story's state — what she carries, a bandaged
+hand, which day it is — has nowhere to live, so the next shot can't keep it.
+
+## 10.1 What exists (audited 2026-10-28)
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| Home and workplace per Cast: a fixed design (shared look + each room's pieces), own words, or off | `cast/places.ts` (`withCastPlace`, `resolveCastPlace`), `CastPlaces` in `character/os.ts` | verified (live 2026-10-09: one apartment throughout) |
+| A room photo per Cast room, sent as Image 3 in place of the pose guide | `castPlacePhotoFor`, `withPlacePhotoInPrompt`, `useDayPlannerToolOrchestrationCore.ts` | verified (live 2026-10-16, Edit 2511 and Rapid AIO) |
+| A script place maps to home / work / elsewhere | `placeMap` (`day/scene-scripts.ts`), `sceneLocationOf` (`day/script-shots.ts`) | verified; "elsewhere" is a word |
+| A slot's place | `DaySlot.location` (free text) | a word per shot |
+| Per-shot state: people, look, outfit, place, time, props named in the beat | `film/shot-state.ts` (C3) | derived only; nothing editable |
+| Cross-shot rules | `film/continuity-rules.ts` (outfit jump, look mismatch, plate drift) | verified (outfit jump exact on V3 and T5) |
+| Synced record lists | e.g. `comfy-continuity-decisions-v1` via `app/studio-extras.ts` | the pattern to follow |
+
+Rules kept from M2: state stays derived where it already is (one source of truth); new fields
+add to it. Records sync and back up like the other studio extras; storage budgets apply
+(`docs/performance/storage-budgets.md`). Home and workplace stay as they are (no migration of
+`places`): a location record is for everywhere else, and can say it is her home or office.
+
+## 10.2 Tasks (ordered)
+
+**T1 — Location records.** · M
+- A record per place: name, interior / exterior, its fixed look in words (as a home design: what
+  every shot of it shares), the script place names it answers to, an optional photo (a ComfyUI
+  input file), created / updated.
+- Kept as a studio extra (synced per record, newest wins, deletions kept), in backup / restore.
+- A Locations list to create, rename, edit and delete; delete refused while a Scene uses it.
+- Acceptance: unit tests for normalise, merge, in-use; a record survives reload, sync and backup /
+  restore; e2e create → edit → refused delete.
+- Status 2026-10-28: `location/records.ts` (`LocationRecord`: name, inside / outdoors, look,
+  aliases as place keys, optional photo; `saveLocation`, `deleteLocation` refused while a Scene
+  is set there, `locationForPlace`), kept under `castcut-locations-v1`, synced in studio-extras
+  as `locations` (a record list: per record, newest wins, deletions kept) and carried by backup /
+  restore. `DaySlot.locationId` (kept by `normalizeDaySlots`; T2 sets it). The Scene page's
+  **Locations** section lists, adds, edits on blur and deletes after asking — every Cast's Scenes
+  count for the refusal. Unit tests (records, the slot field, the backup round trip) and an e2e
+  (made, described, kept after a reload, refused while a Scene uses it, an unused one deleted);
+  the e2e fails with the slot field dropped. Desk only for now (phone parity is M10's).
+
+**T2 — Scenes and script places use a location.** · M
+- A Scene's slot names a location (`locationId`; the words stay as they are for older Scenes).
+- The still prompt's Setting carries the location's look (as `withCastPlace` does for a room of
+  her home); its photo, when it has one, goes as Image 3 through the existing room-photo path.
+- A script place resolves to a location on import and reimport (the place map gains it).
+- Acceptance: one location picked for two Scenes, both prompts carry its words (and photo); a
+  reimport keeps the mapping; unit tests on the prompt and the map.
+
+**T3 — A location's picture.** · S + _GPU_
+- "Make its picture": one render of the empty place from its words (no people), kept as the
+  location's photo when the user keeps it; or the user's own photo.
+- Acceptance: a kept picture is used by T2's path; a real render on one engine.
+
+**T4 — Checks that know the location.** · M
+- Auto-review's place check asks about the location (its name and look), and its finding names it.
+- A deterministic finding: a script place used by two or more shots with no location record
+  ("the café in 6A and 7A is drawn fresh each time — make it a location").
+- Acceptance: unit tests per rule; findings decided and counted like the rest (C2, C5).
+
+**T5 — Editable scene state.** · L
+- Per Scene: props carried or used, physical changes (an injury, wet hair), story day and time,
+  the beat's emotion, notes — edited on the Scene page, added to its derived state (C3), shown on
+  Cut's shot card.
+- Props and changes reach the still prompt, as the Cast's props already do.
+- Story order is its own (day / time), not the edit order.
+- Acceptance: state survives reload, sync and backup / restore; unit tests on the merge with the
+  derived state; e2e edit → reload → shown in Cut.
+
+**T6 — State that carries over.** · M
+- A state item can carry over ("until stated otherwise"): later shots in story order inherit it.
+- Cut rule: a later shot at the same story time without a carried item gets a finding
+  ("6A carries the red umbrella; 7A, a minute later, doesn't").
+- Acceptance: the audit's example as a test; findings decided and counted like the rest.
+
+**T7 — Measure.** · M + _GPU_ + _you_
+- V3's pairs again with location records (with and without a picture): is it the same room?
+  Plus carried state across a pair.
+- Acceptance: `docs/consistency-report.md` gains the place numbers before any of it becomes a gate.
+
+## 10.3 Definition of done
+
+- A location created once is used by every Scene set there, in the prompt and in the check.
+- A shot can name its required references and scene-state constraints (ROADMAP §5 acceptance).
+- CI green on every M8 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
+- Not in scope: storyboard and animatic (M9); props on Day slots outside Scenes; a style profile.
+
+## 10.4 Recommended first task
+
+**T1**: the record everything else names. Then **T2**, which is where the drift stops.

@@ -399,6 +399,8 @@ export type DaySlot = {
    * Keep, Use on Day) leaves it and says so, instead of clearing it (day-outfit-scope.ts).
    */
   outfitByHand?: boolean;
+  /** The location record it is set in (location/records.ts, M8); its words stay in `location`. */
+  locationId?: string;
   /** What the lead says in this slot's clip — set, Animate makes a talking clip (LTX-2.5). */
   line?: string;
   /** The talking clip keeps the whole still instead of starting chest-up (talking-clip-framing). */
@@ -882,6 +884,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,
+      locationId: readText(slot.locationId, 80) || undefined,
       engine: normalizeDaySlotEngine(slot.engine),
       outfitByHand: slot.outfitByHand === true || undefined,
       eventMove: readEditableText(slot.eventMove, 160) || undefined,

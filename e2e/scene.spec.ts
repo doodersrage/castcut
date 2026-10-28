@@ -425,6 +425,66 @@ test('an edit made just before a reload is kept', async ({ page }) => {
   await expect(takes).toHaveCount(1);
 });
 
+// M8 T1: a location is a record of its own — made once, described, kept after a reload — and it
+// can't be deleted while a Scene is set there (an unused one can, after asking).
+test('a location is made, described, kept after a reload, and not deleted while a Scene uses it', async ({
+  page,
+}) => {
+  const seed = (scene: ReturnType<typeof sceneWithTakes>) =>
+    seedSettingsCacheOnNextLoad(
+      page,
+      { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene } },
+      { once: true }
+    );
+  await seed(sceneWithTakes());
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const section = page.getByTestId('locations-section');
+  await expect(section.getByTestId('locations-empty')).toBeVisible({ timeout: 60_000 });
+
+  await section.getByTestId('location-new-name').fill('Corner café');
+  await section.getByTestId('location-add').click();
+  const rows = section.locator('[data-testid^="location-loc-"]');
+  await expect(rows).toHaveCount(1);
+  const cafe = rows.first();
+  await expect(cafe.getByTestId('location-name')).toHaveValue('Corner café');
+  await expect(cafe.getByTestId('location-aliases')).toHaveValue('corner cafe');
+  await cafe.getByTestId('location-look').fill('green tiled counter, brass espresso machine');
+  await cafe.getByTestId('location-aliases').fill('cafe, the corner cafe');
+  await cafe.getByTestId('location-aliases').blur();
+  const id = (await cafe.getAttribute('data-testid'))!.slice('location-'.length);
+
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(cafe.getByTestId('location-look')).toHaveValue(
+    'green tiled counter, brass espresso machine',
+    { timeout: 60_000 }
+  );
+  await expect(cafe.getByTestId('location-aliases')).toHaveValue('cafe, corner cafe');
+
+  // The Scene is set there now (its shot, as the engine holds it): Delete says so and keeps it.
+  const setThere = sceneWithTakes();
+  const shot = { ...setThere.slots[0]!, locationId: id };
+  setThere.scenes[0] = { ...setThere.scenes[0]!, slot: shot };
+  setThere.slots = [shot];
+  await seed(setThere);
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(rows).toHaveCount(1, { timeout: 60_000 });
+  await cafe.getByTestId('location-delete').click();
+  await expect(cafe.getByTestId('location-delete-refused')).toContainText('Kitchen is set here');
+  await expect(rows).toHaveCount(1);
+
+  // One no Scene uses goes, after asking.
+  await section.getByTestId('location-new-name').fill('Hotel bar');
+  await section.getByTestId('location-add').click();
+  await expect(rows).toHaveCount(2);
+  await rows.nth(1).getByTestId('location-delete').click();
+  await page.getByRole('button', { name: 'Delete location' }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByTestId('location-name')).toHaveValue('Corner café');
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

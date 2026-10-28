@@ -21,6 +21,7 @@ import {
   replaceFindingDecisions,
   type FindingDecision,
 } from '@/lib/checks/finding-decisions';
+import { loadLocations, replaceLocations, type LocationRecord } from '@/lib/location/records';
 import {
   readBrowserValue,
   withSuppressedDurableSyncPush,
@@ -249,6 +250,8 @@ export type StudioExtrasPayload = {
   myPoses?: MyPose[];
   /** Your decisions about continuity findings (checks/finding-decisions.ts). */
   continuityDecisions?: FindingDecision[];
+  /** Location records (location/records.ts, M8 T1). */
+  locations?: LocationRecord[];
 };
 
 export function collectStudioExtras(): StudioExtrasPayload {
@@ -321,6 +324,7 @@ export function collectStudioExtras(): StudioExtrasPayload {
     savedFootwear: loadSavedFootwear(),
     myPoses: loadMyPoses(),
     continuityDecisions: loadFindingDecisions(),
+    locations: loadLocations(),
     ...Object.assign({}, ...[...studioExtrasSections.values()].map(section => section.collect())),
   };
 }
@@ -471,6 +475,9 @@ export function applyStudioExtras(payload: StudioExtrasPayload | null | undefine
     }
     if (payload.continuityDecisions) {
       replaceFindingDecisions(payload.continuityDecisions);
+    }
+    if (payload.locations) {
+      replaceLocations(payload.locations);
     }
     if (payload.queueParams) {
       saveQueueParamsSettings(payload.queueParams);
@@ -679,6 +686,8 @@ export function mergeServerRecordListsIntoLocal(server: StudioExtrasPayload): bo
         replaceMyPoses(value);
       } else if (field === 'continuityDecisions') {
         replaceFindingDecisions(value);
+      } else if (field === 'locations') {
+        replaceLocations(value);
       } else if (field === 'comfyWorkflowFiles' && Array.isArray(value)) {
         saveComfyWorkflowFiles(value as ReturnType<typeof loadComfyWorkflowFiles>, {
           fromSync: true,

@@ -12,6 +12,7 @@ import {
   type StudioBackupV5,
 } from './studio-backup';
 import type { SettingsCache } from '../settings/cache';
+import { loadLocations, saveLocation } from '../location/records';
 
 function emptySettings(): SettingsCache {
   return { shared: {}, tools: {} } as SettingsCache;
@@ -110,6 +111,30 @@ describe('studio backup import', () => {
       };
       importStudioBackup(backup);
       assert.equal(loadGalleryEloStore().g1?.winnerId, 'winner-a');
+    });
+  });
+
+  it('carries location records to a new machine (M8 T1)', async () => {
+    let file = '';
+    await withMockLocalStorage(() => {
+      resetBrowserStorageCache();
+      saveLocation({ id: 'loc-cafe', name: 'Corner café', look: 'green tiled counter' });
+      file = JSON.stringify(exportStudioBackup());
+    });
+    await withMockLocalStorage(() => {
+      resetBrowserStorageCache();
+      assert.deepEqual(loadLocations(), []);
+      const parsed = parseStudioBackupFile(file);
+      assert.ok(parsed?.version === 5 && parsed.extras?.locations, 'in the file');
+      // Only the locations from its extras (the rest — workspace mode — wants a document).
+      importStudioBackup({
+        ...parsed,
+        extras: { updatedAt: parsed.extras.updatedAt, locations: parsed.extras.locations },
+      });
+      assert.deepEqual(
+        loadLocations().map(location => [location.id, location.name, location.look]),
+        [['loc-cafe', 'Corner café', 'green tiled counter']]
+      );
     });
   });
 });

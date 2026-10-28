@@ -119,6 +119,8 @@ export const RECORD_LISTS: readonly RecordListSpec[] = [
   { field: 'comfyWorkflowFiles', idOf: e => str(e.id) },
   // Your decisions about continuity findings (checks/finding-decisions.ts), by finding id.
   { field: 'continuityDecisions', idOf: e => str(e.id) },
+  // Location records (location/records.ts, M8 T1).
+  { field: 'locations', idOf: e => str(e.id) },
   // The Director's saved directions: one name per Cast member.
   {
     field: 'directorDirections',

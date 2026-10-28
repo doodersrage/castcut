@@ -195,6 +195,15 @@ describe('scenes: stored and read back', () => {
     assert.equal(night.label, 'Night');
   });
 
+  it('a shot keeps the location record it is set in (M8 T1)', () => {
+    const slot = sceneSlotOf([
+      { id: 'morning', label: 'Morning', location: 'corner café', locationId: ' loc-cafe ' } as DaySlot,
+    ]);
+    assert.equal(slot.locationId, 'loc-cafe');
+    assert.equal(slot.location, 'corner café', 'its words stay');
+    assert.equal(sceneSlotOf([{ id: 'morning', label: 'Morning', locationId: '' } as DaySlot]).locationId, undefined);
+  });
+
   it('lists a Cast\'s scenes newest first', () => {
     const scenes = [
       kitchen(),

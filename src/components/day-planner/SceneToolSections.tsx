@@ -1,6 +1,7 @@
 'use client';
 
 import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
+import LocationsSection from '@/components/location/LocationsSection';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
@@ -572,6 +573,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
             prepareRun={page.prepareRun}
           />
         ) : null}
+        <LocationsSection scenes={page.scenes} />
         {page.run ? (
           <SceneRunPanel
             run={page.run}
