@@ -229,3 +229,33 @@ calling it an engine limit.
 Good / Reject and why) and [`consistency/t5-faces.json`](consistency/t5-faces.json) (both face
 scores per take). As V3's re-run above, with `SCENE_AUTO_REVIEW=1` on each `v3run`, the Cast files
 of two faces in `SCENE_CASTS`, and `v3faces` before `v3report`.
+
+## M8 T7: shots set in a location (2026-10-28)
+
+Is a pair of shots at one place the same room once that place is a location record (M8 T1–T2)?
+On the T5 install: each pair's place made a location (a fixed look in words — `v3places`), the
+pairs rendered again on Qwen-Image 2.1 with Auto-review on, and each pair's two shots judged side
+by side (**Same room** / **Different room**), beside the same pairs from T5 with no location.
+
+| The pair's place given as        | Pairs judged | Same room |
+| -------------------------------- | -----------: | --------: |
+| Words per shot (T5, no location) |            5 |         5 |
+| A location: its words            |            5 |         5 |
+
+**No measurable difference on this set**: every pair was judged the same room, with or without
+the location. V3's notes on its own pairs — on the same engine — said the café, library and gym
+shots looked like different rooms; this set's were judged alike even without a location. What
+changed between the two sets isn't known from these labels (the plates, the dressed plate, how
+strictly "same room" was read). A set with room to show a gain — the pair on two engines, or
+days apart — is the next measure.
+
+Not measured, and why:
+
+- **A location's picture.** It never reached the engine: on Qwen-Image 2.1 with a dressed plate the
+  plate is the only reference, and the room photo goes only beside an Image 2 (the same holds for a
+  Cast's own room photo). Lena's pairs, meant for this, ran on words only and are counted there.
+- **Carried state** (T6) was not rendered: the rule is deterministic (unit- and e2e-tested); whether
+  the engine draws the umbrella is a prompt question for another set.
+
+Data: the labels are in the T5 install's review file (pairs only, no pictures):
+`cast:<number>:<variant>` → same / different.

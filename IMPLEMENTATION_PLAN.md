@@ -2019,6 +2019,13 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - V3's pairs again with location records (with and without a picture): is it the same room?
   Plus carried state across a pair.
 - Acceptance: `docs/consistency-report.md` gains the place numbers before any of it becomes a gate.
+- Done 2026-10-28 (`docs/consistency-report.md`, "M8 T7"): the pairs' places made location
+  records on the T5 install and rendered again (Qwen-Image 2.1, Auto-review on); judged side by
+  side: same room 5 of 5 with a location, and 5 of 5 without (T5's pairs) — no measurable
+  difference on this set, which had no room for one. Not measured: a location's picture (never
+  sent on Qwen-Image 2.1 with a dressed plate — the room path needs an Image 2, as for a Cast's
+  own room photo) and carried state in the picture. Nothing became a gate. Tooling `d9d7db8e`
+  (`v3places`, pairs-only runs, the Same place? review).
 
 ## 10.3 Definition of done
 
@@ -2026,6 +2033,10 @@ add to it. Records sync and back up like the other studio extras; storage budget
 - A shot can name its required references and scene-state constraints (ROADMAP §5 acceptance).
 - CI green on every M8 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
 - Not in scope: storyboard and animatic (M9); props on Day slots outside Scenes; a style profile.
+- Status 2026-10-28: met — a location is used by every Scene set there, in the prompt (T2) and the
+  place check (T4); a shot names its state and what carries over, and Cut flags a drop (T5–T6);
+  CI green on each M8 commit. Left open: "Make its picture" (T3), a location's picture on Qwen-Image
+  2.1 with a dressed plate (T7), and a set that can show the location's gain (T7).
 
 ## 10.4 Recommended first task
 
