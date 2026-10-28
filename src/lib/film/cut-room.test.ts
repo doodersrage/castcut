@@ -61,6 +61,7 @@ describe('Cut room', () => {
 
   it('splits keys back (a Story key keeps its @); older unprefixed keys are Day', () => {
     assert.deepEqual(splitCutRoomKey('story:b1@5'), { source: 'story', key: 'b1@5' });
+    assert.deepEqual(splitCutRoomKey('script:int-cafe-day.2'), { source: 'script', key: 'int-cafe-day.2' });
     assert.deepEqual(splitCutRoomKey('day:morning#face'), { source: 'day', key: 'morning#face' });
     assert.deepEqual(splitCutRoomKey('night'), { source: 'day', key: 'night' });
     assert.equal(cutRoomRecipeSource(['day', 'story']), 'cast');

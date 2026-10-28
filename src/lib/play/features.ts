@@ -9,6 +9,8 @@ import { registerCastChangeScrubber, loadSettingsCache } from '../settings/cache
 import { registerJobCompletedHook } from '../gallery/comfyui-gallery';
 import { registerAppFlag } from '../app/flags';
 import { registerStudioExtrasSection } from '../app/studio-extras';
+import { registerGlobalSearchSource } from '../search/global-search';
+import { searchProduction } from './production-search';
 import { PLAY_STUDIO_EXTRAS_SECTION } from './studio-extras';
 import { loadPlayCampaignState, resolvePlayLoopNavHref } from './campaign';
 import { hasCompletedFirstFilm, loadPlayMetrics, resolveNextPlayAction } from './metrics';
@@ -52,6 +54,8 @@ registerCastChangeScrubber(scrubPlayToolCachesOnCastChange);
 // Command palette: New Cast member, Open Story / Outfit / Day, Cut the film (pages add more).
 registerCommandActions(PLAY_APP_COMMAND_ACTIONS);
 registerStudioExtrasSection('play', PLAY_STUDIO_EXTRAS_SECTION);
+// Global search finds the production's records by name (M9 T1).
+registerGlobalSearchSource('production', searchProduction);
 // Cast records: Look packs are tidied with the rest of the record.
 registerCharacterNormalizer(normalizeCharacterLookPacks);
 // A save from a screen that doesn't know them keeps the film cut and Look packs.

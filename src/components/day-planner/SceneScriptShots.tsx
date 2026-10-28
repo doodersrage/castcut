@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import type { ContinuityFinding } from '@/lib/checks/findings';
@@ -8,12 +9,16 @@ import type { SavedScene } from '@/lib/day/scenes';
 import {
   addedShot,
   draftShots,
+  mergedShot,
+  movedShot,
+  splitShot,
   SHOT_FRAMING_LABELS,
   SHOT_PURPOSE_LABELS,
   SHOT_PURPOSES,
   SHOTS_PER_SCENE,
   shotLabel,
   type PlannedShot,
+  type ShotPriority,
   type ShotPurpose,
 } from '@/lib/day/script-shots';
 import type { CameraShot } from '@/lib/pose/camera-shot';
@@ -39,7 +44,8 @@ function shotStatus(shot: PlannedShot, scenes: readonly SavedScene[]) {
 
 /**
  * A script scene's shot list (M3 S4): draft it, edit each shot (purpose, framing, what happens,
- * length), add or remove shots, and Make it a Scene — or open the Scene it already is.
+ * length, priority), move, split, merge, add or remove shots (M9 T2: ids stay put, so a reimport
+ * and the Scenes made from them still match), and Make it a Scene — or open the Scene it is.
  */
 export default function SceneScriptShots({
   scene,
@@ -53,11 +59,14 @@ export default function SceneScriptShots({
   findings = [],
   onDecide,
   orphans = false,
+  scriptShots,
 }: {
   scene: ScriptScene;
   sceneIndex: number;
   /** This script scene's shots. */
   shots: readonly PlannedShot[];
+  /** Every shot of the script (a split's new id is one none of them has). */
+  scriptShots?: readonly PlannedShot[];
   /** The Cast's Scenes, to show what each shot became. */
   scenes: readonly SavedScene[];
   onShots: (next: PlannedShot[]) => void;
@@ -87,6 +96,15 @@ export default function SceneScriptShots({
     onShots(shots.filter(entry => entry.id !== shot.id));
   };
   const seconds = shots.reduce((sum, shot) => sum + shot.seconds, 0);
+  const [refused, setRefused] = useState<{ id: string; why: string } | null>(null);
+  const merge = (id: string) => {
+    const result = mergedShot(shots, id);
+    if ('refused' in result) setRefused({ id, why: result.refused });
+    else {
+      setRefused(null);
+      onShots(result.shots);
+    }
+  };
 
   if (orphans) {
     // Read-only: their scene is gone from the script, so they can only be opened or let go.
@@ -203,6 +221,8 @@ export default function SceneScriptShots({
                   </span>
                 ) : (
                   <input
+                    // Remounted when the beat changes elsewhere (a split, a merge): it is uncontrolled.
+                    key={`${shot.id}:${shot.action ?? ''}`}
                     aria-label={`Shot ${shotLabel(number, index)}: what happens`}
                     className={`${FIELD} min-w-[10rem] flex-1`}
                     placeholder={
@@ -259,6 +279,61 @@ export default function SceneScriptShots({
                     Make it a Scene
                   </Button>
                 )}
+                <select
+                  aria-label={`Shot ${shotLabel(number, index)} priority`}
+                  className={FIELD}
+                  data-testid={`script-shot-priority-${shot.id}`}
+                  value={shot.priority ?? ''}
+                  onChange={event => {
+                    const value = event.target.value as ShotPriority | '';
+                    change(shot.id, { priority: value || undefined });
+                  }}
+                >
+                  <option value="">Priority —</option>
+                  <option value="must">Must have</option>
+                  <option value="nice">Nice to have</option>
+                </select>
+                <span className="flex items-center gap-0.5" role="group" aria-label="Arrange">
+                  <Button
+                    variant="icon"
+                    aria-label={`Move shot ${shotLabel(number, index)} up`}
+                    data-testid={`script-shot-up-${shot.id}`}
+                    disabled={index === 0}
+                    onClick={() => onShots(movedShot(shots, shot.id, -1))}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    variant="icon"
+                    aria-label={`Move shot ${shotLabel(number, index)} down`}
+                    data-testid={`script-shot-down-${shot.id}`}
+                    disabled={index === shots.length - 1}
+                    onClick={() => onShots(movedShot(shots, shot.id, 1))}
+                  >
+                    ↓
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    title="Split it in two (the beat or the line shared at a sentence break)"
+                    data-testid={`script-shot-split-${shot.id}`}
+                    disabled={shots.length >= SHOTS_PER_SCENE}
+                    onClick={() => onShots(splitShot(scriptShots ?? shots, shots, shot.id))}
+                  >
+                    Split
+                  </Button>
+                  {index > 0 ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Merge it into the shot before"
+                      data-testid={`script-shot-merge-${shot.id}`}
+                      onClick={() => merge(shot.id)}
+                    >
+                      Merge up
+                    </Button>
+                  ) : null}
+                </span>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -268,6 +343,15 @@ export default function SceneScriptShots({
                 >
                   Remove
                 </Button>
+                {refused?.id === shot.id ? (
+                  <p
+                    className="type-caption w-full text-[var(--tint-warning-text,var(--accent-text))]"
+                    role="status"
+                    data-testid={`script-shot-refused-${shot.id}`}
+                  >
+                    Not merged: {refused.why}
+                  </p>
+                ) : null}
               </li>
             );
           })}

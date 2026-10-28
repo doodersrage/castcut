@@ -720,6 +720,144 @@ test('a location\'s picture is made from its words and kept', async ({ page }) =
   await expect(cafe.getByTestId('location-picture-again')).toBeEnabled();
 });
 
+// M9 T1: global search finds a Scene by name and opens it.
+test('a Scene is found by name in the command palette and opens', async ({ page }) => {
+  const scene = sceneWithTakes();
+  scene.scenes[0] = { ...scene.scenes[0]!, name: 'Rooftop proposal' };
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { ...scene, activeSceneId: undefined } },
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Control+k');
+  const palette = page.getByRole('dialog', { name: 'Command palette' });
+  await expect(palette).toBeVisible({ timeout: 30_000 });
+  await palette.locator('input').fill('Rooftop proposal');
+  const result = palette.getByRole('button', { name: /Rooftop proposal/ }).first();
+  await expect(result).toBeVisible({ timeout: 30_000 });
+  await result.click();
+  await expect(page).toHaveURL(/\/scene\?character=e2e-scene&scene=scene-e2e/, { timeout: 60_000 });
+  await expect(page.getByTestId('scene-name')).toHaveValue('Rooftop proposal', { timeout: 60_000 });
+});
+
+// M9 T2: a nearly-right shot list is fixed in place — split, moved, merged — its ids kept.
+test('a shot list is split, reordered and merged in place', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('script-import').click();
+  await page
+    .getByTestId('script-import-text')
+    .fill('INT. CAFE - DAY\n\nNora opens the door. She looks around. She sits by the window.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toBeVisible();
+  const scene = page.getByTestId('script-scene-int-cafe-day');
+  if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
+  await page.getByTestId('script-shots-draft-int-cafe-day').click();
+  const rows = page.locator('[data-testid^="script-shot-int-cafe-day~"]');
+  await expect(rows).toHaveCount(1);
+  const first = rows.first();
+  const id = (await first.getAttribute('data-testid'))!.slice('script-shot-'.length);
+  await expect(first.getByRole('textbox')).toHaveValue(
+    'Nora opens the door. She looks around. She sits by the window.'
+  );
+
+  // Split: the first keeps its id and the first half; a new shot takes the rest.
+  await page.getByTestId(`script-shot-split-${id}`).click();
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0)).toHaveAttribute('data-testid', `script-shot-${id}`);
+  await expect(rows.nth(0).getByRole('textbox')).toHaveValue('Nora opens the door. She looks around.');
+  await expect(rows.nth(1).getByRole('textbox')).toHaveValue('She sits by the window.');
+
+  // Move it down, then merge the other back into it.
+  await page.getByTestId(`script-shot-down-${id}`).click();
+  await expect(rows.nth(1)).toHaveAttribute('data-testid', `script-shot-${id}`);
+  await page.getByTestId(`script-shot-merge-${id}`).click();
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().getByRole('textbox')).toHaveValue(
+    'She sits by the window. Nora opens the door. She looks around.'
+  );
+  await page.getByTestId(`script-shot-priority-${(await rows.first().getAttribute('data-testid'))!.slice('script-shot-'.length)}`).selectOption('must');
+});
+
+// M9 T3: a script's planned shots as a storyboard — the kept take where there is one, a card where
+// there isn't, and a card that makes its Scene.
+test('a script is seen as a storyboard: kept takes and cards, a card makes its Scene', async ({ page }) => {
+  const scene = sceneWithTakes();
+  scene.scenes[0] = { ...scene.scenes[0]!, keptTakeId: 'take-1' };
+  const planShot = (n: number, extra: Record<string, unknown>) => ({
+    id: `int-kitchen-morning~${n}`,
+    sceneId: 'int-kitchen-morning',
+    purpose: 'action',
+    framing: 'waist',
+    who: [],
+    seconds: 3,
+    ...extra,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...scene,
+        scripts: [
+          {
+            id: 'script-board',
+            castId: CAST,
+            name: 'Board test',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee. She sits down.\n',
+            shots: [
+              planShot(1, { action: 'She pours coffee.', madeSceneId: 'scene-e2e' }),
+              planShot(2, { action: 'She sits down.' }),
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}&script=script-board`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('script-board-toggle').click();
+  const board = page.getByTestId('storyboard');
+  await expect(board).toBeVisible();
+  const kept = board.getByTestId('storyboard-card-int-kitchen-morning~1');
+  await expect(kept).toHaveAttribute('data-picture', 'kept');
+  await expect(kept.getByRole('img', { name: 'Shot 1A' })).toHaveAttribute('src', '/icon.svg?take=1');
+  const planned = board.getByTestId('storyboard-card-int-kitchen-morning~2');
+  await expect(planned).toHaveAttribute('data-picture', 'none');
+  await expect(planned).toContainText('She sits down.');
+  await expect(planned).toContainText('Planned');
+  await planned.click();
+  await expect(planned).toContainText('Scene made', { timeout: 30_000 });
+  await shot(page, 'scene-storyboard');
+
+  // M9 T4: the board as an animatic in Cut — the kept take, then a timed card.
+  await page.getByTestId('script-animatic').click();
+  await expect(page).toHaveURL(/\/cut\?from=script&script=script-board/, { timeout: 60_000 });
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-source-script')).toHaveAttribute('aria-checked', 'true', {
+    timeout: 60_000,
+  });
+  await expect(page.getByTestId('cut-source-scenes')).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByTestId('cut-animatic')).toBeVisible();
+  const list = page.getByTestId('cut-shot-list');
+  await expect(list.locator('[data-testid^="cut-shot-script:"]')).toHaveCount(2);
+  await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.1')).toBeVisible();
+  await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.2')).toBeVisible();
+  await shot(page, 'cut-animatic');
+});
+
 // M3 S2: a screenplay is imported, read scene by scene, kept with the Cast, and deleted.
 test('a script is imported, read scene by scene, kept after a reload, and deleted', async ({
   page,

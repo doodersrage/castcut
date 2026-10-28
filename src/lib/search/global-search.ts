@@ -11,11 +11,37 @@ export type GlobalSearchResult = {
   label: string;
   subtitle: string;
   href: string;
-  group: 'History' | 'Gallery' | 'Presets' | 'Adult presets';
+  group:
+    | 'History'
+    | 'Gallery'
+    | 'Presets'
+    | 'Adult presets'
+    // A feature's own records (registerGlobalSearchSource): the production's (M9 T1).
+    | 'Cast'
+    | 'Scenes'
+    | 'Scripts'
+    | 'Locations'
+    | 'Cut versions';
   score: number;
 };
 
-function matchScore(text: string, query: string): number {
+/**
+ * A feature's records in global search (docs/architecture-boundaries.md: the shared search names
+ * no feature; Play registers its Cast, Scenes, scripts… from lib/play/features.ts).
+ */
+export type GlobalSearchSource = (
+  query: string,
+  score: (text: string, query: string) => number
+) => GlobalSearchResult[];
+
+const globalSearchSources = new Map<string, GlobalSearchSource>();
+
+export function registerGlobalSearchSource(id: string, source: GlobalSearchSource): void {
+  globalSearchSources.set(id, source);
+}
+
+/** How well `text` matches `query`: 100 the same, 80 starts with it, 50 contains it, 0 not. */
+export function matchScore(text: string, query: string): number {
   const lower = text.toLowerCase();
   const q = query.toLowerCase();
   if (lower === q) {
@@ -108,6 +134,14 @@ export function searchGlobal(query: string, limit = 12): GlobalSearchResult[] {
   }
 
   results.push(...searchPluginPresetCache(q, limit));
+
+  for (const source of globalSearchSources.values()) {
+    try {
+      results.push(...source(q, matchScore));
+    } catch {
+      // a feature's own search failing leaves the rest
+    }
+  }
 
   return results.sort((a, b) => b.score - a.score).slice(0, limit);
 }

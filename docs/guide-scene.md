@@ -11,14 +11,15 @@ keeper stand-in plate, the Camera row — applies to a scene too.
 
 ## The page
 
-| Part             | What's in it                                                                                                                                                                            |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scenes**       | The Cast's saved scenes; **New scene** starts one                                                                                                                                       |
-| **The shot**     | Name · Time of day · Mood, People, Weather, Quality · the slot editor (Setting, Beat, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
-| **Takes**        | **Queue a take** / **Another take** · the take on the card (with its ⋯ tools) · every take, ★ to keep one · **Send to Day slot**                                                        |
-| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director) · **Cut →**                                                                                         |
-| **Script**       | A screenplay for the Cast: import it, see how it reads, who's who and where, each scene's shots, **Make it a Scene**, coverage, a new version (see [Script](#script))                     |
-| **Run**          | A prepared run of takes over a script's Scenes: its list and limits, **Start** / **Pause** / **Cancel** (see [Runs](#runs))                                                                |
+| Part             | What's in it                                                                                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scenes**       | The Cast's saved scenes; **New scene** starts one                                                                                                                                                                      |
+| **The shot**     | Name · Time of day · Mood, People, Weather, Quality · the slot editor (Setting, **Location**, Beat, **Story state**, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
+| **Takes**        | **Queue a take** / **Another take** · the take on the card (with its ⋯ tools) · every take, ★ to keep one · **Send to Day slot**                                                                                       |
+| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director) · **Cut →**                                                                                                                        |
+| **Script**       | A screenplay for the Cast: import it, see how it reads, who's who and where, each scene's shots, **Make it a Scene**, coverage, a new version (see [Script](#script))                                                  |
+| **Run**          | A prepared run of takes over a script's Scenes: its list and limits, **Start** / **Pause** / **Cancel** (see [Runs](#runs))                                                                                            |
+| **Locations**    | Places the film goes back to, each described once (see [Locations](#locations))                                                                                                                                        |
 
 ## On a phone
 
@@ -47,11 +48,42 @@ it move starts from it. **×** drops a take from the scene — it stays in the G
 take on the card (or the kept take under Make it move) opens it full size: its clip when it has
 one, playing, else the picture.
 
+**Good** and **Reject** judge a take without rendering it again. A rejected take leaves the strip
+(**Show n rejected** brings them back, **Restore** puts one back); the kept take can't be rejected.
+**Compare takes** shows two side by side with how each was made.
+
 The **i** on a take says how it was made: the engine and model, the seed, the prompt, the
 references and the time it took — read from its Gallery entry, with **Open in ComfyUI** when its
 graph is stored. **×** on the kept take asks first, and says what Cut loses with it (a shot that
 plays it, unless that shot is pinned — see [Film](guide-film.md#when-a-shot-gets-a-new-take)). Deleting a scene says the
 same.
+
+## Locations
+
+A place the film goes back to — the corner café, her sister's flat — described once, so every
+Scene set there shows the same room instead of a new one each time. The **Locations** section
+lists them for the whole film (not one Cast):
+
+- **Add location**, then its look in words: what every shot of it shares (walls, floor, windows,
+  the pieces that make it this place), inside or outdoors, and the script places that mean it.
+- **A picture** — a photo of the empty place, or **Make its picture** (rendered from its words on
+  Qwen-Image 2.1 Turbo, about 40 s; **Make another** renders it again). Shots set there are built
+  around it.
+- **Delete** asks first, and is refused while a Scene is set there (it names them).
+
+In the shot, **Location** sets the Scene there: its look goes into the still's prompt in place of
+her home's design, its picture as the room, and Auto-review's place check asks about it. A
+script's place whose name matches a location's name or script places is read as that location.
+Her home and workplace stay on the Cast page (Places).
+
+## Story state
+
+What a shot needs to keep from the story, set under the Beat: **She carries** (the red umbrella),
+**What has changed** (left hand bandaged, wet hair), **How she feels** and the **Story day**. It
+goes into the still's prompt after the beat and onto the shot's card in Cut. Mark an item
+**carries over** and Cut flags a later shot of the same Cast, on the same story day and time of
+day, that drops it. Carried things come through in the picture far more often than small changes
+on a full-body shot (see the [consistency report](consistency-report.md)).
 
 ## Make it move
 
@@ -76,10 +108,17 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   Cast** is a choice too. Nothing is created for you.
 - **Where** — each place shows how Castcut reads it (a kitchen as her home's kitchen, an office
   as her workplace) and can be set to her home, her workplace or somewhere else.
+- **Where** — or one of your [Locations](#locations).
 - **Shots** — under each scene: **Draft shots** proposes a list (an establishing wide, each line
   of dialogue, a reaction when an exchange ends, or the action when nobody speaks). Change each
-  shot's purpose, framing, what happens and length; **Add a shot**; **Remove** (it asks when the
-  shot already has a Scene, which stays).
+  shot's purpose, framing, what happens, length and priority (must have, nice to have); **↑ ↓**
+  to reorder; **Split** (the beat or line shared at a sentence break) and **Merge up** (refused
+  when both are Scenes, or two people speak); **Add a shot**; **Remove** (it asks when the shot
+  already has a Scene, which stays). A shot keeps its id through all of it and through a new
+  version of the script.
+- **Storyboard** — the script's planned shots as a board, scene by scene: each with its kept take,
+  else a take, else a card saying what it is. A card opens its Scene, or makes it. **Cut it as an
+  animatic →** opens Cut on the script (see below).
 - **Make it a Scene** — the shot becomes a Scene, opened: the place, the time of day, the framing
   on the camera row, the lead's line said on camera (anyone else's in the beat) and a confirmed
   partner. The shot shows what it became — _Scene made_, _n takes_, _Kept take_ — and **Open
@@ -129,7 +168,9 @@ partner work as on Day.
   the slot's still (the one it replaces stays as the previous take, **Keep the old take** brings it
   back).
 - **Cut** — **Scenes** is a source next to Day and Story: each scene's kept take, its clip when it
-  has one.
+  has one. **Script animatic** plays a script's planned shots in order before they're all
+  rendered: each its Scene's kept take, else a card, for the shot's planned length — the pacing
+  holds as takes come in. It is picked on its own (with Scenes each take would play twice).
 - **Queue** — a scene's takes and clips are listed as _Scene · its name_ (with **Open in Scene**),
   not as Day's, even after the take is dropped from the scene.
 

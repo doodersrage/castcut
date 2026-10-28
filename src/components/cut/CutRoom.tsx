@@ -283,14 +283,16 @@ export default function CutRoom() {
   ]);
   // Face match marks on Day shots (measured on Day; keys without the "day:" prefix there).
   const dayIdentity = useDayShotIdentity(vm.dayStills, vm.dayCast?.name);
-  const { mounted, pickOnly } = vm;
+  const { mounted, pickOnly, pickAnimatic } = vm;
   const arrived = useRef(false);
   useEffect(() => {
     if (!mounted || arrived.current) return;
     arrived.current = true;
-    const from = cutSourceFromParam(new URLSearchParams(window.location.search).get('from'));
-    if (from) pickOnly(from);
-  }, [mounted, pickOnly]);
+    const params = new URLSearchParams(window.location.search);
+    const from = cutSourceFromParam(params.get('from'));
+    if (from === 'script') pickAnimatic(params.get('script')?.trim() || undefined);
+    else if (from) pickOnly(from);
+  }, [mounted, pickAnimatic, pickOnly]);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
   // The preflight (M4 F6): what's checked now, before the encode (cheap: no hook needed).
   const preflightCues = filmSubtitleCues(subtitleRows);
@@ -486,6 +488,35 @@ export default function CutRoom() {
               );
             })}
           </div>
+          {vm.sources.includes('script') ? (
+            <div
+              className="mt-2 flex flex-wrap items-center gap-2 text-sm"
+              data-testid="cut-animatic"
+            >
+              <span className="type-caption text-[var(--text-muted)]">
+                An animatic: each planned shot plays as its Scene&apos;s kept take, or a card, for
+                its planned length.
+              </span>
+              {vm.animaticScripts.length > 1 ? (
+                <label className="flex items-center gap-1">
+                  <span className="type-caption">Script</span>
+                  <select
+                    className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-sm"
+                    data-testid="cut-animatic-script"
+                    value={vm.animaticScriptId ?? ''}
+                    disabled={busy}
+                    onChange={event => vm.setAnimaticScript(event.target.value)}
+                  >
+                    {vm.animaticScripts.map(script => (
+                      <option key={script.id} value={script.id}>
+                        {script.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+          ) : null}
           {vm.shots.length === 0 ? (
             <p className="type-body mt-3 text-[var(--text-muted)]" data-testid="cut-empty">
               Nothing to cut yet. Make stills on{' '}
@@ -907,7 +938,9 @@ export default function CutRoom() {
                           ? 'Story'
                           : source === 'scenes'
                             ? 'Scene'
-                            : 'Added';
+                            : source === 'script'
+                              ? 'Animatic'
+                              : 'Added';
                     }
                   : undefined
               }

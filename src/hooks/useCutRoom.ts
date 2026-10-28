@@ -82,6 +82,8 @@ import {
 } from '@/lib/film/cut-history';
 import {
   activeCutSources,
+  toggledCutSources,
+  ANIMATIC_SOURCE,
   cutCopyKey,
   cutExtraShots,
   cutEditStamp,
@@ -141,6 +143,12 @@ import {
   DEFAULT_SCENE_TOOL_CACHE,
 } from '@/lib/play/settings';
 import { keptTakeOf, normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
+import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
+import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
+import type { SavedScript } from '@/lib/day/scene-scripts';
+import { storyboard } from '@/lib/day/storyboard';
+import { parseScript } from '@/lib/script/parse';
+import { animaticShots } from '@/lib/film/animatic';
 import {
   findingsForGalleryEntry,
   isFindingDismissed,
@@ -276,26 +284,62 @@ export function useCutRoom() {
     () => sceneCutShots(savedScenes, sceneCastId),
     [sceneCastId, savedScenes]
   );
+  const options: FilmCutOptionsValue = useMemo(
+    () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
+    [cut.toolSettings.options]
+  );
+  // Text cards (added ones, the animatic's) are drawn in the cut's size.
+  const resolution = filmResolutionForCutOptions(options);
+  // The animatic (M9 T4): the Cast's scripts with planned shots; the picked one, else the latest.
+  const [storedScripts, setStoredScripts] = useState<SavedScript[]>([]);
+  useEffect(() => {
+    const read = () => setStoredScripts(loadSceneScriptStore().scripts);
+    read();
+    window.addEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
+    return () => window.removeEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
+  }, []);
+  const animaticScripts = useMemo(
+    () =>
+      storedScripts
+        .filter(script => script.castId === sceneCastId && script.shots?.length)
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    [sceneCastId, storedScripts]
+  );
+  const animaticScript =
+    animaticScripts.find(script => script.id === cut.toolSettings.scriptId) ?? animaticScripts[0];
+  const animatic = useMemo(() => {
+    if (!animaticScript) return [];
+    return animaticShots({
+      rows: storyboard({
+        scenes: parseScript(animaticScript.source).scenes,
+        shots: animaticScript.shots,
+        made: savedScenes,
+      }),
+      keptBySceneId: new Map(sceneShots.map(shot => [shot.key, shot])),
+      card: text => renderTextCard({ text: text.text, sub: text.sub, resolution }),
+    });
+  }, [animaticScript, resolution, savedScenes, sceneShots]);
   const bySource = useMemo(
     () =>
-      cutRoomSourceShots({ day: { slots, stills: dayStills }, story: beats, scenes: sceneShots }),
-    [beats, dayStills, sceneShots, slots]
+      cutRoomSourceShots({
+        day: { slots, stills: dayStills },
+        story: beats,
+        scenes: sceneShots,
+        script: animatic,
+      }),
+    [animatic, beats, dayStills, sceneShots, slots]
   );
   const sources = useMemo(
     () => activeCutSources(cut.toolSettings.sources, bySource),
     [bySource, cut.toolSettings.sources]
   );
-  const options: FilmCutOptionsValue = useMemo(
-    () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
-    [cut.toolSettings.options]
-  );
   const extras = useMemo(() => cut.toolSettings.extras ?? [], [cut.toolSettings.extras]);
-  // Added shots (Gallery, text cards, copies); text cards drawn in the cut's size.
-  const resolution = filmResolutionForCutOptions(options);
   const added = useMemo(
     () =>
-      cutExtraShots(extras, [...bySource.day, ...bySource.story, ...bySource.scenes], extra =>
-        renderTextCard({ text: extra.text, sub: extra.sub, resolution })
+      cutExtraShots(
+        extras,
+        [...bySource.day, ...bySource.story, ...bySource.scenes, ...bySource.script],
+        extra => renderTextCard({ text: extra.text, sub: extra.sub, resolution })
       ),
     [bySource, extras, resolution]
   );
@@ -1771,13 +1815,17 @@ export function useCutRoom() {
     },
     [bySource, updateCut]
   );
+  // A script's animatic, picked from its storyboard (M9 T4): before its shots have loaded, too.
+  const pickAnimatic = useCallback(
+    (scriptId?: string) =>
+      updateCut({ sources: [ANIMATIC_SOURCE], ...(scriptId ? { scriptId } : {}) }),
+    [updateCut]
+  );
   const toggleSource = useCallback(
     (source: CutSource) => {
-      const next = sources.includes(source)
-        ? sources.filter(entry => entry !== source)
-        : [...sources, source];
-      // At least one source: the last one can't be switched off.
-      if (next.length > 0) updateCut({ sources: next });
+      // At least one source; the animatic alone (cut-room.ts toggledCutSources).
+      const next = toggledCutSources(sources, source);
+      if (next !== sources) updateCut({ sources: next });
     },
     [sources, updateCut]
   );
@@ -2492,6 +2540,10 @@ export function useCutRoom() {
     shared,
     sources,
     toggleSource,
+    animaticScripts,
+    animaticScriptId: animaticScript?.id,
+    pickAnimatic,
+    setAnimaticScript: (scriptId: string) => updateCut({ scriptId }),
     pickOnly,
     bySource,
     shots,

@@ -55,7 +55,11 @@ export type PlannedShot = {
   seconds: number;
   /** The Scene made from it (unset: not yet, or that Scene is gone). */
   madeSceneId?: string;
+  /** How much it matters (ROADMAP §6.3): unset = not said. */
+  priority?: ShotPriority;
 };
+
+export type ShotPriority = 'must' | 'nice';
 
 export const SHOTS_PER_SCENE = 24;
 const SHOTS_PER_SCRIPT = 600;
@@ -167,6 +171,7 @@ export function normalizePlannedShots(value: unknown): PlannedShot[] | undefined
       ...(speaker ? { speaker: speakerKey(speaker) } : {}),
       seconds: Number.isFinite(seconds) ? Math.min(120, Math.max(1, Math.round(seconds))) : 3,
       ...(madeSceneId ? { madeSceneId } : {}),
+      ...(shot.priority === 'must' || shot.priority === 'nice' ? { priority: shot.priority } : {}),
     });
     if (out.length >= SHOTS_PER_SCRIPT) break;
   }
@@ -199,17 +204,122 @@ export function addedShot(
   shots: readonly PlannedShot[] | undefined,
   scene: ScriptScene
 ): PlannedShot {
-  const taken = new Set((shots ?? []).map(shot => shot.id));
-  let n = shotsForScene(shots, scene.id).length + 1;
-  while (taken.has(`${scene.id}~${n}`)) n += 1;
   return {
-    id: `${scene.id}~${n}`,
+    id: freeShotId(shots ?? [], scene.id),
     sceneId: scene.id,
     purpose: 'action',
     framing: 'waist',
     who: scene.speakers.map(speakerKey),
     seconds: 3,
   };
+}
+
+/** An id for a new shot of a script scene that no shot of the script has. */
+function freeShotId(shots: readonly PlannedShot[], sceneId: string): string {
+  const taken = new Set(shots.map(shot => shot.id));
+  let n = shots.filter(shot => shot.sceneId === sceneId).length + 1;
+  while (taken.has(`${sceneId}~${n}`)) n += 1;
+  return `${sceneId}~${n}`;
+}
+
+/** A scene's list with a shot moved one place up (-1) or down (1); unchanged at the ends (M9 T2). */
+export function movedShot(
+  sceneShots: readonly PlannedShot[],
+  id: string,
+  delta: -1 | 1
+): PlannedShot[] {
+  const at = sceneShots.findIndex(shot => shot.id === id);
+  const to = at + delta;
+  if (at < 0 || to < 0 || to >= sceneShots.length) return [...sceneShots];
+  const next = [...sceneShots];
+  [next[at], next[to]] = [next[to]!, next[at]!];
+  return next;
+}
+
+/** "A. B. C." → ["A.", "B. C."]: at the sentence break nearest the middle; null with one sentence. */
+function halves(text: string | undefined): [string, string] | null {
+  const sentences = text?.match(/[^.!?…]+[.!?…]+["”’)]*\s*|[^.!?…]+$/g)?.map(part => part.trim());
+  if (!sentences || sentences.length < 2) return null;
+  const cut = Math.ceil(sentences.length / 2);
+  return [sentences.slice(0, cut).join(' '), sentences.slice(cut).join(' ')];
+}
+
+/**
+ * A scene's list with one shot split in two (M9 T2): the first keeps its id — and the Scene made
+ * from it — the second gets a new one. Its line or beat is shared at a sentence break when it has
+ * two sentences (else the second starts empty), and its seconds between the two.
+ */
+export function splitShot(
+  allShots: readonly PlannedShot[],
+  sceneShots: readonly PlannedShot[],
+  id: string
+): PlannedShot[] {
+  const at = sceneShots.findIndex(shot => shot.id === id);
+  const shot = sceneShots[at];
+  if (!shot || sceneShots.length >= SHOTS_PER_SCENE) return [...sceneShots];
+  const lineHalves = shot.line ? halves(shot.line) : null;
+  const actionHalves = shot.line ? null : halves(shot.action);
+  const firstSeconds = Math.max(1, Math.ceil(shot.seconds / 2));
+  const { madeSceneId: _made, priority, ...rest } = shot;
+  const first: PlannedShot = {
+    ...shot,
+    ...(lineHalves ? { line: lineHalves[0] } : {}),
+    ...(actionHalves ? { action: actionHalves[0] } : {}),
+    seconds: firstSeconds,
+  };
+  const second: PlannedShot = {
+    ...rest,
+    id: freeShotId(allShots, shot.sceneId),
+    ...(priority ? { priority } : {}),
+    seconds: Math.max(1, shot.seconds - firstSeconds),
+  };
+  if (lineHalves) second.line = lineHalves[1];
+  else if (shot.line) delete second.line;
+  if (actionHalves) second.action = actionHalves[1];
+  else delete second.action;
+  if (!lineHalves && shot.line) delete second.speaker;
+  return [...sceneShots.slice(0, at), first, second, ...sceneShots.slice(at + 1)];
+}
+
+/**
+ * A scene's list with a shot merged into the one before it (M9 T2): the first keeps its id; beats
+ * join, seconds add up. Refused (null, with why) when both were made into Scenes — one would lose
+ * its link — or both carry lines spoken by different people.
+ */
+export function mergedShot(
+  sceneShots: readonly PlannedShot[],
+  id: string
+): { shots: PlannedShot[] } | { refused: string } {
+  const at = sceneShots.findIndex(shot => shot.id === id);
+  const first = sceneShots[at - 1];
+  const second = sceneShots[at];
+  if (!first || !second) return { refused: 'There is no shot before it to merge into.' };
+  if (first.madeSceneId && second.madeSceneId) {
+    return { refused: 'Both shots are Scenes already — remove one of the Scenes first.' };
+  }
+  if (first.line && second.line && first.speaker !== second.speaker) {
+    return { refused: 'Different people speak in them — keep them as two shots.' };
+  }
+  const join = (a?: string, b?: string) =>
+    [a?.trim(), b?.trim()].filter(Boolean).join(' ') || undefined;
+  const merged: PlannedShot = {
+    ...first,
+    who: [...new Set([...first.who, ...second.who])],
+    seconds: Math.min(120, first.seconds + second.seconds),
+    ...(join(first.action, second.action) ? { action: join(first.action, second.action) } : {}),
+    ...(join(first.line, second.line)
+      ? { line: join(first.line, second.line), speaker: first.speaker ?? second.speaker }
+      : {}),
+    ...(first.madeSceneId || second.madeSceneId
+      ? { madeSceneId: first.madeSceneId ?? second.madeSceneId }
+      : {}),
+    ...(first.priority === 'must' || second.priority === 'must'
+      ? { priority: 'must' as const }
+      : first.priority || second.priority
+        ? { priority: first.priority ?? second.priority }
+        : {}),
+  };
+  return { shots: [...sceneShots.slice(0, at - 1), merged, ...sceneShots.slice(at + 1)] };
 }
 
 /** A short label for a shot in its scene: "1A", "1B" … (scene number, else its place in order). */

@@ -17,19 +17,25 @@ import type { KeyedShot } from './cut-plan';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import type { CutBridgeStatus } from '../video/cut-bridge';
 
-export type CutSource = 'day' | 'story' | 'scenes';
+export type CutSource = 'day' | 'story' | 'scenes' | 'script';
 
 export const CUT_SOURCES: { id: CutSource; label: string; href: string }[] = [
   { id: 'day', label: 'Day', href: '/day' },
   { id: 'story', label: 'Story', href: '/story' },
   // The Cast's scenes (day/scenes.ts): each scene's kept take, its clip when it has one.
   { id: 'scenes', label: 'Scenes', href: '/scene' },
+  // A script's planned shots as an animatic (M9 T4, film/animatic.ts): each its Scene's kept take,
+  // else a timed card. Only when picked, and on its own — the Scenes it plays are its shots.
+  { id: 'script', label: 'Script animatic', href: '/scene' },
 ];
+
+/** The animatic source (picked on its own; never a default). */
+export const ANIMATIC_SOURCE: CutSource = 'script';
 
 /** A source's own name for `?from=` (Day / Story / Scene pages link here with it). */
 export function cutSourceFromParam(value: string | null | undefined): CutSource | null {
   const id = (value ?? '').trim();
-  return id === 'day' || id === 'story' || id === 'scenes' ? id : null;
+  return id === 'day' || id === 'story' || id === 'scenes' || id === 'script' ? id : null;
 }
 
 /**
@@ -103,6 +109,8 @@ export type CutExtra =
 export type CutToolCache = {
   /** The sources this film is cut from; unset = every source that has shots. */
   sources?: CutSource[];
+  /** The script the animatic source plays (M9 T4); unset = the Cast's latest with planned shots. */
+  scriptId?: string;
   /** Shots added here (Gallery, text cards, copies) — always in the film. */
   extras?: CutExtra[];
   /** Cut options, shot list edits included (keys carry the source). */
@@ -212,7 +220,7 @@ export function splitCutRoomKey(key: string): { source: CutSource | 'added'; key
   const at = key.indexOf(':');
   const prefix = at > 0 ? key.slice(0, at) : '';
   if (prefix === 'x') return { source: 'added', key };
-  return prefix === 'day' || prefix === 'story' || prefix === 'scenes'
+  return prefix === 'day' || prefix === 'story' || prefix === 'scenes' || prefix === 'script'
     ? { source: prefix, key: key.slice(at + 1) }
     : { source: 'day', key };
 }
@@ -299,6 +307,8 @@ export type CutRoomInput = {
   story?: RoleplayStoryBeat[] | null;
   /** The Cast's kept scene takes (sceneCutShots), keyed by scene id. */
   scenes?: KeyedShot[] | null;
+  /** A script's animatic (film/animatic.ts), keyed by planned shot id. */
+  script?: KeyedShot[] | null;
 };
 
 /**
@@ -314,17 +324,36 @@ export function cutRoomSourceShots(input: CutRoomInput): Record<CutSource, Keyed
     day: day.map(shot => ({ ...shot, key: cutRoomKey('day', shot.key) })),
     story: story.map(shot => ({ ...shot, key: cutRoomKey('story', shot.key) })),
     scenes: (input.scenes ?? []).map(shot => ({ ...shot, key: cutRoomKey('scenes', shot.key) })),
+    script: (input.script ?? []).map(shot => ({ ...shot, key: cutRoomKey('script', shot.key) })),
   };
 }
 
-/** The sources a cut uses: the picked ones that have shots, else every source with shots. */
+/**
+ * The sources a cut uses: the picked ones that have shots, else every source with shots — the
+ * animatic only when picked (its shots are the Scenes' kept takes: with Scenes, each twice).
+ */
 export function activeCutSources(
   picked: CutSource[] | undefined,
   bySource: Record<CutSource, KeyedShot[]>
 ): CutSource[] {
   const withShots = CUT_SOURCES.map(entry => entry.id).filter(id => bySource[id].length > 0);
   const chosen = (picked ?? []).filter(id => withShots.includes(id));
-  return chosen.length > 0 ? chosen : withShots;
+  if (chosen.length > 0) return chosen;
+  const defaults = withShots.filter(id => id !== ANIMATIC_SOURCE);
+  return defaults.length > 0 ? defaults : withShots;
+}
+
+/**
+ * The sources after one is switched (M9 T4): the animatic switches the others off and is switched
+ * off by them; never none.
+ */
+export function toggledCutSources(current: CutSource[], source: CutSource): CutSource[] {
+  if (current.includes(source)) {
+    const next = current.filter(entry => entry !== source);
+    return next.length > 0 ? next : current;
+  }
+  if (source === ANIMATIC_SOURCE) return [source];
+  return [...current.filter(entry => entry !== ANIMATIC_SOURCE), source];
 }
 
 /** The film's shots before edits: the active sources' shots, in source order, then the added. */
@@ -341,7 +370,7 @@ export function cutRoomShots(
 
 /** Where a film cut from these sources is recorded (cut-recipe source); Scenes are the Cast's. */
 export function cutRoomRecipeSource(sources: CutSource[]): 'day' | 'story' | 'cast' {
-  if (sources.length === 1 && sources[0] !== 'scenes') return sources[0]!;
+  if (sources.length === 1 && (sources[0] === 'day' || sources[0] === 'story')) return sources[0];
   return 'cast';
 }
 

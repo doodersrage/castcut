@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import { createScript } from './scene-scripts';
 import { applyReimport, orphanedShots, reconcileScript } from './script-reimport';
-import { draftShots } from './script-shots';
+import { draftShots, movedShot, shotsForScene, splitShot, withSceneShots } from './script-shots';
 
 const V1 = [
   'INT. KITCHEN - MORNING',
@@ -112,5 +112,20 @@ describe('safe reimport of a script (M3 S6)', () => {
     const rows = reconcileScript(before, after, script.shots, new Set());
     const next = applyReimport(script, V2, rows, { madeSceneIds: new Set() });
     assert.deepEqual(next.placeMap, { KITCHEN: 'location:loc-flat' });
+  });
+
+  // M9 T2: an edited list — reordered, a shot split — comes through a reimport as it was.
+  it('keeps an edited shot list through a reimport: its ids, its order', () => {
+    const script = scriptWithShots();
+    const kitchenShots = shotsForScene(script.shots, kitchen!.id);
+    const edited = movedShot(splitShot(script.shots, kitchenShots, kitchenShots[0]!.id), kitchenShots[0]!.id, 1);
+    const withEdit = { ...script, shots: withSceneShots(script.shots, kitchen!.id, edited) };
+    const rows = reconcileScript(before, after, withEdit.shots, new Set());
+    const next = applyReimport(withEdit, V2, rows, { madeSceneIds: new Set() });
+    const newKitchen = rows.find(row => row.oldId === kitchen!.id)?.newId ?? kitchen!.id;
+    assert.deepEqual(
+      shotsForScene(next.shots, newKitchen).map(shot => shot.id),
+      edited.map(shot => shot.id)
+    );
   });
 });

@@ -11,7 +11,12 @@ import {
   shotLabel,
   shotSceneDraft,
   shotsForScene,
+  mergedShot,
+  movedShot,
+  normalizePlannedShots,
+  splitShot,
   withSceneShots,
+  type PlannedShot,
 } from './script-shots';
 
 const SOURCE = [
@@ -193,5 +198,80 @@ describe('shot lists from a script (M3 S4)', () => {
     const home = draft({ KITCHEN: 'home' });
     assert.equal(home.slot.locationId, undefined);
     assert.equal(home.slot.location, 'kitchen at home');
+  });
+
+  // M9 T2: a near-right list is fixed, not rebuilt — ids stay put.
+  describe('editing a shot list', () => {
+    const base = (id: string, extra: Partial<PlannedShot> = {}): PlannedShot => ({
+      id,
+      sceneId: 's1',
+      purpose: 'action',
+      framing: 'waist',
+      who: ['NORA'],
+      seconds: 4,
+      ...extra,
+    });
+
+    it('moves a shot up or down, never past the ends', () => {
+      const list = [base('s1~1'), base('s1~2'), base('s1~3')];
+      assert.deepEqual(movedShot(list, 's1~3', -1).map(shot => shot.id), ['s1~1', 's1~3', 's1~2']);
+      assert.deepEqual(movedShot(list, 's1~1', -1).map(shot => shot.id), ['s1~1', 's1~2', 's1~3']);
+      assert.deepEqual(movedShot(list, 's1~3', 1).map(shot => shot.id), ['s1~1', 's1~2', 's1~3']);
+    });
+
+    it('splits a shot: the first keeps its id and Scene, the beat and seconds are shared', () => {
+      const list = [
+        base('s1~1', { action: 'She opens the door. She steps in. She stops.', seconds: 6, madeSceneId: 'scene-a', priority: 'must' }),
+        base('s1~2'),
+      ];
+      const next = splitShot(list, list, 's1~1');
+      assert.deepEqual(
+        next.map(shot => [shot.id, shot.action, shot.seconds, shot.madeSceneId, shot.priority]),
+        [
+          ['s1~1', 'She opens the door. She steps in.', 3, 'scene-a', 'must'],
+          ['s1~3', 'She stops.', 3, undefined, 'must'],
+          ['s1~2', undefined, 4, undefined, undefined],
+        ]
+      );
+      // One sentence: the second starts empty; a line is shared the same way.
+      assert.equal(splitShot([base('s1~1', { action: 'She waits' })], [base('s1~1', { action: 'She waits' })], 's1~1')[1]!.action, undefined);
+      const line = base('s1~1', { line: 'Coffee first. Always.', speaker: 'NORA' });
+      assert.deepEqual(
+        splitShot([line], [line], 's1~1').map(shot => [shot.line, shot.speaker]),
+        [
+          ['Coffee first.', 'NORA'],
+          ['Always.', 'NORA'],
+        ]
+      );
+    });
+
+    it('merges a shot into the one before it, or says why not', () => {
+      const list = [
+        base('s1~1', { action: 'She sits.', seconds: 3 }),
+        base('s1~2', { action: 'She reads.', seconds: 5, madeSceneId: 'scene-b', priority: 'must', who: ['TOMAS'] }),
+      ];
+      const merged = mergedShot(list, 's1~2');
+      assert.ok('shots' in merged);
+      assert.deepEqual(merged.shots, [
+        base('s1~1', { action: 'She sits. She reads.', seconds: 8, madeSceneId: 'scene-b', priority: 'must', who: ['NORA', 'TOMAS'] }),
+      ]);
+      assert.deepEqual(mergedShot(list, 's1~1'), { refused: 'There is no shot before it to merge into.' });
+      const bothMade = [base('s1~1', { madeSceneId: 'a' }), base('s1~2', { madeSceneId: 'b' })];
+      assert.match((mergedShot(bothMade, 's1~2') as { refused: string }).refused, /Both shots are Scenes/);
+      const twoVoices = [
+        base('s1~1', { line: 'Hi.', speaker: 'NORA' }),
+        base('s1~2', { line: 'Hello.', speaker: 'TOMAS' }),
+      ];
+      assert.match((mergedShot(twoVoices, 's1~2') as { refused: string }).refused, /Different people/);
+    });
+
+    it('keeps a priority through the stored list', () => {
+      assert.deepEqual(
+        normalizePlannedShots([base('s1~1', { priority: 'nice' }), { ...base('s1~2'), priority: 'urgent' }])?.map(
+          shot => shot.priority
+        ),
+        ['nice', undefined]
+      );
+    });
   });
 });

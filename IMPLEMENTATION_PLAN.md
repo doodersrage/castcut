@@ -2052,3 +2052,104 @@ add to it. Records sync and back up like the other studio extras; storage budget
 ## 10.4 Recommended first task
 
 **T1**: the record everything else names. Then **T2**, which is where the drift stops.
+
+# Part 11 — M9 plan: see it before you render it (2026-10-28)
+
+From the feature-gap audit (2026-10-27, areas 2 and 6) and ROADMAP §6.3–6.6. A writer can plan a
+script's shots, but can't see them as a board, can't cut a rough animatic before rendering to
+judge pacing, and can't fix a nearly-right shot list without rebuilding it; and global search
+doesn't find a Scene, a script or a location by name.
+
+## 11.1 What exists (audited 2026-10-28)
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| Planned shots per script scene (purpose, framing, who, action, line, seconds, the Scene made from it) | `PlannedShot` in `day/script-shots.ts`, `SceneScriptShots.tsx` | verified; no reorder, split, merge or priority |
+| Reimport keeps shots by scene id | `day/script-reimport.ts` (S6) | verified |
+| Coverage per script scene | `day/script-coverage.ts` (S5, M8 T4) | verified |
+| Cut's extras: media, text cards, copies, bridges | `CutExtra` in `film/cut-room.ts` | verified; nothing stands in for a planned shot |
+| Take review states and the kept take | `day/scenes.ts` (M7 T3) | verified |
+| Global search: History, Gallery, presets | `search/global-search.ts` | partial: no Cast, Scenes, scripts, locations or Cut versions |
+
+## 11.2 Tasks (ordered)
+
+**T1 — Production search.** · S
+- Global search also finds Cast members, Scenes, scripts, locations and Cut versions by name, and
+  opens each where it lives.
+- Acceptance: typing a Scene's or a script's name opens it (unit test on the matching; e2e).
+- Status 2026-10-28: global search takes sources a feature registers (`registerGlobalSearchSource`,
+  the shared search naming no feature); Play registers `searchProduction`
+  (`lib/play/production-search.ts`): Cast members (their page), Scenes (`/scene?…&scene=`),
+  scripts (`&script=`), locations (the Scene page's Locations) and Cut versions (Cut), by name,
+  scored like the rest. Unit tests and an e2e (the command palette finds a Scene by its name and
+  opens it — failing with the source unregistered). A Cut version opens Cut, not the version.
+
+**T2 — Shot-list editing.** · M
+- Planned shots can be reordered, split (one shot into two, the beat or the lines shared), merged
+  (two next to each other into one) and given a priority — each keeping a stable id (a split keeps
+  the first half's id), so a reimport, the coverage and a Scene made from a shot all still match.
+- Acceptance: unit tests per operation, including a reimport after each; e2e reorder and split.
+- Status 2026-10-28: `movedShot`, `splitShot`, `mergedShot` and `PlannedShot.priority` (must / nice)
+  in `day/script-shots.ts`. A split keeps the first half's id and its Scene; the beat or line is
+  shared at the sentence break nearest the middle (one sentence: the second starts empty), the
+  seconds between the two, and the new id is free across the whole script. A merge folds a shot
+  into the one before: beats join, seconds add up; refused, with why, when both are Scenes or
+  two different people speak. The shot list's row: priority, ↑ ↓, Split, Merge up. Unit tests
+  per operation and a reimport after an edit (ids and order kept); an e2e (split, moved, merged).
+
+**T3 — Storyboard.** · M
+- A script's planned shots as a board, in script order, scene by scene: each with its kept take,
+  else its latest take, else a card saying what it is (purpose, framing, the beat or the line).
+- Opening a card opens its Scene, or makes it.
+- Acceptance: the board shows every planned shot in order with a picture or a card (unit test on
+  the board's rows; e2e).
+- Status 2026-10-28: `day/storyboard.ts` lays a script's planned shots out scene by scene (a scene
+  with none planned is left off): each card has the kept take's picture, else the latest take you
+  didn't reject, else a card with its purpose, framing, length and beat or line. The open script's
+  **Storyboard** toggle shows it in place of the reading (`ScriptStoryboard`); a card opens its
+  Scene, or makes it (`makeFromShot`, now shared with the shot list). Unit tests and an e2e (the
+  kept take on one card, a card on the other, which makes its Scene).
+
+**T4 — Animatic in Cut.** · M
+- Add a script's planned shots to Cut as timed cards (a new extra tied to the planned shot): each
+  plays as a card for its seconds until its Scene has a kept take, then plays that take, keeping
+  the card's timing.
+- Acceptance: unit tests (a card, then its take; the timing kept); e2e: the cards in the cut, a
+  take kept, the card swapped.
+- Status 2026-10-28: a new Cut source, **Script animatic** (`CutSource` `script`,
+  `film/animatic.ts`): the script's storyboard rows as Cut shots — its Scene's kept take for a
+  planned shot that has one (a still held, a clip trimmed to the planned seconds), else a card in
+  the cut's size, each `holdFixed` at the planned length so fitting a cut to a length leaves the
+  pacing alone. Only when picked, and on its own (`toggledCutSources`): with Scenes each kept take
+  would play twice. Cut plays the picked script (`scriptId`), else the Cast's latest with planned
+  shots; the storyboard's **Cut it as an animatic** opens Cut on it (`?from=script&script=`).
+  Planned shot ids become keys without `~n` (`animaticShotKey`) — Cut reads `~n` as a copy.
+  Unit tests (a card, a kept still, a kept clip, the source rules) and an e2e (from the board to
+  Cut: the Script source alone, its two shots). The swap when a take is kept is the same
+  function on the next render (unit-tested); not re-driven in the e2e.
+
+**T5 — From script to animatic.** · S
+- One walk through: a script imported, its shots drafted and edited, the board, the animatic in
+  Cut, a take kept and swapped in — as an e2e, with screenshots for the docs.
+- Status 2026-10-28: covered by two e2e — a script imported, its shots drafted, split, moved and
+  merged (T2); a script's board with a kept take and a card, a card made into its Scene, then
+  **Cut it as an animatic** into Cut's Script source (T3–T4) — and `docs/guide-scene.md` now
+  describes locations, story state, take review, shot editing, the storyboard and the animatic
+  (`docs/features.md`: production search). Screenshots: the e2e takes `scene-storyboard` and
+  `cut-animatic` when `SCENE_SHOTS_DIR` is set; not yet added to the docs.
+
+## 11.3 Definition of done
+
+- A script's planned shots can be seen as a storyboard and timed as an animatic before they
+  render (ROADMAP §6 acceptance).
+- A shot list can be reordered, split and merged with ids that survive reimport.
+- A Scene, a script and a location open from global search.
+- CI green on every M9 commit; unit, lint, `tsc`, `check:core` and the touched e2e specs pass.
+- Not in scope: an LLM-drafted shot list; a trash for Gallery entries and takes (M10).
+- Status 2026-10-28: met — the storyboard and the animatic (T3–T4), shot lists reordered, split and
+  merged with ids that survive a reimport (T2), Scenes, scripts and locations from global search
+  (T1). Unit tests 8,996; the Scene and Cut room specs pass (load failures re-run alone).
+
+## 11.4 Recommended first task
+
+**T1** (small, independent), then **T2**: the board and the animatic are only as good as the list.

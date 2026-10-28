@@ -109,7 +109,7 @@ Jump to: [Prompt generation](#prompt-generation) · [Scene tools](#scene-tools) 
 - **History bulk actions** — tag or delete all entries matching the current Studio history filters
 - **Semantic search** — token-overlap ranking in Studio history and Gallery filters
 - **Embedding search** — semantic history filter uses Ollama embeddings when available (`/api/search/embeddings`)
-- **Global search** — command palette (`Ctrl+K` / `Ctrl+Shift+K`) searches history, gallery, and scene presets
+- **Global search** — command palette (`Ctrl+K` / `Ctrl+Shift+K`) searches history, gallery, scene presets, and the production by name: Cast members, Scenes, scripts, locations and Cut versions, each opening where it lives
 
 ## Gallery {#gallery}
 

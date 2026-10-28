@@ -158,6 +158,7 @@ export default function LocationsSection({
     <ToolSection
       title="Locations"
       description="Places the film goes back to — the corner café, her sister's flat. Describe one once and every Scene set there shows the same room."
+      id="locations"
       data-testid="locations-section"
     >
       <div className="space-y-4">

@@ -18,6 +18,8 @@ import {
 import { loadSettingsCache } from '@/lib/settings/cache';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
+import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
+import { storyboard } from '@/lib/day/storyboard';
 import { orphanedShots } from '@/lib/day/script-reimport';
 import { shotsToPrepare } from '@/lib/day/scene-run';
 import { SCENE_LIMIT_PER_CAST } from '@/lib/day/scenes';
@@ -29,7 +31,7 @@ import {
   withSceneShots,
   type ShotSceneDraft,
 } from '@/lib/day/script-shots';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { FieldError } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
@@ -410,6 +412,8 @@ export default function SceneScripts({
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
+  // M9 T3: the open script as a storyboard instead of its reading.
+  const [board, setBoard] = useState(false);
   const open = scripts.find(script => script.id === openId) ?? null;
   const openParsed = useMemo(() => (open ? parseScript(open.source) : null), [open]);
   const draftParsed = useMemo(() => (draft?.trim() ? parseScript(draft) : null), [draft]);
@@ -498,6 +502,46 @@ export default function SceneScripts({
     setOpenId(null);
   };
 
+  /** "Make it a Scene" from a planned shot — the shot list's and the storyboard's (M9 T3). */
+  const makeFromShot = (
+    scene: ScriptScene,
+    sceneIndex: number,
+    shot: PlannedShot,
+    shotIndex: number
+  ) => {
+    if (!open) return;
+    const sceneShots = shotsForScene(open.shots, scene.id);
+    const draft = shotSceneDraft({
+      shot,
+      scene,
+      sceneIndex,
+      shotIndex,
+      castId,
+      cast,
+      castMap: open.castMap,
+      placeMap: open.placeMap,
+      locations,
+    });
+    makeScene(
+      {
+        ...draft,
+        fromScript: { scriptId: open.id, sceneId: scene.id, shotId: shot.id },
+      },
+      sceneId =>
+        setScriptShotsPatch(
+          cache,
+          open.id,
+          withSceneShots(
+            open.shots,
+            scene.id,
+            sceneShots.map(entry =>
+              entry.id === shot.id ? { ...entry, madeSceneId: sceneId } : entry
+            )
+          )
+        )
+    );
+  };
+
   return (
     <ToolSection data-testid="scene-scripts" title="Script">
       <p className="type-caption mb-2 text-[var(--text-muted)]">
@@ -580,6 +624,26 @@ export default function SceneScripts({
                 if (patch) update(patch);
               }}
             />
+            <Button
+              size="sm"
+              variant={board ? 'secondary' : 'ghost'}
+              aria-pressed={board}
+              data-testid="script-board-toggle"
+              title="See its planned shots as a board — each with its kept take, or a card"
+              onClick={() => setBoard(value => !value)}
+            >
+              {board ? 'Script' : 'Storyboard'}
+            </Button>
+            {board && open.shots?.length ? (
+              <ButtonLink
+                size="sm"
+                variant="ghost"
+                href={`/cut?from=script&script=${encodeURIComponent(open.id)}`}
+                data-testid="script-animatic"
+              >
+                Cut it as an animatic →
+              </ButtonLink>
+            ) : null}
             {prepareRun ? (
               <Button
                 size="sm"
@@ -727,70 +791,59 @@ export default function SceneScripts({
               <span className="font-medium">Coverage:</span> {coverage.total}
             </p>
           ) : null}
-          <Reading
-            parsed={openParsed}
-            metaFor={scene => {
-              const counts = coverage?.byScene.get(scene.id)?.counts;
-              return counts?.planned
-                ? `${counts.made}/${counts.planned} made · ${counts.kept} kept`
-                : '';
-            }}
-            shotsFor={(scene, sceneIndex) => {
-              const sceneShots = shotsForScene(open.shots, scene.id);
-              const sceneCov = coverage?.byScene.get(scene.id);
-              return (
-                <SceneScriptShots
-                  coverage={sceneCov ? coverageSummary(sceneCov.counts) : ''}
-                  findings={sceneCov?.findings}
-                  onDecide={(id, kind) => (kind ? decideFinding(id, kind) : undecideFinding(id))}
-                  scene={scene}
-                  sceneIndex={sceneIndex}
-                  shots={sceneShots}
-                  scenes={scenes}
-                  onShots={next => {
-                    const patch = setScriptShotsPatch(
-                      cache,
-                      open.id,
-                      withSceneShots(open.shots, scene.id, next)
-                    );
-                    if (patch) update(patch);
-                  }}
-                  onMake={(shot, shotIndex) => {
-                    const draft = shotSceneDraft({
-                      shot,
-                      scene,
-                      sceneIndex,
-                      shotIndex,
-                      castId,
-                      cast,
-                      castMap: open.castMap,
-                      placeMap: open.placeMap,
-                      locations,
-                    });
-                    makeScene(
-                      {
-                        ...draft,
-                        fromScript: { scriptId: open.id, sceneId: scene.id, shotId: shot.id },
-                      },
-                      sceneId =>
-                        setScriptShotsPatch(
-                          cache,
-                          open.id,
-                          withSceneShots(
-                            open.shots,
-                            scene.id,
-                            sceneShots.map(entry =>
-                              entry.id === shot.id ? { ...entry, madeSceneId: sceneId } : entry
-                            )
-                          )
-                        )
-                    );
-                  }}
-                  onOpenScene={openScene}
-                />
-              );
-            }}
-          />
+          {board ? (
+            <ScriptStoryboard
+              rows={storyboard({ scenes: openParsed.scenes, shots: open.shots, made: scenes })}
+              onOpenScene={openScene}
+              onMake={card => {
+                const sceneIndex = openParsed.scenes.findIndex(
+                  entry => entry.id === card.shot.sceneId
+                );
+                const scene = openParsed.scenes[sceneIndex];
+                if (!scene) return;
+                const shotIndex = shotsForScene(open.shots, scene.id).findIndex(
+                  entry => entry.id === card.shot.id
+                );
+                makeFromShot(scene, sceneIndex, card.shot, shotIndex);
+              }}
+            />
+          ) : (
+            <Reading
+              parsed={openParsed}
+              metaFor={scene => {
+                const counts = coverage?.byScene.get(scene.id)?.counts;
+                return counts?.planned
+                  ? `${counts.made}/${counts.planned} made · ${counts.kept} kept`
+                  : '';
+              }}
+              shotsFor={(scene, sceneIndex) => {
+                const sceneShots = shotsForScene(open.shots, scene.id);
+                const sceneCov = coverage?.byScene.get(scene.id);
+                return (
+                  <SceneScriptShots
+                    coverage={sceneCov ? coverageSummary(sceneCov.counts) : ''}
+                    findings={sceneCov?.findings}
+                    onDecide={(id, kind) => (kind ? decideFinding(id, kind) : undecideFinding(id))}
+                    scene={scene}
+                    sceneIndex={sceneIndex}
+                    shots={sceneShots}
+                    scriptShots={open.shots ?? []}
+                    scenes={scenes}
+                    onShots={next => {
+                      const patch = setScriptShotsPatch(
+                        cache,
+                        open.id,
+                        withSceneShots(open.shots, scene.id, next)
+                      );
+                      if (patch) update(patch);
+                    }}
+                    onMake={(shot, shotIndex) => makeFromShot(scene, sceneIndex, shot, shotIndex)}
+                    onOpenScene={openScene}
+                  />
+                );
+              }}
+            />
+          )}
         </div>
       ) : null}
     </ToolSection>
