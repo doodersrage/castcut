@@ -2411,6 +2411,39 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   shot (1.4). Not used. WAN: `WanPhantomSubjectToVideo` is native, but Phantom's model is not
   installed and is reference-to-video too (no start frame) — not tried.
 
+**T8 — Spike: a directed part in a longer clip** (user, 2026-10-29). · S — measured, not built
+- Copy moves (Wan Animate 2) from the last frame of the T7 clips (Mara, Lena), driven by the
+  Director's videos, joined on: colour step at the join 0.5–0.8 (text parts' seams: up to 6),
+  motion at the join 0.73–1.08× normal (no jump), faces as the clip's end (Mara 0.35–0.46, Lena
+  0.31–0.35). 16 → 24 fps by repeating frames stutters (23–25 of 72 frames repeat);
+  `minterpolate` takes it to 3–7. Detail lower (832 px long side: Lena 143 → 68–78).
+- Framing: with the Director's own framing (`frameDirection`, like the still) the shot held; a
+  driving video framed for another still zoomed out by ~20%. A move that needs room above a
+  tightly framed still (a wave) pulls back — a directed part should hold the framing instead.
+- Copy moves' seat edit puts a bench in from nowhere at the join: a directed sit only where the
+  frame has a seat. Wan Animate has no audio: the part is silent. ~3 min per 5 s part.
+- To build (with T9's moves): per part "Write it / Direct it" in the Animate sheet, the Director
+  on the part's start frame with the framing held, `minterpolate` to 24 fps, room tone under it.
+
+**T9 — Director moves from real motion capture** (user, 2026-10-29: "super robotic"). · M
+- The hand-keyed moves swung a limb while the body stood still, every move eased evenly. Nine of
+  the ten now play a CMU capture (`scripts/director-mocap/harvest.py` →
+  `src/lib/data/director-mocap-moves.json`, 369 KB, 95 KB gzipped, in the Director's chunk only;
+  credits in `docs/pose-reference-credits.md`); the nod has no clip and stays keyed.
+- Retarget (`director/mocap.ts`): bone turns, not joint positions (fitted to positions, the
+  narrower rig hips sank the feet and twisted the pelvis); neck and head keep only the capture
+  head's twist (its pitch is unreliable); collarbones and feet start as the rig's; legs by IK to
+  the capture's ankles with planted feet pinned, moves in place keep both feet fixed and flat, a
+  wide stance drawn in, the hips set to bend each leg as the capture's; every frame on the floor;
+  each move starts in the keyed stance so blends match.
+- A / B on Mara, same still and seed through Copy moves: the keyed wave raised a stiff arm on a
+  frozen body; the captured one flicked the wrist, shifted weight, swayed and tilted her head. The
+  keyed sit lowered her like a lift; the captured one leaned in, hands to the bench, settled. Face
+  match was lower on the captured wave (0.25–0.33 vs 0.45–0.49): her head turns and tilts.
+- Tests: `mocap.test.ts` (both bodies on the floor, start at the origin, planted feet within
+  1 cm, the turn 180°, the walk 0.8–1.4 m, stretching); the Director's plant and timeline tests
+  pass unchanged.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

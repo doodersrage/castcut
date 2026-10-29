@@ -4,17 +4,17 @@ On any finished Day slot or Story scene, open the card's **⋯** menu. Each resu
 Gallery next to the original (nothing is lost) and replaces what the card shows. The clip tools
 are in the [Gallery](#gallery) too.
 
-| Tool | Works on | Takes about* | You give it |
-| --- | --- | --- | --- |
-| [Sharpen & smooth](#sharpen-smooth) | A clip | 3 min | — |
-| [Make more realistic](#realism) | A clip | A few min per 5 s | — |
-| [Copy moves from a video](#copy-moves) | A still | 5 min for 5 s | A video of one person |
-| [Direct a move](#director) | A still | 3 min for 5 s | A few beats, posed or picked |
-| [Dance to music](#dance) | A still | 10 min for 6 s | A song |
-| [Lip-sync to a recording](#lip-sync) | A still | 7 min for 5 s | Your voice or an audio file |
-| [Relight](#relight) | A still | 1 min | A light |
-| [Sketch over this still](#sketch) | A still | 1 min per render | Strokes and a few words |
-| [Upscale to 4K](#upscale) | A still | 20 s | — |
+| Tool                                   | Works on | Takes about*      | You give it                  |
+| -------------------------------------- | -------- | ----------------- | ---------------------------- |
+| [Sharpen & smooth](#sharpen-smooth)    | A clip   | 3 min             | —                            |
+| [Make more realistic](#realism)        | A clip   | A few min per 5 s | —                            |
+| [Copy moves from a video](#copy-moves) | A still  | 5 min for 5 s     | A video of one person        |
+| [Direct a move](#director)             | A still  | 3 min for 5 s     | A few beats, posed or picked |
+| [Dance to music](#dance)               | A still  | 10 min for 6 s    | A song                       |
+| [Lip-sync to a recording](#lip-sync)   | A still  | 7 min for 5 s     | Your voice or an audio file  |
+| [Relight](#relight)                    | A still  | 1 min             | A light                      |
+| [Sketch over this still](#sketch)      | A still  | 1 min per render  | Strokes and a few words      |
+| [Upscale to 4K](#upscale)              | A still  | 20 s              | —                            |
 
 <small>*On a 24 GB card, once the model is loaded. The models are listed in [Models](models.md).</small>
 
@@ -23,16 +23,16 @@ are in the [Gallery](#gallery) too.
 **Day** groups its card menu in the order a shot is worked on. A group with nothing to offer
 yet is left out.
 
-| Group | What's in it |
-| --- | --- |
-| *(top)* | Edit slot · Open full size |
-| **Redo** | Requeue · new seed · Looks wrong · redo · Retry · Queue this slot only · Reroll plan |
-| **Touch up the still** | Fix an area… · Sketch over this still… · Relight… · Upscale to 4K |
-| **Make it move** | Animate · Copy moves from a video… · Direct a move… · Dance to music… · Lip-sync to a recording… |
-| **The clip** | Sharpen & smooth clip · Make more realistic · Make it 30 s · Add sound · Use this voice |
-| *(bottom)* | Open in ComfyUI |
+| Group                  | What's in it                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| _(top)_                | Edit slot · Open full size                                                                       |
+| **Redo**               | Requeue · new seed · Looks wrong · redo · Retry · Queue this slot only · Reroll plan             |
+| **Touch up the still** | Fix an area… · Sketch over this still… · Relight… · Upscale to 4K                                |
+| **Make it move**       | Animate · Copy moves from a video… · Direct a move… · Dance to music… · Lip-sync to a recording… |
+| **The clip**           | Sharpen & smooth clip · Make more realistic · Make it 30 s · Add sound · Use this voice          |
+| _(bottom)_             | Open in ComfyUI                                                                                  |
 
-The phone's Day board (`/m/day`) has the same menu, *Make it move* included: Copy moves and
+The phone's Day board (`/m/day`) has the same menu, _Make it move_ included: Copy moves and
 Direct a move open full-width there.
 
 **Story**'s scene menu is one list: the same still and clip tools sit after Edit scene,
@@ -59,7 +59,7 @@ Brings a clip up to **1280** on the long side and gives a 16 fps clip **twice th
 The sound is kept.
 
 !!! example "Live"
-    A WAN clip, 672×880 at 16 fps → 978×1280 at 32 fps in under 3 minutes.
+A WAN clip, 672×880 at 16 fps → 978×1280 at 32 fps in under 3 minutes.
 
 ---
 
@@ -103,15 +103,19 @@ hair and clothes and lands where Copy moves' clips do.
 - **Add a pose…** adds a pose she moves into: it opens where the last beat left her, pose it and
   **Use this pose**. **Move in** is how long she takes to get there; **Hold** how long she stays.
 - **Ready-made moves**: Walk forward (small steps), Turn around, Sit down, Stand up, Wave, Reach
-  up, Look over shoulder, Nod, Shrug, Bow. **Length** stretches or squeezes a move. Or pick a
-  ready-made direction (*Wave, then turn away*, *Walk up and wave*, …) after the start pose.
+  up, Look over shoulder, Nod, Shrug, Bow. Every one but the nod is a real person's movement —
+  motion capture from the [CMU database](pose-reference-credits.md#cmu-graphics-lab-motion-capture-database)
+  on the 3D body — so her weight shifts, her shoulders and wrists move and the timing is a
+  person's, not an even ease. Moves in place keep both feet planted. **Length** stretches or
+  squeezes a move. Or pick a ready-made direction (_Wave, then turn away_, _Walk up and wave_, …)
+  after the start pose.
 - **The timeline** under the preview: tap to jump, drag a beat's right edge to make it longer.
   **Play** loops it; the slider scrubs. Each beat starts where the one before left her, so
   moving a walk earlier carries the rest along.
 - **Feet stay planted** between beats: a foot on the floor before and after a beat stays where
   it is (her hips travel instead of the foot sliding), and a foot that has further to go takes a
   step while the other holds her weight. Sitting down from standing keeps both feet put.
-- **Camera**: *Like the still* frames her as the still does — her neck and hips at the same
+- **Camera**: _Like the still_ frames her as the still does — her neck and hips at the same
   height in the picture, the same size — or pick a shot. Height, direction, lens, and an
   optional slow push in, pull out or pan. When the move needs more room than the still has (a
   walk toward the camera), the clip still starts framed like the still and the camera eases back
@@ -132,7 +136,7 @@ hair and clothes and lands where Copy moves' clips do.
   and the box starts **off**, so a second seat isn't added; with no vision model it stays on —
   untick it yourself then. On a busy GPU the edit frees ComfyUI's memory before and after it;
   if it still runs out of memory the clip goes ahead on the still as it is and the job says
-  *Done, without the seat*. Copy moves itself, out of memory, frees the GPU and tries once more
+  _Done, without the seat_. Copy moves itself, out of memory, frees the GPU and tries once more
   straight away (next in the queue, without stopping anyone's running job).
 - **Place** starts as the slot's place. She leans on whatever the still shows: a beat that
   leans well over (or sits, with the seat edit off) warns you, and one tap — **Add a wall to
@@ -145,9 +149,9 @@ hair and clothes and lands where Copy moves' clips do.
   clip (a Motion-JPEG AVI) instead.
 
 !!! tip
-    Keep the camera close to how the still was shot: the background and the camera come from the
-    still, the Director only gives the moves. A full-body still suits walks and turns; a waist-up
-    still suits waves, shrugs and nods.
+Keep the camera close to how the still was shot: the background and the camera come from the
+still, the Director only gives the moves. A full-body still suits walks and turns; a waist-up
+still suits waves, shrugs and nods.
 
 ---
 
@@ -157,8 +161,8 @@ Pick a song, a **style** (Street, K-pop, Latin, Chinese classical, Tap) and **ho
 moves are**. She dances to it on the beat.
 
 !!! tip
-    Use a **full-body** still **with its room**. A white studio plate barely moves and grows a
-    room halfway through. The moves are modest even at *All out*.
+Use a **full-body** still **with its room**. A white studio plate barely moves and grows a
+room halfway through. The moves are modest even at _All out_.
 
 ---
 
@@ -182,11 +186,11 @@ The same picture in a different light: **Golden hour**, **Window daylight**, **L
 
 ## Sketch over this still { #sketch }
 
-Draw rough shapes and colours over the still, say what they are (*a red umbrella in her
-hand*), and pause — it re-renders as a photo each time you stop drawing. **Use this** keeps it.
+Draw rough shapes and colours over the still, say what they are (_a red umbrella in her
+hand_), and pause — it re-renders as a photo each time you stop drawing. **Use this** keeps it.
 
 !!! example "Live"
-    A red half-circle and a stick became an open red umbrella in her hand; nothing else changed.
+A red half-circle and a stick became an open red umbrella in her hand; nothing else changed.
 
 ---
 
@@ -197,7 +201,7 @@ wallpaper. Uses SeedVR2, the same model as Sharpen & smooth. The face stays the 
 and fabric get real detail instead of blur.
 
 !!! example "Live"
-    880×1184 → 2854×3840 in 19 s.
+880×1184 → 2854×3840 in 19 s.
 
 ---
 

@@ -225,6 +225,27 @@ def md_escape(text: str) -> str:
     return text.replace("|", "\\|").replace("[", "\\[").replace("]", "\\]").replace("\n", " ")
 
 
+def director_move_credits() -> list[str]:
+    """The Director's ready-made moves (scripts/director-mocap/harvest.py), one line per move."""
+    path = ROOT / "src" / "lib" / "data" / "director-mocap-moves.json"
+    if not path.exists():
+        return []
+    moves = json.loads(path.read_text())
+    lines = [
+        "",
+        "Director moves (Direct a move…: the move, then subject and trial, the seconds used):",
+        "",
+    ]
+    for move, clip in moves.items():
+        subject, trial = clip["trial"].split("_")
+        mirrored = ", mirrored" if clip.get("mirrored") else ""
+        lines.append(
+            f"- `{move}` — [CMU mocap subject {int(subject)} trial {trial} ({md_escape(clip['desc'])}),"
+            f" {clip['from']:g}–{clip['to']:g} s{mirrored}](<http://mocap.cs.cmu.edu/search.php?subjectnumber={int(subject)}&motion=%25>)"
+        )
+    return lines
+
+
 def write_credits(refs: list[dict], labels: dict[str, str]) -> None:
     lines = [
         "# Pose reference credits",
@@ -254,6 +275,7 @@ def write_credits(refs: list[dict], labels: dict[str, str]) -> None:
         lines.append(f"- `{ref['id']}` — [{md_escape(ref['credit']['title'])}](<{ref['credit']['source']}>)")
     if not cmu:
         lines.append("- none yet")
+    lines += director_move_credits()
     lines += [
         "",
         "## COCO 2017 person keypoint annotations",

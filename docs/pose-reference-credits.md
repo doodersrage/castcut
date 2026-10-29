@@ -78,6 +78,18 @@ a guard-up moment, set facing each other at sparring distance:
 - `sport_squat-4` — [CMU mocap subject 86 trial 02 (walk, squats, run, stretch, jumps, punches, and drinking), frame 1766, side view from her left](<http://mocap.cs.cmu.edu/search.php?subjectnumber=86&motion=%25>)
 - `sport_squat-5` — [CMU mocap subject 86 trial 02 (walk, squats, run, stretch, jumps, punches, and drinking), frame 1478, three-quarter view from her left](<http://mocap.cs.cmu.edu/search.php?subjectnumber=86&motion=%25>)
 
+Director moves (Direct a move…: the move, then subject and trial, the seconds used):
+
+- `walk` — [CMU mocap subject 82 trial 08 (stand still; casual walk forward), 7.7–10.6 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=82&motion=%25>)
+- `turn` — [CMU mocap subject 69 trial 17 (turn in place), 0.8–3.7 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=69&motion=%25>)
+- `sit` — [CMU mocap subject 143 trial 18 (Sit Down And Get Up), 0.3–2 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=143&motion=%25>)
+- `stand` — [CMU mocap subject 143 trial 18 (Sit Down And Get Up), 2.4–3.6 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=143&motion=%25>)
+- `wave` — [CMU mocap subject 141 trial 16 (Wave Hello), 0–2.5 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=141&motion=%25>)
+- `reach` — [CMU mocap subject 15 trial 07 (lean forward, tiptoe, reach for), 1–3.6 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=15&motion=%25>)
+- `look-back` — [CMU mocap subject 40 trial 10 (wait for bus), 3.4–4.8 s, mirrored](<http://mocap.cs.cmu.edu/search.php?subjectnumber=40&motion=%25>)
+- `shrug` — [CMU mocap subject 141 trial 21 (Shrug), 0.3–1.9 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=141&motion=%25>)
+- `bow` — [CMU mocap subject 113 trial 02 (Bow), 0.4–3.4 s](<http://mocap.cs.cmu.edu/search.php?subjectnumber=113&motion=%25>)
+
 ## COCO 2017 person keypoint annotations
 
 [COCO Consortium](<https://cocodataset.org/>), annotations under

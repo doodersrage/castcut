@@ -159,6 +159,7 @@
   "src/lib/director/edit.ts",
   "src/lib/director/figure-ops.ts",
   "src/lib/director/framing.ts",
+  "src/lib/director/mocap.ts",
   "src/lib/director/motion-line.ts",
   "src/lib/director/motion.ts",
   "src/lib/director/moves.ts",

@@ -1,9 +1,9 @@
 /**
  * Director: ready-made moves (walk forward, turn around, sit down, wave…). Each is built in her
  * own frame — hips over the origin, facing +z, standing relaxed at the start — and the timeline
- * (timeline.ts) places it where the previous beat left her. Walk, turn, sit and reach come from
- * the director test (scripts/director-test on the feasibility branch); the walk takes small steps
- * so she stays in frame.
+ * (timeline.ts) places it where the previous beat left her. Every move but the nod plays a real
+ * motion capture (mocap.ts); the hand-keyed versions below (from the director test,
+ * scripts/director-test on the feasibility branch) remain for a move without one.
  */
 
 import { Vector3 } from 'three';
@@ -25,6 +25,7 @@ import {
   type MotionDef,
   type Plant,
 } from './motion';
+import { mocapFrames, mocapSeconds } from './mocap';
 
 export const DIRECTOR_MOVE_IDS = [
   'walk',
@@ -53,33 +54,53 @@ export type DirectorMove = {
   fromSitting?: boolean;
 };
 
+/** A captured move's own length (to a tenth of a second), else the hand-keyed one's. */
+const natural = (id: DirectorMoveId, keyed: number) =>
+  Math.round((mocapSeconds(id) ?? keyed) * 10) / 10;
+
 export const DIRECTOR_MOVES: Record<DirectorMoveId, DirectorMove> = {
   walk: {
     id: 'walk',
     label: 'Walk forward',
     phrase: 'takes a few small steps forward',
-    seconds: 3.4,
+    seconds: natural('walk', 3.4),
   },
-  turn: { id: 'turn', label: 'Turn around', phrase: 'turns around', seconds: 2.6 },
-  sit: { id: 'sit', label: 'Sit down', phrase: 'sits down', seconds: 3.0, sits: true },
+  turn: { id: 'turn', label: 'Turn around', phrase: 'turns around', seconds: natural('turn', 2.6) },
+  sit: {
+    id: 'sit',
+    label: 'Sit down',
+    phrase: 'sits down',
+    seconds: natural('sit', 3.0),
+    sits: true,
+  },
   stand: {
     id: 'stand',
     label: 'Stand up',
     phrase: 'stands up',
-    seconds: 2.6,
+    seconds: natural('stand', 2.6),
     fromSitting: true,
   },
-  wave: { id: 'wave', label: 'Wave', phrase: 'waves with her right hand', seconds: 2.6 },
-  reach: { id: 'reach', label: 'Reach up', phrase: 'reaches up high', seconds: 4.2 },
+  wave: {
+    id: 'wave',
+    label: 'Wave',
+    phrase: 'waves with her right hand',
+    seconds: natural('wave', 2.6),
+  },
+  reach: {
+    id: 'reach',
+    label: 'Reach up',
+    phrase: 'reaches up high',
+    seconds: natural('reach', 4.2),
+  },
   'look-back': {
     id: 'look-back',
     label: 'Look over shoulder',
     phrase: 'looks back over her left shoulder',
-    seconds: 2.8,
+    seconds: natural('look-back', 2.8),
   },
   nod: { id: 'nod', label: 'Nod', phrase: 'nods', seconds: 1.6 },
-  shrug: { id: 'shrug', label: 'Shrug', phrase: 'shrugs', seconds: 1.8 },
-  bow: { id: 'bow', label: 'Bow', phrase: 'bows', seconds: 2.4 },
+  shrug: { id: 'shrug', label: 'Shrug', phrase: 'shrugs', seconds: natural('shrug', 1.8) },
+  bow: { id: 'bow', label: 'Bow', phrase: 'bows', seconds: natural('bow', 2.4) },
 };
 
 /** How far a beat may stretch (or squeeze) a move's natural length. */
@@ -552,6 +573,12 @@ export function moveFrames(
   const key = `${id}|${kind}|${count}|${fps}`;
   const cached = frameCache.get(key);
   if (cached) return cached;
+  const captured = mocapFrames(id, kind, (count - 1) / fps, fps);
+  if (captured) {
+    if (frameCache.size > 64) frameCache.clear();
+    frameCache.set(key, captured);
+    return captured;
+  }
   const def = MAKERS[id]();
   const scale = def.seconds / ((count - 1) / fps);
   const times = Array.from({ length: count }, (_, i) => (i / fps) * scale);
