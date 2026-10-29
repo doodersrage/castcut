@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
+import { pushAppToast } from '@/lib/app/toast';
 import {
   clipExtendProgressNote,
+  extendFacesNote,
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
@@ -77,6 +79,9 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const job = await waitForClipExtend(jobId, {
           onProgress: progress => setExtending({ slotId, note: clipExtendProgressNote(progress) }),
         });
+        // A part whose face drifted (M11 T4): said, whatever page started it.
+        const faces = extendFacesNote(job.faces);
+        if (faces) pushAppToast({ text: faces, tone: 'warning' });
         const latest = stillsRef.current.find(entry => entry.slotId === slotId);
         // Same clip = same job id (the gallery sync may rewrite the URL of the same clip).
         if (!latest || clipIdentity(latest) !== fromClip) {

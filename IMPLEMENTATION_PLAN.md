@@ -2327,6 +2327,24 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   Cast (face match, outfit check — the existing checks) and the result shown; measured on real
   chains. Re-anchoring the face per part (a face pass on the start frame) only if the measurement
   says the prompt is not enough.
+- Status 2026-10-28: done. Measured on a front-facing H3 clip (a woman on a beach towel), three
+  parts, face match (FaceAnalysis, cosine) against the first clip at 4 s:
+  | Chain | 6 s | 7.5 | 10 | 12.5 | 14.5 | 16.5 | end |
+  | --- | --- | --- | --- | --- | --- | --- | --- |
+  | before M11 (carry-on beats) | 0.82 | 0.86 | 0.72 | 0.43 | 0.65 | 0.62 | 0.54 |
+  | T1–T3, written beats | 0.82 | 0.75 | 0.39 | 0.36 | 0.34 | 0.29 | 0.30 |
+  | + face anchor | 0.82 | 0.66 | 0.65 | 0.30 | 0.61 | 0.62 | 0.61 |
+  More action meant a part could end on a turned face, and the next one invented a new face. Now
+  the next part starts from the frame of the last second whose face best matches
+  (`faceAnchorFrame`, `pickAnchorFrame`; the part is cut there, never the player's own clip),
+  written beats end with the face in view, and a part whose start face scores under 0.40 is
+  named in a toast (`extendFacesNote`). With the anchor the place held too (no new sea, the same
+  towel); the 0.30 is a face half in shadow. Tried and dropped: H3's reference mode
+  (`MiniMaxH3ReferenceToVideo` + `AddGuide` at frame 0) — faces 0.48–0.51 against 0.41–0.48, but
+  it cut to a new shot rebuilt from the reference after the first frame.
+- Also from these runs: per-part length checked (part 2 at 3 s: 18.3 s out, ~20.4 s without);
+  props — beats keep to what is in the shot, part prompts keep "the place" as it was. Still seen:
+  small details drift (a hat gained a band).
 
 ## 13.3 Definition of done
 

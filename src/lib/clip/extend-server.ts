@@ -28,7 +28,10 @@ import {
   extendSegmentCount,
   type ChannelStats,
   extendStitchFilter,
+  FACE_ANCHOR_STEP,
+  FACE_ANCHOR_WINDOW,
   fallbackExtendBeats,
+  pickAnchorFrame,
   withPartAction,
   isWanClipGraph,
   parseExtendBeats,
@@ -249,6 +252,87 @@ async function writeBeats(input: {
   return fallback(input.count);
 }
 
+/**
+ * The frame of `piece` (24 fps, `frames` long) the next part starts from (M11 T4): the candidates
+ * in its last second scored against the reference face, the best picked (pickAnchorFrame). Null
+ * when the face check can't run here (no FaceAnalysis, no face in the reference).
+ */
+async function faceAnchorFrame(input: {
+  ffmpeg: string;
+  piece: string;
+  frames: number;
+  referenceUrl: string;
+  baseUrl: string;
+  comfyUrl?: string;
+  at: (name: string) => string;
+  tag: string;
+}): Promise<{ index: number; similarity: number | null } | null> {
+  const { measureFaceMatchInComfy, FaceMatchNoFaceError } = await import('../face/match-server');
+  const last = input.frames - 1;
+  const indexes: number[] = [];
+  for (let back = 0; back < FACE_ANCHOR_WINDOW && last - back >= 0; back += FACE_ANCHOR_STEP) {
+    indexes.push(last - back);
+  }
+  const candidates: Array<{ index: number; similarity: number | null }> = [];
+  for (const index of indexes) {
+    const file = input.at(`anchor-${input.tag}-${index}.png`);
+    await run(input.ffmpeg, [
+      '-y',
+      '-v',
+      'error',
+      '-i',
+      input.piece,
+      '-vf',
+      `select=eq(n\\,${index})`,
+      '-frames:v',
+      '1',
+      file,
+    ]);
+    const uploaded = await uploadComfyInputContent({
+      baseUrl: input.baseUrl,
+      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ file)),
+      filename: 'castcut-extend-anchor.png',
+      mimeType: 'image/png',
+    });
+    const result = await measureFaceMatchInComfy({
+      referenceUrl: input.referenceUrl,
+      imageUrl: `/api/comfyui/view?${new URLSearchParams({ filename: uploaded.name, type: 'input' }).toString()}`,
+      comfyUrl: input.comfyUrl,
+      timeoutMs: 60_000,
+    }).catch(error => {
+      if (error instanceof FaceMatchNoFaceError) return null;
+      throw error;
+    });
+    if (result && !result.available) return null;
+    candidates.push({ index, similarity: result?.available ? result.similarity : null });
+  }
+  return pickAnchorFrame(candidates, last);
+}
+
+/** `piece` cut to its first `frames` frames, video and sound (a part ending on its anchor frame). */
+async function cutPiece(ffmpeg: string, piece: string, frames: number, out: string): Promise<void> {
+  await run(ffmpeg, [
+    '-y',
+    '-v',
+    'error',
+    '-i',
+    piece,
+    '-vf',
+    `trim=end_frame=${frames},setpts=PTS-STARTPTS`,
+    '-af',
+    `atrim=end=${frames / 24},asetpts=PTS-STARTPTS`,
+    '-c:v',
+    'libx264',
+    '-crf',
+    '14',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    out,
+  ]);
+}
+
 type Graph = Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
 
 async function readHistoryGraph(
@@ -431,7 +515,7 @@ export function startClipExtendJob(input: ClipExtendInput): ClipExtendJob {
 export async function extendClip(
   input: ClipExtendInput,
   onProgress: (progress: Partial<ClipExtendJob>) => void = () => undefined
-): Promise<{ url: string; seconds: number }> {
+): Promise<{ url: string; seconds: number; faces?: Array<number | null> }> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
@@ -477,7 +561,46 @@ export async function extendClip(
     const lengths = [first.frames];
     const overlaps: number[] = [];
     const seed = Math.floor(Math.random() * 1_000_000_000);
+    // The Cast's face as the first clip shows it (M11 T4): each part after the first starts from
+    // the frame of the part before that matches it best. Off when the face check can't run.
+    let faceReference: string | null = null;
+    try {
+      const uploaded = await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ at('reference.png'))),
+        filename: 'castcut-extend-face.png',
+        mimeType: 'image/png',
+      });
+      faceReference = `/api/comfyui/view?${new URLSearchParams({ filename: uploaded.name, type: 'input' }).toString()}`;
+    } catch {
+      faceReference = null;
+    }
+    const faces: Array<number | null> = [];
     for (let k = 0; k < total; k += 1) {
+      // A generated part (never the player's own clip) cut at its best face frame.
+      if (k > 0 && faceReference) {
+        const anchor = await faceAnchorFrame({
+          ffmpeg,
+          piece: pieces[k]!,
+          frames: lengths[k]!,
+          referenceUrl: faceReference,
+          baseUrl,
+          comfyUrl: input.comfyUrl,
+          at,
+          tag: String(k),
+        }).catch(() => null);
+        if (!anchor) {
+          faceReference = null;
+        } else {
+          faces.push(anchor.similarity);
+          // Never shorter than what blends into the part before it, plus a second.
+          if (anchor.index < lengths[k]! - 1 && anchor.index + 1 > overlaps[k - 1]! + 24) {
+            await cutPiece(ffmpeg, pieces[k]!, anchor.index + 1, at(`piece${k}-cut.mp4`));
+            pieces[k] = at(`piece${k}-cut.mp4`);
+            lengths[k] = anchor.index + 1;
+          }
+        }
+      }
       const previous = pieces[k]!;
       const prevFrames = lengths[k]!;
       // The last frame (start / canvas) and, for LTX, the last 17 frames (the guide).
@@ -671,6 +794,7 @@ export async function extendClip(
     return {
       url: `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`,
       seconds: Math.round((done.frames / 24) * 10) / 10,
+      ...(faces.length ? { faces } : {}),
     };
   } finally {
     await fs

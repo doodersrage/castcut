@@ -11,6 +11,8 @@ import {
   parseExtendBeats,
   pickStartSharpenIndex,
   patchWanReplayGraph,
+  extendFacesNote,
+  pickAnchorFrame,
   withPartAction,
 } from './extend';
 import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from '../video/ltx25-renderer';
@@ -22,6 +24,40 @@ describe('Make it 30 s', () => {
     assert.equal(extendSegmentCount({ currentSec: 5, segmentSec: 121 / 24, overlapSec: 17 / 24 }), 6);
     assert.equal(extendSegmentCount({ currentSec: 29.5, segmentSec: 5, overlapSec: 0.7 }), 0);
     assert.equal(extendSegmentCount({ currentSec: 1, segmentSec: 2, overlapSec: 1.9 }), 8);
+  });
+
+  // M11: written beats keep to what is in the shot — "picking something up" brought props.
+  it('asks for beats with nothing new in the shot', () => {
+    const [system] = buildExtendBeatsMessages({ scene: 'relaxing on the towel', count: 3 });
+    assert.match(system!.content, /no new objects/);
+    assert.doesNotMatch(system!.content, /picking something up/);
+  });
+
+  // M11 T4: the next part starts from the frame whose face is most the Cast's.
+  it('picks the best face frame, the latest when near it, the last frame when none has a face', () => {
+    assert.deepEqual(
+      pickAnchorFrame(
+        [
+          { index: 123, similarity: 0.31 },
+          { index: 119, similarity: 0.58 },
+          { index: 115, similarity: 0.6 },
+          { index: 111, similarity: null },
+        ],
+        123
+      ),
+      { index: 119, similarity: 0.58 }
+    );
+    assert.deepEqual(pickAnchorFrame([{ index: 123, similarity: null }], 123), {
+      index: 123,
+      similarity: null,
+    });
+  });
+
+  it('says which parts may not look like her', () => {
+    assert.equal(extendFacesNote([0.62, null, 0.55]), '');
+    assert.equal(extendFacesNote(undefined), '');
+    assert.match(extendFacesNote([0.62, 0.31]), /^Part 3 of the longer clip/);
+    assert.match(extendFacesNote([0.2, 0.62, 0.31]), /^Parts 2 and 4 /);
   });
 
   it('reads numbered beats and falls back to gentle ones', () => {

@@ -70,9 +70,13 @@ export function buildExtendBeatsMessages(input: {
     `Continue a short video shot. Write ${input.count} beats, numbered 1-${input.count}, one per line.`,
     'Each beat is what happens in the next 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.',
     'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips, nobody leaves the frame or the room.',
+    // M11: "picking something up" brought a glass and a phone, and the room grew a TV.
+    'Only what is already in the shot: no new objects — no phone, drink, screen or prop that the shot so far does not name.',
+    // M11 T4: a beat that ended with the face turned away made the next part invent a new face.
+    'Each beat ends with the face in view, turned toward the camera.',
     input.talking
       ? TALK_BEATS
-      : 'Small, believable steps — a gesture, a look, picking something up, moving a little — that add up to a tiny story.',
+      : 'Small, believable steps — a gesture, a look, touching something already there, moving a little — that add up to a tiny story.',
     input.talking ? TALK_HEAT[heat] : BEAT_HEAT[heat],
     direction
       ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
@@ -216,6 +220,49 @@ export function patchWanReplayGraph(
   return { graph, saveNode: save[0] };
 }
 
+/** How far back from a part's end its start frame for the next part may be picked (frames). */
+export const FACE_ANCHOR_WINDOW = 24;
+/** Frames apart, the candidates looked at in that window. */
+export const FACE_ANCHOR_STEP = 4;
+
+/**
+ * Which frame the next part starts from (M11 T4): a part that ended on a turned or small face made
+ * the next part invent a new one (face match 0.30 by the third part, against 0.54 when the face
+ * stayed in view). The candidate whose face best matches the Cast's, the latest within 0.03 of the
+ * best (the part is cut there; no shorter than needed); no face anywhere: the last frame.
+ */
+export function pickAnchorFrame(
+  candidates: ReadonlyArray<{ index: number; similarity: number | null }>,
+  lastIndex: number
+): { index: number; similarity: number | null } {
+  const scored = candidates.filter(
+    (entry): entry is { index: number; similarity: number } => typeof entry.similarity === 'number'
+  );
+  if (!scored.length) return { index: lastIndex, similarity: null };
+  const best = Math.max(...scored.map(entry => entry.similarity));
+  const near = scored.filter(entry => entry.similarity >= best - 0.03);
+  return near.reduce((latest, entry) => (entry.index > latest.index ? entry : latest));
+}
+
+/** Below this a part's face is likely someone else's (the Cast's own plate scores 0.40–0.70). */
+export const FACE_HELD_MIN = 0.4;
+
+/**
+ * What to say about the faces of a longer clip's parts (M11 T4): '' when every scored part held,
+ * else which parts may not look like the Cast. `faces[k]` is part k + 2's start frame.
+ */
+export function extendFacesNote(faces: ReadonlyArray<number | null> | undefined): string {
+  const off = (faces ?? []).flatMap((similarity, k) =>
+    typeof similarity === 'number' && similarity < FACE_HELD_MIN ? [k + 2] : []
+  );
+  if (!off.length) return '';
+  const parts =
+    off.length === 1
+      ? `Part ${off[0]}`
+      : `Parts ${off.slice(0, -1).join(', ')} and ${off[off.length - 1]}`;
+  return `${parts} of the longer clip may not look like the Cast — the face changed. Make it again, or cut there in Cut.`;
+}
+
 /**
  * The clip's own prompt with a part's beat as its action (M11 T1): the `Action: …` (still-clip
  * template) or `Scene: …` (intimate template) sentence swapped, so every other line — the place,
@@ -265,6 +312,8 @@ export type ClipExtendJob = {
   total: number;
   url?: string;
   seconds?: number;
+  /** How well each part's start frame matched the Cast's face (M11 T4; null: none in view). */
+  faces?: Array<number | null>;
   error?: string;
 };
 
