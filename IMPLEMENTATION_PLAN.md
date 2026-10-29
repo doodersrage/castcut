@@ -2483,9 +2483,12 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   joined in ~1.7 min; colour step at the seam ~1; the largest frame-to-frame change near the join
   12 (median 2.7; 20 before the ease-in and size hold) — the hand coming up; at most one repeated
   frame in the part, no smearing; she ends a little smaller over the move (gradual).
-- Found, not fixed: the same still read twice in one ComfyUI session returns no pose (ComfyUI
-  answers the identical graph from its cache without the keypoints) — the Director then starts
-  from Stand.
+- Found and fixed: the same still read twice in one ComfyUI session returned no pose — ComfyUI
+  answers the identical graph from its cache, and a cached node reports no output (the Director
+  then started from Stand). `runComfyUtilityGraph` now sees an empty run with `execution_cached`
+  nodes and queues it once more with an input ComfyUI ignores but keys its cache on
+  (`castcut_uncache`) on every node but the loaders; checked live: a still's pose read three times
+  and a face match twice, a video read twice.
 - Tests: framing (held: no pull-back, torso within limits through reach + walk), timeline (24 fps
   frames, proportions through a move), e2e "continues a finished clip…" (continueClip, 24 fps AVI).
 

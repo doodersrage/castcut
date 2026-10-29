@@ -7,6 +7,7 @@
  * its history entry is deleted afterwards so checks never show up as gallery items.
  */
 
+import { randomUUID } from 'node:crypto';
 import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import {
   castcutPngPrompt,
@@ -37,10 +38,41 @@ export type ComfyHistoryEntry = {
   status?: {
     status_str?: string;
     completed?: boolean;
-    /** `[event, data]` pairs; an `execution_error` carries the node's exception message. */
-    messages?: Array<[string, { exception_message?: unknown } | undefined]>;
+    /**
+     * `[event, data]` pairs; an `execution_error` carries the node's exception message, an
+     * `execution_cached` the nodes ComfyUI answered from its cache.
+     */
+    messages?: Array<[string, { exception_message?: unknown; nodes?: unknown } | undefined]>;
   };
 };
+
+/** Whether ComfyUI answered some of the run's nodes from its cache (they ran on an earlier job). */
+export function comfyRanFromCache(entry: ComfyHistoryEntry): boolean {
+  const cached = entry.status?.messages?.find(message => message?.[0] === 'execution_cached');
+  const nodes = cached?.[1]?.nodes;
+  return Array.isArray(nodes) && nodes.length > 0;
+}
+
+/**
+ * The graph with an input ComfyUI ignores when it runs a node but counts in its cache key
+ * (`castcut_uncache`) on every node but the model loaders: they run again — and report their
+ * output again — while the loaders stay cached.
+ */
+export function uncachedComfyPrompt(
+  prompt: Record<string, unknown>,
+  token: string
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [id, raw] of Object.entries(prompt)) {
+    const node = raw as { class_type?: unknown; inputs?: Record<string, unknown> } | null;
+    const loader = typeof node?.class_type === 'string' && /Loader$/.test(node.class_type);
+    out[id] =
+      node && typeof node === 'object' && !loader
+        ? { ...node, inputs: { ...(node.inputs ?? {}), castcut_uncache: token } }
+        : raw;
+  }
+  return out;
+}
 
 /** The exception message of a failed run, if ComfyUI recorded one. */
 export function comfyRunErrorMessage(entry: ComfyHistoryEntry): string {
@@ -223,6 +255,8 @@ export async function runComfyUtilityGraph<T>(input: {
   priority?: 'check' | 'front' | 'queue';
   /** Aborting takes the prompt off ComfyUI's queue (or interrupts it if running) and throws. */
   signal?: AbortSignal;
+  /** Internal: this is the run again past ComfyUI's cache (once). */
+  uncached?: boolean;
 }): Promise<{ result: T } | { result: undefined; completed: true }> {
   const { baseUrl, label } = input;
   const queued = await fetch(`${baseUrl}/prompt`, {
@@ -275,6 +309,16 @@ export async function runComfyUtilityGraph<T>(input: {
         return { result };
       }
       if (entry.status?.completed) {
+        // The same graph again (the same still read twice) is answered from ComfyUI's cache,
+        // and a cached node reports no output: run it once more past the cache.
+        if (!input.uncached && comfyRanFromCache(entry)) {
+          return runComfyUtilityGraph({
+            ...input,
+            prompt: uncachedComfyPrompt(input.prompt, randomUUID()),
+            uncached: true,
+            timeoutMs: Math.max(30_000, deadline - Date.now()),
+          });
+        }
         return { result: undefined, completed: true };
       }
     }

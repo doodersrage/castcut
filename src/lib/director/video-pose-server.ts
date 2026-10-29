@@ -100,33 +100,26 @@ export async function readVideoPoses(input: {
       }
       return inputs;
     };
-    const readOnce = async (keepName?: string) => {
-      const uploaded = await uploadComfyInputContent({
-        baseUrl,
-        bytes,
-        filename: keepName ?? 'castcut-director-video.mp4',
-        mimeType: 'video/mp4',
-        ...(keepName ? { keepName: true } : {}),
-      });
-      const run = await runComfyUtilityGraph({
-        baseUrl,
-        label: 'director-video-pose',
-        priority: 'check',
-        timeoutMs: 15 * 60_000,
-        prompt: {
-          '1': { class_type: 'LoadVideo', inputs: { file: uploaded.name } },
-          '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
-          '3': { class_type: detector.node, inputs: detectorInputs(['2', 0]) },
-          '4': { class_type: 'PreviewImage', inputs: { images: ['3', 0] } },
-        },
-        read: entry => entry.outputs?.['3']?.openpose_json?.[0],
-      });
-      return run.result;
-    };
-    // The same video again is the same graph, which ComfyUI answers from its cache without the
-    // keypoints: then once more under a name of its own.
-    const result =
-      (await readOnce()) ?? (await readOnce(`castcut-director-video-${randomUUID()}.mp4`));
+    const uploaded = await uploadComfyInputContent({
+      baseUrl,
+      bytes,
+      filename: 'castcut-director-video.mp4',
+      mimeType: 'video/mp4',
+    });
+    // The same video again is the same graph: runComfyUtilityGraph runs it past ComfyUI's cache.
+    const { result } = await runComfyUtilityGraph({
+      baseUrl,
+      label: 'director-video-pose',
+      priority: 'check',
+      timeoutMs: 15 * 60_000,
+      prompt: {
+        '1': { class_type: 'LoadVideo', inputs: { file: uploaded.name } },
+        '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
+        '3': { class_type: detector.node, inputs: detectorInputs(['2', 0]) },
+        '4': { class_type: 'PreviewImage', inputs: { images: ['3', 0] } },
+      },
+      read: entry => entry.outputs?.['3']?.openpose_json?.[0],
+    });
     const read = result === undefined ? null : parseVideoPoseFrames(result);
     if (!read) throw new Error('DWPose found no one in that video.');
     return read;
