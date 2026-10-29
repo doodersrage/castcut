@@ -325,6 +325,7 @@ test('Preview the mix plays the talking clip with the music settings', async ({ 
   await dismissBlockingOverlays(page);
   const coach = page.locator('body');
   await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('cut-tab-options').click();
   const preview = coach.getByTestId('cut-mix-preview');
   await expect(preview).toBeVisible();
   await preview.click();
@@ -385,6 +386,7 @@ test('Preview the cut plays the edit in its shape before encoding', async ({ pag
   await dismissBlockingOverlays(page);
   const coach = page.locator('body');
   await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('cut-tab-options').click();
   await coach.getByTestId('cut-shape-square').click();
   await coach.getByTestId('cut-options-text').evaluate(el => {
     (el as HTMLDetailsElement).open = true;

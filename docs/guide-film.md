@@ -4,6 +4,11 @@
 `/m/cut`). Day's *Ready to cut* section and Story's **Cut film →** open it with their shots
 picked.
 
+The monitor and the timeline sit together, with one panel beside them — **Shots**, **Options**,
+**Subtitles**, **Continuity** (with how many are flagged) and, when a file is gone, **Missing** —
+so watching, arranging and setting up the film happen on one screen (on a narrow screen the panel
+comes under the timeline). **Your films**, **Versions** and **Package** are tabs below.
+
 | Part of the page | What it does |
 | --- | --- |
 | **What's in it** | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them |
@@ -12,7 +17,7 @@ picked.
 | **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim), **Bridge to next** renders a short clip that moves from the end of the shot under the playhead into the next shot — she moves and the place turns into the next one, instead of a cut or a fade (MiniMax-H3, a few minutes; it joins the film when ready, its sound muted). Added shots have **Remove** |
 | **Options** | **Made for** (a profile), shape, size, length, music, subtitles, titles — kept between visits — and **Before cutting**, the checks |
 | **Subtitles** | Each shot's subtitle and when it shows, the checks, **Export .srt** / **Import .srt…** (see [Subtitles](#subtitles)) |
-| **Missing media** | Shown when a shot's file is gone: **Relink** it (see [Missing media](#missing-media)) |
+| **Missing** | Shown when a shot's file is gone: **Relink** it (see [Missing media](#missing-media)) |
 | **Continuity** | What the checks found on the shots (face, pose, outfit jumps between shots…), each decided **It's fine** or **It's real** |
 | **Versions** | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again |
 | **Package** | The cut, its versions and (with media) its files in one .zip for another machine — and **Import a package…** (see [Package a cut](#package-a-cut)) |

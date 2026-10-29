@@ -314,6 +314,7 @@ test('versions: save the edit, change it, open the saved one back', async ({ pag
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+  await page.getByTestId('cut-tab-versions').click();
   await page.getByTestId('cut-version-name').fill('Long');
   await page.getByTestId('cut-version-save').click();
   await expect(page.getByTestId('cut-version-Long')).toBeVisible();
@@ -490,6 +491,7 @@ test('missing media: a gone file is listed, and relinking to another take fixes 
   });
   await gotoStable(page, '/cut?from=scenes');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-missing').click();
   const missing = page.getByTestId('cut-missing-scenes:scene-f3');
   await expect(missing).toBeVisible({ timeout: 30_000 });
   await expect(missing).toHaveAttribute('data-blocks', 'true');
@@ -498,6 +500,7 @@ test('missing media: a gone file is listed, and relinking to another take fixes 
   // Relink to the scene's other take: nothing missing, and the way back is offered.
   await page.getByTestId('cut-missing-take-scenes:scene-f3').first().click();
   await expect(page.getByTestId('cut-missing-section')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByTestId('cut-tab-missing')).toHaveCount(0);
   await expect(page.getByTestId('cut-pin-scenes:scene-f3-back')).toBeVisible();
   await expect(page.locator('[data-testid="cut-shot-pick-scenes:scene-f3"] img')).toHaveAttribute(
     'src',
@@ -586,6 +589,7 @@ test('subtitles: typed, set to none, imported from an .srt and exported', async 
   await seed(page, false);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-subtitles').click();
   const summary = page.getByTestId('cut-subtitles-summary');
   await expect(summary).toContainText('No subtitles yet', { timeout: 30_000 });
 
@@ -635,6 +639,7 @@ test('subtitles: split into timed cues, shown on the monitor, exported, and back
   await seed(page, false);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-subtitles').click();
   const summary = page.getByTestId('cut-subtitles-summary');
   await expect(summary).toContainText('No subtitles yet', { timeout: 30_000 });
   const text = page.getByTestId('cut-subtitle-text-day:morning');
@@ -753,6 +758,7 @@ test('export: a profile sets the shape, and the preflight flags too little disk 
   await seed(page, false);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-preflight-shots')).toHaveAttribute('data-status', 'ok', {
     timeout: 30_000,
   });
@@ -857,6 +863,7 @@ test('a packaged cut restores elsewhere: its media stored there, opened as a ver
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('cut-film').first()).toContainText('1 shot', { timeout: 30_000 });
   const download = page.waitForEvent('download');
+  await page.getByTestId('cut-tab-package').click();
   await page.getByTestId('cut-package-full').click();
   const packaged = await download;
   expect(packaged.suggestedFilename()).toMatch(/\.castcut\.zip$/);
@@ -880,12 +887,14 @@ test('a packaged cut restores elsewhere: its media stored there, opened as a ver
   });
   await gotoStable(elsewhere, '/cut?from=scenes');
   await dismissBlockingOverlays(elsewhere);
+  await elsewhere.getByTestId('cut-tab-package').click();
   await elsewhere.getByTestId('cut-package-import').setInputFiles(zipPath);
   await expect(elsewhere.getByTestId('cut-status')).toContainText('Imported', { timeout: 30_000 });
   // Stored in this Gallery — or, on a server without file storage (CI), kept in the cut.
   await expect(elsewhere.getByTestId('cut-status')).toContainText(
     /stored here|already here|kept in the cut itself/
   );
+  await elsewhere.getByTestId('cut-tab-versions').click();
   const version = elsewhere.locator('[data-testid^="cut-version-open-Imported"]');
   await expect(version).toBeVisible();
   await version.click();
@@ -895,6 +904,7 @@ test('a packaged cut restores elsewhere: its media stored there, opened as a ver
     timeout: 30_000,
   });
   // Nothing is missing to play it; the Scene it came from just isn't on this machine (said).
+  await elsewhere.getByTestId('cut-tab-missing').click();
   const note = elsewhere.getByTestId('cut-missing-scenes:scene-f7');
   await expect(note).toHaveAttribute('data-blocks', 'false');
   await expect(note).toContainText('its source is gone');
@@ -950,6 +960,7 @@ test('continuity rules: an unstated outfit change between two kitchen mornings i
   });
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-continuity').click();
   const jump = page.getByTestId('cut-finding-scenes:scene-kitchen:outfit-jump');
   await expect(jump).toBeVisible({ timeout: 30_000 });
   await expect(jump).toContainText('Same place and time');
@@ -982,6 +993,7 @@ test('continuity: a flagged shot is listed, marked fine, and stays marked after 
   });
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-continuity').click();
   const finding = page.getByTestId('cut-finding-cr-m:face-miss');
   await expect(finding).toBeVisible({ timeout: 30_000 });
   await expect(finding).toContainText('Face match 41%');
@@ -998,6 +1010,7 @@ test('continuity: a flagged shot is listed, marked fine, and stays marked after 
   // A reload keeps the decision (the seed only sets the Gallery and settings again).
   await page.reload();
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-continuity').click();
   await expect(page.getByTestId('cut-continuity-dismissed-toggle')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('cut-finding-cr-m:face-miss')).toHaveCount(0);
   await page.getByTestId('cut-continuity-dismissed-toggle').click();
@@ -1070,12 +1083,14 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-preview-scrub').fill('1');
   const before = await spread();
   expect(before).toBeGreaterThan(4);
+  await page.getByTestId('cut-tab-options').click();
   await page.getByTestId('cut-options-picture').evaluate(el => {
     (el as HTMLDetailsElement).open = true;
   });
   await page.getByTestId('cut-look').selectOption('mono');
   await expect.poll(spread, { timeout: 10_000 }).toBeLessThan(1.5);
   // A 2× clip: its block on the timeline is about half as wide.
+  await page.getByTestId('cut-tab-shots').click();
   const clipBlock = page.getByTestId('cut-timeline-shot-day:afternoon');
   const wide = (await clipBlock.boundingBox())!.width;
   await page.getByTestId('cut-shot-speed-day:afternoon').selectOption('2');
@@ -1085,7 +1100,9 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-shot-speed-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
   // Sound: the ambience track and a clip's J / L pickers are offered.
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-ambience-upload')).toBeVisible();
+  await page.getByTestId('cut-tab-shots').click();
   await page.getByTestId('cut-shot-sound-lead-day:afternoon').selectOption('1');
   await expect(page.getByTestId('cut-shot-sound-lead-day:afternoon')).toHaveValue('1');
   // Overlays: a shot's lower third, set in its overlay editor.
@@ -1097,6 +1114,7 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-shot-motion-day:morning').selectOption('custom');
   await expect(page.getByTestId('cut-shot-move-to-day:morning')).toHaveValue('centre');
   await expect(page.getByTestId('cut-new-take')).toBeVisible();
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-export-project')).toBeVisible();
   await expect(page.getByTestId('cut-smooth-motion')).not.toBeChecked();
   // Follow faces is offered for a vertical cut only (on by default).
@@ -1105,6 +1123,7 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
   await page.getByTestId('cut-shape-wide').click();
   // Make longer is offered (for the clip under the playhead).
+  await page.getByTestId('cut-tab-shots').click();
   await expect(page.getByTestId('cut-extend')).toBeVisible();
   // Generate a shot: the form opens with the shot it goes after, and closes again.
   await page.getByTestId('cut-generate').click();
@@ -1128,8 +1147,10 @@ test('make a reel: a vertical short cut, the full cut kept as a version', async 
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
   await page.getByTestId('cut-reel').selectOption('15');
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-shape-vertical')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
+  await page.getByTestId('cut-tab-versions').click();
   await expect(page.getByTestId('cut-version-Full cut')).toBeVisible();
   await expect(page.getByTestId('cut-version-Reel · 15 s')).toBeVisible();
   // The full cut opens back as it was (wide).

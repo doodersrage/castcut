@@ -7,7 +7,7 @@
  */
 
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -36,7 +36,12 @@ import FilmCutShotList from '@/components/FilmCutShotList';
 import FilmRecutPanel from '@/components/character/FilmRecutPanel';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
-import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
+import {
+  SegmentedControl,
+  ToolActionRow,
+  ToolLayout,
+  ToolSection,
+} from '@/components/ui/ToolPageShell';
 import { useCutRoom } from '@/hooks/useCutRoom';
 import { useCommandActions } from '@/hooks/useCommandActions';
 import { PLAY_COMMAND_ACTION_IDS } from '@/lib/play/command-actions';
@@ -52,6 +57,16 @@ import {
 import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
+
+/** The panel beside the monitor, and the tab below it. */
+type CutPanel = 'shots' | 'options' | 'subtitles' | 'continuity' | 'missing';
+type CutKeep = 'films' | 'versions' | 'package';
+
+function subscribeHash(onChange: () => void): () => void {
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+const readHash = () => window.location.hash;
 
 export default function CutRoom() {
   const vm = useCutRoom();
@@ -75,6 +90,12 @@ export default function CutRoom() {
   // The monitor: the cut rebuilt a moment after each edit, the playhead kept.
   // Solo (M4 F4): hear one track in the monitor — not saved, not encoded.
   const [solo, setSolo] = useState<CutTrack | null>(null);
+  const [pickedPanel, setPanel] = useState<CutPanel | null>(null);
+  const [keepShown, setKeep] = useState<CutKeep>('films');
+  // A link to the continuity list (Production's next step) opens its panel.
+  const hash = useSyncExternalStore(subscribeHash, readHash, () => '');
+  const shownPanel: CutPanel =
+    pickedPanel ?? (hash === '#cut-continuity-section' ? 'continuity' : 'shots');
   const preview = useCutPreview({
     shots: vm.previewShots,
     value: vm.options,
@@ -408,6 +429,42 @@ export default function CutRoom() {
     </Button>
   );
 
+  // The editing loop on one screen: the monitor and timeline beside one panel at a time.
+  const flagged = vm.continuity.filter(item => item.decision?.decision !== 'dismissed').length;
+  const panels: Array<{ value: CutPanel; label: string; tone?: 'danger'; testId: string }> = [
+    { value: 'shots', label: `Shots · ${vm.previewShots.length}`, testId: 'cut-tab-shots' },
+    { value: 'options', label: 'Options', testId: 'cut-tab-options' },
+    { value: 'subtitles', label: 'Subtitles', testId: 'cut-tab-subtitles' },
+    {
+      value: 'continuity',
+      label: flagged ? `Continuity · ${flagged}` : 'Continuity',
+      testId: 'cut-tab-continuity',
+    },
+    ...(vm.missingMedia.length > 0
+      ? [
+          {
+            value: 'missing' as const,
+            label: `Missing · ${vm.missingMedia.length}`,
+            tone: 'danger' as const,
+            testId: 'cut-tab-missing',
+          },
+        ]
+      : []),
+  ];
+  const panel: CutPanel =
+    shownPanel === 'missing' && vm.missingMedia.length === 0 ? 'shots' : shownPanel;
+  const keepTabs: Array<{ value: CutKeep; label: string; testId: string }> = [
+    { value: 'films', label: `Your films · ${vm.films.length}`, testId: 'cut-tab-films' },
+    ...(vm.shots.length > 0 || vm.versions.length > 0
+      ? [{ value: 'versions' as const, label: 'Versions', testId: 'cut-tab-versions' }]
+      : []),
+    { value: 'package', label: 'Package', testId: 'cut-tab-package' },
+  ];
+  const keep: CutKeep =
+    keepShown === 'versions' && !keepTabs.some(tab => tab.value === 'versions')
+      ? 'films'
+      : keepShown;
+
   return (
     <>
       <ConfirmDialog
@@ -446,12 +503,14 @@ export default function CutRoom() {
       />
       <ToolLayout
         accent="fuchsia"
+        width="full"
         title="Cut"
         description="Put the shots together into a film — watch it, arrange it, add music, then cut."
         headerActions={vm.shots.length > 0 ? cutButton : undefined}
       >
-        <ToolSection data-testid="cut-sources" title="What's in it">
-          <div className="flex flex-wrap gap-2">
+        <div data-testid="cut-sources" role="group" aria-label="What's in it">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="type-overline text-[var(--text-muted)]">What&apos;s in it</span>
             {CUT_SOURCES.map(source => {
               const count = vm.bySource[source.id].length;
               const on = vm.sources.includes(source.id);
@@ -533,12 +592,12 @@ export default function CutRoom() {
               — every finished still and clip shows up here.
             </p>
           ) : null}
-        </ToolSection>
+        </div>
 
         {vm.shots.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
             <div className="min-w-0 space-y-4">
-              <ToolSection data-testid="cut-watch" title="Watch the cut">
+              <ToolSection data-testid="cut-watch" aria-label="Watch the cut">
                 <CutMonitor
                   canvasRef={preview.canvasRef}
                   size={preview.size}
@@ -601,458 +660,469 @@ export default function CutRoom() {
                   timeline={null}
                 />
               </ToolSection>
-            </div>
-            <ToolSection data-testid="cut-options" title="Options" className="lg:self-start">
-              <div className="space-y-3">
-                <FilmCutOptionsControls
-                  value={vm.options}
-                  onChange={vm.setOptions}
+              <ToolSection data-testid="cut-timeline-section" title="Timeline">
+                <CutTimeline
+                  loaded={preview.loaded}
+                  order={order}
+                  edits={vm.options.shotEdits}
+                  time={preview.time}
+                  activeKey={activeKey}
+                  holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
                   disabled={busy}
-                  testIdPrefix="cut"
-                  shots={vm.previewShots}
-                  withShotPanels={false}
-                  storyExtras={vm.sources.includes('story')}
-                  previouslyAvailable
-                  scoreBrief={
-                    vm.sources.includes('day') ? { mood: vm.dayMood } : { tone: vm.storyTone }
-                  }
+                  thumbFor={key => {
+                    const shot = vm.previewShots.find(entry => entry.key === key);
+                    if (!shot) return null;
+                    // A clip shows the still it started from (a video frame may not paint).
+                    return shot.kind === 'clip' && shot.thumbUrl
+                      ? { url: shot.thumbUrl, clip: false }
+                      : { url: shot.url, clip: shot.kind === 'clip' };
+                  }}
+                  playing={preview.playing}
+                  bedUrl={vm.options.audioBedUrl.trim() || undefined}
+                  bedLabel={vm.options.audioBedName}
+                  onSeek={preview.seek}
+                  onPick={pick}
+                  onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
                 />
-                <div className="border-t border-[var(--border-subtle)] pt-3">
-                  <CutExport
-                    profile={vm.options.exportProfile}
-                    preflight={preflight}
-                    output={vm.outputChecks}
+                <div className="mt-2">
+                  <CutTracks
+                    sound={vm.options.sound}
+                    solo={solo}
                     disabled={busy}
-                    onProfile={vm.applyProfile}
+                    onMute={vm.setTrackMuted}
+                    onSolo={setSolo}
                   />
                 </div>
-                <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
-                  {cutButton}
-                  <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy || exporting || !preview.loaded}
-                      loading={exporting}
-                      loadingLabel="Packing"
-                      data-testid="cut-export-project"
-                      title="This cut as a project for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline (and the subtitles) in one .zip"
-                      onClick={() => void exportProject()}
-                    >
-                      Export for an editor
-                    </Button>
-                    {exportError ? (
-                      <p
-                        className="type-caption text-[var(--danger)]"
-                        data-testid="cut-export-error"
+                <div className="mt-2">
+                  <CutEffects
+                    sound={vm.options.sound}
+                    time={preview.time}
+                    disabled={busy}
+                    onChange={vm.setEffect}
+                    onSeek={preview.seek}
+                  />
+                </div>
+                <p className="type-caption mt-2 text-[var(--text-muted)]">
+                  Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+←
+                  → move the shot · S split · I / O trim in / out · F freeze frame · D duplicate ·
+                  Delete leave it out · Ctrl+Z undo
+                </p>
+              </ToolSection>
+            </div>
+            <aside className="min-w-0 xl:sticky xl:top-24" data-testid="cut-inspector">
+              <ToolSection className="sidebar-scroll xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
+                <div className="mb-3">
+                  <SegmentedControl
+                    aria-label="Shots, options, subtitles and continuity"
+                    value={panel}
+                    onChange={setPanel}
+                    options={panels}
+                  />
+                </div>
+                {panel === 'shots' ? (
+                  <div data-testid="cut-shots">
+                    <div className="mb-2 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy}
+                        data-testid="cut-add-gallery"
+                        onClick={() => setGalleryOpen(true)}
                       >
-                        {exportError}
-                      </p>
-                    ) : null}
-                    {vm.lastSubtitles ? (
+                        + From Gallery
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy}
+                        data-testid="cut-add-text"
+                        title="A card of white words on black, after the shot under the playhead"
+                        onClick={() => vm.addText(activeKey)}
+                      >
+                        + Text card
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        data-testid="cut-subtitles-srt"
-                        title="The film's subtitles, timed to the cut — for YouTube, a video editor or a player"
-                        onClick={() => {
-                          const blob = new Blob([vm.lastSubtitles!.srt], {
-                            type: 'application/x-subrip',
+                        disabled={busy || !activeKey}
+                        data-testid="cut-duplicate"
+                        title="The shot under the playhead again, right after it"
+                        onClick={() => activeKey && vm.duplicate(activeKey)}
+                      >
+                        Duplicate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy || !activeKey || vm.takeBusy !== null}
+                        data-testid="cut-new-take"
+                        title="Render the picked shot again with a new seed; the new take takes its place when ready (Ctrl+Z / Remove brings the old one back)"
+                        onClick={() => activeKey && void vm.newTake(activeKey)}
+                      >
+                        {vm.takeBusy ? 'Queueing…' : 'New take'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy || !splitAt}
+                        data-testid="cut-split"
+                        title="Cut the clip under the playhead in two, where the playhead is"
+                        onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
+                      >
+                        Split at playhead
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy || !clipPoint || vm.freezeBusy}
+                        data-testid="cut-freeze"
+                        title="Hold the clip's frame under the playhead as a still for 2 s, right after the clip (F)"
+                        onClick={() =>
+                          clipPoint && void vm.freezeFrame(clipPoint.key, clipPoint.fileSec)
+                        }
+                      >
+                        {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
+                      </Button>
+                      <select
+                        aria-label="Make a reel"
+                        title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
+                        disabled={busy || kept.length === 0}
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                        value=""
+                        data-testid="cut-reel"
+                        onChange={event => {
+                          const seconds = Number(event.target.value);
+                          if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
+                          const durations = new Map<string, number>();
+                          preview.loaded?.keys.forEach((key, index) => {
+                            const sec = preview.loaded?.clipSecs[index];
+                            if (key && sec) durations.set(key, sec);
                           });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = vm.lastSubtitles!.filename;
-                          link.click();
-                          window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                          vm.makeReel(seconds, durations);
                         }}
                       >
-                        Subtitles (.srt)
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </ToolSection>
-          </div>
-        ) : null}
-
-        {vm.shots.length > 0 ? (
-          <ToolSection data-testid="cut-timeline-section" title="Timeline">
-            <CutTimeline
-              loaded={preview.loaded}
-              order={order}
-              edits={vm.options.shotEdits}
-              time={preview.time}
-              activeKey={activeKey}
-              holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
-              disabled={busy}
-              thumbFor={key => {
-                const shot = vm.previewShots.find(entry => entry.key === key);
-                if (!shot) return null;
-                // A clip shows the still it started from (a video frame may not paint).
-                return shot.kind === 'clip' && shot.thumbUrl
-                  ? { url: shot.thumbUrl, clip: false }
-                  : { url: shot.url, clip: shot.kind === 'clip' };
-              }}
-              playing={preview.playing}
-              bedUrl={vm.options.audioBedUrl.trim() || undefined}
-              bedLabel={vm.options.audioBedName}
-              onSeek={preview.seek}
-              onPick={pick}
-              onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
-            />
-            <div className="mt-2">
-              <CutTracks
-                sound={vm.options.sound}
-                solo={solo}
-                disabled={busy}
-                onMute={vm.setTrackMuted}
-                onSolo={setSolo}
-              />
-            </div>
-            <div className="mt-2">
-              <CutEffects
-                sound={vm.options.sound}
-                time={preview.time}
-                disabled={busy}
-                onChange={vm.setEffect}
-                onSeek={preview.seek}
-              />
-            </div>
-            <p className="type-caption mt-2 text-[var(--text-muted)]">
-              Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+← →
-              move the shot · S split · I / O trim in / out · F freeze frame · D duplicate · Delete
-              leave it out · Ctrl+Z undo
-            </p>
-          </ToolSection>
-        ) : null}
-
-        {vm.shots.length > 0 ? (
-          <ToolSection data-testid="cut-subtitles-section" title="Subtitles">
-            <CutSubtitles
-              rows={subtitleRows}
-              disabled={busy}
-              filename={`${(titleCard?.title || 'film').replace(/[^\w.-]+/g, '-')}.srt`}
-              onChange={vm.setShotSubtitle}
-              onApplySrt={vm.applySrtSubtitles}
-              onPick={pick}
-            />
-          </ToolSection>
-        ) : null}
-
-        {vm.shots.length > 0 ? (
-          <ToolSection data-testid="cut-shots" title="Shots">
-            <div className="mb-2 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                data-testid="cut-add-gallery"
-                onClick={() => setGalleryOpen(true)}
-              >
-                + From Gallery
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                data-testid="cut-add-text"
-                title="A card of white words on black, after the shot under the playhead"
-                onClick={() => vm.addText(activeKey)}
-              >
-                + Text card
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || !activeKey}
-                data-testid="cut-duplicate"
-                title="The shot under the playhead again, right after it"
-                onClick={() => activeKey && vm.duplicate(activeKey)}
-              >
-                Duplicate
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || !activeKey || vm.takeBusy !== null}
-                data-testid="cut-new-take"
-                title="Render the picked shot again with a new seed; the new take takes its place when ready (Ctrl+Z / Remove brings the old one back)"
-                onClick={() => activeKey && void vm.newTake(activeKey)}
-              >
-                {vm.takeBusy ? 'Queueing…' : 'New take'}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || !splitAt}
-                data-testid="cut-split"
-                title="Cut the clip under the playhead in two, where the playhead is"
-                onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
-              >
-                Split at playhead
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || !clipPoint || vm.freezeBusy}
-                data-testid="cut-freeze"
-                title="Hold the clip's frame under the playhead as a still for 2 s, right after the clip (F)"
-                onClick={() => clipPoint && void vm.freezeFrame(clipPoint.key, clipPoint.fileSec)}
-              >
-                {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
-              </Button>
-              <select
-                aria-label="Make a reel"
-                title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
-                disabled={busy || kept.length === 0}
-                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
-                value=""
-                data-testid="cut-reel"
-                onChange={event => {
-                  const seconds = Number(event.target.value);
-                  if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
-                  const durations = new Map<string, number>();
-                  preview.loaded?.keys.forEach((key, index) => {
-                    const sec = preview.loaded?.clipSecs[index];
-                    if (key && sec) durations.set(key, sec);
-                  });
-                  vm.makeReel(seconds, durations);
-                }}
-              >
-                <option value="">Make a reel…</option>
-                <option value="15">15 s reel</option>
-                <option value="30">30 s reel</option>
-                <option value="60">60 s reel</option>
-              </select>
-              <select
-                aria-label="Make the picked clip longer"
-                title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
-                disabled={busy || !activeIsClip || vm.extendBusy !== null}
-                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
-                value=""
-                data-testid="cut-extend"
-                onChange={event => {
-                  const by = Number(event.target.value);
-                  if (activeKey && by > 0) void vm.extendClip(activeKey, by);
-                }}
-              >
-                <option value="">{vm.extendBusy ? 'Starting…' : 'Make longer…'}</option>
-                <option value="4">+4 s</option>
-                <option value="8">+8 s</option>
-                <option value="15">+15 s</option>
-              </select>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy || !activeKey || vm.bridgeBusy !== null}
-                data-testid="cut-bridge"
-                title="Render a short clip that moves from the end of this shot into the next one, instead of a cut or a fade (a few minutes)"
-                onClick={() => activeKey && void vm.bridge(activeKey)}
-              >
-                {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
-              </Button>
-            </div>
-            {vm.extras.some(extra => extra.kind === 'bridge' && extra.status !== 'ready') ? (
-              <ul className="type-caption mb-2 space-y-1" data-testid="cut-bridges">
-                {vm.extras.map(extra => {
-                  if (extra.kind !== 'bridge' || extra.status === 'ready') return null;
-                  const title = (key: string) =>
-                    vm.shots.find(shot => shot.key === key)?.title ?? 'a shot';
-                  return (
-                    <li key={extra.key} className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={
-                          extra.status === 'failed'
-                            ? 'text-[var(--danger)]'
-                            : 'text-[var(--text-muted)]'
-                        }
+                        <option value="">Make a reel…</option>
+                        <option value="15">15 s reel</option>
+                        <option value="30">30 s reel</option>
+                        <option value="60">60 s reel</option>
+                      </select>
+                      <select
+                        aria-label="Make the picked clip longer"
+                        title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
+                        disabled={busy || !activeIsClip || vm.extendBusy !== null}
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                        value=""
+                        data-testid="cut-extend"
+                        onChange={event => {
+                          const by = Number(event.target.value);
+                          if (activeKey && by > 0) void vm.extendClip(activeKey, by);
+                        }}
                       >
-                        Bridge {title(extra.from)} → {title(extra.to)}:{' '}
-                        {extra.status === 'failed'
-                          ? 'did not render — the two shots join as before.'
-                          : 'rendering… it joins the film when ready.'}
-                      </span>
-                      {extra.status === 'failed' ? (
-                        <Button
-                          variant="quiet"
-                          type="button"
-                          className="text-2xs hover:underline"
-                          onClick={() => vm.removeAdded(extra.key)}
-                        >
-                          Remove
-                        </Button>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : null}
-            {vm.extras.some(extra => extra.kind === 'extended' && extra.status !== 'ready') ? (
-              <ul className="type-caption mb-2 space-y-1" data-testid="cut-extends">
-                {vm.extras.map(extra =>
-                  extra.kind === 'extended' && extra.status !== 'ready' ? (
-                    <li key={extra.key} className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={
-                          extra.status === 'failed'
-                            ? 'text-[var(--danger)]'
-                            : 'text-[var(--text-muted)]'
-                        }
-                      >
-                        {vm.shots.find(shot => shot.key === extra.of)?.title ?? 'A shot'}{' '}
-                        {extra.take ? '— new take' : `+${extra.bySec} s`}:{' '}
-                        {extra.status === 'failed'
-                          ? 'did not render — the shot stays as it was.'
-                          : 'rendering… it takes the shot’s place when ready.'}
-                      </span>
+                        <option value="">{vm.extendBusy ? 'Starting…' : 'Make longer…'}</option>
+                        <option value="4">+4 s</option>
+                        <option value="8">+8 s</option>
+                        <option value="15">+15 s</option>
+                      </select>
                       <Button
-                        variant="quiet"
-                        type="button"
-                        className="text-2xs hover:underline"
-                        onClick={() => vm.removeAdded(extra.key)}
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy || !activeKey || vm.bridgeBusy !== null}
+                        data-testid="cut-bridge"
+                        title="Render a short clip that moves from the end of this shot into the next one, instead of a cut or a fade (a few minutes)"
+                        onClick={() => activeKey && void vm.bridge(activeKey)}
                       >
-                        {extra.status === 'failed' ? 'Remove' : 'Forget'}
+                        {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
                       </Button>
-                    </li>
-                  ) : null
-                )}
-              </ul>
-            ) : null}
-            <CutGeneratePanel
-              extras={vm.extras}
-              busy={vm.generateBusy}
-              disabled={busy}
-              afterTitle={
-                activeKey
-                  ? (vm.previewShots.find(shot => shot.key === activeKey)?.title ?? null)
-                  : null
-              }
-              onGenerate={(prompt, shotKind) =>
-                void vm.generateShot({ prompt, shotKind, afterKey: activeKey ?? null })
-              }
-              onRemove={vm.removeAdded}
-            />
-            <FilmCutShotList
-              shots={vm.previewShots}
-              edits={vm.options.shotEdits}
-              captions={vm.options.titles === true}
-              holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
-              disabled={busy}
-              testIdPrefix="cut"
-              onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
-              activeKey={activeKey}
-              onPick={pick}
-              tagFor={
-                vm.sources.length > 1
-                  ? shot => {
-                      const { source } = splitCutRoomKey(shot.key);
-                      return source === 'day'
-                        ? 'Day'
-                        : source === 'story'
-                          ? 'Story'
-                          : source === 'scenes'
-                            ? 'Scene'
-                            : source === 'script'
-                              ? 'Animatic'
-                              : 'Added';
-                    }
-                  : undefined
-              }
-              identityFor={shot => {
-                const { source, key } = splitCutRoomKey(shot.key);
-                return source === 'day' ? dayIdentity({ key }) : null;
-              }}
-              renderExtra={shot => {
-                const extra = vm.extras.find(entry => entry.key === shot.key);
-                if (!extra) {
-                  const base = shot.key.replace(/~\d+$/, '');
-                  const state = vm.shotStates[shot.key];
-                  const summary = state ? shotStateSummary(state) : '';
-                  return (
-                    <>
-                      {summary ? (
-                        <p
-                          className="type-caption text-[var(--text-muted)]"
-                          data-testid={`cut-shot-state-${shot.key}`}
-                          title="Who, look, clothing, place, time and things in this shot"
-                        >
-                          {summary}
-                        </p>
-                      ) : null}
-                      <CutShotPin
-                        shotKey={shot.key}
-                        state={vm.pinStates[shot.key]}
-                        hasCopies={vm.previewShots.some(
-                          entry => entry.key !== shot.key && entry.key.replace(/~\d+$/, '') === base
-                        )}
-                        disabled={busy}
-                        onToggle={() => vm.togglePin(shot.key)}
-                        onUse={everywhere => void vm.takeOffered(shot.key, everywhere)}
-                        onKeep={() => vm.keepPinned(shot.key)}
-                        onBack={() => vm.backToEarlierTake(shot.key)}
-                      />
-                    </>
-                  );
-                }
-                return (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {extra.kind === 'text' ? (
-                      <input
-                        type="text"
-                        maxLength={160}
-                        aria-label="Words on the card"
-                        className="min-w-[12rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
-                        value={extra.text}
-                        data-testid={`cut-text-${shot.key}`}
-                        onChange={event => vm.setText(shot.key, event.target.value)}
-                      />
+                    </div>
+                    {vm.extras.some(
+                      extra => extra.kind === 'bridge' && extra.status !== 'ready'
+                    ) ? (
+                      <ul className="type-caption mb-2 space-y-1" data-testid="cut-bridges">
+                        {vm.extras.map(extra => {
+                          if (extra.kind !== 'bridge' || extra.status === 'ready') return null;
+                          const title = (key: string) =>
+                            vm.shots.find(shot => shot.key === key)?.title ?? 'a shot';
+                          return (
+                            <li key={extra.key} className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={
+                                  extra.status === 'failed'
+                                    ? 'text-[var(--danger)]'
+                                    : 'text-[var(--text-muted)]'
+                                }
+                              >
+                                Bridge {title(extra.from)} → {title(extra.to)}:{' '}
+                                {extra.status === 'failed'
+                                  ? 'did not render — the two shots join as before.'
+                                  : 'rendering… it joins the film when ready.'}
+                              </span>
+                              {extra.status === 'failed' ? (
+                                <Button
+                                  variant="quiet"
+                                  type="button"
+                                  className="text-2xs hover:underline"
+                                  onClick={() => vm.removeAdded(extra.key)}
+                                >
+                                  Remove
+                                </Button>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
                     ) : null}
-                    <Button
-                      variant="quiet"
-                      type="button"
-                      className="text-2xs hover:underline"
-                      data-testid={`cut-remove-${shot.key}`}
-                      onClick={() => vm.removeAdded(shot.key)}
-                    >
-                      Remove
-                    </Button>
+                    {vm.extras.some(
+                      extra => extra.kind === 'extended' && extra.status !== 'ready'
+                    ) ? (
+                      <ul className="type-caption mb-2 space-y-1" data-testid="cut-extends">
+                        {vm.extras.map(extra =>
+                          extra.kind === 'extended' && extra.status !== 'ready' ? (
+                            <li key={extra.key} className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={
+                                  extra.status === 'failed'
+                                    ? 'text-[var(--danger)]'
+                                    : 'text-[var(--text-muted)]'
+                                }
+                              >
+                                {vm.shots.find(shot => shot.key === extra.of)?.title ?? 'A shot'}{' '}
+                                {extra.take ? '— new take' : `+${extra.bySec} s`}:{' '}
+                                {extra.status === 'failed'
+                                  ? 'did not render — the shot stays as it was.'
+                                  : 'rendering… it takes the shot’s place when ready.'}
+                              </span>
+                              <Button
+                                variant="quiet"
+                                type="button"
+                                className="text-2xs hover:underline"
+                                onClick={() => vm.removeAdded(extra.key)}
+                              >
+                                {extra.status === 'failed' ? 'Remove' : 'Forget'}
+                              </Button>
+                            </li>
+                          ) : null
+                        )}
+                      </ul>
+                    ) : null}
+                    <CutGeneratePanel
+                      extras={vm.extras}
+                      busy={vm.generateBusy}
+                      disabled={busy}
+                      afterTitle={
+                        activeKey
+                          ? (vm.previewShots.find(shot => shot.key === activeKey)?.title ?? null)
+                          : null
+                      }
+                      onGenerate={(prompt, shotKind) =>
+                        void vm.generateShot({ prompt, shotKind, afterKey: activeKey ?? null })
+                      }
+                      onRemove={vm.removeAdded}
+                    />
+                    <FilmCutShotList
+                      shots={vm.previewShots}
+                      edits={vm.options.shotEdits}
+                      captions={vm.options.titles === true}
+                      holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
+                      disabled={busy}
+                      testIdPrefix="cut"
+                      onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
+                      activeKey={activeKey}
+                      onPick={pick}
+                      tagFor={
+                        vm.sources.length > 1
+                          ? shot => {
+                              const { source } = splitCutRoomKey(shot.key);
+                              return source === 'day'
+                                ? 'Day'
+                                : source === 'story'
+                                  ? 'Story'
+                                  : source === 'scenes'
+                                    ? 'Scene'
+                                    : source === 'script'
+                                      ? 'Animatic'
+                                      : 'Added';
+                            }
+                          : undefined
+                      }
+                      identityFor={shot => {
+                        const { source, key } = splitCutRoomKey(shot.key);
+                        return source === 'day' ? dayIdentity({ key }) : null;
+                      }}
+                      renderExtra={shot => {
+                        const extra = vm.extras.find(entry => entry.key === shot.key);
+                        if (!extra) {
+                          const base = shot.key.replace(/~\d+$/, '');
+                          const state = vm.shotStates[shot.key];
+                          const summary = state ? shotStateSummary(state) : '';
+                          return (
+                            <>
+                              {summary ? (
+                                <p
+                                  className="type-caption text-[var(--text-muted)]"
+                                  data-testid={`cut-shot-state-${shot.key}`}
+                                  title="Who, look, clothing, place, time and things in this shot"
+                                >
+                                  {summary}
+                                </p>
+                              ) : null}
+                              <CutShotPin
+                                shotKey={shot.key}
+                                state={vm.pinStates[shot.key]}
+                                hasCopies={vm.previewShots.some(
+                                  entry =>
+                                    entry.key !== shot.key &&
+                                    entry.key.replace(/~\d+$/, '') === base
+                                )}
+                                disabled={busy}
+                                onToggle={() => vm.togglePin(shot.key)}
+                                onUse={everywhere => void vm.takeOffered(shot.key, everywhere)}
+                                onKeep={() => vm.keepPinned(shot.key)}
+                                onBack={() => vm.backToEarlierTake(shot.key)}
+                              />
+                            </>
+                          );
+                        }
+                        return (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {extra.kind === 'text' ? (
+                              <input
+                                type="text"
+                                maxLength={160}
+                                aria-label="Words on the card"
+                                className="min-w-[12rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1.5 py-0.5 text-[var(--text-primary)]"
+                                value={extra.text}
+                                data-testid={`cut-text-${shot.key}`}
+                                onChange={event => vm.setText(shot.key, event.target.value)}
+                              />
+                            ) : null}
+                            <Button
+                              variant="quiet"
+                              type="button"
+                              className="text-2xs hover:underline"
+                              data-testid={`cut-remove-${shot.key}`}
+                              onClick={() => vm.removeAdded(shot.key)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        );
+                      }}
+                    />
                   </div>
-                );
-              }}
-            />
-          </ToolSection>
-        ) : null}
-
-        {vm.missingMedia.length > 0 ? (
-          <ToolSection data-testid="cut-missing-section" title="Missing media">
-            <CutMissingMedia
-              items={vm.missingMedia}
-              checking={vm.mediaChecking}
-              disabled={busy}
-              takesFor={vm.relinkTakesFor}
-              onRelink={(key, media) => void vm.relink(key, media)}
-              onPickFromGallery={setRelinkKey}
-              onPick={pick}
-              onRecheck={() => void vm.recheckMedia()}
-            />
-          </ToolSection>
-        ) : null}
-
-        {vm.shots.length > 0 ? (
-          <ToolSection
-            id="cut-continuity-section"
-            data-testid="cut-continuity-section"
-            title="Continuity"
-          >
-            <CutContinuity
-              items={vm.continuity}
-              disabled={busy}
-              onPick={pick}
-              onDecide={vm.decide}
-            />
-          </ToolSection>
+                ) : null}
+                {panel === 'options' ? (
+                  <div data-testid="cut-options">
+                    <div className="space-y-3">
+                      <FilmCutOptionsControls
+                        value={vm.options}
+                        onChange={vm.setOptions}
+                        disabled={busy}
+                        testIdPrefix="cut"
+                        shots={vm.previewShots}
+                        withShotPanels={false}
+                        storyExtras={vm.sources.includes('story')}
+                        previouslyAvailable
+                        scoreBrief={
+                          vm.sources.includes('day') ? { mood: vm.dayMood } : { tone: vm.storyTone }
+                        }
+                      />
+                      <div className="border-t border-[var(--border-subtle)] pt-3">
+                        <CutExport
+                          profile={vm.options.exportProfile}
+                          preflight={preflight}
+                          output={vm.outputChecks}
+                          disabled={busy}
+                          onProfile={vm.applyProfile}
+                        />
+                      </div>
+                      <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
+                        {cutButton}
+                        <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={busy || exporting || !preview.loaded}
+                            loading={exporting}
+                            loadingLabel="Packing"
+                            data-testid="cut-export-project"
+                            title="This cut as a project for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline (and the subtitles) in one .zip"
+                            onClick={() => void exportProject()}
+                          >
+                            Export for an editor
+                          </Button>
+                          {exportError ? (
+                            <p
+                              className="type-caption text-[var(--danger)]"
+                              data-testid="cut-export-error"
+                            >
+                              {exportError}
+                            </p>
+                          ) : null}
+                          {vm.lastSubtitles ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              data-testid="cut-subtitles-srt"
+                              title="The film's subtitles, timed to the cut — for YouTube, a video editor or a player"
+                              onClick={() => {
+                                const blob = new Blob([vm.lastSubtitles!.srt], {
+                                  type: 'application/x-subrip',
+                                });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = vm.lastSubtitles!.filename;
+                                link.click();
+                                window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                              }}
+                            >
+                              Subtitles (.srt)
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {panel === 'subtitles' ? (
+                  <div data-testid="cut-subtitles-section">
+                    <CutSubtitles
+                      rows={subtitleRows}
+                      disabled={busy}
+                      filename={`${(titleCard?.title || 'film').replace(/[^\w.-]+/g, '-')}.srt`}
+                      onChange={vm.setShotSubtitle}
+                      onApplySrt={vm.applySrtSubtitles}
+                      onPick={pick}
+                    />
+                  </div>
+                ) : null}
+                {panel === 'continuity' ? (
+                  <div id="cut-continuity-section" data-testid="cut-continuity-section">
+                    <CutContinuity
+                      items={vm.continuity}
+                      disabled={busy}
+                      onPick={pick}
+                      onDecide={vm.decide}
+                    />
+                  </div>
+                ) : null}
+                {panel === 'missing' && vm.missingMedia.length > 0 ? (
+                  <div data-testid="cut-missing-section">
+                    <CutMissingMedia
+                      items={vm.missingMedia}
+                      checking={vm.mediaChecking}
+                      disabled={busy}
+                      takesFor={vm.relinkTakesFor}
+                      onRelink={(key, media) => void vm.relink(key, media)}
+                      onPickFromGallery={setRelinkKey}
+                      onPick={pick}
+                      onRecheck={() => void vm.recheckMedia()}
+                    />
+                  </div>
+                ) : null}
+              </ToolSection>
+            </aside>
+          </div>
         ) : null}
 
         {vm.status || vm.error || vm.cutDone ? (
@@ -1118,80 +1188,99 @@ export default function CutRoom() {
           </div>
         ) : null}
 
-        {vm.shots.length > 0 || vm.versions.length > 0 ? (
-          <ToolSection data-testid="cut-versions-section" title="Versions">
-            <CutVersions
-              versions={vm.versions}
-              disabled={busy}
-              onSave={vm.saveVersion}
-              onOpen={vm.openVersion}
-              onDelete={vm.deleteVersion}
+        <ToolSection data-testid="cut-keep" title="Films and versions">
+          <div className="mb-3">
+            <SegmentedControl
+              aria-label="Your films, versions and package"
+              value={keep}
+              onChange={setKeep}
+              options={keepTabs}
             />
-          </ToolSection>
-        ) : null}
-
-        <ToolSection
-          data-testid="cut-package-section"
-          title="Package"
-          description="Take this cut to another machine, or keep it safe: the edit, its versions and (with media) the files it plays."
-        >
-          <CutPackage
-            canPackage={vm.shots.length > 0}
-            busy={vm.packaging}
-            disabled={busy}
-            onPackage={full =>
-              void vm.packageCut(
-                full,
-                titleCard?.title || vm.sceneCast?.name || 'cut',
-                vm.dayCast?.name || vm.sceneCast?.name || undefined
-              )
-            }
-            onImport={file => void vm.importPackage(file)}
-          />
-        </ToolSection>
-
-        <ToolSection
-          data-testid="cut-films"
-          title="Your films"
-          description="Every film cut for this Cast — re-cut it in another shape, export it for an editor, or share it for review."
-        >
-          {vm.films.length === 0 ? (
-            <p className="type-caption text-[var(--text-muted)]">No films yet — cut one above.</p>
-          ) : (
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {vm.films.map(entry => {
-                const url = galleryEntryPrimaryViewUrl(entry);
-                return (
-                  <li
-                    key={entry.id}
-                    className={`overflow-hidden rounded-[var(--radius-lg)] border ${entry.id === vm.lastFilmEntryId ? 'border-[var(--accent-border)]' : 'border-[var(--border-subtle)]'}`}
-                    data-testid="cut-film-entry"
-                  >
-                    {url ? (
-                      <video src={url} controls preload="metadata" className="w-full bg-black" />
-                    ) : null}
-                    <p className="type-caption truncate px-2 py-1 text-[var(--text-muted)]">
-                      {entry.id === vm.lastFilmEntryId ? 'Just cut · ' : ''}
-                      {new Date(entry.completedAt ?? entry.queuedAt).toLocaleString()}
-                    </p>
-                    <FilmRecutPanel
-                      entry={entry}
-                      characterName={vm.dayCast?.name || vm.storyName || 'Cast'}
-                    />
-                    {url ? <FilmLoudness url={url} entryId={entry.id} /> : null}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <ToolActionRow className="mt-2">
-            <ButtonLink href={href('/day')} size="sm" variant="ghost">
-              Back to Day
-            </ButtonLink>
-            <ButtonLink href={href('/story')} size="sm" variant="ghost">
-              Back to Story
-            </ButtonLink>
-          </ToolActionRow>
+          </div>
+          {keep === 'films' ? (
+            <div data-testid="cut-films">
+              <p className="type-caption mb-2 text-[var(--text-muted)]">
+                Every film cut for this Cast — re-cut it in another shape, export it for an editor,
+                or share it for review.
+              </p>
+              {vm.films.length === 0 ? (
+                <p className="type-caption text-[var(--text-muted)]">
+                  No films yet — cut one above.
+                </p>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {vm.films.map(entry => {
+                    const url = galleryEntryPrimaryViewUrl(entry);
+                    return (
+                      <li
+                        key={entry.id}
+                        className={`overflow-hidden rounded-[var(--radius-lg)] border ${entry.id === vm.lastFilmEntryId ? 'border-[var(--accent-border)]' : 'border-[var(--border-subtle)]'}`}
+                        data-testid="cut-film-entry"
+                      >
+                        {url ? (
+                          <video
+                            src={url}
+                            controls
+                            preload="metadata"
+                            className="w-full bg-black"
+                          />
+                        ) : null}
+                        <p className="type-caption truncate px-2 py-1 text-[var(--text-muted)]">
+                          {entry.id === vm.lastFilmEntryId ? 'Just cut · ' : ''}
+                          {new Date(entry.completedAt ?? entry.queuedAt).toLocaleString()}
+                        </p>
+                        <FilmRecutPanel
+                          entry={entry}
+                          characterName={vm.dayCast?.name || vm.storyName || 'Cast'}
+                        />
+                        {url ? <FilmLoudness url={url} entryId={entry.id} /> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <ToolActionRow className="mt-2">
+                <ButtonLink href={href('/day')} size="sm" variant="ghost">
+                  Back to Day
+                </ButtonLink>
+                <ButtonLink href={href('/story')} size="sm" variant="ghost">
+                  Back to Story
+                </ButtonLink>
+              </ToolActionRow>
+            </div>
+          ) : null}
+          {keep === 'versions' ? (
+            <div data-testid="cut-versions-section">
+              <CutVersions
+                versions={vm.versions}
+                disabled={busy}
+                onSave={vm.saveVersion}
+                onOpen={vm.openVersion}
+                onDelete={vm.deleteVersion}
+              />
+            </div>
+          ) : null}
+          {keep === 'package' ? (
+            <div data-testid="cut-package-section">
+              <p className="type-caption mb-2 text-[var(--text-muted)]">
+                Take this cut to another machine, or keep it safe: the edit, its versions and (with
+                media) the files it plays.
+              </p>
+              <CutPackage
+                canPackage={vm.shots.length > 0}
+                busy={vm.packaging}
+                disabled={busy}
+                onPackage={full =>
+                  void vm.packageCut(
+                    full,
+                    titleCard?.title || vm.sceneCast?.name || 'cut',
+                    vm.dayCast?.name || vm.sceneCast?.name || undefined
+                  )
+                }
+                onImport={file => void vm.importPackage(file)}
+              />
+            </div>
+          ) : null}
         </ToolSection>
       </ToolLayout>
       <CutGalleryPicker

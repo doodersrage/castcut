@@ -368,6 +368,7 @@ test('Cut: Subtitles is on by default and goes to the server encode', async ({ p
   });
   await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-subtitles').first()).toBeChecked({ timeout: 15_000 });
 });
 

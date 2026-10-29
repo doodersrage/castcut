@@ -2283,13 +2283,16 @@ test('day cut: shot list with beat captions, and a pre-cut check for a pose miss
   await dismissBlockingOverlays(page);
   const coach = page.locator('body');
   await expect(coach.getByTestId('cut-shot-list')).toBeVisible();
+  await page.getByTestId('cut-tab-options').click();
   await coach.getByTestId('cut-options-text').evaluate(el => {
     (el as HTMLDetailsElement).open = true;
   });
   await coach.getByTestId('cut-titles').check();
+  await page.getByTestId('cut-tab-shots').click();
   await expect(coach.getByTestId('cut-shot-caption-day:morning')).toHaveValue(
     'pours coffee by the window'
   );
+  await page.getByTestId('cut-tab-options').click();
   await expect(coach.getByTestId('cut-length')).toBeVisible();
   // Cut: the morning still missed its pose, so the check comes first.
   await page.getByTestId('cut-film').first().click();
@@ -2409,8 +2412,10 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   await dismissBlockingOverlays(page);
   const room = page.locator('body');
   await expect(page.getByTestId('cut-shots')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('cut-tab-options').click();
   await room.getByTestId('cut-shape-square').click();
   await room.getByTestId('cut-quality-1080p').click();
+  await page.getByTestId('cut-tab-shots').click();
   await expect(room.getByTestId('cut-shot-identity-day:afternoon')).toHaveAttribute(
     'data-tone',
     'miss'
@@ -2422,6 +2427,7 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   await room.getByTestId('cut-shot-poster-day:night').click();
   await expect(room.getByTestId('cut-shot-poster-day:night')).toHaveAttribute('aria-pressed', 'true');
   await room.getByTestId('cut-shot-poster-at-day:night').fill('2.5');
+  await page.getByTestId('cut-tab-options').click();
   await room.getByTestId('cut-voice-level').fill('1.5');
   // The choices stay as set (Cut keeps its options between visits).
   await expect(room.getByTestId('cut-shape-square')).toHaveAttribute('aria-checked', 'true');

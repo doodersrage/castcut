@@ -174,8 +174,10 @@ test('data from v2.12.36 opens in Scene, Cut, Film Director and the Queue with n
   await expect(page.locator('[data-testid^="cut-shot-x:"]').first()).toContainText(
     'Later that night'
   );
+  await page.getByTestId('cut-tab-versions').click();
   await expect(page.getByTestId('cut-version-Long cut')).toBeVisible();
-  await expect(page.getByTestId('cut-missing-section')).toHaveCount(0);
+  await expect(page.getByTestId('cut-tab-missing')).toHaveCount(0);
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-preflight-shots')).toHaveAttribute('data-status', 'ok');
 
   // Film Director reads it all.

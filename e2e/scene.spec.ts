@@ -669,6 +669,7 @@ test('Cut flags a shot that drops what the shot before it carries over', async (
   });
   await gotoStable(page, `/cut?from=scenes&character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-continuity').click();
   await expect(page.getByTestId('cut-finding-scenes:scene-7a:state-dropped')).toContainText(
     'the red umbrella',
     { timeout: 60_000 }

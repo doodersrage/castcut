@@ -202,6 +202,7 @@ test('Cut options: Score this film sets an original track as the music', async (
   // Cut's options sit on its own page, always open.
   await gotoStable(page, '/cut?from=day');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-options').click();
   await expect(page.getByTestId('cut-score')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('cut-score').click();
   await expect(page.locator('[data-testid$="-audio-bed-status"]').first()).toContainText(
