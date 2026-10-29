@@ -9,6 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.3.0] - 2026-10-29
+
+- Cut: the editing loop on one screen
+- M11 T13–T14: longer H3 clips without the build-up — keyframes, long parts, lossless joins
+- M11 T12: longer clips keep their detail in the last parts
+- Pose and other utility reads work on the same input twice
+
 ## [v3.2.0] - 2026-10-29
 
 - M11 T11: continue a clip with a directed move
