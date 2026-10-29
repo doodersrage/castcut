@@ -170,5 +170,10 @@
   "src/lib/director/stage-three.ts",
   "src/lib/director/store.ts",
   "src/lib/director/timeline.ts",
-  "src/lib/director/types.ts"
+  "src/lib/director/types.ts",
+  "src/lib/director/video-motion-client.ts",
+  "src/lib/director/video-motion.ts",
+  "src/lib/director/video-motion.worker.ts",
+  "src/lib/director/video-pose-server.ts",
+  "src/app/api/director/video-pose/route.ts"
 ]

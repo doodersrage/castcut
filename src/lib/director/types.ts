@@ -57,7 +57,43 @@ export type DirectorMoveBeat = {
   hold: number;
 };
 
-export type DirectorBeat = DirectorPoseBeat | DirectorMoveBeat;
+/**
+ * A move read from the player's own video (video-motion.ts): the 3D body in every frame at
+ * DIRECTOR_FPS, in her own frame (hips over the origin, facing +z at the start), played like a
+ * ready-made move.
+ */
+export type DirectorVideoBeat = {
+  id: string;
+  kind: 'video';
+  /** "From dance.mp4". */
+  name: string;
+  /** What she does, for the motion line ("dances the steps from the video"). */
+  words?: string;
+  frames: PoseRig3dFigure[];
+  /** The motion's length (its natural length, stretched or squeezed). */
+  seconds: number;
+  hold: number;
+};
+
+export type DirectorBeat = DirectorPoseBeat | DirectorMoveBeat | DirectorVideoBeat;
+
+/** The longest stretch of a video the Director reads (s), and its frames at DIRECTOR_FPS. */
+export const VIDEO_MOTION_MAX_SECONDS = 10;
+export const VIDEO_MOTION_MAX_FRAMES = VIDEO_MOTION_MAX_SECONDS * DIRECTOR_FPS + 1;
+
+/** A video beat's natural length (s): its frames at DIRECTOR_FPS. */
+export const videoNaturalSeconds = (beat: Pick<DirectorVideoBeat, 'frames'>) =>
+  (beat.frames.length - 1) / DIRECTOR_FPS;
+
+/** A video beat's length, kept within how far it can stretch (as a ready-made move's). */
+export function clampVideoSeconds(
+  beat: Pick<DirectorVideoBeat, 'frames'>,
+  seconds: number
+): number {
+  const natural = videoNaturalSeconds(beat);
+  const value = Number.isFinite(seconds) ? seconds : natural;
+  return Math.round(Math.min(natural * 2, Math.max(natural * 0.6, value)) * 100) / 100;
+}
 
 export type DirectorCameraMove = 'none' | 'push-in' | 'pull-out' | 'pan-left' | 'pan-right';
 export const DIRECTOR_CAMERA_MOVES: readonly DirectorCameraMove[] = [
@@ -204,6 +240,24 @@ function normalizeBeat(raw: unknown, index: number): DirectorBeat | null {
     );
     return { id, kind: 'move', move: r.move, seconds, hold };
   }
+  if (r.kind === 'video' && index > 0) {
+    if (!Array.isArray(r.frames)) return null;
+    const frames = r.frames.slice(0, VIDEO_MOTION_MAX_FRAMES).map(normalizeFigure);
+    if (frames.length < 2 || frames.some(frame => !frame)) return null;
+    const beat = { frames: frames as PoseRig3dFigure[] };
+    const name =
+      typeof r.name === 'string' && r.name.trim() ? r.name.trim().slice(0, 60) : 'From a video';
+    const words = typeof r.words === 'string' && r.words.trim() ? r.words.trim().slice(0, 200) : '';
+    return {
+      id,
+      kind: 'video',
+      name,
+      ...(words ? { words } : {}),
+      frames: beat.frames,
+      seconds: clampVideoSeconds(beat, typeof r.seconds === 'number' ? r.seconds : NaN),
+      hold,
+    };
+  }
   if (r.kind !== 'pose') return null;
   const figure = normalizeFigure(r.figure);
   if (!figure) return null;
@@ -283,6 +337,8 @@ export function checkDirection(direction: Direction): DirectionCheck {
       }
       if (move.sits) seated = true;
       if (move.fromSitting) seated = false;
+    } else if (beat.kind === 'video') {
+      seated = poseSupport(beat.frames[beat.frames.length - 1]!) === 'sit';
     } else {
       seated = poseSupport(beat.figure) === 'sit';
     }

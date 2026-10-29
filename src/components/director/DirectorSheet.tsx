@@ -59,6 +59,7 @@ import {
   DIRECTOR_PRESETS,
   moveBeat,
   removeBeat,
+  videoBeat,
   replaceBeat,
   resizeBeat,
   setBeatTime,
@@ -86,6 +87,7 @@ import {
   type SavedDirection,
 } from '@/lib/director/store';
 import DirectorPreview from '@/components/director/DirectorPreview';
+import { liftVideoMotionAsync, readVideoPoses } from '@/lib/director/video-motion-client';
 
 const PoseJointEditor3D = dynamic(() => import('@/components/pose/PoseJointEditor3D'), {
   ssr: false,
@@ -440,6 +442,42 @@ function DirectorSheetOpen({
     setEditing(next.beats.length - 1);
   };
   const addMove = (move: DirectorMoveId) => update(addBeat(direction, moveBeat(move)));
+  // From a video: read on ComfyUI, lifted onto the 3D body, added as the next beat.
+  const videoInput = useRef<HTMLInputElement>(null);
+  const videoAbort = useRef<AbortController | null>(null);
+  const [videoNote, setVideoNote] = useState<string | null>(null);
+  useEffect(() => () => videoAbort.current?.abort(), []);
+  const addFromVideo = async (file: File) => {
+    videoAbort.current?.abort();
+    const controller = new AbortController();
+    videoAbort.current = controller;
+    setError(null);
+    setVideoNote('Sending the video');
+    try {
+      const read = await readVideoPoses(file, {
+        signal: controller.signal,
+        onNote: note => setVideoNote(note),
+      });
+      setVideoNote('Following the moves on the 3D body');
+      const frames = await liftVideoMotionAsync(read, body);
+      if (controller.signal.aborted) return;
+      // Added to the direction as it is now (the player may have edited it while this read).
+      const beat = videoBeat(frames, file.name);
+      touched.current = true;
+      changes.current += 1;
+      setPlaying(false);
+      setDirection(current => addBeat(current, beat));
+    } catch (failure) {
+      if (!controller.signal.aborted) {
+        setError(failure instanceof Error ? failure.message : 'Could not read the moves.');
+      }
+    } finally {
+      if (videoAbort.current === controller) {
+        videoAbort.current = null;
+        setVideoNote(null);
+      }
+    }
+  };
   /** A motion-capture pose, as captured: the start, or the next beat. */
   const pickRealPose = (reference: PoseReference) => {
     const world = reference.world;
@@ -859,7 +897,7 @@ function DirectorSheetOpen({
                     <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
                       {index > 0 ? (
                         <label className="flex items-center gap-1">
-                          {beat.kind === 'move' ? 'Length' : 'Move in'}
+                          {beat.kind === 'pose' ? 'Move in' : 'Length'}
                           <input
                             type="number"
                             step={0.1}
@@ -925,7 +963,38 @@ function DirectorSheetOpen({
                 >
                   + Add a real pose…
                 </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={Boolean(videoNote)}
+                  title="Her moves from your own video: a person moving, whole in the frame, up to 10 s"
+                  data-testid={`${p}-add-video`}
+                  onClick={() => videoInput.current?.click()}
+                >
+                  + From a video…
+                </Button>
+                <input
+                  ref={videoInput}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  data-testid={`${p}-video-file`}
+                  onChange={event => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) void addFromVideo(file);
+                  }}
+                />
               </div>
+              {videoNote ? (
+                <p
+                  className="type-caption text-[var(--text-secondary)]"
+                  role="status"
+                  data-testid={`${p}-video-note`}
+                >
+                  {videoNote}…
+                </p>
+              ) : null}
               {realPoses === 'add' ? realPosePicker : null}
               <p className="type-caption text-[var(--text-muted)]">Add a ready-made move</p>
               <div className="flex flex-wrap gap-1.5" data-testid={`${p}-moves`}>

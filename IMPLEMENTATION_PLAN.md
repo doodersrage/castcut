@@ -2444,6 +2444,26 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   1 cm, the turn 180°, the walk 0.8–1.4 m, stretching); the Director's plant and timeline tests
   pass unchanged.
 
+**T10 — Director: a move from your own video** (user, 2026-10-29). · M
+- "From a video…" in the Director: the server reads the body in every frame
+  (`/api/director/video-pose`, a background job: DWPose over the whole video at 16 fps in one
+  ComfyUI job, `video-pose-server.ts`), and `video-motion.ts` (in a worker) follows the lead
+  person, lifts each frame through one camera, fills gaps, puts back one- or two-frame limb flips,
+  smooths, and sets it at the origin on the floor; it becomes a `video` beat (kept with the
+  direction, rounded to 1e-3: ~100 KB for 10 s) that stretches 0.6–2× and plays in the timeline
+  like a ready-made move.
+- Measured: 81 frames (5 s) read in 17 s with the TorchScript person detector (111 s with the
+  default ONNX one, which runs on the CPU), lifted in 1.5 s; the same video again is answered
+  from ComfyUI's cache without keypoints, so it is read once more under its own name. A filmed
+  wave lifted back: the forearm within 25° (median) of the original, the hand above the head.
+- Copy moves on Mara from Lena's wave video: straight from the video vs through the Director —
+  face vs Lena 0.16–0.26 vs 0.10–0.17 (less of the source's look), vs Mara 0.34–0.45 vs
+  0.31–0.34 (the Director's framing pulls back a little for the raised hand).
+- Not done: feet are not pinned on a video beat; the camera is read from the first frame only (a
+  moving camera reads as her moving); one person per video.
+- Tests: `video-motion.test.ts` (read, lead, flips, the filmed-wave round trip, the beat),
+  e2e `director.spec.ts` "a move from your own video…" (mocked read).
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

@@ -109,6 +109,13 @@ hair and clothes and lands where Copy moves' clips do.
   person's, not an even ease. Moves in place keep both feet planted. **Length** stretches or
   squeezes a move. Or pick a ready-made direction (_Wave, then turn away_, _Walk up and wave_, …)
   after the start pose.
+- **From a video…** takes the moves from your own video (up to 10 s): one person, whole in the
+  frame. ComfyUI reads her body in every frame (about 20 s for 5 s of video), the 3D body follows
+  it, and it becomes the next beat — stretch it, put moves or poses before and after it, and it
+  is framed like the still. Only the movement is kept, not the person in the video, so less of
+  their look reaches your Cast member than with [Copy moves](#copy-moves) straight from the
+  video. Feet are not pinned the way the ready-made moves' are; a video shot from one place reads
+  best.
 - **The timeline** under the preview: tap to jump, drag a beat's right edge to make it longer.
   **Play** loops it; the slider scrubs. Each beat starts where the one before left her, so
   moving a walk earlier carries the rest along.

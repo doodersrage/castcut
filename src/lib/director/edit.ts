@@ -3,6 +3,7 @@
  * directions (a few moves in a row, about five seconds: one Copy moves part).
  */
 
+import type { PoseRig3dFigure } from '@/lib/pose/rig3d';
 import { clampMoveSeconds, DIRECTOR_MOVES, type DirectorMoveId } from './moves';
 import {
   beatLength,
@@ -12,10 +13,29 @@ import {
   POSE_MOVE_SECONDS,
   type DirectorBeat,
   type DirectorMoveBeat,
+  type DirectorVideoBeat,
   type Direction,
+  clampVideoSeconds,
+  videoNaturalSeconds,
 } from './types';
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/** A move read from the player's own video (video-motion.ts), at its own length. */
+export function videoBeat(frames: PoseRig3dFigure[], name: string, hold = 0): DirectorVideoBeat {
+  const clean = name
+    .trim()
+    .replace(/\.[a-z0-9]{2,5}$/i, '')
+    .slice(0, 48);
+  return {
+    id: newBeatId(),
+    kind: 'video',
+    name: clean ? `From ${clean}` : 'From a video',
+    frames,
+    seconds: clampVideoSeconds({ frames }, NaN),
+    hold,
+  };
+}
 
 export function moveBeat(move: DirectorMoveId, seconds?: number, hold = 0): DirectorMoveBeat {
   return {
@@ -63,6 +83,11 @@ export function resizeBeat(beat: DirectorBeat, index: number, length: number): D
     const hold = round2(Math.min(HOLD_SECONDS.max, Math.max(0, want - seconds)));
     return { ...beat, seconds, hold };
   }
+  if (beat.kind === 'video') {
+    const seconds = clampVideoSeconds(beat, Math.min(want, videoNaturalSeconds(beat) * 2));
+    const hold = round2(Math.min(HOLD_SECONDS.max, Math.max(0, want - seconds)));
+    return { ...beat, seconds, hold };
+  }
   if (index === 0) {
     return { ...beat, hold: round2(Math.min(HOLD_SECONDS.max, Math.max(0, want))) };
   }
@@ -84,6 +109,7 @@ export function setBeatTime(
     return { ...beat, hold: round2(Math.min(HOLD_SECONDS.max, Math.max(HOLD_SECONDS.min, value))) };
   }
   if (beat.kind === 'move') return { ...beat, seconds: round2(clampMoveSeconds(beat.move, value)) };
+  if (beat.kind === 'video') return { ...beat, seconds: clampVideoSeconds(beat, value) };
   return {
     ...beat,
     seconds: round2(Math.min(POSE_MOVE_SECONDS.max, Math.max(POSE_MOVE_SECONDS.min, value))),

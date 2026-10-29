@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test, expect, type Page } from '@playwright/test';
 import { ensureAuthenticated } from './helpers/auth';
 import { gotoStable } from './helpers/navigation';
@@ -124,7 +126,7 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   await d('move-wave').click();
   await d('move-turn').click();
   await expect(d('beat-2')).toContainText('Turn around');
-  await expect(d('time')).toContainText('/ 5.8 s');
+  await expect(d('time')).toContainText('/ 6.0 s');
 
   // A pose beat, posed in the 3D editor: raise her right hand.
   await d('add-pose').click();
@@ -145,7 +147,7 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
 
   // Timing: a longer hold on the start.
   await d('beat-0-hold').fill('1');
-  await expect(d('time')).toContainText('/ 8.2 s');
+  await expect(d('time')).toContainText('/ 8.4 s');
 
   // Preview: play moves the playhead; the scrubber jumps to a time.
   await d('play').click();
@@ -159,7 +161,7 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   await d('camera-move-push-in').click();
   await expect(d('camera-move-push-in')).toHaveAttribute('aria-pressed', 'true');
 
-  // Save it for this Cast member, then remove the posed beat (8.2 s → shorter).
+  // Save it for this Cast member, then remove the posed beat (8.4 s → shorter).
   await d('save-name').fill('Wave and turn');
   await d('save').click();
   await expect(d('saved')).toContainText('Wave and turn');
@@ -198,6 +200,70 @@ test('Director: beats, a posed beat, preview, save, and Render sends the driving
   expect(body).toContain('short dark hair');
   expect(body).toContain('bright kitchen, with a wooden chair behind her');
   expect(body).toContain('waves with her right hand, then turns around');
+});
+
+test('Director: a move from your own video becomes a beat and renders with the rest', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const read = JSON.parse(
+    readFileSync(join(process.cwd(), 'e2e/fixtures/director-video-read.json'), 'utf8')
+  ) as unknown;
+  let sent = 0;
+  await page.route('**/api/director/video-pose**', route => {
+    const job = { id: 'e2e-video-read', status: 'running', note: 'Reading the moves on ComfyUI' };
+    if (route.request().method() === 'POST') {
+      sent += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ job }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: { ...job, status: 'completed', note: undefined, read } }),
+    });
+  });
+  let body = '';
+  await page.route('**/api/clip/moves', route => {
+    body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: clipJob('running') }),
+    });
+  });
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: clipJob('completed', '/e2e-directed.mp4') }),
+    })
+  );
+  await openDirector(page);
+  const d = (id: string) => page.getByTestId(`day-director-${id}`);
+  await d('video-file').setInputFiles({
+    name: 'my-wave.mp4',
+    mimeType: 'video/mp4',
+    buffer: Buffer.from('not really a video: the read is mocked'),
+  });
+  // Read on the server (polled), followed on the 3D body, then the next beat.
+  await expect(d('beat-1')).toContainText('From my-wave', { timeout: 30_000 });
+  expect(sent).toBe(1);
+  await expect(d('video-note')).toHaveCount(0);
+  await expect(d('time')).toContainText('/ 3.1 s');
+  // Its length stretches like a ready-made move's (at most twice its own).
+  await d('beat-1-seconds').fill('9');
+  await expect(d('time')).toContainText('/ 5.6 s');
+  await d('move-turn').click();
+  await expect(d('beat-2')).toContainText('Turn around');
+
+  await d('render').click();
+  await expect(page.getByTestId('day-director')).toBeHidden({ timeout: 60_000 });
+  expect(body).toContain('AVI ');
+  expect(body).toContain('moves as the person in her reference video does, then turns around');
 });
 
 test('Director: stacks on a phone-width screen', async ({ page }) => {

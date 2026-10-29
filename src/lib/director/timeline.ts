@@ -1,13 +1,14 @@
 /**
  * Director: a direction played out over time. Each beat starts where the previous one left her:
  * a pose beat eases every bone from there into its pose (slerp, smoothstep) and holds it,
- * breathing; a move beat plays the ready-made move placed at her spot and facing, blended in
- * from however she stood. Frames are figures in world space (floor at y = 0).
+ * breathing; a move beat plays the ready-made move (or a video's motion) placed at her spot and
+ * facing, blended in from however she stood. Frames are figures in world space (floor at y = 0).
  */
 
 import type { PoseRig3dFigure } from '@/lib/pose/rig3d';
 import type { Side } from '@/lib/pose/rig3d-pose';
 import { moveFrames } from './moves';
+import { videoBeatFrames } from './video-motion';
 import { ease, SIDES } from './motion';
 import {
   feetAnchor,
@@ -87,7 +88,10 @@ export function buildTimeline(direction: Direction): Timeline {
       segments.push({ ...segment, from, target, last: target, ...(feet ? { feet } : {}) });
       last = target;
     } else {
-      const local = moveFrames(beat.move, direction.body, beat.seconds, DIRECTOR_FPS);
+      const local =
+        beat.kind === 'video'
+          ? videoBeatFrames(beat.frames, beat.seconds, DIRECTOR_FPS)
+          : moveFrames(beat.move, direction.body, beat.seconds, DIRECTOR_FPS);
       const start = placementOf(local[0]!);
       let frames = local.map(frame => transformFigure(frame, start, at));
       if (last) {

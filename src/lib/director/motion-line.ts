@@ -33,6 +33,7 @@ function possessive(text: string, body: Rig3dBodyKind): string {
 function beatPhrase(beat: DirectorBeat, index: number): string {
   if (beat.kind === 'move') return DIRECTOR_MOVES[beat.move].phrase;
   const words = beat.words?.trim().replace(/[.\s]+$/, '');
+  if (beat.kind === 'video') return words || 'moves as the person in her reference video does';
   if (STARTER_PHRASES[beat.name]) return STARTER_PHRASES[beat.name]!;
   if (index === 0) return words ? `starts ${words}` : 'stands';
   return words ? `moves into a new pose — ${words}` : 'moves into a new pose';
@@ -92,7 +93,7 @@ export function directionSupportNeeds(direction: Direction): SupportNote[] {
         ? DIRECTOR_MOVES[beat.move].sits
           ? 'sit'
           : null
-        : poseSupport(beat.figure);
+        : poseSupport(beat.kind === 'video' ? beat.frames[beat.frames.length - 1]! : beat.figure);
     if (!support) return;
     const reclined = support === 'sit' && beat.kind === 'pose' && sitsBack(beat);
     notes.push({ beatId: beat.id, index, support, ...(reclined ? { reclined } : {}) });
