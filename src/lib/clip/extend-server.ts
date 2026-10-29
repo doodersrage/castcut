@@ -32,6 +32,7 @@ import {
   FACE_ANCHOR_WINDOW,
   fallbackExtendBeats,
   pickAnchorFrame,
+  renumberH3Pictures,
   withPartAction,
   isWanClipGraph,
   parseExtendBeats,
@@ -343,7 +344,7 @@ async function cutPiece(ffmpeg: string, piece: string, frames: number, out: stri
 async function h3ReferencePictures(
   baseUrl: string,
   input: ClipExtendInput
-): Promise<Array<{ image: string; shows: string }>> {
+): Promise<{ pictures: Array<{ image: string; shows: string }>; look?: string }> {
   try {
     const [node, unets, loras] = await Promise.all([
       resolveComfyNode(baseUrl, [H3_REF_NODE]),
@@ -361,27 +362,34 @@ async function h3ReferencePictures(
       !names(unets, 'UNETLoader', 'unet_name').includes(H3_REF_FILES.transformer) ||
       !names(loras, 'LoraLoaderModelOnly', 'lora_name').includes(H3_REF_FILES.turboLora)
     ) {
-      return [];
+      return { pictures: [] };
     }
     const { fetchFilmShotBytes } = await import('../video/shot-fetch');
     const pictures: Array<{ image: string; shows: string }> = [];
-    for (const reference of (input.references ?? []).slice(0, 4)) {
-      const fetched = await fetchFilmShotBytes({
-        url: reference.url,
-        requestOrigin: input.requestOrigin,
-        userId: input.userId,
-      });
-      const uploaded = await uploadComfyInputContent({
-        baseUrl,
-        bytes: new Uint8Array(fetched.buffer),
-        filename: 'castcut-extend-reference.png',
-        mimeType: fetched.contentType || 'image/png',
-      });
-      pictures.push({ image: uploaded.name, shows: reference.shows });
+    const kept: number[] = [];
+    for (const [index, reference] of (input.references ?? []).slice(0, 4).entries()) {
+      // One that can't be had (a dressed plate since cleared) leaves the others in use.
+      try {
+        const fetched = await fetchFilmShotBytes({
+          url: reference.url,
+          requestOrigin: input.requestOrigin,
+          userId: input.userId,
+        });
+        const uploaded = await uploadComfyInputContent({
+          baseUrl,
+          bytes: new Uint8Array(fetched.buffer),
+          filename: 'castcut-extend-reference.png',
+          mimeType: fetched.contentType || 'image/png',
+        });
+        pictures.push({ image: uploaded.name, shows: reference.shows });
+        kept.push(index);
+      } catch {
+        continue;
+      }
     }
-    return pictures;
+    return { pictures, look: renumberH3Pictures(input.look, kept) };
   } catch {
-    return [];
+    return { pictures: [] };
   }
 }
 
@@ -601,8 +609,10 @@ export async function extendClip(
     const wan = engine === 'wan' ? history : null;
     const h3 = engine === 'h3' ? history : null;
     // H3 parts on the reference model, with the Cast's pictures (M11), when this ComfyUI has it.
-    const h3Pictures =
-      h3 && input.references?.length ? await h3ReferencePictures(baseUrl, input) : [];
+    const { pictures: h3Pictures, look: h3Look } =
+      h3 && input.references?.length
+        ? await h3ReferencePictures(baseUrl, input)
+        : { pictures: [], look: undefined };
     const { total } = partCount(input, first.frames / 24, engine, first.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
@@ -728,7 +738,7 @@ export async function extendClip(
                 },
                 ...h3Pictures,
               ],
-              look: input.look,
+              look: h3Look,
             }) ?? patched.graph)
           : patched.graph;
         saveNode = patched.saveNode;

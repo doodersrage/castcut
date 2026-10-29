@@ -12,6 +12,7 @@ import {
   pickStartSharpenIndex,
   patchWanReplayGraph,
   castReferencesForExtend,
+  renumberH3Pictures,
   extendFacesNote,
   pickAnchorFrame,
   withPartAction,
@@ -68,6 +69,33 @@ describe('Make it 30 s', () => {
       }
     );
     assert.equal(castReferencesForExtend({ body: '/plate.png' }).references?.length, 1);
+    assert.deepEqual(castReferencesForExtend({ body: '/plate.png' }, 'man'), {
+      references: [{ url: '/plate.png', shows: 'his face, hair and build, not his clothes' }],
+      look: 'His clothes are exactly as in <Picture 1>.',
+    });
+    // The take's dressed plate shows the clothes too, in the look plate's place.
+    assert.deepEqual(
+      castReferencesForExtend({ face: '/face.png', body: '/plate.png', outfit: '/dressed.png' }),
+      {
+        references: [
+          { url: '/face.png', shows: 'her face' },
+          { url: '/dressed.png', shows: 'her face, hair, build and the clothes she is wearing' },
+        ],
+        look: 'Her clothes are exactly as in <Picture 3>: the same garment, colour and shoes.',
+      }
+    );
+    assert.equal(
+      castReferencesForExtend({ outfit: '/dressed.png' }).look,
+      'Her clothes are exactly as in <Picture 2>: the same garment, colour and shoes.'
+    );
+  });
+
+  it('renumbers the look when a reference is missing', () => {
+    const look = 'Her clothes are exactly as in <Picture 3>.';
+    assert.equal(renumberH3Pictures(look, [0, 1]), look);
+    assert.equal(renumberH3Pictures(look, [1]), 'Her clothes are exactly as in <Picture 2>.');
+    assert.equal(renumberH3Pictures(look, [0]), 'Her clothes are exactly as in <Picture 1>.');
+    assert.equal(renumberH3Pictures(undefined, []), undefined);
   });
 
   it('says which parts may not look like her', () => {

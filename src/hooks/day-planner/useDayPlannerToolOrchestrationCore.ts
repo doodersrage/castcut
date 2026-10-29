@@ -3368,6 +3368,9 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.
           promptCheck: stillPromptCheckRecord(checked),
           beatKey: rerollBeatKey(queueTarget.sceneHints) || undefined,
+          dressedPlateUrl: dressedPlate
+            ? dressedPlate.imageUrl?.trim() || comfyInputViewUrl(dressedPlate.filename) || undefined
+            : undefined,
           previousTake,
           bestOfTwo: undefined,
           bestOfTwoJob: castcutPoseGuide ? true : undefined,

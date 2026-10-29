@@ -2388,6 +2388,29 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   Not done: other engines' identity LoRAs (WAN Stand-In / Phantom / MAGREF-style) — none is
   installed here; a separate task.
 
+**T7 — The T5 Casts, the take's outfit, Scene, and LTX** (user, 2026-10-29). · M
+- The T5 Casts (Mara, Lena), a 4 s H3 clip each from their park take, made 13 s longer (three
+  parts, beats written); faces against the Cast's face lock, every 2 s from 9 s on:
+  | Cast | Without references | Face lock + look plate | Face lock + dressed plate |
+  | --- | --- | --- | --- |
+  | Mara | 0.00–0.14 | 0.52–0.64, dress went white, pushed in | 0.43–0.60, dress back to mint, pink shoes back, framing wide |
+  | Lena | 0.15–0.25, face gone 7–11 s | 0.14–0.73, a close-up, then her back | 0.35–0.50 in every sample, full length, dress and shoes held |
+- With the dressed plate the face is smaller (the framing stays full length), so it scores lower
+  than the look plate's close-ups, but it never leaves the frame; largest colour step 5.8–6.3.
+- Mara's mint dress turned beige inside the first H3 clip itself (no part involved): the start
+  frame then carries the wrong colour, which the look plate ("not her clothes") keeps.
+- Done: a Day take records the dressed plate it was rendered from (`DaySlotStill.dressedPlateUrl`);
+  "Make it longer" shows it in the look plate's place as "her face, hair, build and the clothes she
+  is wearing", and "her clothes are exactly as in <Picture N>" names it. A reference that can't be
+  fetched is left out and the tags are renumbered (`renumberH3Pictures`). His / her by the lead.
+  Scene's "Make it longer" sends the active Cast's face lock and look plate too (no dressed plate:
+  Scene beats don't record one).
+- LTX-2.5 (the Ingredients IC-LoRA, installed here): with the extension's tail guide it changed
+  nothing at 1.0 or 1.4, one pass or both (the dress stayed beige; she walked on into the lens
+  through a "stands still" beat); alone it copies the reference sheet's layout (1.0) or makes a new
+  shot (1.4). Not used. WAN: `WanPhantomSubjectToVideo` is native, but Phantom's model is not
+  installed and is reference-to-video too (no start frame) — not tried.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

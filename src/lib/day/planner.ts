@@ -513,6 +513,11 @@ export type DaySlotStill = {
    */
   clipRenderPromptId?: string;
   /**
+   * The dressed plate this take was rendered from (the slot's outfit on the Cast plate), so a
+   * longer clip on MiniMax-H3 can show it as her clothes (M11: the clip's own colours drift).
+   */
+  dressedPlateUrl?: string;
+  /**
    * Face finish (face-finish.ts): the finished image for the take `finishedFor` names. The
    * gallery poll shows it instead of the raw take while `finishedFor` matches `promptId`; a
    * requeue gets a new prompt id, so a stale finish is ignored.
@@ -4749,6 +4754,9 @@ export function normalizeDaySlotStills(
         : {}),
       ...withPromptCheck(still.promptCheck),
       ...(readText(still.beatKey, 400) ? { beatKey: readText(still.beatKey, 400) } : {}),
+      ...(readText(still.dressedPlateUrl, 2048)
+        ? { dressedPlateUrl: readText(still.dressedPlateUrl, 2048) }
+        : {}),
       ...(readText(still.previousTake?.imageUrl, 2048)
         ? {
             previousTake: {

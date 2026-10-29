@@ -2,12 +2,15 @@
 
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
+  castReferencesForExtend,
   clipExtendProgressNote,
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
 } from '@/lib/clip/extend';
 import { keepClipInGallery } from '@/lib/clip/gallery-keep';
+import { castVideoReferences } from '@/lib/character/plate';
+import { getCharacter } from '@/lib/character/os';
 import {
   useStoryBeatMediaTools,
   type StoryBeatMediaTools,
@@ -326,6 +329,11 @@ export function useStoryBeatEdit({
         clipPromptId: latest.clipRenderPromptId ?? latest.clipPromptId,
         scene: `${latest.title}. ${latest.blurb}`,
         heat: spokenLineHeat(loadSettingsCache().tools.roleplay?.content),
+        // The scene's Cast for H3's reference model (M11), as in Day.
+        ...castReferencesForExtend(
+          castVideoReferences(getCharacter(loadSettingsCache().shared.activeCharacterId)),
+          leadIsMan() ? 'man' : 'woman'
+        ),
       };
     },
     [storyRef]

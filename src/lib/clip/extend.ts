@@ -245,25 +245,58 @@ export function pickAnchorFrame(
 }
 
 /**
+ * The look's <Picture N> tags once some references could not be had: `kept` lists which of the
+ * references (0-based, in the order sent) made it. Picture 1 is the start frame; a tag for a
+ * missing one points there instead.
+ */
+export function renumberH3Pictures(look: string | undefined, kept: number[]): string | undefined {
+  return look?.replace(/<Picture (\d+)>/g, (_tag, n: string) => {
+    const at = kept.indexOf(Number(n) - 2);
+    return `<Picture ${at < 0 ? 1 : at + 2}>`;
+  });
+}
+
+/**
  * The Cast's pictures and words for H3's reference model (M11), as tested: the face lock as her
  * face, the look plate for her face, hair and build — not her clothes, which stay as in the frame
  * a part starts from (<Picture 1>) — and her appearance said. A plate in another outfit did not
  * change the clothes; faces held 0.64–0.69 from a start at 0.30.
+ *
+ * `outfit`: the dressed plate the take was rendered from (the slot's own clothes). It takes the
+ * look plate's place and shows her clothes too. Live on a T5 Cast (2026-10-29) whose mint dress
+ * had drifted to beige inside the first clip: the dress came back to mint with her pink shoes and
+ * the framing held wide, where the look plate let the clothes go white and the camera push in.
  */
-export function castReferencesForExtend(cast: { face?: string; body?: string; look?: string }): {
+export function castReferencesForExtend(
+  cast: { face?: string; body?: string; look?: string; outfit?: string },
+  lead: 'man' | 'woman' = 'woman'
+): {
   references?: Array<{ url: string; shows: string }>;
   look?: string;
 } {
+  const [their, Their] = lead === 'man' ? ['his', 'His'] : ['her', 'Her'];
+  const outfit = cast.outfit?.trim();
   const references = [
-    ...(cast.face ? [{ url: cast.face, shows: 'her face' }] : []),
-    ...(cast.body ? [{ url: cast.body, shows: 'her face, hair and build, not her clothes' }] : []),
+    ...(cast.face ? [{ url: cast.face, shows: `${their} face` }] : []),
+    ...(outfit
+      ? [
+          {
+            url: outfit,
+            shows: `${their} face, hair, build and the clothes ${lead === 'man' ? 'he' : 'she'} is wearing`,
+          },
+        ]
+      : cast.body
+        ? [{ url: cast.body, shows: `${their} face, hair and build, not ${their} clothes` }]
+        : []),
   ];
   if (!references.length) return {};
+  // Picture 1 is the frame the part starts from; the references follow it.
+  const clothes = outfit
+    ? `${Their} clothes are exactly as in <Picture ${references.length + 1}>: the same garment, colour and shoes.`
+    : `${Their} clothes are exactly as in <Picture 1>.`;
   return {
     references,
-    look: [cast.look?.trim(), 'Her clothes are exactly as in <Picture 1>.']
-      .filter(Boolean)
-      .join(' '),
+    look: [cast.look?.trim(), clothes].filter(Boolean).join(' '),
   };
 }
 

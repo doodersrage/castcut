@@ -134,6 +134,8 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   With MiniMax-H3's reference model in ComfyUI (`minimax_h3_ref2va_pruned_int8_convrot` in
   `models/diffusion_models` and the `minimax_h3_ref2v_turbo_8step` LoRA), each part also sees the
   Cast's face lock and look plate, so her face holds; her clothes stay as the clip has them.
+  When the still was dressed from a dressed plate, that plate is shown instead, so her clothes
+  also keep their colour and shoes. Scene's Make it longer sends the Cast's face lock and plate too.
 
 Each card's **⋯** menu is grouped in the order you work on a shot:
 

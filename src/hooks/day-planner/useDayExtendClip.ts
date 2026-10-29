@@ -55,7 +55,10 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         setting: slot.location,
         heat: spokenLineHeat(dayMood),
         // The Cast's face and plate for H3's reference model (M11): used when ComfyUI has it.
-        ...castReferencesForExtend(castVideoReferences(ctx.character)),
+        ...castReferencesForExtend(
+          { ...castVideoReferences(ctx.character), outfit: still.dressedPlateUrl },
+          ctx.character?.traits?.sex === 'man' ? 'man' : 'woman'
+        ),
       };
     },
     [ctx.character, dayMood, stillsRef]
