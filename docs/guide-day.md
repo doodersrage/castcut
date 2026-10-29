@@ -130,6 +130,7 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   clothes, the look — with only its action changed, and holds the framing.
   Each part starts from the frame of the part before whose face is most the Cast's (when ComfyUI
   has the face check), and a part whose face changed is named when the clip is done.
+  Each part's colours are matched where it joins the part before, so the joins don't change colour.
 
 Each card's **⋯** menu is grouped in the order you work on a shot:
 

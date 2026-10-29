@@ -534,9 +534,9 @@ export async function extendClip(
     // Even sides for x264; the clip's own size.
     const size = { width: original.width & ~1, height: original.height & ~1 };
     const first = await normalizePiece(ffmpeg, at('clip.bin'), at('piece0.mp4'), size);
-    // Colours stay those of the clip's first frame (colorMatchGains).
+    // The first clip's first frame: the detail parts are sharpened back toward, and the face they
+    // keep (each part's colours are matched at its seam instead).
     await grabFrame(ffmpeg, at('piece0.mp4'), 0, at('reference.png'));
-    const reference = await frameStats(at('reference.png'));
     const referenceDetail = await frameDetail(at('reference.png'));
     const history = await readHistoryGraph(baseUrl, input.clipPromptId);
     const engine = partEngine(history);
@@ -618,12 +618,10 @@ export async function extendClip(
         '1',
         at(`last${k}.png`),
       ]);
-      const sharp = (await import('sharp')).default;
-      const match = colorMatchGains(reference, await frameStats(at(`last${k}.png`)));
-      const matched = await sharp(at(`last${k}.png`))
-        .linear(match.gain, match.offset)
-        .png()
-        .toBuffer();
+      // The start frame as the part before ends — its colours untouched. Matching it to the first
+      // frame's colours recoloured whatever the shot had become (a wide of sand vs a close-up of an
+      // orange swimsuit), and each seam jumped in colour and saturation.
+      const matched = await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`));
       // Sharpened back toward the first clip's detail on WAN and H3 (M11 T3): each part starts from
       // the last one's softest frame, and the softening compounds.
       const startBytes = wan || h3 ? await sharpenStartFrame(matched, referenceDetail) : matched;
@@ -727,16 +725,18 @@ export async function extendClip(
       if (!rendered.result)
         throw new Error('A segment finished without a clip — check the ComfyUI log.');
       await download(baseUrl, rendered.result, at(`seg${k}.bin`));
-      // The segment's colours matched to the clip's first frame, read from its middle frame.
-      const raw = await probe(ffmpeg, at(`seg${k}.bin`)).catch(() => null);
-      const segMatch = await grabFrame(
-        ffmpeg,
-        at(`seg${k}.bin`),
-        raw ? raw.frames / 2 / 24 : 1,
-        at(`mid${k}.png`)
-      )
-        .then(() => frameStats(at(`mid${k}.png`)))
-        .then(stats => colorMatchFilter(colorMatchGains(reference, stats)))
+      // The segment's colours matched at the seam: its first frame shows what the frame it started
+      // from shows (WAN / H3: that frame; LTX: the tail's first frame), so the difference is only
+      // the engine's colour shift — taken out of the whole part, and the seam stays the same colour.
+      const seamFrame = engine === 'ltx' ? at(`tailfirst${k}.png`) : at(`last${k}.png`);
+      if (engine === 'ltx')
+        await grabFrame(ffmpeg, at(`tail${k}.mp4`), 0, seamFrame).catch(() => undefined);
+      const segMatch = await grabFrame(ffmpeg, at(`seg${k}.bin`), 0, at(`first${k}.png`))
+        .then(async () =>
+          colorMatchFilter(
+            colorMatchGains(await frameStats(seamFrame), await frameStats(at(`first${k}.png`)))
+          )
+        )
         .catch(() => undefined);
       // A WAN or H3 segment starts on the previous last frame: drop it; LTX keeps its overlap to
       // blend.

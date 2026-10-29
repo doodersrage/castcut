@@ -2346,6 +2346,20 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   props — beats keep to what is in the shot, part prompts keep "the place" as it was. Still seen:
   small details drift (a hat gained a band).
 
+**T5 — Colour holds across the joins** (user report, 2026-10-28). · S
+- Seen: colour and saturation jump where parts join. Measured (consecutive-frame RGB and
+  saturation through the joined clip): steps of 25–32 at every seam, saturation 78 → 57 at the
+  first. Cause: both each part's start frame and the finished part were matched to the colours of
+  the first clip's first frame — a wide of sand and towel, while the shot had become a close-up of
+  an orange swimsuit — so every part was recoloured toward content it no longer showed.
+- Now: the start frame goes to the engine as the part before ends, and each part is matched at its
+  seam — its first frame against the frame it started from (LTX: the tail's first frame), the same
+  content, so only the engine's own shift is taken out. Real chain after: the largest
+  frame-to-frame change 5 (was 25–32), no saturation step at any seam.
+- That run's beats had her yawn and lie with her head on its side: faces 0.20–0.28 — the anchor
+  can only pick among the frames there are. Identity from part to part depends on what the beats
+  ask of the face; the toast names such parts.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.
