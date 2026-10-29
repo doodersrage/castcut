@@ -9,6 +9,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.2.0] - 2026-10-29
+
+- M11 T11: continue a clip with a directed move
+- M11 T10: Director moves from your own video; e2e totals for the captured moves
+- M11 T8–T9: Director moves from real motion capture; directed-part spike measured
+- M11 T7: longer clips keep the take's outfit — the dressed plate as H3's clothes reference; Scene sends the Cast
+- M11 T6: H3 parts see the Cast — the reference model with the face lock and look plate
+- M11 T5: longer clips keep their colour across the joins
+- M11 T4: longer clips keep the Cast's face — each part starts on its best face frame
+- M11 T1–T3: longer clips — each part its own action, per-part beats and lengths, H3 quality
+- M11 T1: a longer clip's parts each do their own beat
+- M10 T5: Script, locations and runs on the phone
+- M10 T4: a sound-effects track — placed sounds in the monitor and the encode
+- M10 T3: multi-cue subtitles — timed cues per shot, on the monitor, in the .srt and burned in
+- M10 T1–T2: production pages in the axe check; a trash for renders and takes
+- M9: see it before you render it — search, shot editing, storyboard, animatic
+
 ## [v3.1.0] - 2026-10-28
 
 - M8 T3: Make its picture — a location's picture rendered from its words
