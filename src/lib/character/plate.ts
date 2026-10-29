@@ -82,3 +82,31 @@ export function resolveLookPlate(
 ): FittingPlate | null {
   return look ? plateFromPictures(look.reference, look.ipAdapter) : null;
 }
+
+/**
+ * The Cast's pictures for a video model that takes references (MiniMax-H3's reference model, M11):
+ * its face (the face lock) and its whole body on a plain background (the look plate, isolated when
+ * there is one), and its appearance in words — all from the active look, else the Cast's own.
+ */
+export function castVideoReferences(character: CharacterRecord | null | undefined): {
+  face?: string;
+  body?: string;
+  look?: string;
+} {
+  if (!character) return {};
+  let look;
+  try {
+    look = activeLook(character);
+  } catch {
+    look = undefined;
+  }
+  const reference = look?.reference ?? character.reference;
+  const body = reference?.isolatedUrl?.trim() || reference?.originalUrl?.trim() || '';
+  const face = (look?.ipAdapter ?? character.ipAdapter)?.imageUrl?.trim() || '';
+  const words = (look?.descriptor ?? character.descriptor)?.trim() || '';
+  return {
+    ...(face && face !== body ? { face } : {}),
+    ...(body ? { body } : {}),
+    ...(words ? { look: words } : {}),
+  };
+}

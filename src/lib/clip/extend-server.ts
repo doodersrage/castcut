@@ -51,6 +51,9 @@ import {
 import {
   h3PartPrompt,
   H3_PART_FRAMES,
+  H3_REF_FILES,
+  H3_REF_NODE,
+  withH3References,
   isH3ClipGraph,
   patchH3ReplayGraph,
 } from '../engine/h3-renderer';
@@ -333,6 +336,55 @@ async function cutPiece(ffmpeg: string, piece: string, frames: number, out: stri
   ]);
 }
 
+/**
+ * The Cast's pictures in ComfyUI's input folder for H3's reference model (M11) — none when this
+ * ComfyUI lacks the node, the reference transformer or its Turbo LoRA, or a picture can't be read.
+ */
+async function h3ReferencePictures(
+  baseUrl: string,
+  input: ClipExtendInput
+): Promise<Array<{ image: string; shows: string }>> {
+  try {
+    const [node, unets, loras] = await Promise.all([
+      resolveComfyNode(baseUrl, [H3_REF_NODE]),
+      fetch(`${baseUrl}/object_info/UNETLoader`).then(response => response.json()),
+      fetch(`${baseUrl}/object_info/LoraLoaderModelOnly`).then(response => response.json()),
+    ]);
+    const names = (info: unknown, loader: string, field: string): string[] => {
+      const options = (
+        info as Record<string, { input?: { required?: Record<string, unknown[]> } }>
+      )?.[loader]?.input?.required?.[field]?.[0];
+      return Array.isArray(options) ? options.map(String) : [];
+    };
+    if (
+      !node ||
+      !names(unets, 'UNETLoader', 'unet_name').includes(H3_REF_FILES.transformer) ||
+      !names(loras, 'LoraLoaderModelOnly', 'lora_name').includes(H3_REF_FILES.turboLora)
+    ) {
+      return [];
+    }
+    const { fetchFilmShotBytes } = await import('../video/shot-fetch');
+    const pictures: Array<{ image: string; shows: string }> = [];
+    for (const reference of (input.references ?? []).slice(0, 4)) {
+      const fetched = await fetchFilmShotBytes({
+        url: reference.url,
+        requestOrigin: input.requestOrigin,
+        userId: input.userId,
+      });
+      const uploaded = await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(fetched.buffer),
+        filename: 'castcut-extend-reference.png',
+        mimeType: fetched.contentType || 'image/png',
+      });
+      pictures.push({ image: uploaded.name, shows: reference.shows });
+    }
+    return pictures;
+  } catch {
+    return [];
+  }
+}
+
 type Graph = Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
 
 async function readHistoryGraph(
@@ -385,6 +437,12 @@ export type ClipExtendInput = {
   beats?: string[];
   /** Each part's length in seconds (same order; 0 = the engine's own): shorter is trimmed. */
   partSeconds?: number[];
+  /**
+   * The Cast's pictures (its look plate, …) with what each shows (M11): H3 parts render on H3's
+   * reference model with them, when this ComfyUI has it, and `look` says her appearance.
+   */
+  references?: Array<{ url: string; shows: string }>;
+  look?: string;
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
   /** How each line is said (same order). */
@@ -542,6 +600,9 @@ export async function extendClip(
     const engine = partEngine(history);
     const wan = engine === 'wan' ? history : null;
     const h3 = engine === 'h3' ? history : null;
+    // H3 parts on the reference model, with the Cast's pictures (M11), when this ComfyUI has it.
+    const h3Pictures =
+      h3 && input.references?.length ? await h3ReferencePictures(baseUrl, input) : [];
     const { total } = partCount(input, first.frames / 24, engine, first.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
@@ -657,7 +718,19 @@ export async function extendClip(
           prefix,
         });
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
-        prompt = patched.graph;
+        prompt = h3Pictures.length
+          ? (withH3References(patched.graph, {
+              pictures: [
+                {
+                  image: lastFrame.name,
+                  shows:
+                    'the first frame: the shot as it is now, which the video starts from exactly',
+                },
+                ...h3Pictures,
+              ],
+              look: input.look,
+            }) ?? patched.graph)
+          : patched.graph;
         saveNode = patched.saveNode;
       } else if (wan) {
         const patched = patchWanReplayGraph(wan, {

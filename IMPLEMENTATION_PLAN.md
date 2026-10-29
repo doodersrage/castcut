@@ -2360,6 +2360,34 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   can only pick among the frames there are. Identity from part to part depends on what the beats
   ask of the face; the toast names such parts.
 
+**T6 — H3 parts see the Cast (reference model)** (user, 2026-10-28). · M
+- Tested one part each from the same hard start (a frame whose face had drifted, match 0.30), the
+  same beat and seed; continuity = SSIM of the part's first frame against the start; faces 1.5–5 s:
+  | Variant | Continuity | Face | Seen |
+  | --- | --- | --- | --- |
+  | first/last-frame model, as before (2 seeds) | 0.99 | 0.34–0.48 | stays someone else |
+  | that model + reference conditioning (3 ways) | 0.79–0.99 | 0.44–0.59 | cut to the reference's shot |
+  | reference model, start frame only | 0.97 | 0.40–0.45 | no gain |
+  | + face crop + body cropped from a frame (3 seeds) | 0.98 / 0.92 / 0.36 | 0.63–0.70 | one seed cut at once |
+  | + also the first frame pinned (AddGuide) | 0.99 | 0.49–0.74 | cut to the body picture's shot |
+  | + no appearance words | 0.91 | 0.59–0.72 | cut to the body picture's shot |
+  | **start + face + plain-background plate + appearance (3 seeds)** | **0.92–0.98** | **0.62–0.70** | one continuous shot, the hat's stray band gone |
+  | start + plate only (2 seeds) | 0.96–0.98 | 0.50–0.63 | |
+  | full 14 steps, no Turbo LoRA | 0.88 | 0.36–0.64 | slower (302 s vs ~190 s) |
+  | the plate in another outfit (blue) (3) | 0.98 | 0.62–0.69 | clothes stayed as in the start frame |
+- Done: `withH3References` (`h3-renderer.ts`: the reference transformer and its Turbo LoRA, 8 steps,
+  <Picture 1> the start frame on its own loader), `h3ReferencePictures` (`extend-server.ts`: only
+  when ComfyUI has `MiniMaxH3ReferenceToVideo`, the transformer and the LoRA), the request's
+  `references` / `look`, and Day sends the active look's face lock and plate
+  (`castVideoReferences`, `castReferencesForExtend`: the plate is "her face, hair and build, not
+  her clothes"; "her clothes are exactly as in <Picture 1>"). Without the model: as before.
+- The whole job on the beach clip (three parts, the face anchor and seam colour on): faces in
+  later parts 0.65–0.92 (0.30–0.66 without references), largest colour step 4.
+- The model is `minimax_h3_ref2va_pruned_int8_convrot.safetensors` (21 GB, Comfy-Org/MiniMax-H3 on
+  Hugging Face) in `models/diffusion_models`, with `minimax_h3_ref2v_turbo_8step_v1.0_768p`.
+  Not done: other engines' identity LoRAs (WAN Stand-In / Phantom / MAGREF-style) — none is
+  installed here; a separate task.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

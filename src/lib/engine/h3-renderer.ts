@@ -37,6 +37,17 @@ export const H3_FILES = {
   videoVae: 'minimax_h3_video_vae_fp16.safetensors',
   audioVae: 'minimax_h3_audio_vae_fp32.safetensors',
 } as const;
+/**
+ * MiniMax-H3's reference model (M11): the same text encoder and VAEs, its own transformer and
+ * Turbo LoRA. A part rendered on it sees the Cast's pictures as well as the frame it starts from.
+ */
+export const H3_REF_FILES = {
+  transformer: 'minimax_h3_ref2va_pruned_int8_convrot.safetensors',
+  turboLora: 'minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors',
+} as const;
+export const H3_REF_NODE = 'MiniMaxH3ReferenceToVideo';
+export const H3_REF_STEPS = 8;
+
 export const H3_LICENCE_NOTE =
   'MiniMax-H3’s licence does not allow use in the US, EU, UK or South Korea.';
 /** The live test's step count for the 8-step Turbo LoRA (as good as 8, a quarter faster). */
@@ -308,6 +319,68 @@ export function h3PartPrompt(
  * The clip's H3 graph replayed as one part: it starts on `lastFrame` (no last frame pinned),
  * runs H3's own shot length, renders sound, and says `prompt`. Null when it is not an H3 graph.
  */
+/**
+ * A part's graph (patchH3ReplayGraph) on H3's reference model (M11): <Picture 1> is the frame it
+ * starts from — H3 starts the video on it — and the rest are the Cast's pictures (its face, its
+ * look plate), named in the prompt with what they show; `look` restates her appearance (a picture
+ * tag alone carries no identity). The first frame is not pinned again with a guide: in the test
+ * that made the part cut to the reference's own composition. Null when it is not an H3 graph.
+ */
+export function withH3References(
+  source: Workflow,
+  input: {
+    /** Input-folder images: [the start frame, …the Cast's pictures]. */
+    pictures: ReadonlyArray<{ image: string; shows: string }>;
+    look?: string;
+  }
+): Workflow | null {
+  const graph = JSON.parse(JSON.stringify(source)) as Workflow;
+  const entries = Object.entries(graph);
+  const h3 = entries.find(([, node]) => node?.class_type === H3_REQUIRED_NODE);
+  const unet = entries.find(([, node]) => node?.class_type === 'UNETLoader')?.[1];
+  const lora = entries.find(([, node]) => node?.class_type === 'LoraLoaderModelOnly')?.[1];
+  const scheduler = entries.find(([, node]) => node?.class_type === 'BasicScheduler')?.[1];
+  const audioVae = entries.find(
+    ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
+  )?.[0];
+  if (!h3?.[1]?.inputs || !unet?.inputs || !input.pictures.length) return null;
+  const old = h3[1].inputs;
+  unet.inputs.unet_name = H3_REF_FILES.transformer;
+  if (lora?.inputs) lora.inputs.lora_name = H3_REF_FILES.turboLora;
+  if (scheduler?.inputs) scheduler.inputs.steps = H3_REF_STEPS;
+  const tags = input.pictures
+    .map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`)
+    .join(' ');
+  const refs: Record<string, unknown> = {};
+  input.pictures.forEach((picture, k) => {
+    // The start frame's loader (its size sets the video's) is <Picture 1>.
+    const loader = k === 0 && isRef(old.first_frame) ? graph[old.first_frame[0]] : undefined;
+    if (loader?.inputs && loader.class_type === 'LoadImage') {
+      loader.inputs.image = picture.image;
+      refs['ref_images.ref_image_1'] = old.first_frame;
+      return;
+    }
+    const id = `h3ref${k + 1}`;
+    graph[id] = { class_type: 'LoadImage', inputs: { image: picture.image } };
+    refs[`ref_images.ref_image_${k + 1}`] = [id, 0];
+  });
+  graph[h3[0]] = {
+    class_type: H3_REF_NODE,
+    inputs: {
+      clip: old.clip,
+      prompt: [tags, input.look?.trim(), String(old.prompt ?? '')].filter(Boolean).join(' '),
+      width: old.width,
+      height: old.height,
+      length: old.length,
+      ref_image_size: 'match',
+      vae: old.vae,
+      ...(audioVae ? { audio_vae: [audioVae, 0] } : {}),
+      ...refs,
+    },
+  };
+  return graph;
+}
+
 export function patchH3ReplayGraph(
   source: Record<string, WorkflowNode | undefined>,
   input: { lastFrame: string; prompt: string; seed: number; prefix: string }

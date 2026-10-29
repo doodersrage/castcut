@@ -11,6 +11,7 @@ import {
   parseExtendBeats,
   pickStartSharpenIndex,
   patchWanReplayGraph,
+  castReferencesForExtend,
   extendFacesNote,
   pickAnchorFrame,
   withPartAction,
@@ -51,6 +52,22 @@ describe('Make it 30 s', () => {
       index: 123,
       similarity: null,
     });
+  });
+
+  // M11: the Cast's face and plate for H3's reference model, as tested.
+  it('sends the face lock and the plate, her clothes left to the start frame', () => {
+    assert.deepEqual(castReferencesForExtend({}), {});
+    assert.deepEqual(
+      castReferencesForExtend({ face: '/face.png', body: '/plate.png', look: 'Long blonde hair.' }),
+      {
+        references: [
+          { url: '/face.png', shows: 'her face' },
+          { url: '/plate.png', shows: 'her face, hair and build, not her clothes' },
+        ],
+        look: 'Long blonde hair. Her clothes are exactly as in <Picture 1>.',
+      }
+    );
+    assert.equal(castReferencesForExtend({ body: '/plate.png' }).references?.length, 1);
   });
 
   it('says which parts may not look like her', () => {

@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import { pushAppToast } from '@/lib/app/toast';
+import { castVideoReferences } from '@/lib/character/plate';
 import {
+  castReferencesForExtend,
   clipExtendProgressNote,
   extendFacesNote,
   startClipExtend,
@@ -52,9 +54,11 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         scene: slot.sceneHints?.trim() || still.beatKey?.trim() || slot.label,
         setting: slot.location,
         heat: spokenLineHeat(dayMood),
+        // The Cast's face and plate for H3's reference model (M11): used when ComfyUI has it.
+        ...castReferencesForExtend(castVideoReferences(ctx.character)),
       };
     },
-    [dayMood, stillsRef]
+    [ctx.character, dayMood, stillsRef]
   );
 
   const patchStill = useCallback(

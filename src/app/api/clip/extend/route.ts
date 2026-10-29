@@ -93,6 +93,20 @@ export async function POST(request: Request) {
           .slice(0, 8)
           .map(sec => (typeof sec === 'number' && sec >= 1 && sec <= 30 ? sec : 0))
       : undefined,
+    // The Cast's pictures for H3's reference model (M11): app or ComfyUI URLs, at most four.
+    references: Array.isArray(body.references)
+      ? body.references.slice(0, 4).flatMap(entry =>
+          entry && typeof entry === 'object' && text((entry as { url?: unknown }).url, 2000)
+            ? [
+                {
+                  url: text((entry as { url?: unknown }).url, 2000),
+                  shows: text((entry as { shows?: unknown }).shows, 120) || 'her',
+                },
+              ]
+            : []
+        )
+      : undefined,
+    look: text(body.look, 600) || undefined,
     lines: Array.isArray(body.lines)
       ? body.lines
           .slice(0, 8)

@@ -11,6 +11,10 @@ import {
   H3_STEPS,
   isH3ClipGraph,
   patchH3ReplayGraph,
+  H3_REF_FILES,
+  H3_REF_NODE,
+  H3_REF_STEPS,
+  withH3References,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -193,5 +197,53 @@ describe('H3 camera words', async () => {
     const said = h3PartPrompt(clip, { beat: 'He nods.', line: 'Then we go.', speaker: 'He' });
     assert.match(said, /He says, "Then we go\." — his lips move/);
     assert.match(said, /under the voice/);
+  });
+});
+
+// M11: a part on H3's reference model — the start frame as <Picture 1>, the Cast's pictures after.
+describe('withH3References', () => {
+  const replay = () => ({
+    '1': { class_type: 'UNETLoader', inputs: { unet_name: H3_FILES.transformer } },
+    '2': { class_type: 'LoraLoaderModelOnly', inputs: { model: ['1', 0], lora_name: H3_FILES.turboLora } },
+    '3': { class_type: 'CLIPLoader', inputs: {} },
+    '4': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.videoVae } },
+    '5': { class_type: 'VAELoader', inputs: { vae_name: H3_FILES.audioVae } },
+    '6': { class_type: 'LoadImage', inputs: { image: 'start.png' } },
+    '7': { class_type: 'GetImageSize', inputs: { image: ['6', 0] } },
+    '10': {
+      class_type: 'MiniMaxH3ImageToVideo',
+      inputs: { clip: ['3', 0], vae: ['4', 0], width: ['8', 1], height: ['9', 1], length: 124, first_frame: ['6', 0], prompt: 'Action: she smiles.' },
+    },
+    '14': { class_type: 'BasicScheduler', inputs: { steps: 6 } },
+  });
+
+  it('moves the part to the reference model with its pictures named and her look said', () => {
+    const graph = withH3References(replay(), {
+      pictures: [
+        { image: 'start.png', shows: 'the first frame' },
+        { image: 'plate.png', shows: 'her whole body' },
+      ],
+      look: 'She has long blonde hair and an orange bikini.',
+    })!;
+    assert.equal(graph['1']!.inputs!.unet_name, H3_REF_FILES.transformer);
+    assert.equal(graph['2']!.inputs!.lora_name, H3_REF_FILES.turboLora);
+    assert.equal(graph['14']!.inputs!.steps, H3_REF_STEPS);
+    const h3 = graph['10']!;
+    assert.equal(h3.class_type, H3_REF_NODE);
+    // The start frame's own loader (its size sets the video's) is <Picture 1>.
+    assert.deepEqual(h3.inputs!['ref_images.ref_image_1'], ['6', 0]);
+    assert.equal(graph['6']!.inputs!.image, 'start.png');
+    assert.equal(graph[String((h3.inputs!['ref_images.ref_image_2'] as [string, number])[0])]!.inputs!.image, 'plate.png');
+    assert.deepEqual(h3.inputs!.audio_vae, ['5', 0]);
+    assert.equal(
+      h3.inputs!.prompt,
+      '<Picture 1> is the first frame. <Picture 2> is her whole body. She has long blonde hair and an orange bikini. Action: she smiles.'
+    );
+    assert.equal(h3.inputs!.first_frame, undefined);
+  });
+
+  it('is null for a graph that is not H3, or with no pictures', () => {
+    assert.equal(withH3References({ '1': { class_type: 'UNETLoader', inputs: {} } }, { pictures: [{ image: 'a', shows: 'b' }] }), null);
+    assert.equal(withH3References(replay(), { pictures: [] }), null);
   });
 });

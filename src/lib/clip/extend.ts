@@ -244,6 +244,29 @@ export function pickAnchorFrame(
   return near.reduce((latest, entry) => (entry.index > latest.index ? entry : latest));
 }
 
+/**
+ * The Cast's pictures and words for H3's reference model (M11), as tested: the face lock as her
+ * face, the look plate for her face, hair and build — not her clothes, which stay as in the frame
+ * a part starts from (<Picture 1>) — and her appearance said. A plate in another outfit did not
+ * change the clothes; faces held 0.64–0.69 from a start at 0.30.
+ */
+export function castReferencesForExtend(cast: { face?: string; body?: string; look?: string }): {
+  references?: Array<{ url: string; shows: string }>;
+  look?: string;
+} {
+  const references = [
+    ...(cast.face ? [{ url: cast.face, shows: 'her face' }] : []),
+    ...(cast.body ? [{ url: cast.body, shows: 'her face, hair and build, not her clothes' }] : []),
+  ];
+  if (!references.length) return {};
+  return {
+    references,
+    look: [cast.look?.trim(), 'Her clothes are exactly as in <Picture 1>.']
+      .filter(Boolean)
+      .join(' '),
+  };
+}
+
 /** Below this a part's face is likely someone else's (the Cast's own plate scores 0.40–0.70). */
 export const FACE_HELD_MIN = 0.4;
 
@@ -332,6 +355,9 @@ export type ClipExtendRequest = {
   beats?: string[];
   /** Each part's length in seconds (same order; 0 = the engine's own): shorter is trimmed. */
   partSeconds?: number[];
+  /** The Cast's pictures and appearance for H3's reference model (M11; extend-server.ts). */
+  references?: Array<{ url: string; shows: string }>;
+  look?: string;
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
   /** How each line is said (same order; '' / 'natural' = plainly). */
