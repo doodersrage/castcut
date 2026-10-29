@@ -55,6 +55,13 @@ const H3_MIN_FRAMES = 124;
 export const H3_PART_FRAMES = H3_MIN_FRAMES;
 const H3_MAX_FRAMES = 362;
 
+/**
+ * How H3's MP4 is saved (M11 T3): re-encoded at CRF 12. SaveVideo's "auto" kept H3's own stream,
+ * about 1–2 Mbit/s at 768×1024 — and a longer clip's next part starts from that last frame, so the
+ * blocking compounded part over part. (Older ComfyUI without these options ignores them.)
+ */
+export const H3_SAVE_QUALITY = { 'codec.encoding': 're-encode', 'codec.encoding.crf': 12 } as const;
+
 export function isH3Model(model: string | null | undefined): boolean {
   return String(model ?? '').trim() === H3_MODEL_ID;
 }
@@ -231,7 +238,13 @@ export function convertVideoWorkflowToH3(
     },
     '20': {
       class_type: 'SaveVideo',
-      inputs: { video: ['19', 0], filename_prefix: prefix, format: 'mp4', codec: 'h264' },
+      inputs: {
+        video: ['19', 0],
+        filename_prefix: prefix,
+        format: 'mp4',
+        codec: 'h264',
+        ...H3_SAVE_QUALITY,
+      },
     },
   };
   if (endImage) next['11'] = { class_type: 'LoadImage', inputs: { image: endImage } };
@@ -271,9 +284,13 @@ export function h3PartPrompt(
     .replace(/^[a-z]/, letter => letter.toUpperCase());
   const line = part.line?.trim().replace(/["“”]/g, '');
   const who = part.speaker ?? 'She';
+  // The framing held, said positively (M11: a part told only to carry on pushed in part over
+  // part); prop nouns from the clip's camera and quality words left out — a part drew a tripod,
+  // another a studio light.
   return h3CameraWords(
     [
       `5s clip, carrying straight on from the first frame. ${part.beat.trim()}`,
+      'The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view.',
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
@@ -282,7 +299,9 @@ export function h3PartPrompt(
     ]
       .filter(Boolean)
       .join(' ')
-  );
+  )
+    .replace(/\s+on a tripod\b/gi, '')
+    .replace(/studio-grade lighting/gi, 'the place’s own light');
 }
 
 /**
@@ -305,6 +324,8 @@ export function patchH3ReplayGraph(
   if (!h3?.inputs || !loader?.inputs || loader.class_type !== 'LoadImage') return null;
   if (!sampler || !create?.inputs || !save?.[1].inputs) return null;
   loader.inputs.image = input.lastFrame;
+  // Each part starts from the last one's frame: saved near-lossless, so it starts from less mush.
+  Object.assign(save[1].inputs, H3_SAVE_QUALITY);
   const lastRef = h3.inputs.last_frame;
   delete h3.inputs.last_frame;
   if (isRef(lastRef) && lastRef[0] !== firstId) delete graph[lastRef[0]];

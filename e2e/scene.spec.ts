@@ -2543,3 +2543,63 @@ test('phone: a script imported, a shot made a Scene, and a run prepared and star
   expect(queued).toHaveLength(1);
   await context.close();
 });
+
+// M11 T2: a longer MiniMax-H3 clip's parts each with their own beat and length — written by
+// Write the beats, one edited and one cut short — kept with the clip until it lands.
+test('Animate on MiniMax-H3: each part its own beat and length, written and kept for the clip', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  let asked = 0;
+  await page.route('**/api/clip/extend', async route => {
+    const body = JSON.parse(route.request().postData() ?? '{}') as { writeBeats?: number };
+    if (!body.writeBeats) return route.continue();
+    asked = body.writeBeats;
+    await route.fulfill({
+      json: { beats: ['She walks to the window.', 'She turns back and smiles.'] },
+    });
+  });
+  const seeded = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...seeded,
+        scenes: seeded.scenes.map(scene => ({ ...scene, keptTakeId: 'take-1' })),
+      },
+      video: { dayClips: 'h3' },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  await page.getByTestId('scene-animate').click();
+  const sheet = page.getByTestId('day-animate-sheet');
+  await expect(sheet).toBeVisible({ timeout: 30_000 });
+  await sheet.getByTestId('day-animate-chain-15').click();
+  const parts = sheet.locator('[data-testid^="day-animate-part-beat-"]');
+  await expect(parts).toHaveCount(2);
+  await sheet.getByTestId('day-animate-write-beats').click();
+  await expect(sheet.getByTestId('day-animate-part-beat-0')).toHaveValue('She walks to the window.');
+  expect(asked).toBe(2);
+  await sheet.getByTestId('day-animate-part-beat-1').fill('She sits on the sill.');
+  await sheet.getByTestId('day-animate-part-0-sec-3').click();
+  await expect(sheet.getByTestId('day-animate-part-0-sec-3')).toHaveAttribute('aria-selected', 'true');
+  const before = queued.length;
+  await sheet.getByTestId('day-animate-submit').click();
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(before);
+  // Kept with the queued clip: each part's beat and length.
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        const pending = (tool.stills ?? []).find(
+          (still: { pendingDialogue?: unknown }) => still.pendingDialogue
+        )?.pendingDialogue as { beats?: string[]; partSeconds?: number[] } | undefined;
+        return JSON.stringify([pending?.beats, pending?.partSeconds]);
+      },
+      { timeout: 30_000 }
+    )
+    .toBe(JSON.stringify([['She walks to the window.', 'She sits on the sill.'], [3, 0]]));
+});

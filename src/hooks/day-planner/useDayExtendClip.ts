@@ -5,13 +5,10 @@ import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDay
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
 import {
   clipExtendProgressNote,
-  requestClipExtendPlan,
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
 } from '@/lib/clip/extend';
-import { dayPartClipPrompt } from '@/lib/day/clip-direction';
-import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { keepClipInGallery } from '@/lib/clip/gallery-keep';
 import { upsertDaySlotStill, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
@@ -125,46 +122,12 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
       setExtendResult(null);
       try {
         const llm = sharedLlmRequestBody(loadSettingsCache().shared);
-        // M11 T1: each wordless part gets its own prompt from its beat, built the way the first
-        // clip's was — else an H3 / WAN part replays the first clip's prompt, action and all.
-        // No beats given: written first (the same plan "Make it 30 s" writes them with).
-        const talkingParts = Boolean(choice?.lines?.some(line => line.trim()));
-        let beats = choice?.beats?.map(beat => beat.trim()).filter(Boolean);
-        if (!talkingParts && !beats?.length) {
-          const plan = await requestClipExtendPlan(
-            {
-              ...request,
-              direction: choice?.direction,
-              targetSec: length?.targetSec,
-              extendBySec: length?.extendBySec,
-            },
-            llm
-          ).catch(() => null);
-          beats = plan?.beats.map(beat => beat.trim()).filter(Boolean);
-        }
-        const still = stillsRef.current.find(entry => entry.slotId === slot.id);
-        const stillPrompt = still?.promptId
-          ? loadComfyGallery().find(entry => entry.promptId === still.promptId)?.prompt
-          : undefined;
-        const partPrompts =
-          !talkingParts && beats?.length
-            ? beats.map(beat =>
-                dayPartClipPrompt({
-                  slot,
-                  beat,
-                  characterName: ctx.character?.name,
-                  dayMood,
-                  stillPrompt,
-                  manLead: leadIsMan,
-                })
-              )
-            : undefined;
         const job = await startClipExtend(
           {
             ...request,
             direction: choice?.direction,
-            beats: talkingParts ? choice?.beats : beats,
-            ...(partPrompts ? { partPrompts } : {}),
+            beats: choice?.beats,
+            ...(choice?.partSeconds?.some(Boolean) ? { partSeconds: choice.partSeconds } : {}),
             lines: choice?.lines,
             tones: choice?.tones,
             lead: leadIsMan ? 'man' : 'woman',
@@ -185,7 +148,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         return error instanceof Error ? error.message : 'Could not make the clip longer.';
       }
     },
-    [ctx.character?.name, dayMood, extendRequestFor, finishJob, leadIsMan, patchStill, stillsRef]
+    [extendRequestFor, finishJob, leadIsMan, patchStill, stillsRef]
   );
 
   // A job that was running when the page was left: wait for it again.
@@ -228,7 +191,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const slot = slots.find(entry => entry.id === still.slotId);
         if (step !== 'start' || !still.pendingDialogue || !slot) continue;
         const { slotId } = still;
-        const { lines, tones, beats, targetSec } = still.pendingDialogue;
+        const { lines, tones, beats, partSeconds, targetSec } = still.pendingDialogue;
         // Wordless parts: a MiniMax-H3 clip grown past its own ~5 s shot.
         const spoken = lines.some(line => line.trim());
         // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
@@ -236,7 +199,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         dialogueRef.current = true;
         void extendSlotClip(
           slot,
-          { lines, tones, beats },
+          { lines, tones, beats, partSeconds },
           {
             // Exactly one part per line, whatever the server measures the first clip at.
             extendBySec: dayTalkExtendBySec(lines.length),

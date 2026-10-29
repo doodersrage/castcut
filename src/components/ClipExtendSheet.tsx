@@ -18,6 +18,8 @@ export type ClipExtendChoice = {
   beats?: string[];
   lines?: string[];
   tones?: string[];
+  /** Each part's length in seconds (0 = the engine's own; the Animate sheet's H3 parts). */
+  partSeconds?: number[];
 };
 
 /**

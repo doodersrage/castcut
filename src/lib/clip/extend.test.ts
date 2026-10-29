@@ -11,11 +11,10 @@ import {
   parseExtendBeats,
   pickStartSharpenIndex,
   patchWanReplayGraph,
+  withPartAction,
 } from './extend';
 import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from '../video/ltx25-renderer';
 import { h3PartPrompt } from '../engine/h3-renderer';
-import { buildDaySlotClipPrompt, dayPartClipPrompt } from '../day/clip-direction';
-import type { DaySlot } from '../day/planner';
 
 describe('Make it 30 s', () => {
   it('counts the segments to about 30 s', () => {
@@ -62,28 +61,41 @@ describe('Make it 30 s', () => {
     assert.equal(wan['1'].inputs.image, 'still.png');
   });
 
-  // M11 T1: a part does its own beat; the first clip's action (the player's direction) stays there.
-  it('a part says its own beat, not the first clip’s direction again', () => {
-    const slot = { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' } as DaySlot;
-    const first = buildDaySlotClipPrompt({ slot, direction: 'She throws the mug at the wall' });
-    assert.match(first, /throws the mug/);
-    const part = dayPartClipPrompt({ slot, beat: 'She sweeps up the pieces' });
-    assert.match(part, /sweeps up the pieces/);
-    assert.doesNotMatch(part, /throws the mug/);
-    // H3: the part's prompt in place of the clip's.
-    const h3 = h3PartPrompt(part, { beat: 'She sweeps up the pieces', place: 'kitchen' });
-    assert.doesNotMatch(h3, /throws the mug/);
-    assert.match(h3, /sweeps up the pieces/);
-    // WAN: the part's own text in place of the clip's.
-    const wan = {
+  // M11 T1: a part does its own beat; the first clip's action stays in the first clip, and every
+  // other line of its prompt is kept word for word.
+  it('a part swaps in its own action and keeps the rest of the clip’s prompt', () => {
+    const first =
+      '4s clip, one continuous shot that starts on the first frame. Action: She stands up from the couch. Motion: she continues this moment. The place, light and clothes stay exactly as in the first frame. hyperrealistic photography.';
+    const part = withPartAction(first, 'She walks to the window and looks out.')!;
+    assert.doesNotMatch(part, /stands up/);
+    assert.match(part, /Action: She walks to the window and looks out\. Motion:/);
+    assert.match(part, /clothes stay exactly as in the first frame\. hyperrealistic photography\.$/);
+    const intimate = 'Scene: on the couch at golden hour. Both are adults. Motion: slow.';
+    assert.equal(
+      withPartAction(intimate, 'they slow down'),
+      'Scene: they slow down. Both are adults. Motion: slow.'
+    );
+    assert.equal(withPartAction('A plain prompt.', 'x'), null);
+    // H3: the swapped prompt is what the part says, its framing held, no prop nouns.
+    const h3 = h3PartPrompt(
+      `${part} Camera: one fixed wide shot on a tripod for the whole clip. studio-grade lighting.`,
+      { beat: 'She walks to the window and looks out.', place: 'living room' }
+    );
+    assert.doesNotMatch(h3, /stands up/);
+    assert.match(h3, /hyperrealistic photography/);
+    assert.match(h3, /The framing stays as in the first frame from start to end/);
+    assert.doesNotMatch(h3, /tripod|studio-grade/);
+    // WAN: the swap in the graph's text; a prompt without an action gets the beat in front.
+    const wan = (text: string) => ({
       '1': { class_type: 'LoadImage', inputs: { image: 'still.png' } },
-      '2': { class_type: 'CLIPTextEncode', inputs: { text: first } },
+      '2': { class_type: 'CLIPTextEncode', inputs: { text } },
       '4': { class_type: 'WanImageToVideo', inputs: { start_image: ['1', 0], positive: ['2', 0] } },
       '6': { class_type: 'SaveAnimatedWEBP', inputs: { filename_prefix: 'x' } },
-    };
-    const out = patchWanReplayGraph(wan, { lastFrame: 'l.png', beat: 'Then.', seed: 1, prefix: 'p', ownText: part })!;
-    assert.doesNotMatch(String(out.graph['2']!.inputs!.text), /throws the mug/);
-    assert.match(String(out.graph['2']!.inputs!.text), /^Then\. .*sweeps up the pieces/);
+    });
+    const swapped = patchWanReplayGraph(wan(first), { lastFrame: 'l.png', beat: 'She sits down.', seed: 1, prefix: 'p' })!;
+    assert.match(String(swapped.graph['2']!.inputs!.text), /^4s clip.*Action: She sits down\. Motion:/);
+    const front = patchWanReplayGraph(wan('locked camera'), { lastFrame: 'l.png', beat: 'She sits down.', seed: 1, prefix: 'p' })!;
+    assert.equal(front.graph['2']!.inputs!.text, 'She sits down. locked camera');
   });
 
   it('crossfades video and sound across the seams', () => {

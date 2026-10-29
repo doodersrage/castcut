@@ -5,6 +5,7 @@ import {
   getClipExtendJob,
   planClipExtend,
   startClipExtendJob,
+  writeClipBeats,
   type ClipExtendInput,
 } from '@/lib/clip/extend-server';
 import { parseLlmRequestOptions } from '@/lib/llm/request-options';
@@ -27,6 +28,8 @@ export async function GET(request: Request) {
 /**
  * POST { clipUrl, clipPromptId?, scene, setting?, heat?, targetSec? | extendBySec?, direction?, beats?, comfyUrl?,
  * …llm } → { job }; with `plan: true` → { plan: { total, beats, partSec } } and nothing rendered.
+ * With `writeBeats: n` (M11 T2) → { beats }: n beats from the scene and direction, no clip needed
+ * (the Animate sheet, before the first clip exists).
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -36,6 +39,25 @@ export async function POST(request: Request) {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
     return apiError('Invalid JSON body.', 400);
+  }
+  const beatCount = Number(body.writeBeats);
+  if (Number.isInteger(beatCount) && beatCount > 0) {
+    try {
+      return apiJson({
+        beats: await writeClipBeats({
+          scene: text(body.scene, 600) || 'The shot carries on.',
+          setting: text(body.setting, 200) || undefined,
+          count: Math.min(8, beatCount),
+          heat: ['flirty', 'sensual', 'explicit'].includes(String(body.heat))
+            ? (body.heat as 'flirty' | 'sensual' | 'explicit')
+            : 'clean',
+          direction: text(body.direction, 300) || undefined,
+          llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),
+        }),
+      });
+    } catch (error) {
+      return apiError(error instanceof Error ? error.message : 'Could not write the beats.', 502);
+    }
   }
   const clipUrl = text(body.clipUrl, 2000);
   if (!clipUrl) return apiError('clipUrl is required.', 400);
@@ -59,18 +81,17 @@ export async function POST(request: Request) {
     requestOrigin: new URL(request.url).origin,
     userId: user?.id ?? null,
     direction: text(body.direction, 300) || undefined,
+    // In place: '' is a part to write (M11).
     beats: Array.isArray(body.beats)
       ? body.beats
-          .filter((beat): beat is string => typeof beat === 'string')
-          .map(beat => beat.trim().slice(0, 240))
-          .filter(Boolean)
           .slice(0, 8)
+          .map(beat => (typeof beat === 'string' ? beat.trim().slice(0, 240) : ''))
       : undefined,
-    // Kept in place (a part with '' falls back to the clip's own prompt).
-    partPrompts: Array.isArray(body.partPrompts)
-      ? body.partPrompts
+    // Each part's length in seconds (0 = the engine's own); a shorter part is trimmed (M11 T2).
+    partSeconds: Array.isArray(body.partSeconds)
+      ? body.partSeconds
           .slice(0, 8)
-          .map(entry => (typeof entry === 'string' ? entry.trim().slice(0, 2000) : ''))
+          .map(sec => (typeof sec === 'number' && sec >= 1 && sec <= 30 ? sec : 0))
       : undefined,
     lines: Array.isArray(body.lines)
       ? body.lines

@@ -9,6 +9,8 @@ import {
   DAY_H3_PART_GAIN,
   dayH3ExtraParts,
   dayH3TotalOut,
+  dayH3TotalWith,
+  normalizeDayPartSeconds,
   dayTalkExtendBySec,
   dayTalkExtraParts,
   dayTalkTotalOut,
@@ -217,6 +219,42 @@ describe('pending dialogue on a slot still', () => {
     assert.equal(
       pendingDialogueStep({ ...still!, clipStatus: 'completed', clipUrl: '/c.mp4' }),
       'start'
+    );
+  });
+});
+
+// M11 T2: each H3 part's own beat and length, from the Animate sheet to the pending clip.
+describe('H3 parts with their own beats and lengths', () => {
+  it('tidies the lengths and adds them up (H3 own length when unset or longer)', () => {
+    assert.deepEqual(normalizeDayPartSeconds([3, 0, 'x', 99, 2.4]), [3, 0, 0, 0, 2]);
+    assert.equal(dayH3TotalWith(5, [2, 0]), 5 + 2 + DAY_H3_PART_GAIN);
+    assert.equal(dayH3TotalWith(5, [10]), 5 + DAY_H3_PART_GAIN);
+  });
+
+  it('carries each part’s beat and length to the queued clip, and through normalizing', () => {
+    const options = dayAnimateOptions({
+      extraSeconds: 0,
+      talkTotalSeconds: 15,
+      lines: ['', ''],
+      beats: ['She walks to the window.', DAY_H3_CARRY_ON_BEAT],
+      partSeconds: [3, 0],
+    });
+    assert.deepEqual(options.dialogue?.beats, ['She walks to the window.', DAY_H3_CARRY_ON_BEAT]);
+    assert.deepEqual(options.dialogue?.partSeconds, [3, 0]);
+    const [still] = normalizeDaySlotStills([
+      {
+        slotId: 'morning',
+        clipPromptId: 'job-1',
+        clipStatus: 'queued',
+        pendingDialogue: { ...options.dialogue!, forClip: 'job-1' },
+      },
+    ]);
+    assert.deepEqual(still?.pendingDialogue?.partSeconds, [3, 0]);
+    // All at H3's own length: nothing extra stored.
+    assert.equal(
+      dayAnimateOptions({ extraSeconds: 0, talkTotalSeconds: 15, lines: [''], partSeconds: [0] })
+        .dialogue?.partSeconds,
+      undefined
     );
   });
 });

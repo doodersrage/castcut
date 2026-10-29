@@ -29,6 +29,7 @@ import {
   type ChannelStats,
   extendStitchFilter,
   fallbackExtendBeats,
+  withPartAction,
   isWanClipGraph,
   parseExtendBeats,
   patchWanReplayGraph,
@@ -166,10 +167,13 @@ async function normalizePiece(
   out: string,
   size: { width: number; height: number },
   skipFrames = 0,
-  colorFilter?: string
+  colorFilter?: string,
+  /** Keep at most this many frames (after the skipped ones). */
+  maxFrames?: number
 ): Promise<Probe> {
   const { audio } = await probe(ffmpeg, source);
-  const trim = `${skipFrames ? `,trim=start_frame=${skipFrames},setpts=PTS-STARTPTS` : ''}${colorFilter ? `,${colorFilter}` : ''}`;
+  const end = maxFrames && maxFrames > 0 ? skipFrames + maxFrames : 0;
+  const trim = `${skipFrames || end ? `,trim=start_frame=${skipFrames}${end ? `:end_frame=${end}` : ''},setpts=PTS-STARTPTS` : ''}${colorFilter ? `,${colorFilter}` : ''}`;
   await run(ffmpeg, [
     '-y',
     '-i',
@@ -180,7 +184,7 @@ async function normalizePiece(
     ...(audio
       ? [
           '-af',
-          `aresample=48000${skipFrames ? `,atrim=start=${skipFrames / 24},asetpts=PTS-STARTPTS` : ''}`,
+          `aresample=48000${skipFrames || end ? `,atrim=start=${skipFrames / 24}${end ? `:end=${end / 24}` : ''},asetpts=PTS-STARTPTS` : ''}`,
         ]
       : ['-map', '0:v:0', '-map', '1:a:0', '-shortest']),
     '-c:v',
@@ -198,6 +202,18 @@ async function normalizePiece(
     out,
   ]);
   return probe(ffmpeg, out);
+}
+
+/** Beats from the scene and direction alone (M11 T2: the Animate sheet, no clip yet). */
+export async function writeClipBeats(input: {
+  scene: string;
+  setting?: string;
+  count: number;
+  heat: SpokenLineHeat;
+  direction?: string;
+  llm?: LlmRequestOptions;
+}): Promise<string[]> {
+  return writeBeats(input);
 }
 
 async function writeBeats(input: {
@@ -283,8 +299,8 @@ export type ClipExtendInput = {
   direction?: string;
   /** The player's beats, used as written (more beats than needed make it longer, up to the cap). */
   beats?: string[];
-  /** Each part's own prompt (same order): an H3 / WAN part's in place of the clip's (M11 T1). */
-  partPrompts?: string[];
+  /** Each part's length in seconds (same order; 0 = the engine's own): shorter is trimmed. */
+  partSeconds?: number[];
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
   /** How each line is said (same order). */
@@ -299,15 +315,14 @@ export type ClipExtendInput = {
 
 /** The player's beats, padded with written ones up to `count`. */
 async function resolveBeats(input: ClipExtendInput, count: number): Promise<string[]> {
-  const given = (input.beats ?? [])
-    .map(beat => beat.trim())
-    .filter(Boolean)
-    .slice(0, count);
-  if (given.length >= count) return given;
+  // In place (M11): a part left empty is written, the ones given keep their place.
+  const given = Array.from({ length: count }, (_, k) => input.beats?.[k]?.trim() ?? '');
+  const missing = given.flatMap((beat, k) => (beat ? [] : [k]));
+  if (!missing.length) return given;
   const written = await writeBeats({
-    scene: [input.scene, ...given].join(' Then: '),
+    scene: [input.scene, ...given.filter(Boolean)].join(' Then: '),
     setting: input.setting,
-    count: count - given.length,
+    count: missing.length,
     heat: input.heat ?? 'clean',
     direction: input.direction,
     // Dialogue parts (a line each): the speaker stays where they are.
@@ -316,7 +331,10 @@ async function resolveBeats(input: ClipExtendInput, count: number): Promise<stri
       : {}),
     llm: input.llm,
   });
-  return [...given, ...written];
+  missing.forEach((k, at) => {
+    given[k] = written[at] ?? '';
+  });
+  return given;
 }
 
 export type ClipExtendEngine = 'ltx' | 'wan' | 'h3';
@@ -483,7 +501,9 @@ export async function extendClip(
         .linear(match.gain, match.offset)
         .png()
         .toBuffer();
-      const startBytes = wan ? await sharpenStartFrame(matched, referenceDetail) : matched;
+      // Sharpened back toward the first clip's detail on WAN and H3 (M11 T3): each part starts from
+      // the last one's softest frame, and the softening compounds.
+      const startBytes = wan || h3 ? await sharpenStartFrame(matched, referenceDetail) : matched;
       const lastFrame = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(startBytes),
@@ -499,9 +519,12 @@ export async function extendClip(
         )?.inputs?.prompt;
         const patched = patchH3ReplayGraph(h3, {
           lastFrame: lastFrame.name,
-          // The part's own prompt when the page built one: the first clip's action stays there.
+          // The clip's prompt with this part's beat as its action (M11 T1): the first clip's action
+          // stays in the first clip.
           prompt: h3PartPrompt(
-            input.partPrompts?.[k]?.trim() || (typeof clipPrompt === 'string' ? clipPrompt : ''),
+            typeof clipPrompt === 'string'
+              ? (withPartAction(clipPrompt, beats[k]!) ?? clipPrompt)
+              : '',
             {
               beat: beats[k]!,
               place: input.setting,
@@ -522,7 +545,6 @@ export async function extendClip(
           beat: `${beats[k]!} The camera stays still; the framing stays exactly as in the first frame.`,
           seed: seed + k * 7,
           prefix,
-          ownText: input.partPrompts?.[k],
         });
         if (!patched) throw new Error('Could not replay this clip’s WAN graph.');
         prompt = patched.graph;
@@ -596,17 +618,22 @@ export async function extendClip(
       // A WAN or H3 segment starts on the previous last frame: drop it; LTX keeps its overlap to
       // blend.
       const fromLastFrame = engine !== 'ltx';
+      const overlap = fromLastFrame ? WAN_EXTEND_BLEND_FRAMES : LTX25_EXTEND_OVERLAP;
+      // A part asked to be shorter (M11 T2) keeps its first seconds plus what blends into the
+      // part before; the next part starts from its new last frame.
+      const asked = input.partSeconds?.[k];
       const piece = await normalizePiece(
         ffmpeg,
         at(`seg${k}.bin`),
         at(`piece${k + 1}.mp4`),
         size,
         fromLastFrame ? 1 : 0,
-        segMatch
+        segMatch,
+        asked && asked > 0 ? Math.round(asked * 24) + overlap : undefined
       );
       pieces.push(at(`piece${k + 1}.mp4`));
       lengths.push(piece.frames);
-      overlaps.push(fromLastFrame ? WAN_EXTEND_BLEND_FRAMES : LTX25_EXTEND_OVERLAP);
+      overlaps.push(overlap);
       onProgress({ done: k + 1 });
     }
     const filter = extendStitchFilter(lengths, overlaps);

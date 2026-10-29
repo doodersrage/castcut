@@ -7,12 +7,15 @@ import { FieldError, TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { suggestLineForActiveCast } from '@/lib/audio/spoken-line-context';
 import type { SpokenLineHeat } from '@/lib/audio/spoken-line';
+import { requestClipBeats } from '@/lib/clip/extend';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { loadSettingsCache } from '@/lib/settings/cache';
 import {
   DAY_CLIP_EXTRA_SECONDS,
-  DAY_H3_CARRY_ON_BEAT,
+  DAY_H3_PART_SECONDS,
+  dayH3TotalWith,
   DAY_TALK_TOTAL_SECONDS,
   dayH3ExtraParts,
-  dayH3TotalOut,
   dayTalkExtraParts,
   dayTalkTotalOut,
   normalizeDayClipExtraSeconds,
@@ -88,6 +91,9 @@ export default function DayAnimateSheet({
     normalizeDayTalkTotalSeconds(initialTalkTotalSeconds)
   );
   const [lines, setLines] = useState<string[]>([]);
+  // MiniMax-H3 parts (M11 T2): what happens in each, and how long each runs (0 = H3's own).
+  const [partBeats, setPartBeats] = useState<string[]>([]);
+  const [partSeconds, setPartSeconds] = useState<number[]>([]);
   const [writing, setWriting] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   if (!slot || !initial) return null;
@@ -136,6 +142,32 @@ export default function DayAnimateSheet({
     }
   };
 
+  // Beats for the H3 parts, from the slot's beat and the direction (the empty ones only).
+  const writeBeats = async () => {
+    setWriting(true);
+    setWriteError(null);
+    try {
+      const written = await requestClipBeats(
+        {
+          scene: [slot.sceneHints?.trim() || slot.label, edited ? direction.trim() : '']
+            .filter(Boolean)
+            .join(' Then: '),
+          setting: slot.location,
+          direction: edited ? direction : undefined,
+          count: parts,
+        },
+        sharedLlmRequestBody(loadSettingsCache().shared)
+      );
+      setPartBeats(list =>
+        Array.from({ length: parts }, (_, index) => list[index]?.trim() || written[index] || '')
+      );
+    } catch (error) {
+      setWriteError(error instanceof Error ? error.message : 'Could not write the beats.');
+    } finally {
+      setWriting(false);
+    }
+  };
+
   const submit = () =>
     onAnimate(
       slot,
@@ -151,7 +183,10 @@ export default function DayAnimateSheet({
               extraSeconds: 0,
               talkTotalSeconds: talkTotal,
               lines: Array.from({ length: parts }, () => ''),
-              beats: Array.from({ length: parts }, () => DAY_H3_CARRY_ON_BEAT),
+              // Each part's own beat; one left empty is written from the scene when the part starts
+              // (a bare "carry on" pushed the camera in part after part, M11).
+              beats: Array.from({ length: parts }, (_, index) => partBeats[index]?.trim() ?? ''),
+              partSeconds: Array.from({ length: parts }, (_, index) => partSeconds[index] ?? 0),
             }
           : {
               direction: edited && !current.talking ? direction : undefined,
@@ -295,13 +330,76 @@ export default function DayAnimateSheet({
             }))}
           />
           {parts > 0 ? (
-            <p className="type-caption text-[var(--text-muted)]" data-testid="day-animate-chain">
-              About {formatSeconds(dayH3TotalOut(chain.firstSec, parts))}: MiniMax-H3 makes one ~5 s
-              shot at a time, so this is the first clip, then {parts} more part
-              {parts === 1 ? '' : 's'}, each starting where the last one ends, with the place’s
-              sound. They render after the first clip lands — about 2½ minutes a part — and come
-              back as one clip (the short one stays in the Gallery).
-            </p>
+            <>
+              <p className="type-caption text-[var(--text-muted)]" data-testid="day-animate-chain">
+                About{' '}
+                {formatSeconds(
+                  dayH3TotalWith(
+                    chain.firstSec,
+                    Array.from({ length: parts }, (_, index) => partSeconds[index] ?? 0)
+                  )
+                )}
+                : MiniMax-H3 makes one ~5 s shot at a time, so this is the first clip, then {parts}{' '}
+                more part{parts === 1 ? '' : 's'}, each starting where the last one ends, with the
+                place’s sound. They render after the first clip lands — about 2½ minutes a part —
+                and come back as one clip (the short one stays in the Gallery).
+              </p>
+              <div className="space-y-2" data-testid="day-animate-parts">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="type-caption text-[var(--text-muted)]">Then…</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    type="button"
+                    disabled={writing}
+                    onClick={() => void writeBeats()}
+                    data-testid="day-animate-write-beats"
+                  >
+                    {writing ? 'Writing…' : 'Write the beats'}
+                  </Button>
+                </span>
+                {Array.from({ length: parts }, (_, index) => (
+                  <div
+                    key={index}
+                    className="space-y-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                    data-testid={`day-animate-part-${index}`}
+                  >
+                    <TextInput
+                      value={partBeats[index] ?? ''}
+                      maxLength={240}
+                      placeholder={`Part ${index + 2} — empty: written from the scene`}
+                      aria-label={`What happens in part ${index + 2}`}
+                      disabled={writing}
+                      onChange={event =>
+                        setPartBeats(list => {
+                          const next = [...list];
+                          next[index] = event.target.value;
+                          return next;
+                        })
+                      }
+                      data-testid={`day-animate-part-beat-${index}`}
+                    />
+                    <SegmentedControl
+                      aria-label={`Length of part ${index + 2}`}
+                      value={String(partSeconds[index] ?? 0)}
+                      onChange={value =>
+                        setPartSeconds(list => {
+                          const next = [...list];
+                          next[index] = Number(value) || 0;
+                          return next;
+                        })
+                      }
+                      options={DAY_H3_PART_SECONDS.map(sec => ({
+                        value: String(sec),
+                        label: sec ? `${sec} s` : '~5 s',
+                        testId: `day-animate-part-${index}-sec-${sec}`,
+                      }))}
+                    />
+                  </div>
+                ))}
+                {writeError ? <FieldError>{writeError}</FieldError> : null}
+              </div>
+            </>
           ) : null}
         </div>
       ) : (

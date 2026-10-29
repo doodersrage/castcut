@@ -2279,22 +2279,48 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   WAN). The first clip's direction stays in the first clip.
 - Acceptance: unit tests (an H3 / WAN part's prompt has its beat and not the first clip's
   direction); a real H3 chain where part 2 does not redo part 1.
-- Status 2026-10-28: code done, not yet rendered. `partPrompts` on the extend request
-  (`dayPartClipPrompt` from each beat; beats written first by the plan when none are given); H3
-  parts use it in place of the clip's prompt, WAN parts via `patchWanReplayGraph` `ownText`; LTX
-  parts never replayed the clip's prompt. Unit test: a part's prompt has its beat and not the
-  first clip's direction. The real chain check waits for the user (H3 may be a paid node).
+- Status 2026-10-28: done, reworked after real renders. First version (aa860fd5): each part's
+  prompt built anew from its beat — on a real H3 chain its part 2 drew a camera on a tripod and
+  turned the short dress into a gown: the rebuilt prompt lacked the clip's quality and identity
+  lines. Now `withPartAction` (`clip/extend.ts`) keeps the first clip's prompt word for word and
+  swaps only its `Action:` / `Scene:` sentence for the part's beat (H3 in `extendClip`, WAN in
+  `patchWanReplayGraph`); the client sends beats only.
+- Real H3 chains (local MiniMax-H3, a clip of her standing up from the couch, two parts each):
+  | Chain | Beats | Seen |
+  | --- | --- | --- |
+  | before | written: to the window, turns back | did both; face softer by part 2 |
+  | before | "carries straight on" (the Animate sheet's default) | framing crept in part over part — head cut off by part 2 |
+  | swap | written | did both; dress, shoes and hair held; a studio light appeared (the quality line's "studio-grade lighting") |
+  | swap | "carries straight on" | pushed in to her thigh and invented a tattoo |
+  | swap + framing held + empty beats written | written by the LLM | framing held, dress / shoes / hair held, no loss visible; props from the beats (a glass, a phone) and a TV appeared |
+- So also: the Animate sheet no longer sends "carries straight on" — an empty part is written
+  from the scene when it starts (`resolveBeats` fills in place); every H3 part holds the framing,
+  said positively (H3 has no negative prompt); "on a tripod" and "studio-grade lighting" are left
+  out of part prompts.
 
 **T2 — Per-part beats and lengths in Animate.** · M
 - The Animate sheet's longer clip lists its parts: each with what happens in it, **Write the
   beats** (the plan endpoint "Make it 30 s" uses), and its length where the engine allows one
   (a shorter part is trimmed; the next starts from its new last frame).
 - Acceptance: e2e (parts listed, beats written and edited, sent); unit tests (trimmed lengths).
+- Status 2026-10-28: done. Each H3 part in the Animate sheet: **Then…** (its beat), its length
+  (~5 s, 2, 3, 4 s — `DAY_H3_PART_SECONDS`, the total shown with `dayH3TotalWith`), **Write the
+  beats** (`writeBeats: n` on `/api/clip/extend`, no clip needed). Kept on the queued clip
+  (`pendingDialogue.partSeconds`), sent as `partSeconds`; `extendClip` trims a part to its length
+  plus the blend, and the next starts from its new last frame. e2e: written, edited, cut to 3 s,
+  kept. The trim itself has not been rendered on a real chain.
 
 **T3 — Picture quality from part to part.** · M
 - The start frame from the part's own download (one encode fewer), sharpened back toward the first
   clip's detail on every engine, not only WAN. Measured: detail (Laplacian variance) of each part's
   last frame on real chains, before and after.
+- Status 2026-10-28: measured, then changed. The start frame straight from the part's download vs
+  re-encoded: the same detail (Laplacian 84 / 87, 65 / 66, 32 / 32) — not the loss. The loss is
+  H3's own MP4: SaveVideo "auto" kept H3's stream at 0.9–1.9 Mbit/s (768×1024), and each part
+  starts from that. Now `H3_SAVE_QUALITY` re-encodes at CRF 12 (first clips and parts; parts
+  came out at 4.2–8.7 Mbit/s), and H3 start frames are sharpened back as WAN's were. Whole-chain
+  detail could not be compared (the content and framing change part to part); by eye the parts
+  with the change keep their detail. The test clip's faces were too small for face match.
 
 **T4 — The Cast holds from part to part.** · M–L
 - The outfit and look words of the still in every part's prompt; each part checked against the

@@ -116,6 +116,8 @@ export type DayPendingDialogue = {
   tones?: string[];
   /** What happens in each part (unset: written from the scene). */
   beats?: string[];
+  /** Each part's length in seconds (0 = the engine's own; M11 T2). */
+  partSeconds?: number[];
   /** The clip job it waits for. */
   forClip?: string;
 };
@@ -153,6 +155,8 @@ export type DayAnimateChoice = {
   lines?: string[];
   /** What happens in each extra part (H3: the clip's action carries on). */
   beats?: string[];
+  /** Each extra part's length in seconds (0 = the engine's own; M11 T2). */
+  partSeconds?: number[];
 };
 
 /** The Length pick to remember for the next Animate, or null when it has not changed. */
@@ -177,13 +181,14 @@ export function dayAnimateSettingsPatch(
 export function dayAnimateOptions(choice: DayAnimateChoice): {
   direction?: string;
   extraSeconds: number;
-  dialogue?: { targetSec: number; lines: string[]; beats?: string[] };
+  dialogue?: { targetSec: number; lines: string[]; beats?: string[]; partSeconds?: number[] };
 } {
   if (choice.talkTotalSeconds === undefined) {
     return { direction: choice.direction, extraSeconds: choice.extraSeconds };
   }
   const lines = (choice.lines ?? []).slice(0, CLIP_EXTEND_MAX_SEGMENTS).map(normalizeSpokenLine);
   const beats = choice.beats?.slice(0, lines.length);
+  const partSeconds = normalizeDayPartSeconds(choice.partSeconds).slice(0, lines.length);
   const direction = choice.direction ? { direction: choice.direction } : {};
   return choice.talkTotalSeconds > DAY_TALK_TOTAL_SECONDS[0] && lines.length
     ? {
@@ -193,7 +198,26 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
           targetSec: choice.talkTotalSeconds,
           lines,
           ...(beats?.length ? { beats } : {}),
+          ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
         },
       }
     : { ...direction, extraSeconds: 0 };
+}
+
+/** The part lengths a MiniMax-H3 part can be cut to (0 = H3's own ~5 s). */
+export const DAY_H3_PART_SECONDS = [0, 2, 3, 4] as const;
+
+/** Part lengths, tidied: whole seconds 1–30, else 0 (the engine's own). */
+export function normalizeDayPartSeconds(value: unknown): number[] {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, CLIP_EXTEND_MAX_SEGMENTS)
+    .map(sec => (typeof sec === 'number' && sec >= 1 && sec <= 30 ? Math.round(sec) : 0));
+}
+
+/** An H3 clip's length out: the first clip, then each part — its own length, or H3's. */
+export function dayH3TotalWith(firstSec: number, partSeconds: readonly number[]): number {
+  return partSeconds.reduce(
+    (total, sec) => total + (sec > 0 ? Math.min(sec, DAY_H3_PART_GAIN) : DAY_H3_PART_GAIN),
+    firstSec
+  );
 }

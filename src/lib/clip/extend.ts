@@ -186,8 +186,6 @@ export function patchWanReplayGraph(
     beat: string;
     seed: number;
     prefix: string;
-    /** The part's own prompt in place of the clip's (M11 T1). */
-    ownText?: string;
   }
 ): { graph: Graph; saveNode: string } | null {
   const graph = JSON.parse(JSON.stringify(source)) as Graph;
@@ -199,8 +197,9 @@ export function patchWanReplayGraph(
   delete i2v.inputs.end_image;
   const text = findTextNode(graph, i2v.inputs.positive);
   if (text?.inputs) {
-    const own = input.ownText?.trim() || String(text.inputs.text ?? '');
-    text.inputs.text = `${input.beat.trim()} ${own}`.trim();
+    // The clip's own prompt with the part's beat as its action (M11 T1); else the beat in front.
+    const own = String(text.inputs.text ?? '');
+    text.inputs.text = withPartAction(own, input.beat) ?? `${input.beat.trim()} ${own}`.trim();
   }
   let seeded = 0;
   for (const node of Object.values(graph)) {
@@ -215,6 +214,22 @@ export function patchWanReplayGraph(
   if (!save) return null;
   if (save[1].inputs) save[1].inputs.filename_prefix = input.prefix;
   return { graph, saveNode: save[0] };
+}
+
+/**
+ * The clip's own prompt with a part's beat as its action (M11 T1): the `Action: …` (still-clip
+ * template) or `Scene: …` (intimate template) sentence swapped, so every other line — the place,
+ * the clothes holding, the people, ages and the quality words — stays word for word, and the first
+ * clip's action is not done again. Null when the prompt has neither.
+ */
+export function withPartAction(prompt: string, beat: string): string | null {
+  const action = beat.trim().replace(/[.\s]+$/, '');
+  if (!action) return null;
+  for (const label of ['Action', 'Scene']) {
+    const pattern = new RegExp(`${label}: [^]*?\\.(?=\\s|$)`);
+    if (pattern.test(prompt)) return prompt.replace(pattern, () => `${label}: ${action}.`);
+  }
+  return null;
 }
 
 /**
@@ -266,11 +281,8 @@ export type ClipExtendRequest = {
   direction?: string;
   /** The player's own beats, one per part, used as written. */
   beats?: string[];
-  /**
-   * Each part's own prompt (same order as the beats), built the way the first clip's was from the
-   * part's beat (M11 T1): an H3 or WAN part says it instead of the first clip's prompt again.
-   */
-  partPrompts?: string[];
+  /** Each part's length in seconds (same order; 0 = the engine's own): shorter is trimmed. */
+  partSeconds?: number[];
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
   /** How each line is said (same order; '' / 'natural' = plainly). */
@@ -296,6 +308,33 @@ export async function requestClipExtendPlan(
   };
   if (!response.ok || !body.plan) throw new Error(body.error ?? 'Could not plan the extension.');
   return body.plan;
+}
+
+/**
+ * Beats for a longer clip's parts before its first clip exists (M11 T2, the Animate sheet): from
+ * the scene and the direction, `count` of them (client).
+ */
+export async function requestClipBeats(
+  input: {
+    scene: string;
+    setting?: string;
+    heat?: SpokenLineHeat;
+    direction?: string;
+    count: number;
+  },
+  llmBody?: Record<string, unknown>
+): Promise<string[]> {
+  const response = await fetch('/api/clip/extend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ ...input, ...llmBody, writeBeats: input.count }),
+  });
+  const body = (await response.json().catch(() => ({}))) as { beats?: string[]; error?: string };
+  if (!response.ok || !Array.isArray(body.beats)) {
+    throw new Error(body.error ?? 'Could not write the beats.');
+  }
+  return body.beats;
 }
 
 /** Start "Make it 30 s" (client): the job, at once. */

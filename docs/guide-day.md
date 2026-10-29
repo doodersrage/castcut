@@ -123,6 +123,11 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
 - A slot with a **line** becomes a **talking clip** — lip-synced, in the Cast's voice.
 - **Add sound** gives a silent clip the sound of its place.
 - **Make it 30 s** carries a clip on in parts that continue from each other.
+- On **MiniMax-H3** a longer **Length** is the first clip and then parts (~5 s each). Each part has
+  its own **Then…** — what happens in it — and its length (**~5 s**, or cut to 2, 3 or 4 s).
+  **Write the beats** writes the empty ones from the slot's beat and your direction; a part left
+  empty is written when it starts. Each part keeps the first clip's prompt — the place, the
+  clothes, the look — with only its action changed, and holds the framing.
 
 Each card's **⋯** menu is grouped in the order you work on a shot:
 
