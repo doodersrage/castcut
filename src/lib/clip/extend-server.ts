@@ -68,6 +68,8 @@ import {
 import { restoreModelOptions } from '../play/checks-readiness-server';
 import type { SpokenLineHeat } from '../audio/spoken-line';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
+import { buildStillUpscaleGraph, STILL_UPSCALE_SAVE_NODE } from '../still/upscale';
+import { CLIP_FINISH_MODELS } from './finish';
 
 const jobs = new Map<string, ClipExtendJob>();
 const MAX_JOBS = 20;
@@ -95,6 +97,95 @@ async function frameDetail(input: Buffer | string): Promise<number> {
   const sharp = (await import('sharp')).default;
   const { data, info } = await sharp(input).greyscale().raw().toBuffer({ resolveWithObject: true });
   return laplacianVariance(data, info.width, info.height);
+}
+
+/** How large SeedVR2 restores a start frame (its long side, at most), before it is set back. */
+const RESTORE_LONG_SIDE = 2048;
+/** How much of the restored frame goes into the start frame. */
+const RESTORE_MIX = 0.5;
+
+/**
+ * A part's start frame with its fine detail restored (SeedVR2, the one-step restore Sharpen &
+ * smooth and Upscale use, at 2× and set back to its size): each part starts from a frame of the
+ * last, and over five or six parts skin went waxy and hair soft (live, a 30 s H3 chain) — an
+ * unsharp mask brings back edges but not texture. Null when SeedVR2 is not installed or fails
+ * (the frame is then sharpened as before).
+ */
+async function restoreStartFrame(
+  baseUrl: string,
+  png: Buffer,
+  target: number
+): Promise<Buffer | null> {
+  try {
+    // Only once the frame has lost detail against the first clip's: restored every part, the
+    // restorer's own texture compounded (sand turned blotchy, skin oily by the fourth part).
+    if ((await frameDetail(png)) >= target) return png;
+    const sharp = (await import('sharp')).default;
+    const meta = await sharp(png).metadata();
+    if (!meta.width || !meta.height) return null;
+    const unets = await fetch(`${baseUrl}/object_info/UNETLoader`).then(response =>
+      response.json()
+    );
+    const names = (unets as Record<string, { input?: { required?: Record<string, unknown[]> } }>)
+      ?.UNETLoader?.input?.required?.unet_name?.[0];
+    if (!Array.isArray(names) || !names.includes(CLIP_FINISH_MODELS.seedvr)) return null;
+    const scale = Math.min(2, RESTORE_LONG_SIDE / Math.max(meta.width, meta.height));
+    if (scale <= 1) return null;
+    const even = (value: number) => Math.max(2, Math.round((value * scale) / 2) * 2);
+    const uploaded = await uploadComfyInputContent({
+      baseUrl,
+      bytes: new Uint8Array(png),
+      filename: 'castcut-extend-restore.png',
+      mimeType: 'image/png',
+    });
+    const graph = buildStillUpscaleGraph({
+      image: uploaded.name,
+      width: even(meta.width),
+      height: even(meta.height),
+      seed: 7,
+      prefix: 'Castcut-extend-restore',
+    });
+    // A preview (ComfyUI's temp folder), not a saved picture: one per part would pile up.
+    graph[STILL_UPSCALE_SAVE_NODE] = {
+      class_type: 'PreviewImage',
+      inputs: {
+        images: (graph[STILL_UPSCALE_SAVE_NODE] as { inputs: { images: unknown } }).inputs.images,
+      },
+    };
+    const run = await runComfyUtilityGraph<ComfyImageRef>({
+      baseUrl,
+      label: 'extend-restore',
+      priority: 'queue',
+      timeoutMs: 10 * 60_000,
+      prompt: graph,
+      read: entry =>
+        (entry.outputs?.[STILL_UPSCALE_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined)
+          ?.images?.[0],
+    });
+    if (!run.result) return null;
+    const view = await fetch(
+      `${baseUrl}/view?${new URLSearchParams({
+        filename: run.result.filename,
+        subfolder: run.result.subfolder ?? '',
+        type: run.result.type || 'temp',
+      }).toString()}`,
+      { signal: AbortSignal.timeout(60_000) }
+    );
+    if (!view.ok) return null;
+    const restored = await sharp(Buffer.from(await view.arrayBuffer()))
+      .resize(meta.width, meta.height, { kernel: 'lanczos3' })
+      .png()
+      .toBuffer();
+    // Half restored, half as it was: enough detail back, little of the restorer's own.
+    const half = await sharp(restored).ensureAlpha(RESTORE_MIX).png().toBuffer();
+    return await sharp(png)
+      .composite([{ input: half, blend: 'over' }])
+      .png()
+      .toBuffer();
+  } catch (error) {
+    console.warn('[extend] start-frame restore failed; sharpening instead:', error);
+    return null;
+  }
 }
 
 /**
@@ -605,7 +696,12 @@ export async function extendClip(
       const matched = await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`));
       // Sharpened back toward the first clip's detail on WAN and H3 (M11 T3): each part starts from
       // the last one's softest frame, and the softening compounds.
-      const startBytes = wan || h3 ? await sharpenStartFrame(matched, referenceDetail) : matched;
+      // Restored (SeedVR2) where it can be, else sharpened back toward the first clip's detail.
+      const startBytes =
+        wan || h3
+          ? ((await restoreStartFrame(baseUrl, matched, referenceDetail)) ??
+            (await sharpenStartFrame(matched, referenceDetail)))
+          : matched;
       const lastFrame = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(startBytes),

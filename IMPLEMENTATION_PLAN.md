@@ -2492,6 +2492,20 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
 - Tests: framing (held: no pull-back, torso within limits through reach + walk), timeline (24 fps
   frames, proportions through a move), e2e "continues a finished clip…" (continueClip, 24 fps AVI).
 
+**T12 — Longer clips: detail in the last parts** (user, 2026-10-29: "noticeable degradation by
+the last two segments" of a 30 s H3 clip). · S
+- Measured on the beach clip, 5 → 30 s (5 parts, no references): by parts 5–6 the skin went waxy
+  and hair soft, saturation 75–79 → 50. The start frames' unsharp mask restores edges, not texture.
+- Tried: SeedVR2 (installed; Sharpen & smooth's restorer) on every start frame at 2× and set back —
+  detail held through the middle (288–439 vs 47–203) but the restorer's own texture compounded
+  (blotchy sand, oily skin by part 4). Kept: restored only when the frame's detail has fallen
+  below the first clip's, and mixed 50 / 50 with it (`restoreStartFrame`, extend-server.ts; the
+  unsharp mask stays the fallback without SeedVR2): no blotches, skin still crisp at 20–24 s,
+  saturation 65–80 to the end. ~5 s a part.
+- Not fixed here: scene continuity still wanders over six parts without references (a towel,
+  the hat band, the camera toward the sea); a lossless hop (start frames from ComfyUI's decoded
+  frames instead of the H.264 piece) is the next lever if texture still falls.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

@@ -131,6 +131,9 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   Each part starts from the frame of the part before whose face is most the Cast's (when ComfyUI
   has the face check), and a part whose face changed is named when the clip is done.
   Each part's colours are matched where it joins the part before, so the joins don't change colour.
+  When a part's start frame has lost detail against the first clip, it is restored first (SeedVR2,
+  half mixed in — the same restorer Sharpen & smooth uses), so skin and hair don't go waxy by the
+  last parts.
   With MiniMax-H3's reference model in ComfyUI (`minimax_h3_ref2va_pruned_int8_convrot` in
   `models/diffusion_models` and the `minimax_h3_ref2v_turbo_8step` LoRA), each part also sees the
   Cast's face lock and look plate, so her face holds; her clothes stay as the clip has them.
