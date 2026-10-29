@@ -65,7 +65,13 @@ import {
   setBeatTime,
   shiftBeat,
 } from '@/lib/director/edit';
-import { beatIndexAt, beatStarts, directionFrames, endOfBeats } from '@/lib/director/timeline';
+import {
+  beatIndexAt,
+  beatStarts,
+  directionFrames,
+  directionFramesAt,
+  endOfBeats,
+} from '@/lib/director/timeline';
 import {
   beatLength,
   checkDirection,
@@ -130,6 +136,12 @@ export type DirectorSheetProps = {
   /** Start Copy moves with the driving video (a background job). */
   onRender: (video: Blob, options: DirectorRenderOptions) => void;
   testId?: string;
+  /**
+   * The still is a clip's last frame and the move continues the clip: the framing stays the
+   * still's (no pull-back for a move that needs room — it would show at the join), and Copy moves'
+   * seat edit is off (a seat appearing would show too).
+   */
+  continuing?: boolean;
 };
 
 /**
@@ -163,6 +175,9 @@ function useStillSize(url: string): { width: number; height: number } | null {
 }
 
 /** The real poses the Director offers: one-person poses with 3D (captured, drawn or estimated). */
+/** A continued clip's rate (the engines' clips, and Make it longer's, are 24 fps). */
+const CONTINUE_FPS = 24;
+
 const hasOwn3d = (reference: PoseReference) =>
   Boolean(reference.world) && reference.people.length === 1;
 
@@ -229,6 +244,7 @@ function DirectorSheetOpen({
   onClose,
   onRender,
   testId = 'director',
+  continuing = false,
 }: DirectorSheetProps) {
   const p = testId;
   const titleId = useId();
@@ -342,14 +358,22 @@ function DirectorSheetOpen({
 
   const frames = useMemo(() => directionFrames(direction), [direction]);
   const framing = useMemo(
-    () => frameDirection({ frames, camera: direction.camera, aspect, still: detected.framing }),
-    [frames, direction.camera, aspect, detected.framing]
+    () =>
+      frameDirection({
+        frames,
+        camera: direction.camera,
+        aspect,
+        still: detected.framing,
+        hold: continuing,
+      }),
+    [frames, direction.camera, aspect, detected.framing, continuing]
   );
   const length = directionLength(direction);
   const check = checkDirection(direction);
   const allSupportNeeds = directionSupportNeeds(direction);
   const seatOffer = directionSeat(allSupportNeeds, direction.place);
-  const drawSeat = drawSeatChoice ?? stillSeat !== true;
+  // Continuing a clip: no seat edit (a seat appearing at the join would show).
+  const drawSeat = !continuing && (drawSeatChoice ?? stillSeat !== true);
   const seat = drawSeat ? seatOffer : null;
   // A seat put into (or already in) the still covers the sitting beats; leaning still needs Place.
   const supportNeeds =
@@ -551,8 +575,11 @@ function DirectorSheetOpen({
     setRendering({ done: 0, total: frames.length });
     try {
       const { renderDrivingVideo } = await import('@/lib/director/render-client');
+      // A clip continued is filmed at its 24 fps (CONTINUE_FPS): Copy moves keeps the rate.
+      const filmed = continuing ? directionFramesAt(direction, CONTINUE_FPS) : frames;
       const blob = await renderDrivingVideo({
-        frames,
+        frames: filmed,
+        fps: continuing ? CONTINUE_FPS : undefined,
         framing,
         body,
         width: video.width,
@@ -1110,7 +1137,17 @@ function DirectorSheetOpen({
                 }
                 data-testid={`${p}-place`}
               />
-              {seatOffer ? (
+              {continuing ? (
+                <p
+                  className="type-caption text-[var(--text-muted)]"
+                  data-testid={`${p}-continuing`}
+                >
+                  This continues the clip from its last frame: the framing stays as the clip has it
+                  (a raised hand may leave the picture), and nothing is added to the room — sit only
+                  where the clip already shows a seat.
+                </p>
+              ) : null}
+              {seatOffer && !continuing ? (
                 <label
                   className="type-caption flex items-start gap-2 text-[var(--text-muted)]"
                   title="Copy moves draws the room from the still, so a seat only named in Place is not drawn"

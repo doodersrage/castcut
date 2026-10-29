@@ -2464,6 +2464,31 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
 - Tests: `video-motion.test.ts` (read, lead, flips, the filmed-wave round trip, the beat),
   e2e `director.spec.ts` "a move from your own video…" (mocked read).
 
+**T11 — Continue a clip with a directed move** (from T8). · M
+- A finished clip's ⋯ → "Continue with a directed move…": `/api/clip/frame` puts its last frame
+  in ComfyUI's input, the Director opens on it (`continuing`), and Render sends a Copy moves job
+  with `continueClip`: Wan Animate from that frame, then `continue-server.ts` joins it on (the
+  clip's size, colours matched at the seam, the first frame dropped, eased in over 0.25 s from the
+  last frame, brown-noise room tone at about −48 dBFS where the clip had sound). The result
+  replaces the slot's clip; the original render stays the one Make it 30 s replays.
+- Continuing, the Director holds the still's framing (`frameDirection({ hold })`: no pull-back,
+  and a per-frame camera that keeps her torso its first size within 0.8–1.25×, smoothed), turns
+  the seat edit off, and films at 24 fps (`directionFramesAt`), which Copy moves keeps — 16 → 24
+  by interpolation smeared a fast hand in every setting tried (mci / obmc / blend).
+- Also for every direction: ready-made and video moves now keep the start pose's proportions
+  (read from the still); they were the base body's, her arms grew as a move began, and Copy moves
+  refitted her smaller. Moves in place keep the hips within 5 cm of the feet's centre, swinging at
+  most 6 cm (the wave's capture started mid-shuffle and swayed her 30 cm).
+- Live on Mara's 18 s clip (a wave, the Director's pipeline emulated from the real last frame):
+  joined in ~1.7 min; colour step at the seam ~1; the largest frame-to-frame change near the join
+  12 (median 2.7; 20 before the ease-in and size hold) — the hand coming up; at most one repeated
+  frame in the part, no smearing; she ends a little smaller over the move (gradual).
+- Found, not fixed: the same still read twice in one ComfyUI session returns no pose (ComfyUI
+  answers the identical graph from its cache without the keypoints) — the Director then starts
+  from Stand.
+- Tests: framing (held: no pull-back, torso within limits through reach + walk), timeline (24 fps
+  frames, proportions through a move), e2e "continues a finished clip…" (continueClip, 24 fps AVI).
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

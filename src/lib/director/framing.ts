@@ -166,6 +166,44 @@ function anchors(figure: PoseRig3dFigure, camera: PoseRig3dCamera, aspect: numbe
   return { neck, hip, centerX: (neck.x + hip.x) / 2 };
 }
 
+/** Her torso's length in the picture (neck to between the hips). */
+function torsoLength(figure: PoseRig3dFigure, camera: PoseRig3dCamera, aspect: number): number {
+  const { neck, hip } = anchors(figure, camera, aspect);
+  return Math.hypot(neck.x - hip.x, neck.y - hip.y);
+}
+
+/** How far a held camera may step in or back to keep her size (×), and its smoothing (frames). */
+const HELD_SIZE = { min: 0.8, max: 1.25, sigma: 3 };
+
+/**
+ * Per frame, the start camera stepped along its line of sight so her torso is the length it is
+ * in the first frame (within HELD_SIZE, smoothed so the camera never twitches).
+ */
+function heldTrack(
+  frames: PoseRig3dFigure[],
+  start: PoseRig3dCamera,
+  aspect: number
+): PoseRig3dCamera[] {
+  const first = torsoLength(frames[0]!, start, aspect);
+  if (!(first > 0.01)) return frames.map(() => start);
+  const raw = frames.map(frame => {
+    const now = torsoLength(frame, start, aspect);
+    return now > 0.01 ? Math.min(HELD_SIZE.max, Math.max(HELD_SIZE.min, now / first)) : 1;
+  });
+  const reach = Math.ceil(HELD_SIZE.sigma * 3);
+  return raw.map((_, i) => {
+    let sum = 0;
+    let weights = 0;
+    for (let k = -reach; k <= reach; k += 1) {
+      const w = Math.exp(-(k * k) / (2 * HELD_SIZE.sigma * HELD_SIZE.sigma));
+      sum += raw[Math.min(raw.length - 1, Math.max(0, i + k))]! * w;
+      weights += w;
+    }
+    // Twice as big in the picture: the camera twice as far (for the target's distance).
+    return dolly(start, sum / weights);
+  });
+}
+
 /** Line her neck and hips up with the still's (same size and place in the picture). */
 function matchStill(
   figure: PoseRig3dFigure,
@@ -240,13 +278,23 @@ export type DirectionFraming = {
    */
   from?: PoseRig3dCamera;
   settle?: number;
+  /**
+   * One camera per frame, when held (a clip continued): each stepped in or back so her torso
+   * keeps the size it has in the still — Copy moves sizes her to the driving video's body, and an
+   * upright move after a start read leaning (or a step toward the camera) grew her past the clip.
+   */
+  track?: PoseRig3dCamera[];
 };
 
 /** The driving video's camera at `s` (0–1 of the clip). */
 export function framingCameraAt(
-  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>,
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle' | 'track'>,
   s: number
 ): PoseRig3dCamera {
+  if (framing.track?.length) {
+    const i = Math.round(Math.min(1, Math.max(0, s)) * (framing.track.length - 1));
+    return framing.track[i]!;
+  }
   const path = cameraAt(framing.start, framing.end, s);
   if (!framing.from) return path;
   return cameraAt(framing.from, path, Math.min(1, s / Math.max(1e-3, framing.settle ?? 1)));
@@ -262,6 +310,11 @@ export function frameDirection(input: {
   camera: DirectorCamera;
   aspect: number;
   still?: StillFraming | null;
+  /**
+   * Keep the still's framing whatever the move (a clip continued: a pull-back would show at the
+   * join); a limb may leave the picture.
+   */
+  hold?: boolean;
 }): DirectionFraming {
   const { frames, camera, aspect } = input;
   const first = frames[0]!;
@@ -290,6 +343,15 @@ export function frameDirection(input: {
   // The still's own camera already frames her as the still does.
   if (still && !camera.view) start = matchStill(first, start, still, aspect);
   const matched = start;
+  if (input.hold && still) {
+    return {
+      start,
+      end: cameraMoveEnd(start, camera.move, aspect),
+      shot,
+      pulledBack: 1,
+      track: heldTrack(frames, start, aspect),
+    };
+  }
   const framedDistance = v(start.position).distanceTo(v(start.target));
   // Closer shots crop her legs: only the top and the sides must hold.
   const full = shot === 'full';

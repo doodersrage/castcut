@@ -250,20 +250,52 @@ export function retargetMocap(clip: MocapClip, kind: Rig3dBodyKind): PoseRig3dFi
   // or crossed to reach them).
   const hipsShift = clip.frames.map(() => ({ x: 0, z: 0 }));
   if (clip.planted) {
-    const start = {
-      x: (targets.L[0]!.ankle.x + targets.R[0]!.ankle.x) / 2,
-      z: (targets.L[0]!.ankle.z + targets.R[0]!.ankle.z) / 2,
+    // The hips' place over the point between the feet, frame by frame, as captured — its centre
+    // within SWAY_CENTRE of that point and its swing within SWAY of the centre: a performer caught
+    // mid-shuffle (the wave's start: hips 17 cm off their feet) swayed her 30 cm over pinned feet,
+    // toward the camera and back.
+    const hipsAt = (frame: MocapClip['frames'][number]) => ({
+      x: (middle + (frame.root[0] - middle) * narrow) * k,
+      z: frame.root[2] * k,
+    });
+    const offsets = clip.frames.map((frame, i) => {
+      const h = hipsAt(frame);
+      return {
+        x: h.x - (targets.L[i]!.ankle.x + targets.R[i]!.ankle.x) / 2,
+        z: h.z - (targets.L[i]!.ankle.z + targets.R[i]!.ankle.z) / 2,
+      };
+    });
+    const clampLength = (v: { x: number; z: number }, max: number) => {
+      const length = Math.hypot(v.x, v.z);
+      return length > max ? { x: (v.x * max) / length, z: (v.z * max) / length } : v;
     };
-    clip.frames.forEach((_, i) => {
+    const mean = {
+      x: offsets.reduce((sum, o) => sum + o.x, 0) / offsets.length,
+      z: offsets.reduce((sum, o) => sum + o.z, 0) / offsets.length,
+    };
+    const centre = clampLength(mean, SWAY_CENTRE);
+    const sway = offsets.map(o => {
+      const swing = clampLength({ x: o.x - mean.x, z: o.z - mean.z }, SWAY);
+      return { x: centre.x + swing.x, z: centre.z + swing.z };
+    });
+    // The feet where they start, the point between them under the start's hips less its sway.
+    const feet = {
+      x: -sway[0]!.x - (targets.L[0]!.ankle.x + targets.R[0]!.ankle.x) / 2,
+      z: -sway[0]!.z - (targets.L[0]!.ankle.z + targets.R[0]!.ankle.z) / 2,
+    };
+    clip.frames.forEach((frame, i) => {
+      const h = hipsAt(frame);
       hipsShift[i] = {
-        x: start.x - (targets.L[i]!.ankle.x + targets.R[i]!.ankle.x) / 2,
-        z: start.z - (targets.L[i]!.ankle.z + targets.R[i]!.ankle.z) / 2,
+        x: sway[i]!.x - sway[0]!.x - h.x,
+        z: sway[i]!.z - sway[0]!.z - h.z,
       };
     });
     const ankleH = restOf(kind).ankleH;
     for (const side of ['L', 'R'] as const) {
       // Flat on the floor: a performer's foot could start raised (7 cm, the wave's right).
       const first = targets[side][0]!.ankle.clone().setY(ankleH);
+      first.x += feet.x;
+      first.z += feet.z;
       for (const t of targets[side]) {
         const dx = first.x - t.ankle.x;
         const dz = first.z - t.ankle.z;
@@ -320,6 +352,10 @@ export function retargetMocap(clip: MocapClip, kind: Rig3dBodyKind): PoseRig3dFi
     return groundFigure(figure);
   });
 }
+
+/** How far a move in place's hips may sit off the point between the feet, and swing from it (m). */
+const SWAY_CENTRE = 0.05;
+const SWAY = 0.06;
 
 /** Half the hand-keyed moves' standing stance (moves.ts `standing`), m, and each foot's turn out. */
 const STANCE_HALF = 0.1;

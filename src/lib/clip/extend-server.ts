@@ -6,6 +6,7 @@
 
 import { promises as fs } from 'node:fs';
 import { writeClipSource } from './clip-source-server';
+import { frameStats, grabFrame, normalizePiece, probe } from './clip-pieces-server';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -26,7 +27,6 @@ import {
   pickStartSharpenIndex,
   WAN_START_SHARPEN_STEPS,
   extendSegmentCount,
-  type ChannelStats,
   extendStitchFilter,
   FACE_ANCHOR_STEP,
   FACE_ANCHOR_WINDOW,
@@ -91,32 +91,6 @@ function run(bin: string, args: string[]): Promise<string> {
   });
 }
 
-type Probe = { frames: number; width: number; height: number; audio: boolean };
-
-async function probe(ffmpeg: string, file: string): Promise<Probe> {
-  const log = await run(ffmpeg, ['-i', file, '-map', '0:v:0', '-f', 'null', '-']).catch(error =>
-    String(error instanceof Error ? error.message : error)
-  );
-  const frames = Number([...log.matchAll(/frame=\s*(\d+)/g)].at(-1)?.[1] ?? 0);
-  const size = log.match(/Video:.*?,\s(\d{2,5})x(\d{2,5})[\s,[]/);
-  if (!frames || !size) throw new Error('Could not read that clip.');
-  return {
-    frames,
-    width: Number(size[1]),
-    height: Number(size[2]),
-    audio: /Stream #\d+:\d+.*Audio:/.test(log),
-  };
-}
-
-async function frameStats(file: string): Promise<ChannelStats> {
-  const sharp = (await import('sharp')).default;
-  const stats = await sharp(file).stats();
-  return {
-    mean: stats.channels.slice(0, 3).map(channel => channel.mean),
-    std: stats.channels.slice(0, 3).map(channel => channel.stdev),
-  };
-}
-
 async function frameDetail(input: Buffer | string): Promise<number> {
   const sharp = (await import('sharp')).default;
   const { data, info } = await sharp(input).greyscale().raw().toBuffer({ resolveWithObject: true });
@@ -147,70 +121,6 @@ async function sharpenStartFrame(png: Buffer, target: number): Promise<Buffer> {
  * ffmpeg cannot seek into an animated WebP — WAN's output — and an input-side `-ss` there exited 0
  * with no frame written, so every WAN segment's colour match silently fell away.
  */
-async function grabFrame(
-  ffmpeg: string,
-  file: string,
-  seconds: number,
-  out: string
-): Promise<void> {
-  await run(ffmpeg, [
-    '-y',
-    '-v',
-    'error',
-    '-i',
-    file,
-    '-ss',
-    seconds.toFixed(3),
-    '-frames:v',
-    '1',
-    out,
-  ]);
-}
-
-/** The piece at 24 fps, `width`×`height`, with a sound track (silence when it has none). */
-async function normalizePiece(
-  ffmpeg: string,
-  source: string,
-  out: string,
-  size: { width: number; height: number },
-  skipFrames = 0,
-  colorFilter?: string,
-  /** Keep at most this many frames (after the skipped ones). */
-  maxFrames?: number
-): Promise<Probe> {
-  const { audio } = await probe(ffmpeg, source);
-  const end = maxFrames && maxFrames > 0 ? skipFrames + maxFrames : 0;
-  const trim = `${skipFrames || end ? `,trim=start_frame=${skipFrames}${end ? `:end_frame=${end}` : ''},setpts=PTS-STARTPTS` : ''}${colorFilter ? `,${colorFilter}` : ''}`;
-  await run(ffmpeg, [
-    '-y',
-    '-i',
-    source,
-    ...(audio ? [] : ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']),
-    '-vf',
-    `fps=${LTX25_FPS}${trim},scale=${size.width}:${size.height}:flags=lanczos,setsar=1`,
-    ...(audio
-      ? [
-          '-af',
-          `aresample=48000${skipFrames || end ? `,atrim=start=${skipFrames / 24}${end ? `:end=${end / 24}` : ''},asetpts=PTS-STARTPTS` : ''}`,
-        ]
-      : ['-map', '0:v:0', '-map', '1:a:0', '-shortest']),
-    '-c:v',
-    'libx264',
-    '-crf',
-    '14',
-    '-pix_fmt',
-    'yuv420p',
-    '-c:a',
-    'aac',
-    '-ar',
-    '48000',
-    '-ac',
-    '2',
-    out,
-  ]);
-  return probe(ffmpeg, out);
-}
-
 /** Beats from the scene and direction alone (M11 T2: the Animate sheet, no clip yet). */
 export async function writeClipBeats(input: {
   scene: string;

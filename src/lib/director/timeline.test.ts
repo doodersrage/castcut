@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { Quaternion } from 'three';
-import { figureWorld } from '@/lib/pose/rig3d-pose';
+import { figureWorld, restFigure } from '@/lib/pose/rig3d-pose';
 import { floorGap, mixFigures, placementOf, transformFigure } from './figure-ops';
 import { moveBeat } from './edit';
 import { ease, monotone } from './motion';
 import { DIRECTOR_MOVE_IDS, DIRECTOR_MOVES, moveFrames } from './moves';
 import { poseBeat, standingFigure, starterFigure } from './poses';
-import { beatIndexAt, buildTimeline, directionFrames, endOfBeats, sampleTimeline } from './timeline';
+import {
+  beatIndexAt,
+  buildTimeline,
+  directionFrames,
+  directionFramesAt,
+  endOfBeats,
+  sampleTimeline,
+} from './timeline';
 import { DEFAULT_DIRECTOR_CAMERA, DIRECTOR_FPS, directionFrameCount, type Direction } from './types';
 
 const stand = standingFigure('female');
@@ -137,5 +144,26 @@ describe('director: timeline', () => {
       }
       for (const frame of frames) assert.ok(Math.abs(floorGap(frame)) < 0.07, id);
     }
+  });
+});
+
+describe('director: filming rate and her proportions', () => {
+  it('films a direction at another rate (a continued clip at 24 fps), the same length', () => {
+    const d = direction([
+      { id: 's', kind: 'pose', name: 'Stand', figure: restFigure('female'), seconds: 0, hold: 0.5 },
+      { id: 'w', kind: 'move', move: 'wave', seconds: 2.5, hold: 0 },
+    ]);
+    assert.equal(directionFramesAt(d, 24).length, Math.round(3 * 24) + 1);
+    assert.equal(directionFrames(d).length, Math.round(3 * DIRECTOR_FPS) + 1);
+  });
+
+  it('keeps her own proportions (read from the still) through a ready-made move', () => {
+    const figure = { ...restFigure('female'), scale: { upperarm: 0.9, forearm: 0.9 } };
+    const d = direction([
+      { id: 's', kind: 'pose', name: 'Her pose in the picture', figure, seconds: 0, hold: 0.3 },
+      { id: 'w', kind: 'move', move: 'wave', seconds: 2.5, hold: 0 },
+    ]);
+    const frames = directionFrames(d);
+    for (const frame of frames.slice(-10)) assert.deepEqual(frame.scale, figure.scale);
   });
 });

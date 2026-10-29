@@ -1049,6 +1049,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               finish: slotMedia.finishSlotClip,
               realism: slotMedia.realismSlotClip,
               moves: slotMedia.copyMovesToSlot,
+              continueMoves: slotMedia.continueSlotClip,
               dance: slotMedia.danceSlot,
               lipSync: slotMedia.lipSyncSlot,
               relight: slotMedia.relightSlot,

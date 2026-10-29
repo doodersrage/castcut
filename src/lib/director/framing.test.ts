@@ -183,3 +183,35 @@ describe('director: framing', () => {
     assert.deepEqual(cameraAt(start, pan, 1).position, pan.position);
   });
 });
+
+describe('director: a clip continued (held framing)', () => {
+  const still = { neckY: 0.2, hipY: 0.47, centerX: 0.5, shot: 'full' as const };
+  const torso = (figure: PoseRig3dFigure, camera: PoseRig3dCamera) => {
+    const cam = makeCamera(camera, ASPECT);
+    cam.updateMatrixWorld();
+    const points = openPoseWorld(figure);
+    const neck = projectPoint(cam, points[1]!);
+    const hip = projectPoint(cam, points[8]!.clone().lerp(points[11]!, 0.5));
+    return Math.hypot(neck.x - hip.x, neck.y - hip.y);
+  };
+
+  it('never pulls back for a move that needs room, and keeps her torso its first size', () => {
+    const list = frames(['reach', 'walk']);
+    const free = frameDirection({ frames: list, camera: camera(), aspect: ASPECT, still });
+    const held = frameDirection({ frames: list, camera: camera(), aspect: ASPECT, still, hold: true });
+    assert.equal(held.pulledBack, 1);
+    assert.equal(held.from, undefined);
+    assert.equal(held.track?.length, list.length);
+    assert.ok(free.pulledBack > 1 || free.from, 'the free framing makes room');
+    const first = torso(list[0]!, framingCameraAt(held, 0));
+    const last = list.length - 1;
+    for (let i = 0; i <= last; i += 4) {
+      const ratio = torso(list[i]!, framingCameraAt(held, i / last)) / first;
+      assert.ok(ratio > 0.8 && ratio < 1.25, `frame ${i}: torso ×${ratio.toFixed(2)}`);
+    }
+    // She walks toward the camera on the walk: held, she is about the size she started (the
+    // camera follows smoothly, and her stride's lean is part of the torso's length).
+    const end = torso(list[last]!, framingCameraAt(held, 1)) / first;
+    assert.ok(Math.abs(end - 1) < 0.15, `torso ×${end.toFixed(2)} after the walk`);
+  });
+});

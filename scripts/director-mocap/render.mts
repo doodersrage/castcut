@@ -45,10 +45,33 @@ try {
   const all = JSON.parse(readFileSync(framesPath, 'utf8')) as Record<string, unknown[]>;
   const still = stillJson ? JSON.parse(stillJson) : null;
   mkdirSync(outDir, { recursive: true });
-  for (const [name, frames] of Object.entries(all)) {
+  for (const [name, entry] of Object.entries(all)) {
+    // An entry is the frames, or { frames, camera } (a Director camera, e.g. the still's view).
+    const { frames, camera, framing16 } = Array.isArray(entry)
+      ? { frames: entry, camera: undefined, framing16: undefined }
+      : (entry as { frames: unknown[]; camera?: unknown; framing16?: unknown[] });
     const b64 = await page.evaluate(
-      ([f, s, b]) => window.renderMove(f as never, s as never, 624, 832, b),
-      [frames, still, body] as const
+      ([f, s, b, h, c, r, g]) =>
+        window.renderMove(
+          f as never,
+          s as never,
+          624,
+          832,
+          b,
+          h,
+          (c ?? undefined) as never,
+          r ?? undefined,
+          (g ?? undefined) as never
+        ),
+      [
+        frames,
+        still,
+        body,
+        process.env.HOLD === '1',
+        camera ?? null,
+        process.env.FPS ? Number(process.env.FPS) : null,
+        framing16 ?? null,
+      ] as const
     );
     writeFileSync(path.join(outDir, `${name}.avi`), Buffer.from(b64, 'base64'));
     console.log(name, frames.length, 'frames');

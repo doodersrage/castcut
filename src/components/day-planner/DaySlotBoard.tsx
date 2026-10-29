@@ -120,6 +120,12 @@ export type DaySlotBoardProps = {
       video: Blob,
       options: { motion?: string; keepSound?: boolean; place?: string }
     ) => Promise<string | null>;
+    /** Continue the clip with a directed move (the Director on its last frame). */
+    continueMoves?: (
+      slot: DaySlot,
+      video: Blob,
+      options: { motion?: string; keepSound?: boolean; place?: string }
+    ) => Promise<string | null>;
     lipSync: (slot: DaySlot, audio: Blob, audio2?: Blob | null) => Promise<string | null>;
     dance: (
       slot: DaySlot,
@@ -197,7 +203,35 @@ export default function DaySlotBoard({
   const [mediaNote, setMediaNote] = useState<{ slotId: string; text: string } | null>(null);
   const jobProgress = useClipJobProgress(clipJobFeature);
   const [sketchFor, setSketchFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
-  const [directorFor, setDirectorFor] = useState<{ slot: DaySlot; stillUrl: string } | null>(null);
+  const [directorFor, setDirectorFor] = useState<{
+    slot: DaySlot;
+    stillUrl: string;
+    /** The still is the clip's last frame: the move continues the clip. */
+    continuing?: boolean;
+  } | null>(null);
+  const [continuingFrom, setContinuingFrom] = useState<string | null>(null);
+  /** The Director on the clip's last frame, to continue the clip with a directed move. */
+  const continueWithDirector = async (slot: DaySlot, clipUrl: string) => {
+    setMediaNote(null);
+    setContinuingFrom(slot.id);
+    try {
+      const response = await fetch('/api/clip/frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clipUrl }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!response.ok || !data.url) throw new Error(data.error || 'Could not read the clip.');
+      setDirectorFor({ slot, stillUrl: data.url, continuing: true });
+    } catch (error) {
+      setMediaNote({
+        slotId: slot.id,
+        text: error instanceof Error ? error.message : 'Could not read the clip.',
+      });
+    } finally {
+      setContinuingFrom(null);
+    }
+  };
   const runMedia = async (
     slot: DaySlot,
     tool: DaySlotMediaTool,
@@ -608,6 +642,20 @@ export default function DaySlotBoard({
                     }
                   >
                     {extending?.slotId === slot.id ? 'Making it longer…' : 'Make it 30 s'}
+                  </button>
+                ) : null}
+                {mediaTools?.continueMoves && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || mediaTools.busy !== null || continuingFrom !== null}
+                    title="Carry the clip on with moves you direct on the 3D body: the Director opens on its last frame, and the move is joined on (a few minutes)."
+                    data-testid={`day-progress-continue-director-${slot.id}`}
+                    onClick={() => void continueWithDirector(slot, doneClip)}
+                  >
+                    {continuingFrom === slot.id
+                      ? 'Reading the clip…'
+                      : 'Continue with a directed move…'}
                   </button>
                 ) : null}
                 {onAddVoice &&
@@ -1037,9 +1085,15 @@ export default function DaySlotBoard({
           poseId={directorFor.slot.posePhoto ? undefined : directorFor.slot.poseLayout}
           busy={mediaTools.busy !== null}
           onClose={() => setDirectorFor(null)}
+          continuing={directorFor.continuing}
           onRender={(video, options) => {
             const slot = directorFor.slot;
-            void runMedia(slot, 'moves', () => mediaTools.moves(slot, video, options));
+            const continueMoves = directorFor.continuing ? mediaTools.continueMoves : undefined;
+            void runMedia(slot, 'moves', () =>
+              continueMoves
+                ? continueMoves(slot, video, options)
+                : mediaTools.moves(slot, video, options)
+            );
           }}
           testId="day-director"
         />

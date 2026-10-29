@@ -30,6 +30,11 @@ import { seatStill } from './motion-seat-server';
 import { filmTempOsDir, resolveFfmpegBinary } from './server-encode';
 
 const MOTION_FPS = 16;
+/**
+ * A clip continued: the Director films it at 24 fps and Wan Animate renders every frame at that
+ * rate (the pose is taken frame by frame), so the join needs no interpolation.
+ */
+const CONTINUE_FPS = 24;
 
 function run(bin: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -58,6 +63,11 @@ export async function transferMotion(input: {
   /** A seat to put into the still first ("a wooden chair"), when she sits down (motion-seat.ts). */
   seat?: string;
   keepSound?: boolean;
+  /**
+   * Continue this clip instead: its last frame is the still, and the result is the clip with the
+   * new moves joined on (continue-server.ts). `stillUrl` is then not fetched.
+   */
+  continueClip?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
@@ -68,14 +78,32 @@ export async function transferMotion(input: {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('./shot-fetch');
-  const still = await fetchFilmShotBytes({
-    url: input.stillUrl,
-    requestOrigin: input.requestOrigin,
-    userId: input.userId,
-  });
   const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `moves-${randomUUID()}`);
   await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
   try {
+    // A continuation starts from the clip's last frame.
+    let continued: { source: string } | null = null;
+    let still: { buffer: Buffer; contentType?: string };
+    if (input.continueClip) {
+      const clip = await fetchFilmShotBytes({
+        url: input.continueClip,
+        requestOrigin: input.requestOrigin,
+        userId: input.userId,
+      });
+      const { clipLastFrame } = await import('../clip/continue-server');
+      const last = await clipLastFrame(ffmpeg, clip.buffer, dir);
+      continued = { source: last.source };
+      still = {
+        buffer: await fs.readFile(/* turbopackIgnore: true */ last.png),
+        contentType: 'image/png',
+      };
+    } else {
+      still = await fetchFilmShotBytes({
+        url: input.stillUrl,
+        requestOrigin: input.requestOrigin,
+        userId: input.userId,
+      });
+    }
     const source = path.join(/* turbopackIgnore: true */ dir, 'drive.bin');
     const drive = path.join(/* turbopackIgnore: true */ dir, 'drive.mp4');
     await fs.writeFile(/* turbopackIgnore: true */ source, input.video);
@@ -84,7 +112,7 @@ export async function transferMotion(input: {
       '-i',
       source,
       '-vf',
-      `fps=${MOTION_FPS},scale=trunc(iw/2)*2:trunc(ih/2)*2`,
+      `fps=${input.continueClip ? CONTINUE_FPS : MOTION_FPS},scale=trunc(iw/2)*2:trunc(ih/2)*2`,
       '-frames:v',
       String(MOTION_MAX_FRAMES),
       '-c:v',
@@ -201,11 +229,38 @@ export async function transferMotion(input: {
     });
     const clip = result.result;
     if (!clip) throw new Error('Copy moves ended without a clip — check the ComfyUI log.');
-    const url = `/api/comfyui/view?${new URLSearchParams({
+    let url = `/api/comfyui/view?${new URLSearchParams({
       filename: clip.filename,
       subfolder: clip.subfolder ?? '',
       type: clip.type || 'output',
     }).toString()}`;
+    if (continued) {
+      input.job?.progress({ note: 'Joining the move onto the clip' });
+      const moves = path.join(/* turbopackIgnore: true */ dir, 'moves.mp4');
+      const fetched = await fetch(
+        `${baseUrl}/view?${new URLSearchParams({
+          filename: clip.filename,
+          subfolder: clip.subfolder ?? '',
+          type: clip.type || 'output',
+        }).toString()}`,
+        { signal: AbortSignal.timeout(120_000) }
+      );
+      if (!fetched.ok) throw new Error('Could not fetch the moves clip from ComfyUI.');
+      await fs.writeFile(
+        /* turbopackIgnore: true */ moves,
+        Buffer.from(await fetched.arrayBuffer())
+      );
+      const { joinContinuation } = await import('../clip/continue-server');
+      const out = path.join(/* turbopackIgnore: true */ dir, 'continued.mp4');
+      await joinContinuation(ffmpeg, { clip: continued.source, moves, dir, out });
+      const kept = await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ out)),
+        filename: 'castcut-continued.mp4',
+        mimeType: 'video/mp4',
+      });
+      url = `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`;
+    }
     return seatSkipped ? { url, note: `Done, without the seat — ${seatSkipped}` } : { url };
   } finally {
     await fs

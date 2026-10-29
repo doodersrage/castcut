@@ -33,6 +33,8 @@ export function copyMovesForm(input: {
   /** A seat to put into the still first (the Director, when she sits down). */
   seat?: string;
   keepSound?: boolean;
+  /** Continue this clip: start from its last frame and join the moves onto it. */
+  continueClip?: string;
 }): FormData {
   const form = new FormData();
   form.set('video', input.video, 'moves.mp4');
@@ -42,6 +44,7 @@ export function copyMovesForm(input: {
   if (input.motion) form.set('motion', input.motion);
   if (input.seat) form.set('seat', input.seat);
   if (input.keepSound) form.set('keepSound', 'true');
+  if (input.continueClip) form.set('continueClip', input.continueClip);
   return form;
 }
 

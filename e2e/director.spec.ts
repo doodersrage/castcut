@@ -266,6 +266,77 @@ test('Director: a move from your own video becomes a beat and renders with the r
   expect(body).toContain('moves as the person in her reference video does, then turns around');
 });
 
+test('Director: continues a finished clip from its last frame, filmed at 24 fps', async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await page.route('**/api/clip/frame', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ url: '/icon.svg' }),
+    })
+  );
+  let body = '';
+  await page.route('**/api/clip/moves', route => {
+    body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: clipJob('running') }),
+    });
+  });
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: clipJob('completed', '/e2e-continued.mp4') }),
+    })
+  );
+  await page.route('**/api/pose-detect', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ available: false, reason: 'e2e' }),
+    })
+  );
+  const day = finishedDay();
+  day.stills = day.stills.map(still => ({
+    ...still,
+    clipUrl: '/e2e-clip.mp4',
+    clipStatus: 'completed',
+    clipPromptId: 'clip-morning',
+  }));
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-progress-menu-morning').first().click();
+  await page.getByTestId('day-progress-continue-director-morning').click();
+  await expect(page.getByTestId('day-director')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-director-preview')).toHaveAttribute('data-ready', 'true', {
+    timeout: 60_000,
+  });
+  const d = (id: string) => page.getByTestId(`day-director-${id}`);
+  await expect(d('continuing')).toBeVisible();
+  await d('move-wave').click();
+  await d('move-sit').click();
+  // Continuing, nothing is edited into the room (a seat appearing would show at the join).
+  await expect(d('seat')).toHaveCount(0);
+  await d('beat-2-remove').click();
+  await d('render').click();
+  await expect(page.getByTestId('day-director')).toBeHidden({ timeout: 60_000 });
+  expect(body).toContain('name="continueClip"');
+  expect(body).toContain('/e2e-clip.mp4');
+  // The driving video at 24 fps (the AVI's microseconds per frame).
+  const perFrame = Math.round(1e6 / 24);
+  const le = String.fromCharCode(perFrame & 255, (perFrame >> 8) & 255, 0, 0);
+  expect(body.slice(body.indexOf('avih'), body.indexOf('avih') + 16)).toContain(le);
+});
+
 test('Director: stacks on a phone-width screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openDirector(page);

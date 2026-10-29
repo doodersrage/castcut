@@ -27,12 +27,14 @@ function jpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 export async function renderDrivingVideo(input: {
   frames: PoseRig3dFigure[];
   /** The camera (framing.ts frameDirection). */
-  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle'>;
+  framing: Pick<DirectionFraming, 'start' | 'end' | 'from' | 'settle' | 'track'>;
   body: Rig3dBodyKind;
   width: number;
   height: number;
   onProgress?: (done: number, total: number) => void;
   signal?: AbortSignal;
+  /** The video's rate (DIRECTOR_FPS unless filmed for a clip's own rate). */
+  fps?: number;
 }): Promise<Blob> {
   const canvas = document.createElement('canvas');
   canvas.width = input.width;
@@ -48,7 +50,11 @@ export async function renderDrivingVideo(input: {
       shots.push(await jpeg(canvas));
       input.onProgress?.(i + 1, input.frames.length);
     }
-    const avi = mjpegAvi(shots, { width: input.width, height: input.height, fps: DIRECTOR_FPS });
+    const avi = mjpegAvi(shots, {
+      width: input.width,
+      height: input.height,
+      fps: input.fps ?? DIRECTOR_FPS,
+    });
     return new Blob([avi as BlobPart], { type: 'video/x-msvideo' });
   } finally {
     stage.dispose();

@@ -174,7 +174,9 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
         if (!still) return false;
         const from =
           entry.tool === 'finish' || entry.tool === 'realism' ? still.clipUrl : stillUrlOf(still);
-        if (entry.kept && (!entry.source || from?.trim() === entry.source)) {
+        // A continued clip (Copy moves from its last frame) started from the clip.
+        const continued = entry.tool === 'moves' && still.clipUrl?.trim() === entry.source;
+        if (entry.kept && (!entry.source || from?.trim() === entry.source || continued)) {
           updateToolSettings({
             stills: upsertDaySlotStill(stillsRef.current, {
               ...still,
@@ -211,6 +213,33 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
             keepSound: options.keepSound,
           }),
           source: stillUrl,
+        };
+      }),
+    [character, slotJob]
+  );
+
+  /**
+   * Continue the slot's clip with a directed move (the Director on its last frame): Copy moves
+   * from that frame, joined onto the clip (continue-server.ts), which it then replaces.
+   */
+  const continueSlotClip = useCallback(
+    (
+      slot: DaySlot,
+      video: Blob,
+      options: { motion?: string; keepSound?: boolean; place?: string } = {}
+    ) =>
+      slotJob(slot, 'moves', still => {
+        const clipUrl = finishedClip(still);
+        return {
+          body: copyMovesForm({
+            video,
+            stillUrl: '',
+            continueClip: clipUrl,
+            look: (character?.descriptor || character?.hints || '').trim(),
+            place: options.place?.trim() || slot.location?.trim() || undefined,
+            motion: options.motion?.trim() || undefined,
+          }),
+          source: clipUrl,
         };
       }),
     [character, slotJob]
@@ -301,6 +330,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     finishSlotClip,
     realismSlotClip,
     copyMovesToSlot,
+    continueSlotClip,
     danceSlot,
     lipSyncSlot,
     relightSlot,

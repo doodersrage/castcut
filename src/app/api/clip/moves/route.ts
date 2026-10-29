@@ -19,9 +19,10 @@ const text = (value: FormDataEntryValue | null, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 /**
- * POST multipart { video (file), stillUrl, look, place?, motion?, seat?, keepSound?, comfyUrl? } →
- * { url }: the still's person doing the video's moves (Wan Animate 2). `seat` ("a wooden chair")
- * is edited into the still first, for a move that sits down.
+ * POST multipart { video (file), stillUrl, look, place?, motion?, seat?, keepSound?, continueClip?,
+ * comfyUrl? } → { url }: the still's person doing the video's moves (Wan Animate 2). `seat` ("a
+ * wooden chair") is edited into the still first, for a move that sits down. `continueClip`: start
+ * from that clip's last frame and join the moves onto it (continue-server.ts).
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -37,7 +38,8 @@ export async function POST(request: Request) {
   if (video.size > MAX_VIDEO_BYTES)
     return apiError('That video is too large (80 MB at most) — trim it, or record at 1080p.', 413);
   const stillUrl = text(form.get('stillUrl'), 2000);
-  if (!stillUrl) return apiError('stillUrl is required.', 400);
+  const continueClip = text(form.get('continueClip'), 2000);
+  if (!stillUrl && !continueClip) return apiError('stillUrl is required.', 400);
   const videoBytes = new Uint8Array(await video.arrayBuffer());
   const running = runningClipJob();
   if (running) return apiError(new ClipJobBusyError(running).message, 409, { running });
@@ -47,6 +49,7 @@ export async function POST(request: Request) {
       transferMotion({
         video: videoBytes,
         stillUrl,
+        ...(continueClip ? { continueClip } : {}),
         look: text(form.get('look'), 600),
         place: text(form.get('place'), 300) || undefined,
         motion: text(form.get('motion'), 300) || undefined,

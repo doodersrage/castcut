@@ -22,6 +22,7 @@ import {
 import {
   breathe,
   fromLocal,
+  groundFigure,
   mixFigures,
   placementOf,
   transformFigure,
@@ -93,7 +94,13 @@ export function buildTimeline(direction: Direction): Timeline {
           ? videoBeatFrames(beat.frames, beat.seconds, DIRECTOR_FPS)
           : moveFrames(beat.move, direction.body, beat.seconds, DIRECTOR_FPS);
       const start = placementOf(local[0]!);
-      let frames = local.map(frame => transformFigure(frame, start, at));
+      // Her own proportions carry through the move (read from the still on the start pose): a
+      // ready-made move is the base body's, and her arms grew as it began — Copy moves then
+      // refitted her to the longer body, smaller in the picture.
+      const scale = last?.scale;
+      let frames = local.map(frame =>
+        transformFigure(scale ? groundFigure({ ...frame, scale: { ...scale } }) : frame, start, at)
+      );
       if (last) {
         const shift = feetAnchor(last, frames[0]!);
         if (shift.x || shift.z) frames = frames.map(frame => shiftFigure(frame, shift));
@@ -177,6 +184,16 @@ export function directionFrames(direction: Direction): PoseRig3dFigure[] {
   const timeline = buildTimeline(direction);
   const count = directionFrameCount(direction);
   return Array.from({ length: count }, (_, i) => sampleTimeline(timeline, i / DIRECTOR_FPS));
+}
+
+/**
+ * The driving video's frames at another rate (a clip continued is filmed at its 24 fps, so Copy
+ * moves renders every frame and nothing is interpolated — that smeared a fast hand).
+ */
+export function directionFramesAt(direction: Direction, fps: number): PoseRig3dFigure[] {
+  const timeline = buildTimeline(direction);
+  const count = Math.max(2, Math.round(timeline.length * fps) + 1);
+  return Array.from({ length: count }, (_, i) => sampleTimeline(timeline, i / fps));
 }
 
 /** The beat playing at `t`, for the timeline's highlight. */

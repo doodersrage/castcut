@@ -98,6 +98,14 @@ No video to copy? Direct one. **Direct a move…** opens the Director on the sti
 3D body doing it and sends that through [Copy moves](#copy-moves), so the clip keeps her face,
 hair and clothes and lands where Copy moves' clips do.
 
+**Continue with a directed move…** (a finished clip's ⋯ → The clip) carries the clip on with
+moves you direct: the Director opens on the clip's last frame, and the move is joined onto the
+clip, which it then replaces (the original stays in the Gallery). It keeps the clip's framing —
+she stays the size she is, a raised hand may leave the picture — adds nothing to the room (sit
+only where the clip shows a seat), is filmed at the clip's 24 fps so no frames are made up, eases
+in from the last frame and has quiet room tone under it where the clip had sound. Mix it with
+**Make it 30 s**: written parts and directed parts, in any order.
+
 - **Start from** her pose in the picture (read from the still) or Stand, Sit, Kneel, Lie down,
   Walk. **Pose…** on a beat opens the [3D pose editor](guide-day.md#the-pose-editor).
 - **Add a pose…** adds a pose she moves into: it opens where the last beat left her, pose it and
