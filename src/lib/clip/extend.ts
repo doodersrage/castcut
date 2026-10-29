@@ -143,7 +143,7 @@ export function fallbackExtendBeats(
         ]
       : [
           'She carries on with what she is doing, relaxed and natural.',
-          'She pauses, glances around the room, and smiles to herself.',
+          'She pauses, glances around, and smiles to herself.',
           'She shifts her weight and picks up where she left off.',
           'She looks toward the camera for a moment, then back to what she is doing.',
         ];
@@ -333,6 +333,35 @@ export function withPartAction(prompt: string, beat: string): string | null {
     if (pattern.test(prompt)) return prompt.replace(pattern, () => `${label}: ${action}.`);
   }
   return null;
+}
+
+/** A long H3 part's most content (s): H3_LONG_PART_FRAMES less the start frame it drops. */
+export const H3_LONG_PART_SECONDS = 15;
+/** One block of a long part when the player left its length (H3's own shot, less the blend). */
+export const H3_BLOCK_SECONDS = 5;
+
+/**
+ * Wordless H3 parts grouped into long parts (M11 T13): each beat is a block of its own length (or
+ * H3_BLOCK_SECONDS), consecutive blocks share a render while they fit H3_LONG_PART_SECONDS — a
+ * 30 s clip is two hops, not five.
+ */
+export function groupH3Blocks(
+  beats: readonly string[],
+  partSeconds: readonly number[] = []
+): Array<{ blocks: Array<{ beat: string; seconds: number }>; seconds: number }> {
+  const groups: Array<{ blocks: Array<{ beat: string; seconds: number }>; seconds: number }> = [];
+  beats.forEach((beat, index) => {
+    const asked = partSeconds[index];
+    const seconds = asked && asked > 0 ? Math.min(asked, H3_BLOCK_SECONDS) : H3_BLOCK_SECONDS;
+    const last = groups[groups.length - 1];
+    if (last && last.seconds + seconds <= H3_LONG_PART_SECONDS + 1e-6) {
+      last.blocks.push({ beat, seconds });
+      last.seconds += seconds;
+    } else {
+      groups.push({ blocks: [{ beat, seconds }], seconds });
+    }
+  });
+  return groups;
 }
 
 /**

@@ -2506,6 +2506,41 @@ the last two segments" of a 30 s H3 clip). · S
   the hat band, the camera toward the sea); a lossless hop (start frames from ComfyUI's decoded
   frames instead of the H.264 piece) is the next lever if texture still falls.
 
+**T13–T14 — Longer clips without the build-up** (user: "any way to prevent the degradation?";
+"do everything you can"). · L
+- The cause is the chain: each part starts from a frame another part generated. Three levers, all
+  in (`extend-server.ts`), measured on the beach clip 5 → 30 s (texture = mean |frame − blur|; the
+  baseline's fell from 2.25 to 1.45–1.6 by the last parts):
+  - **Keyframes** (default on H3 with the Rapid AIO edit checkpoint): each part's end frame is drawn
+    first — the start edited "a few seconds later: <beat>", the place named and "the location does
+    not change" — counted (a second face, more than two hands: redrawn, `countDuoStillInComfy`) and
+    compared at 24 × 24 (over half the picture changed: a new place, redrawn); H3 runs first →
+    last frame (`patchH3ReplayGraph({ endFrame })`) and the next part starts on that still. Live:
+    joins land on their keyframes (0.3–0.4 between frames against 1.8), texture 1.8–2.1 to the end,
+    17–18 min for 30 s, H3's own sound per part (levelled to the first clip’s, −6 / +20 dB; a quiet last part came out near −50 dB). The
+    first run moved her into a living room — a fallback beat "glanced around the room" (fixed in
+    the beat, the prompt, and the place check); the rerun stayed on the beach. Cost: one edit (and
+    up to two redraws) per part; the reference model is not used on keyframed parts (it has no
+    end frame).
+  - **Long parts** (no edit model, no spoken line): beats grouped into renders of up to 15 s
+    (`groupH3Blocks`), timed in one continuous shot ("0–5s: … 5–10s: … no cuts" — the user's tip;
+    the same 15 s with one action cut at 5.5 s, two timed renders held a take and their texture),
+    rendered silent (their sound drifted into music, −14 dB, tonal) and given the place's sound
+    by LTX's dub of the whole clip, crossfaded from the first clip's own (`soundLongParts`; room
+    tone if it fails). Live: 30 s in two hops, texture 2.3–2.5 to the end, 25 min; one render
+    flashed a different swimsuit for a moment.
+  - **Lossless joins** (chained H3 parts): each part also previews its last 30 decoded frames;
+    the next start frame (the last, or the face anchor's pick) comes from those PNGs, scaled and
+    colour-matched as the piece, not from the twice-compressed MP4.
+- Every H3 part's prompt says one continuous shot, no cuts; a part that still cuts to a new shot
+  (one jump ≥ 30 and ≥ 7× the part's median change, on a 64 × 64 grey copy — the cut-aways
+  measured 34–60, a fast hand 28) is rendered again on another seed, twice at most
+  (`hasHardCut`): a keyframed run had cut mid-part to a wide of the sea and back.
+- The final run (keyframes, LLM-written beats, levelling, the cut check): 30.4 s in 17 min, no
+  cut, sound −14 to −17 dB in every part, texture 1.75–2.26 to the end, the same beach, face and
+  swimsuit throughout.
+- `CASTCUT_EXTEND_KEYFRAMES=off` turns keyframes off (an operator's switch; the long-part test).
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

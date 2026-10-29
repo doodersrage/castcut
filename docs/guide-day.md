@@ -131,9 +131,15 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   Each part starts from the frame of the part before whose face is most the Cast's (when ComfyUI
   has the face check), and a part whose face changed is named when the clip is done.
   Each part's colours are matched where it joins the part before, so the joins don't change colour.
-  When a part's start frame has lost detail against the first clip, it is restored first (SeedVR2,
-  half mixed in — the same restorer Sharpen & smooth uses), so skin and hair don't go waxy by the
-  last parts.
+  On MiniMax-H3 with the Rapid AIO edit model installed, a longer clip is **keyframed**: the frame
+  each part ends on is drawn first as a clean still (the last one a few seconds on, by the part's
+  beat — the same person, clothes and place; redrawn if a hand or a face too many appears or the
+  place changes), and H3 animates from one keyframe to the next. No part starts from a frame
+  another part generated, so the clip doesn't soften as it goes. Without the edit model, wordless
+  parts render up to 15 s at a time (their beats timed in one continuous shot) and get the place's
+  sound written for them; parts that start from the part before take their start frame uncompressed
+  and, when it has lost detail, restore it first (SeedVR2, half mixed in). Each part's sound is
+  brought to the first clip's level.
   With MiniMax-H3's reference model in ComfyUI (`minimax_h3_ref2va_pruned_int8_convrot` in
   `models/diffusion_models` and the `minimax_h3_ref2v_turbo_8step` LoRA), each part also sees the
   Cast's face lock and look plate, so her face holds; her clothes stay as the clip has them.

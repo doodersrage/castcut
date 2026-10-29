@@ -28,6 +28,7 @@ import {
   WAN_START_SHARPEN_STEPS,
   extendSegmentCount,
   extendStitchFilter,
+  groupH3Blocks,
   FACE_ANCHOR_STEP,
   FACE_ANCHOR_WINDOW,
   fallbackExtendBeats,
@@ -52,6 +53,7 @@ import {
 import {
   h3PartPrompt,
   H3_PART_FRAMES,
+  h3GridFrames,
   H3_REF_FILES,
   H3_REF_NODE,
   withH3References,
@@ -69,6 +71,9 @@ import { restoreModelOptions } from '../play/checks-readiness-server';
 import type { SpokenLineHeat } from '../audio/spoken-line';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 import { buildStillUpscaleGraph, STILL_UPSCALE_SAVE_NODE } from '../still/upscale';
+import { buildRelightGraph, RELIGHT_SAVE_NODE, relightSize } from '../edit/relight';
+import { pickRelightCheckpoint } from '../edit/relight-server';
+import { countDuoStillInComfy } from '../checks/duo-still-check-server';
 import { CLIP_FINISH_MODELS } from './finish';
 
 const jobs = new Map<string, ClipExtendJob>();
@@ -97,6 +102,122 @@ async function frameDetail(input: Buffer | string): Promise<number> {
   const sharp = (await import('sharp')).default;
   const { data, info } = await sharp(input).greyscale().raw().toBuffer({ resolveWithObject: true });
   return laplacianVariance(data, info.width, info.height);
+}
+
+/**
+ * Keyframes for a longer H3 clip (M11 T14): the next part's start edited from this one — "the same
+ * photo a few seconds later: <beat>" on the Rapid AIO edit checkpoint (Sketch's plain edit) — and
+ * checked for a second face or extra hands (duo-still-check), redrawn on a new seed up to
+ * KEYFRAME_TRIES times. Live (2026-10-29, the beach clip, 3 × 5 s): the joins landed on their
+ * keyframes (a change of 0.3 against 1.8 between frames), texture held flat over the clip, and
+ * each part kept H3's own sound. Null when the edit checkpoint is not installed.
+ */
+const KEYFRAME_TRIES = 3;
+/** Share of a picture's cells that changed past which a keyframe has left the place. */
+const PLACE_CHANGED = 0.5;
+
+/** The share of a 24 × 24 grid whose brightness changed a lot between two pictures (0–1). */
+async function pictureChanged(a: Buffer, b: Buffer): Promise<number> {
+  const sharp = (await import('sharp')).default;
+  const grid = (png: Buffer) =>
+    sharp(png).greyscale().resize(24, 24, { fit: 'fill' }).raw().toBuffer();
+  const [x, y] = await Promise.all([grid(a), grid(b)]);
+  let changed = 0;
+  for (let i = 0; i < x.length; i += 1) if (Math.abs(x[i]! - y[i]!) > 40) changed += 1;
+  return changed / x.length;
+}
+
+async function keyframeEditor(baseUrl: string): Promise<{
+  edit: (
+    png: Buffer,
+    beat: string,
+    lead: 'woman' | 'man',
+    seed: number,
+    place?: string
+  ) => Promise<Buffer>;
+} | null> {
+  const response = await fetch(`${baseUrl}/models/checkpoints`, {
+    signal: AbortSignal.timeout(8000),
+  }).catch(() => null);
+  const names = response?.ok ? ((await response.json()) as unknown) : [];
+  const checkpoint = pickRelightCheckpoint(
+    Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string') : []
+  );
+  if (!checkpoint) return null;
+  const sharp = (await import('sharp')).default;
+  return {
+    async edit(png, beat, lead, seed, place) {
+      const meta = await sharp(png).metadata();
+      const width = meta.width ?? 1024;
+      const height = meta.height ?? 1024;
+      const uploaded = await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(png),
+        filename: 'castcut-extend-keyframe-from.png',
+        mimeType: 'image/png',
+      });
+      const their = lead === 'man' ? 'his' : 'her';
+      const action = beat.trim().replace(/[.\s]+$/, '');
+      const setting = place?.trim().replace(/[.\s]+$/, '');
+      const where = setting ? ` (${setting})` : '';
+      let best: { png: Buffer; extra: number } | null = null;
+      for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {
+        const run = await runComfyUtilityGraph<ComfyImageRef>({
+          baseUrl,
+          label: 'extend-keyframe',
+          priority: 'queue',
+          timeoutMs: 15 * 60_000,
+          prompt: buildRelightGraph({
+            checkpoint,
+            image: uploaded.name,
+            prompt: `The same photo a few seconds later: ${action}. Keep the same ${lead} exactly — ${their} face, hair and clothes — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears. Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
+            ...relightSize(width, height),
+            seed: seed + attempt * 101,
+            prefix: 'Castcut-extend-keyframe',
+            noLora: true,
+          }),
+          read: entry =>
+            (entry.outputs?.[RELIGHT_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined)
+              ?.images?.[0],
+        });
+        if (!run.result) continue;
+        const view = await fetch(
+          `${baseUrl}/view?${new URLSearchParams({
+            filename: run.result.filename,
+            subfolder: run.result.subfolder ?? '',
+            type: run.result.type || 'output',
+          }).toString()}`,
+          { signal: AbortSignal.timeout(60_000) }
+        );
+        if (!view.ok) continue;
+        const drawn = await sharp(Buffer.from(await view.arrayBuffer()))
+          .resize(width, height, { kernel: 'lanczos3', fit: 'cover' })
+          .png()
+          .toBuffer();
+        // A second face or more than two hands (an edit can add an arm): draw it again.
+        const viewUrl = `/api/comfyui/view?${new URLSearchParams({
+          filename: run.result.filename,
+          subfolder: run.result.subfolder ?? '',
+          type: run.result.type || 'output',
+        }).toString()}`;
+        const counted = await countDuoStillInComfy({ imageUrl: viewUrl, comfyUrl: baseUrl }).catch(
+          () => null
+        );
+        const counts = counted?.available ? counted.counts : null;
+        // A new place, not a new pose (a beat that "glanced around the room" moved her indoors):
+        // most of the picture changed — a redraw, ranked last.
+        const moved = await pictureChanged(png, drawn);
+        const extra =
+          (counts
+            ? Math.max(0, (counts.faces ?? 1) - 1) + Math.max(0, (counts.hands ?? 2) - 2)
+            : 0) + (moved > PLACE_CHANGED ? 10 : 0);
+        if (!best || extra < best.extra) best = { png: drawn, extra };
+        if (extra === 0) break;
+      }
+      if (!best) throw new Error('A keyframe could not be drawn — check the ComfyUI log.');
+      return best.png;
+    },
+  };
 }
 
 /** How large SeedVR2 restores a start frame (its long side, at most), before it is set back. */
@@ -412,6 +533,244 @@ async function readHistoryGraph(
   }
 }
 
+/**
+ * A clip whose later parts are silent given the place's sound: LTX-2.5 writes the soundtrack for
+ * the whole clip (dub-server.ts, the picture unchanged), and it comes in under the parts — the
+ * first clip keeps its own sound, crossfaded over SOUND_FADE seconds. Without it (the dub fails),
+ * quiet room tone. Returns the file to keep.
+ */
+async function soundLongParts(
+  ffmpeg: string,
+  input: {
+    clip: string;
+    firstSec: number;
+    hadSound: boolean;
+    out: string;
+    scene: string;
+    place?: string;
+    heat?: SpokenLineHeat;
+    lead?: 'woman' | 'man';
+    comfyUrl?: string;
+  }
+): Promise<string> {
+  const SOUND_FADE = 0.4;
+  let sound: string;
+  try {
+    const { dubClipWithVoice } = await import('./dub-server');
+    const url = await dubClipWithVoice({
+      clipUrl: `data:video/mp4;base64,${(await fs.readFile(/* turbopackIgnore: true */ input.clip)).toString('base64')}`,
+      scene: input.scene,
+      place: input.place,
+      heat:
+        input.heat === 'explicit' || input.heat === 'sensual' || input.heat === 'flirty'
+          ? input.heat
+          : 'clean',
+      lead: input.lead,
+      comfyUrl: input.comfyUrl,
+    });
+    const view = await fetch(
+      `${comfyBaseUrl(input.comfyUrl)}${url.replace(/^\/api\/comfyui/, '')}`,
+      { signal: AbortSignal.timeout(120_000) }
+    );
+    if (!view.ok) throw new Error(`HTTP ${view.status}`);
+    sound = `${input.out}.dub.mp4`;
+    await fs.writeFile(/* turbopackIgnore: true */ sound, Buffer.from(await view.arrayBuffer()));
+  } catch (error) {
+    console.warn('[extend] sound for the long parts failed; room tone instead:', error);
+    sound = 'anoisesrc=color=brown:amplitude=0.004:sample_rate=48000';
+  }
+  const tone = !sound.endsWith('.mp4');
+  const head = (input.firstSec + SOUND_FADE).toFixed(3);
+  const filter = input.hadSound
+    ? `[0:a]atrim=end=${head},asetpts=PTS-STARTPTS[a0];[1:a]atrim=start=${input.firstSec.toFixed(3)},asetpts=PTS-STARTPTS[a1];[a0][a1]acrossfade=d=${SOUND_FADE}[a]`
+    : `[1:a]anull[a]`;
+  await run(ffmpeg, [
+    '-y',
+    '-i',
+    input.clip,
+    ...(tone ? ['-f', 'lavfi', '-i', sound] : ['-i', sound]),
+    '-filter_complex',
+    filter,
+    '-map',
+    '0:v',
+    '-map',
+    '[a]',
+    '-c:v',
+    'copy',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '160k',
+    '-shortest',
+    '-movflags',
+    '+faststart',
+    input.out,
+  ]);
+  return input.out;
+}
+
+/** Times a part with a hard cut is rendered again, and what a cut is. */
+const CUT_RETRIES = 2;
+const CUT_RATIO = 7;
+const CUT_MIN_CHANGE = 30;
+
+/**
+ * Whether a clip cuts to a new shot: one frame-to-frame change (mean brightness difference on a
+ * 64 × 64 grey copy) at least CUT_RATIO times the clip's median and CUT_MIN_CHANGE outright.
+ * Calibrated on the live clips: cuts to a new shot changed 34–60, a fast hand at most 28.
+ */
+async function hasHardCut(ffmpeg: string, file: string): Promise<boolean> {
+  const raw = await new Promise<Buffer>(resolve => {
+    const child = spawn(
+      ffmpeg,
+      ['-v', 'error', '-i', file, '-vf', 'scale=64:64,format=gray', '-f', 'rawvideo', '-'],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
+    child.on('error', () => resolve(Buffer.alloc(0)));
+    child.on('close', () => resolve(Buffer.concat(chunks)));
+  });
+  const size = 64 * 64;
+  const frames = Math.floor(raw.length / size);
+  if (frames < 3) return false;
+  const changes: number[] = [];
+  for (let f = 1; f < frames; f += 1) {
+    let sum = 0;
+    for (let i = 0; i < size; i += 1)
+      sum += Math.abs(raw[f * size + i]! - raw[(f - 1) * size + i]!);
+    changes.push(sum / size);
+  }
+  const sorted = [...changes].sort((a, b) => a - b);
+  const median = Math.max(0.5, sorted[Math.floor(sorted.length / 2)]!);
+  return changes.some(change => change >= CUT_MIN_CHANGE && change >= median * CUT_RATIO);
+}
+
+/** The graph with every noise seed replaced (a part rendered again). */
+function reseeded(graph: Record<string, unknown>, seed: number): Record<string, unknown> {
+  const copy = JSON.parse(JSON.stringify(graph)) as Record<
+    string,
+    { class_type?: string; inputs?: Record<string, unknown> }
+  >;
+  for (const node of Object.values(copy)) {
+    if (node?.class_type === 'RandomNoise' && node.inputs) node.inputs.noise_seed = seed % 2 ** 32;
+  }
+  return copy;
+}
+
+/** A file's mean sound level (dBFS), or null without sound or a reading. */
+async function meanVolume(ffmpeg: string, file: string): Promise<number | null> {
+  const log = await new Promise<string>(resolve => {
+    const child = spawn(ffmpeg, ['-i', file, '-af', 'volumedetect', '-f', 'null', '-'], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    let stderr = '';
+    child.stderr.on('data', chunk => {
+      stderr += String(chunk);
+    });
+    child.on('error', () => resolve(''));
+    child.on('close', () => resolve(stderr));
+  });
+  const match = log.match(/mean_volume:\s*(-?[\d.]+) dB/);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * How far a part's sound is brought toward the first clip's level (dB), and what is silence: a
+ * quiet keyframed part came out near −50 dB against −14.
+ */
+const LEVEL_GAIN = { min: -6, max: 20 };
+const SILENT_DB = -65;
+
+/** `file`'s sound brought to `target` dBFS (within LEVEL_GAIN), in place; silence left alone. */
+async function levelPieceAudio(
+  ffmpeg: string,
+  file: string,
+  target: number | null,
+  scratch: string
+): Promise<void> {
+  if (target === null || target < SILENT_DB) return;
+  const now = await meanVolume(ffmpeg, file);
+  if (now === null || now < SILENT_DB) return;
+  const gain = Math.min(LEVEL_GAIN.max, Math.max(LEVEL_GAIN.min, target - now));
+  if (Math.abs(gain) < 1.5) return;
+  await run(ffmpeg, [
+    '-y',
+    '-v',
+    'error',
+    '-i',
+    file,
+    '-af',
+    `volume=${gain.toFixed(1)}dB,alimiter=limit=0.95`,
+    '-c:v',
+    'copy',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '192k',
+    scratch,
+  ]);
+  await fs.rename(/* turbopackIgnore: true */ scratch, /* turbopackIgnore: true */ file);
+}
+
+/** How many of an H3 part's last decoded frames are kept lossless, and their preview node. */
+const TAIL_FRAMES = 30;
+const TAIL_PREVIEW_NODE = 'castcut_tail_preview';
+
+/**
+ * The part's last TAIL_FRAMES decoded frames, previewed (PNGs in ComfyUI's temp folder) beside the
+ * saved MP4: the next part starts from one of these — the face anchor's pick is in its last
+ * second — and not from the MP4 compressed twice over (ComfyUI's save, then the piece), a
+ * generation lost at every hop.
+ */
+function withTailPreview(graph: Record<string, unknown>, frames: number): void {
+  const nodes = graph as Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
+  const create = Object.values(nodes).find(node => node?.class_type === 'CreateVideo');
+  const images = create?.inputs?.images;
+  if (!Array.isArray(images)) return;
+  nodes.castcut_tail = {
+    class_type: 'ImageFromBatch',
+    inputs: { image: images, batch_index: frames - TAIL_FRAMES, length: TAIL_FRAMES },
+  };
+  nodes[TAIL_PREVIEW_NODE] = {
+    class_type: 'PreviewImage',
+    inputs: { images: ['castcut_tail', 0] },
+  };
+}
+
+/**
+ * One lossless tail frame as the piece has it — the piece's size, its colour match — written to
+ * `out`. False when it cannot be had (the caller takes the piece's frame instead).
+ */
+async function tailFrame(
+  baseUrl: string,
+  ffmpeg: string,
+  file: ComfyImageRef,
+  size: { width: number; height: number },
+  match: string | undefined,
+  out: string
+): Promise<boolean> {
+  try {
+    const source = `${out}.src.png`;
+    await download(baseUrl, file, source);
+    await run(ffmpeg, [
+      '-y',
+      '-v',
+      'error',
+      '-i',
+      source,
+      '-vf',
+      `scale=${size.width}:${size.height}:flags=lanczos,setsar=1${match ? `,${match}` : ''}`,
+      '-frames:v',
+      '1',
+      out,
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function firstOutput(entry: ComfyHistoryEntry, node?: string): ComfyImageRef | undefined {
   const outputs = (entry.outputs ?? {}) as Record<string, Record<string, ComfyImageRef[]>>;
   const pick = (out?: Record<string, ComfyImageRef[]>) =>
@@ -618,6 +977,20 @@ export async function extendClip(
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
     const beats = await resolveBeats(input, total);
+    // Wordless H3 parts render long (M11 T13): their beats as timed blocks, up to 15 s a part —
+    // fewer hops, and each hop is where detail went. With a spoken line, parts stay H3's own
+    // length with its own sound.
+    // Keyframes first (M11 T14): each part runs between two clean stills, the next edited from
+    // the last, so no part starts from a generated frame. Long parts when there is no edit model.
+    // CASTCUT_EXTEND_KEYFRAMES=off: chained parts (an operator's switch, and the long-part test).
+    const keyframes =
+      h3 && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off' ? await keyframeEditor(baseUrl) : null;
+    const groups =
+      h3 && !keyframes && !input.lines?.some(line => line?.trim())
+        ? groupH3Blocks(beats, input.partSeconds)
+        : null;
+    const renders = groups?.length ?? total;
+    if (groups) onProgress({ total: renders, done: 0 });
     let restoreFace: string | undefined;
     if (engine === 'ltx') {
       const reactor = await resolveComfyNode(baseUrl, [LTX25_FACE_RESTORE_NODE]);
@@ -632,6 +1005,10 @@ export async function extendClip(
     const pieces = [at('piece0.mp4')];
     const lengths = [first.frames];
     const overlaps: number[] = [];
+    // An H3 part's last TAIL_FRAMES decoded frames as ComfyUI previews (lossless), by piece: the
+    // next part starts from one of them rather than from the twice-compressed piece.
+    let firstLoudness: number | null | undefined;
+    const tails: Array<{ files: ComfyImageRef[]; from: number; match?: string } | undefined> = [];
     const seed = Math.floor(Math.random() * 1_000_000_000);
     // The Cast's face as the first clip shows it (M11 T4): each part after the first starts from
     // the frame of the part before that matches it best. Off when the face check can't run.
@@ -648,9 +1025,12 @@ export async function extendClip(
       faceReference = null;
     }
     const faces: Array<number | null> = [];
-    for (let k = 0; k < total; k += 1) {
+    for (let k = 0; k < renders; k += 1) {
+      const group = groups?.[k];
+      // The part's frames: its blocks and the start frame it drops (H3's own shot otherwise).
+      const partFrames = group ? h3GridFrames(Math.round(group.seconds * 24) + 1) : H3_PART_FRAMES;
       // A generated part (never the player's own clip) cut at its best face frame.
-      if (k > 0 && faceReference) {
+      if (k > 0 && faceReference && !keyframes) {
         const anchor = await faceAnchorFrame({
           ffmpeg,
           piece: pieces[k]!,
@@ -675,21 +1055,32 @@ export async function extendClip(
       }
       const previous = pieces[k]!;
       const prevFrames = lengths[k]!;
-      // The last frame (start / canvas) and, for LTX, the last 17 frames (the guide).
-      await run(ffmpeg, [
-        '-y',
-        '-v',
-        'error',
-        '-sseof',
-        '-0.25',
-        '-i',
-        previous,
-        '-update',
-        '1',
-        '-frames:v',
-        '1',
-        at(`last${k}.png`),
-      ]);
+      // The last frame (start / canvas): from the part's lossless tail when it has it, else from
+      // the piece; and, for LTX, the last 17 frames (the guide).
+      const tail = tails[k];
+      const tailFile = tail?.files[prevFrames - 1 + 1 - tail.from];
+      // A keyframed part starts on the keyframe the last one ended on (a clean still).
+      if (keyframes && k > 0) await fs.copyFile(at(`keyframe${k}.png`), at(`last${k}.png`));
+      const fromTail =
+        (keyframes && k > 0) ||
+        (tailFile
+          ? await tailFrame(baseUrl, ffmpeg, tailFile, size, tail?.match, at(`last${k}.png`))
+          : false);
+      if (!fromTail)
+        await run(ffmpeg, [
+          '-y',
+          '-v',
+          'error',
+          '-sseof',
+          '-0.25',
+          '-i',
+          previous,
+          '-update',
+          '1',
+          '-frames:v',
+          '1',
+          at(`last${k}.png`),
+        ]);
       // The start frame as the part before ends — its colours untouched. Matching it to the first
       // frame's colours recoloured whatever the shot had become (a wide of sand vs a close-up of an
       // orange swimsuit), and each seam jumped in colour and saturation.
@@ -698,7 +1089,7 @@ export async function extendClip(
       // the last one's softest frame, and the softening compounds.
       // Restored (SeedVR2) where it can be, else sharpened back toward the first clip's detail.
       const startBytes =
-        wan || h3
+        (wan || h3) && !(keyframes && k > 0)
           ? ((await restoreStartFrame(baseUrl, matched, referenceDetail)) ??
             (await sharpenStartFrame(matched, referenceDetail)))
           : matched;
@@ -711,6 +1102,26 @@ export async function extendClip(
       const prefix = 'Castcut-extend';
       let prompt: Record<string, unknown>;
       let saveNode: string | undefined;
+      // The keyframe this part ends on: the start edited a few seconds on, by its beat.
+      let endFrame: string | undefined;
+      if (keyframes) {
+        const png = await keyframes.edit(
+          await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`)),
+          beats[k]!,
+          input.lead === 'man' ? 'man' : 'woman',
+          seed + k * 13,
+          input.setting
+        );
+        await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
+        endFrame = (
+          await uploadComfyInputContent({
+            baseUrl,
+            bytes: new Uint8Array(png),
+            filename: 'castcut-extend-keyframe.png',
+            mimeType: 'image/png',
+          })
+        ).name;
+      }
       if (h3) {
         const clipPrompt = Object.values(h3).find(
           node => node?.class_type === 'MiniMaxH3ImageToVideo'
@@ -721,33 +1132,39 @@ export async function extendClip(
           // stays in the first clip.
           prompt: h3PartPrompt(
             typeof clipPrompt === 'string'
-              ? (withPartAction(clipPrompt, beats[k]!) ?? clipPrompt)
+              ? (withPartAction(clipPrompt, group ? 'as timed above' : beats[k]!) ?? clipPrompt)
               : '',
             {
-              beat: beats[k]!,
+              beat: group ? '' : beats[k]!,
               place: input.setting,
-              line: input.lines?.[k],
+              line: group ? undefined : input.lines?.[k],
               speaker: input.lead === 'man' ? 'He' : 'She',
+              ...(group ? { blocks: group.blocks } : {}),
             }
           ),
           seed: seed + k * 7,
           prefix,
+          ...(group ? { frames: partFrames, silent: true } : {}),
+          ...(endFrame ? { endFrame } : {}),
         });
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
-        prompt = h3Pictures.length
-          ? (withH3References(patched.graph, {
-              pictures: [
-                {
-                  image: lastFrame.name,
-                  shows:
-                    'the first frame: the shot as it is now, which the video starts from exactly',
-                },
-                ...h3Pictures,
-              ],
-              look: h3Look,
-            }) ?? patched.graph)
-          : patched.graph;
+        // The reference model has no end frame: keyframed parts keep the first/last-frame one.
+        prompt =
+          h3Pictures.length && !endFrame
+            ? (withH3References(patched.graph, {
+                pictures: [
+                  {
+                    image: lastFrame.name,
+                    shows:
+                      'the first frame: the shot as it is now, which the video starts from exactly',
+                  },
+                  ...h3Pictures,
+                ],
+                look: h3Look,
+              }) ?? patched.graph)
+            : patched.graph;
         saveNode = patched.saveNode;
+        if (!endFrame) withTailPreview(prompt, partFrames);
       } else if (wan) {
         const patched = patchWanReplayGraph(wan, {
           lastFrame: lastFrame.name,
@@ -801,6 +1218,7 @@ export async function extendClip(
         });
         saveNode = LTX25_EXTEND_SAVE_NODE;
       }
+      let tailFiles: ComfyImageRef[] | undefined;
       const rendered = await runComfyUtilityGraph<ComfyImageRef>({
         baseUrl,
         label: 'clip-extend',
@@ -809,11 +1227,36 @@ export async function extendClip(
         priority: 'queue',
         timeoutMs: 45 * 60_000,
         prompt,
-        read: entry => firstOutput(entry, saveNode) ?? firstOutput(entry),
+        read: entry => {
+          tailFiles = (
+            entry.outputs?.[TAIL_PREVIEW_NODE] as { images?: ComfyImageRef[] } | undefined
+          )?.images;
+          return firstOutput(entry, saveNode) ?? firstOutput(entry);
+        },
       });
       if (!rendered.result)
         throw new Error('A segment finished without a clip — check the ComfyUI log.');
       await download(baseUrl, rendered.result, at(`seg${k}.bin`));
+      // H3 can cut to a new shot mid-part (a wide of the sea between two close keyframes, live):
+      // rendered again on another seed, up to CUT_RETRIES times.
+      for (let retry = 1; h3 && retry <= CUT_RETRIES; retry += 1) {
+        if (!(await hasHardCut(ffmpeg, at(`seg${k}.bin`)))) break;
+        const again = await runComfyUtilityGraph<ComfyImageRef>({
+          baseUrl,
+          label: 'clip-extend',
+          priority: 'queue',
+          timeoutMs: 45 * 60_000,
+          prompt: reseeded(prompt, seed + k * 7 + retry * 1009),
+          read: entry => {
+            tailFiles = (
+              entry.outputs?.[TAIL_PREVIEW_NODE] as { images?: ComfyImageRef[] } | undefined
+            )?.images;
+            return firstOutput(entry, saveNode) ?? firstOutput(entry);
+          },
+        });
+        if (!again.result) break;
+        await download(baseUrl, again.result, at(`seg${k}.bin`));
+      }
       // The segment's colours matched at the seam: its first frame shows what the frame it started
       // from shows (WAN / H3: that frame; LTX: the tail's first frame), so the difference is only
       // the engine's colour shift — taken out of the whole part, and the seam stays the same colour.
@@ -833,7 +1276,7 @@ export async function extendClip(
       const overlap = fromLastFrame ? WAN_EXTEND_BLEND_FRAMES : LTX25_EXTEND_OVERLAP;
       // A part asked to be shorter (M11 T2) keeps its first seconds plus what blends into the
       // part before; the next part starts from its new last frame.
-      const asked = input.partSeconds?.[k];
+      const asked = group ? group.seconds : input.partSeconds?.[k];
       const piece = await normalizePiece(
         ffmpeg,
         at(`seg${k}.bin`),
@@ -843,7 +1286,23 @@ export async function extendClip(
         segMatch,
         asked && asked > 0 ? Math.round(asked * 24) + overlap : undefined
       );
+      // Its sound at the first clip's level: H3 writes each part's sound on its own, and a part
+      // came out 25 dB quieter than the one before (live, keyframed parts).
+      if (h3 && !group && first.audio) {
+        firstLoudness ??= await meanVolume(ffmpeg, at('piece0.mp4'));
+        await levelPieceAudio(
+          ffmpeg,
+          at(`piece${k + 1}.mp4`),
+          firstLoudness,
+          at(`piece${k + 1}-l.mp4`)
+        );
+      }
       pieces.push(at(`piece${k + 1}.mp4`));
+      // Piece frame i is the segment's frame i + 1 (its first is dropped).
+      tails[k + 1] =
+        h3 && fromLastFrame && tailFiles?.length === TAIL_FRAMES
+          ? { files: tailFiles, from: partFrames - TAIL_FRAMES, match: segMatch }
+          : undefined;
       lengths.push(piece.frames);
       overlaps.push(overlap);
       onProgress({ done: k + 1 });
@@ -873,10 +1332,25 @@ export async function extendClip(
       '+faststart',
       at('extended.mp4'),
     ]);
-    const done = await probe(ffmpeg, at('extended.mp4'));
+    // Long parts render silent: the place's sound written for the whole clip (LTX-2.5, as Add
+    // sound does), crossfaded in from the first clip's own sound where the parts begin.
+    const final = groups
+      ? await soundLongParts(ffmpeg, {
+          clip: at('extended.mp4'),
+          firstSec: lengths[0]! / 24,
+          hadSound: first.audio,
+          out: at('sounded.mp4'),
+          scene: input.scene,
+          place: input.setting,
+          heat: input.heat,
+          lead: input.lead,
+          comfyUrl: input.comfyUrl,
+        })
+      : at('extended.mp4');
+    const done = await probe(ffmpeg, final);
     const kept = await uploadComfyInputContent({
       baseUrl,
-      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ at('extended.mp4'))),
+      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ final)),
       filename: 'castcut-extended.mp4',
       mimeType: 'video/mp4',
     });

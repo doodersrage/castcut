@@ -12,6 +12,7 @@ import {
   pickStartSharpenIndex,
   patchWanReplayGraph,
   castReferencesForExtend,
+  groupH3Blocks,
   renumberH3Pictures,
   extendFacesNote,
   pickAnchorFrame,
@@ -250,5 +251,20 @@ describe('WAN start-frame sharpening', () => {
     assert.equal(pickStartSharpenIndex(100, [60, 80, 95, 120]), 2);
     assert.equal(pickStartSharpenIndex(100, [130]), -1);
     assert.equal(pickStartSharpenIndex(500, [60, 80, 95, 120, 160]), 4);
+  });
+});
+
+describe('long H3 parts (M11 T13)', () => {
+  it('groups wordless blocks into parts of up to 15 s', () => {
+    const groups = groupH3Blocks(['a', 'b', 'c', 'd', 'e']);
+    assert.deepEqual(
+      groups.map(group => group.blocks.map(block => block.beat)),
+      [['a', 'b', 'c'], ['d', 'e']]
+    );
+    assert.deepEqual(groups.map(group => group.seconds), [15, 10]);
+    // A block asked shorter keeps its length (at most a block's).
+    const short = groupH3Blocks(['a', 'b', 'c', 'd'], [3, 0, 2, 9]);
+    assert.deepEqual(short.map(group => group.seconds), [15]);
+    assert.deepEqual(short[0]!.blocks.map(block => block.seconds), [3, 5, 2, 5]);
   });
 });

@@ -65,6 +65,34 @@ const H3_MIN_FRAMES = 124;
  */
 export const H3_PART_FRAMES = H3_MIN_FRAMES;
 const H3_MAX_FRAMES = 362;
+/**
+ * A long part (M11 T13): up to H3's longest trained length, one continuous shot when the prompt
+ * times its action in blocks ("0–5s: … 5–10s: … 10–15s: …") and says no cuts — live
+ * (2026-10-29, the beach clip): two 15 s renders held one take, the framing and their texture to
+ * the end, where the same 15 s with one action cut to a new shot at 5.5 s. A 30 s clip is then two
+ * hops, not five, and each hop is where the detail went. Its sound drifted into music (as the
+ * first clip's does past H3's own length), so a long part renders silent.
+ */
+export const H3_LONG_PART_FRAMES = H3_MAX_FRAMES;
+
+/** The fewest frames on H3's grid (17k + 5, at least its shortest) holding `frames`. */
+export function h3GridFrames(frames: number): number {
+  const steps = Math.max(0, Math.ceil((Math.max(frames, H3_MIN_FRAMES) - H3_MIN_FRAMES) / 17));
+  return Math.min(H3_MAX_FRAMES, H3_MIN_FRAMES + steps * 17);
+}
+
+/** A long part's action, timed: "0–5s: she … 5–10s: she …" (whole seconds from the part's start). */
+export function h3TimedBlocks(blocks: ReadonlyArray<{ beat: string; seconds: number }>): string {
+  let at = 0;
+  return blocks
+    .map(block => {
+      const from = Math.round(at);
+      at += block.seconds;
+      const text = block.beat.trim().replace(/[.\s]+$/, '');
+      return `${from}–${Math.round(at)}s: ${text}.`;
+    })
+    .join(' ');
+}
 
 /**
  * How H3's MP4 is saved (M11 T3): re-encoded at CRF 12. SaveVideo's "auto" kept H3's own stream,
@@ -279,7 +307,14 @@ export function isH3ClipGraph(graph: Record<string, WorkflowNode | undefined>): 
  */
 export function h3PartPrompt(
   clipPrompt: string,
-  part: { beat: string; place?: string; line?: string; speaker?: 'She' | 'He' }
+  part: {
+    beat: string;
+    place?: string;
+    line?: string;
+    speaker?: 'She' | 'He';
+    /** A long part: its action in timed blocks, rendered silent (H3_LONG_PART_FRAMES). */
+    blocks?: ReadonlyArray<{ beat: string; seconds: number }>;
+  }
 ): string {
   const place = part.place
     ?.trim()
@@ -300,13 +335,17 @@ export function h3PartPrompt(
   // another a studio light.
   return h3CameraWords(
     [
-      `5s clip, carrying straight on from the first frame. ${part.beat.trim()}`,
+      part.blocks?.length
+        ? `${Math.round(part.blocks.reduce((sum, block) => sum + block.seconds, 0))}s clip, one continuous shot, no cuts, from the first frame to the last — a single take carrying straight on from the first frame. ${h3TimedBlocks(part.blocks)}`
+        : `5s clip, one continuous shot with no cuts, carrying straight on from the first frame to the last. ${part.beat.trim()}`,
       `The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view. The place around ${who === 'He' ? 'him' : 'her'} stays exactly as in the first frame, with only what is already there.`,
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
         : '',
-      `Sound: the natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and the small sounds of what is happening${line ? ', under the voice' : ''}.`,
+      part.blocks?.length
+        ? 'Camera: one locked-off shot, no cuts, no new shot, no camera move.'
+        : `Sound: the natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and the small sounds of what is happening${line ? ', under the voice' : ''}.`,
     ]
       .filter(Boolean)
       .join(' ')
@@ -383,7 +422,18 @@ export function withH3References(
 
 export function patchH3ReplayGraph(
   source: Record<string, WorkflowNode | undefined>,
-  input: { lastFrame: string; prompt: string; seed: number; prefix: string }
+  input: {
+    lastFrame: string;
+    prompt: string;
+    seed: number;
+    prefix: string;
+    /** A long part's length (H3's grid; default H3's own shot). */
+    frames?: number;
+    /** No sound (a long part: its sound drifted into music). */
+    silent?: boolean;
+    /** A ComfyUI input the part ends on (a keyframe, M11 T14): H3's last frame pinned. */
+    endFrame?: string;
+  }
 ): { graph: Workflow; saveNode: string } | null {
   const graph = JSON.parse(JSON.stringify(source)) as Workflow;
   const entries = Object.entries(graph);
@@ -402,7 +452,11 @@ export function patchH3ReplayGraph(
   const lastRef = h3.inputs.last_frame;
   delete h3.inputs.last_frame;
   if (isRef(lastRef) && lastRef[0] !== firstId) delete graph[lastRef[0]];
-  h3.inputs.length = H3_PART_FRAMES;
+  if (input.endFrame) {
+    graph.h3end = { class_type: 'LoadImage', inputs: { image: input.endFrame } };
+    h3.inputs.last_frame = ['h3end', 0];
+  }
+  h3.inputs.length = input.frames ? h3GridFrames(input.frames) : H3_PART_FRAMES;
   h3.inputs.prompt = input.prompt;
   for (const [, node] of entries) {
     if (node?.class_type === 'RandomNoise' && node.inputs) {
@@ -410,7 +464,9 @@ export function patchH3ReplayGraph(
     }
   }
   // A long clip with no line rendered silent (h3RendersSound); a part at H3's own length has sound.
-  if (!isRef(create.inputs.audio)) {
+  if (input.silent) {
+    delete create.inputs.audio;
+  } else if (!isRef(create.inputs.audio)) {
     let vaeId = entries.find(
       ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
     )?.[0];

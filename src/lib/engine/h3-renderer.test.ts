@@ -7,7 +7,10 @@ import {
   h3FrameCount,
   H3_LONG_TALK_TAIL,
   H3_PART_FRAMES,
+  h3GridFrames,
+  H3_LONG_PART_FRAMES,
   h3PartPrompt,
+  h3TimedBlocks,
   H3_STEPS,
   isH3ClipGraph,
   patchH3ReplayGraph,
@@ -190,7 +193,10 @@ describe('H3 camera words', async () => {
   it('a part carries the clip’s action on without its line, with the place’s sound', () => {
     const clip = `10s clip, one continuous shot. Action: she waves. She says clearly, "See you soon." Camera: one fixed wide shot on a tripod. ${H3_LONG_TALK_TAIL}`;
     const part = h3PartPrompt(clip, { beat: 'She keeps waving.', place: 'a sunny park.' });
-    assert.match(part, /^5s clip, carrying straight on from the first frame\. She keeps waving\./);
+    assert.match(
+      part,
+      /^5s clip, one continuous shot with no cuts, carrying straight on from the first frame to the last\. She keeps waving\./
+    );
     assert.match(part, /Action: she waves\./);
     assert.doesNotMatch(part, /See you soon|10s clip|stays quiet/);
     assert.match(part, /Sound: the natural sound of the sunny park/);
@@ -245,5 +251,59 @@ describe('withH3References', () => {
   it('is null for a graph that is not H3, or with no pictures', () => {
     assert.equal(withH3References({ '1': { class_type: 'UNETLoader', inputs: {} } }, { pictures: [{ image: 'a', shows: 'b' }] }), null);
     assert.equal(withH3References(replay(), { pictures: [] }), null);
+  });
+});
+
+describe('MiniMax-H3 longer clips without the build-up (M11 T13–T14)', () => {
+  it('snaps a part to H3’s frame grid, at most its longest', () => {
+    assert.equal(h3GridFrames(60), 124);
+    assert.equal(h3GridFrames(124), 124);
+    assert.equal(h3GridFrames(125), 141);
+    assert.equal(h3GridFrames(361), 362);
+    assert.equal(h3GridFrames(900), H3_LONG_PART_FRAMES);
+  });
+
+  it('times a long part’s action in blocks, one continuous shot, no sound asked for', () => {
+    const blocks = [
+      { beat: 'She shifts on the towel.', seconds: 5 },
+      { beat: 'she adjusts her hat', seconds: 5 },
+      { beat: 'she lies back', seconds: 3 },
+    ];
+    assert.equal(
+      h3TimedBlocks(blocks),
+      '0–5s: She shifts on the towel. 5–10s: she adjusts her hat. 10–13s: she lies back.'
+    );
+    const prompt = h3PartPrompt('4s clip. Action: relaxing.', { beat: '', blocks, place: 'beach' });
+    assert.match(prompt, /^13s clip, one continuous shot, no cuts/);
+    assert.match(prompt, /0–5s: She shifts on the towel\./);
+    assert.match(prompt, /no new shot/);
+    assert.doesNotMatch(prompt, /Sound:/);
+  });
+
+  it('replays a part long and silent, or ending on a keyframe', () => {
+    const { workflow } = convertVideoWorkflowToH3(wanClipGraph(), { speech: false });
+    const long = patchH3ReplayGraph(workflow, {
+      lastFrame: 'last.png',
+      prompt: 'p',
+      seed: 1,
+      prefix: 'x',
+      frames: 300,
+      silent: true,
+    })!;
+    const h3 = (graph: Record<string, { class_type?: string; inputs?: Record<string, unknown> }>) =>
+      Object.values(graph).find(node => node.class_type === 'MiniMaxH3ImageToVideo')!.inputs!;
+    assert.equal(h3(long.graph).length, h3GridFrames(300));
+    const create = Object.values(long.graph).find(node => node.class_type === 'CreateVideo')!;
+    assert.equal(create.inputs!.audio, undefined);
+    const keyed = patchH3ReplayGraph(workflow, {
+      lastFrame: 'last.png',
+      prompt: 'p',
+      seed: 1,
+      prefix: 'x',
+      endFrame: 'key.png',
+    })!;
+    const end = h3(keyed.graph).last_frame as [string, number];
+    assert.equal(keyed.graph[end[0]]!.inputs!.image, 'key.png');
+    assert.equal(h3(keyed.graph).length, H3_PART_FRAMES);
   });
 });
