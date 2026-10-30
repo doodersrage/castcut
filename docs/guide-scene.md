@@ -113,7 +113,9 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   as her workplace) and can be set to her home, her workplace or somewhere else.
 - **Where** — or one of your [Locations](#locations).
 - **Shots** — under each scene: **Draft shots** proposes a list (an establishing wide, each line
-  of dialogue, a reaction when an exchange ends, or the action when nobody speaks). Change each
+  of dialogue, a reaction when an exchange ends, or the action when nobody speaks); with the LLM
+  on, **Draft with the LLM** plans the coverage as a director would — a wide, an insert or a
+  reaction where it tells the scene best — every line the script's own, word for word. Change each
   shot's purpose, framing, what happens, length and priority (must have, nice to have); **↑ ↓**
   to reorder; **Split** (the beat or line shared at a sentence break) and **Merge up** (refused
   when both are Scenes, or two people speak); **Add a shot**; **Remove** (it asks when the shot

@@ -1061,6 +1061,51 @@ test('a script kept in the settings moves to its own store and is sent on its ow
   await expect.poll(() => sent, { timeout: 30_000 }).toContain('script-old');
 });
 
+test('Draft with the LLM: its shots are planned, and a failure says why', async ({ page }) => {
+  const source = 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nNORA\nCoffee first.\n';
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [{ id: 'script-llm', castId: CAST, name: 'Morning', source, createdAt: 1, updatedAt: 1 }],
+      },
+    },
+  });
+  let calls = 0;
+  await page.route('**/api/script-shots', async route => {
+    calls += 1;
+    const sent = route.request().postDataJSON() as { scene?: { id?: string } };
+    if (calls === 1) {
+      await route.fulfill({ status: 500, json: { error: 'The LLM did not write a usable shot list. Try again.' } });
+      return;
+    }
+    const id = sent.scene?.id ?? '';
+    await route.fulfill({
+      json: {
+        shots: [
+          { id: `${id}~1`, sceneId: id, purpose: 'insert', framing: 'head', who: [], action: 'The coffee pot.', seconds: 2 },
+          { id: `${id}~2`, sceneId: id, purpose: 'dialogue', framing: 'waist', who: ['NORA'], line: 'Coffee first.', speaker: 'NORA', seconds: 2 },
+        ],
+      },
+    });
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('script-open-script-llm').click({ timeout: 60_000 });
+  await page.getByTestId('script-scene-int-kitchen-morning').locator('summary').click();
+  const llm = page.getByTestId('script-shots-draft-llm-int-kitchen-morning');
+  await llm.click();
+  await expect(page.getByTestId('script-shots-draft-error-int-kitchen-morning')).toContainText('Try again');
+  await llm.click();
+  await expect(
+    page.getByTestId('script-shot-int-kitchen-morning~1').getByRole('combobox').first()
+  ).toHaveValue('insert');
+  await expect(page.getByTestId('script-shot-int-kitchen-morning~2')).toContainText('Coffee first.');
+  await expect(page.getByTestId('script-shot-int-kitchen-morning~2')).toHaveAttribute('data-status', 'planned');
+});
+
 test('a script scene is drafted into shots and a shot is made a Scene', async ({ page }) => {
   const source = [
     'INT. KITCHEN - MORNING',

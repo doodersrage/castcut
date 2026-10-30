@@ -9,6 +9,7 @@ import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { loadCharacters } from '@/lib/character/os';
 import type { ScriptsCache } from '@/lib/day/scene-scripts';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 
 /**
  * The Cast's scripts, the locations and a prepared run with its controls — the same on the desk
@@ -41,6 +42,7 @@ export default function SceneScriptAndRun({
           makeScene={page.makeSceneFrom}
           openScene={page.openScene}
           prepareRun={page.prepareRun}
+          llmBody={sharedLlmRequestBody(vm.shared)}
         />
       ) : null}
       <LocationsSection scenes={page.scenes} />

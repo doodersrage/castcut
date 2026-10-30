@@ -21,6 +21,7 @@ import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
 import { storyboard } from '@/lib/day/storyboard';
 import { orphanedShots } from '@/lib/day/script-reimport';
+import { requestShotDraft } from '@/lib/day/script-shots-llm';
 import { shotsToPrepare } from '@/lib/day/scene-run';
 import { SCENE_LIMIT_PER_CAST } from '@/lib/day/scenes';
 import type { PlannedShot } from '@/lib/day/script-shots';
@@ -369,6 +370,7 @@ export default function SceneScripts({
   makeScene,
   openScene,
   prepareRun,
+  llmBody,
 }: {
   castId: string;
   castName?: string;
@@ -392,6 +394,8 @@ export default function SceneScripts({
     made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>,
     onlySceneId?: string
   ) => { created: number } | null;
+  /** The LLM settings a request carries (Draft with the LLM); unset: that button is not shown. */
+  llmBody?: Record<string, unknown>;
 }) {
   // The store hands them over clean: only their per-Cast cap is applied here (M6 V7).
   const scripts = useMemo(
@@ -875,6 +879,7 @@ export default function SceneScripts({
                     }}
                     onMake={(shot, shotIndex) => makeFromShot(scene, sceneIndex, shot, shotIndex)}
                     onOpenScene={openScene}
+                    {...(llmBody ? { onDraftWithLlm: () => requestShotDraft(scene, llmBody) } : {})}
                     {...(prepareRun && sceneShots.length
                       ? { onPrepareRun: () => prepare(scene.id) }
                       : {})}

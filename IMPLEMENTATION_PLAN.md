@@ -1483,8 +1483,9 @@ the earlier take".
 
 _Status 2026-10-30:_ done — phone Film Director (`/m/production`), prepare from one script scene,
 snoozing next actions (Later), coverage in Cut, undo after a script reimport, several steps of
-Back to the earlier take; earlier — phone Script and Run (M10 T5), reordering shots (M9), the
-sound-effects track (M10 T4). Open — an LLM shot draft, server-side packages and runner.
+Back to the earlier take, an LLM shot draft (Draft with the LLM: lines held to the script's own
+by number; live, 5 sensible shots in 7 s); earlier — phone Script and Run (M10 T5), reordering
+shots (M9), the sound-effects track (M10 T4). Open — server-side packages and runner.
 
 ## 8.3 Tasks (prioritised)
 

@@ -61,6 +61,7 @@ export default function SceneScriptShots({
   orphans = false,
   scriptShots,
   onPrepareRun,
+  onDraftWithLlm,
 }: {
   scene: ScriptScene;
   sceneIndex: number;
@@ -82,7 +83,11 @@ export default function SceneScriptShots({
   orphans?: boolean;
   /** Prepare a run over this scene's shots alone (nothing renders yet). */
   onPrepareRun?: () => void;
+  /** The LLM's shot list for this scene (rejects with why). */
+  onDraftWithLlm?: () => Promise<PlannedShot[]>;
 }) {
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const number = scene.number ?? String(sceneIndex + 1);
   const change = (id: string, patch: Partial<PlannedShot>) =>
     onShots(shots.map(shot => (shot.id === id ? { ...shot, ...patch } : shot)));
@@ -168,16 +173,51 @@ export default function SceneScriptShots({
             ) : null}
           </span>
         ) : (
-          <Button
-            size="sm"
-            variant="secondary"
-            data-testid={`script-shots-draft-${scene.id}`}
-            onClick={() => onShots(draftShots(scene))}
-          >
-            Draft shots
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              data-testid={`script-shots-draft-${scene.id}`}
+              onClick={() => onShots(draftShots(scene))}
+            >
+              Draft shots
+            </Button>
+            {onDraftWithLlm ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                loading={drafting}
+                loadingLabel="Drafting"
+                title="The LLM plans the coverage as a director would — where a wide, an insert or a reaction tells it best; you edit it as any draft"
+                data-testid={`script-shots-draft-llm-${scene.id}`}
+                onClick={() => {
+                  setDrafting(true);
+                  setDraftError(null);
+                  void onDraftWithLlm()
+                    .then(next => onShots(next))
+                    .catch((error: unknown) =>
+                      setDraftError(
+                        error instanceof Error ? error.message : 'The LLM draft failed.'
+                      )
+                    )
+                    .finally(() => setDrafting(false));
+                }}
+              >
+                Draft with the LLM
+              </Button>
+            ) : null}
+          </>
         )}
       </div>
+      {draftError ? (
+        <p
+          className="type-caption ui-status-danger"
+          role="alert"
+          data-testid={`script-shots-draft-error-${scene.id}`}
+        >
+          {draftError}
+        </p>
+      ) : null}
       {shots.length ? (
         <ol className="space-y-1">
           {shots.map((shot, index) => {
