@@ -11,7 +11,7 @@ comes under the timeline). **Your films**, **Versions** and **Package** are tabs
 
 | Part of the page | What it does |
 | --- | --- |
-| **What's in it** | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them |
+| **What's in it** | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them. With Scenes or the animatic in, each script's coverage shows under them (*5 planned · 3 made · 1 kept · 1 in the Cut*), linking to the script |
 | **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change |
 | **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
 | **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim), **Bridge to next** renders a short clip that moves from the end of the shot under the playhead into the next shot — she moves and the place turns into the next one, instead of a cut or a fade (MiniMax-H3, a few minutes; it joins the film when ready, its sound muted). Added shots have **Remove** |

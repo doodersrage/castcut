@@ -857,6 +857,10 @@ test('a script is seen as a storyboard: kept takes and cards, a card makes its S
   await expect(list.locator('[data-testid^="cut-shot-script:"]')).toHaveCount(2);
   await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.1')).toBeVisible();
   await expect(page.getByTestId('cut-shot-script:int-kitchen-morning.2')).toBeVisible();
+  // The script's coverage, said in Cut too, linking back to the script.
+  const coverage = page.getByTestId('cut-script-coverage');
+  await expect(coverage).toContainText('Script “Board test”: 2 planned · 2 made · 1 kept · 0 in the Cut');
+  await expect(coverage.getByRole('link')).toHaveAttribute('href', '/scene?script=script-board');
   await shot(page, 'cut-animatic');
 });
 

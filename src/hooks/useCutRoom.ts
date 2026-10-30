@@ -147,6 +147,7 @@ import { keptTakeOf, normalizeSavedScenes, sceneCutShots } from '@/lib/day/scene
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
+import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { storyboard } from '@/lib/day/storyboard';
 import { parseScript } from '@/lib/script/parse';
 import { animaticShots } from '@/lib/film/animatic';
@@ -310,6 +311,18 @@ export function useCutRoom() {
   );
   const animaticScript =
     animaticScripts.find(script => script.id === cut.toolSettings.scriptId) ?? animaticScripts[0];
+  // How far each script's planned shots have got, said in Cut too (S5 coverage, M3's "not done":
+  // it was only in the Script section) — the latest three.
+  const scriptCoverage = useMemo(
+    () =>
+      animaticScripts.slice(0, 3).flatMap(script => {
+        const summary = coverageSummary(
+          sceneCoverage(script.shots ?? [], savedScenes, cut.toolSettings)
+        );
+        return summary ? [{ id: script.id, name: script.name, summary }] : [];
+      }),
+    [animaticScripts, cut.toolSettings, savedScenes]
+  );
   const animatic = useMemo(() => {
     if (!animaticScript) return [];
     return animaticShots({
@@ -2581,6 +2594,7 @@ export function useCutRoom() {
     decide,
     takeOffered,
     backToEarlierTake,
+    scriptCoverage,
     missingMedia,
     mediaChecking: mediaCheck.checking,
     recheckMedia,

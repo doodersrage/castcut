@@ -579,6 +579,22 @@ export default function CutRoom() {
               ) : null}
             </div>
           ) : null}
+          {(vm.sources.includes('scenes') || vm.sources.includes('script')) &&
+          vm.scriptCoverage.length ? (
+            <ul className="type-caption mt-2 space-y-0.5" data-testid="cut-script-coverage">
+              {vm.scriptCoverage.map(entry => (
+                <li key={entry.id}>
+                  <a
+                    className="underline"
+                    href={href(`/scene?script=${encodeURIComponent(entry.id)}`)}
+                  >
+                    Script “{entry.name}”
+                  </a>
+                  <span className="text-[var(--text-muted)]">: {entry.summary}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {vm.shots.length === 0 ? (
             <p className="type-body mt-3 text-[var(--text-muted)]" data-testid="cut-empty">
               Nothing to cut yet. Make stills on{' '}
