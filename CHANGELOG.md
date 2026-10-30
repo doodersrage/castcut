@@ -9,6 +9,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.0] - 2026-10-30
+
+- Animate: a line for each MiniMax-H3 part
+- LTX talking clips speak in the Cast's kept voice by default
+- Talking clips keep the Cast's voice — across a longer clip's parts and from render to render
+- Longer clips: less robotic speech — no limiter, fewer lossy generations
+- Film Director: Later survives a reload in the built app
+- Cut: Generate a shot with the Cast (Phantom)
+- Architecture: the shot-draft route is Play's
+- Script: Draft with the LLM
+- M11 T15: nothing pops in or out of a longer clip
+- Cut: each script's coverage under What's in it
+- Script and Film Director: undo a new version, a run for one scene, Later, and the phone
+- Director: a move from your own video keeps its feet planted
+- Cut: a tighter Shots toolbar, and back more than one take
+
 ## [v3.3.1] - 2026-10-30
 
 - Desktop Linux: make the AppDir readable before repacking the AppImage
