@@ -14,6 +14,7 @@ import {
   runProgress,
   runQueue,
   runTakesTaken,
+  settleHandedRun,
   shotsToPrepare,
   withRunLog,
   withRunOutcome,
@@ -207,5 +208,66 @@ describe('automation never chooses for you (M5 W5)', () => {
     // A reroll the review queued is on the card now: not this take's, still waited for.
     assert.equal(settled({ ...landed, promptId: 'p9' }, true), false);
     assert.equal(settled({ ...landed, promptId: 'p9' }, false), true);
+  });
+});
+
+describe('Queue all: a run handed to ComfyUI (Part 14 A)', () => {
+  const scenes = [scene('a'), scene('b'), scene('c')];
+  const base = (): SceneRun => ({
+    ...normalizeSceneRun({
+      id: 'r',
+      castId: 'nora',
+      items: scenes.map(entry => ({ sceneId: entry.id, include: true })),
+      state: 'running',
+      log: [],
+    })!,
+    handOff: { sceneIds: ['a', 'b'], handed: {} },
+  });
+
+  it('queues only the Scenes fixed at Start, each once', () => {
+    const run = base();
+    assert.deepEqual(nextRunStep(run, scenes), { kind: 'scene', sceneId: 'a' });
+    const one = { ...run, handOff: { ...run.handOff!, handed: { a: 'p-a' } } };
+    assert.deepEqual(nextRunStep(one, scenes), { kind: 'scene', sceneId: 'b' });
+    assert.equal(runTakesTaken(one), 1);
+    const both = { ...run, handOff: { ...run.handOff!, handed: { a: 'p-a', b: 'p-b' } } };
+    assert.deepEqual(nextRunStep(both, scenes), { kind: 'done', reason: 'finished' });
+    assert.deepEqual(runProgress(both, scenes), { done: 0, total: 2 });
+    // Stored and read back (a handed id for a Scene not in the list is dropped).
+    const stored = normalizeSceneRun(
+      JSON.parse(JSON.stringify({ ...both, state: 'handed', handOff: { ...both.handOff, handed: { ...both.handOff.handed, z: 'p-z' } } }))
+    )!;
+    assert.equal(stored.state, 'handed');
+    assert.deepEqual(stored.handOff, { sceneIds: ['a', 'b'], handed: { a: 'p-a', b: 'p-b' } });
+    // A reload does not pause it: nothing in the page runs it.
+    assert.equal(pausedAfterReload(stored), stored);
+  });
+
+  it('settles from the Gallery: landed, failed, cancelled — then done', () => {
+    const run: SceneRun = {
+      ...base(),
+      state: 'handed',
+      handOff: { sceneIds: ['a', 'b'], handed: { a: 'p-a', b: 'p-b' } },
+    };
+    const name = (id: string) => id.toUpperCase();
+    assert.equal(settleHandedRun(run, [{ promptId: 'p-a', status: 'running' }], name), run);
+    const half = settleHandedRun(run, [{ promptId: 'p-a', status: 'completed' }], name, 5);
+    assert.deepEqual(half.outcomes, { a: 'landed' });
+    assert.equal(half.state, 'handed');
+    const all = settleHandedRun(
+      half,
+      [{ promptId: 'p-b', status: 'error', statusMessage: 'Cancelled' }],
+      name,
+      6
+    );
+    assert.deepEqual(all.outcomes, { a: 'landed', b: 'skipped' });
+    assert.equal(all.state, 'done');
+    const failed = settleHandedRun(
+      half,
+      [{ promptId: 'p-b', status: 'error', statusMessage: 'OOM' }],
+      name
+    );
+    assert.equal(failed.outcomes?.b, 'failed');
+    assert.match(failed.log.at(-2)!.detail!, /B: OOM/);
   });
 });

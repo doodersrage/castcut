@@ -21,6 +21,7 @@ import {
   restoreSceneTake,
   setSceneTakeReview,
   resolveSceneChecks,
+  renderingTakeIdsOf,
   SCENE_TAKE_LIMIT,
   sceneCardBusy,
   sceneCutNote,
@@ -955,5 +956,54 @@ describe('scenes in Cast files', () => {
     assert.notEqual(placed[0]!.id, 'scene-a');
     assert.deepEqual(placed[0]!.takes, []);
     assert.deepEqual(parseCastFileScenes([{ name: 'no slot' }, 'junk']), []);
+  });
+});
+
+describe('a take still rendering goes with its scene (M5 Queue all)', () => {
+  it('is kept on its scene, lands there by prompt id, and comes back on the card', () => {
+    const a = kitchen();
+    const b = createScene({ castId: 'nora', name: 'Scene 2', id: 'scene-b', now: 20 });
+    const rendering = done('p-run', { status: 'running', imageUrl: undefined });
+    assert.deepEqual(renderingTakeIdsOf(rendering), ['p-run']);
+    assert.deepEqual(renderingTakeIdsOf({ ...rendering, adultHold: 'checking' }), []);
+    const cache: SceneToolCache = { scenes: [a, b], ...sceneWorkingPatch(a), stills: [rendering] };
+    const toB = openScenePatch(cache, 'scene-b', 30)!;
+    assert.deepEqual(toB.stills, []);
+    const savedA = toB.scenes!.find(scene => scene.id === 'scene-a')!;
+    assert.deepEqual(savedA.renderingTakeIds, ['p-run']);
+    assert.deepEqual(normalizeSavedScenes(toB.scenes)[0]?.renderingTakeIds, ['p-run']);
+
+    // Not finished (or not in this Gallery yet): unchanged.
+    assert.equal(resolveSceneChecks(savedA, [{ promptId: 'p-run', status: 'pending' }]), savedA);
+    assert.equal(resolveSceneChecks(savedA, []), savedA);
+    // Finished: a take on A.
+    const landed = resolveSceneChecks(
+      savedA,
+      [{ promptId: 'p-run', status: 'completed', imageUrl: '/view?filename=p-run.png' }],
+      40
+    );
+    assert.deepEqual(landed.takes.map(take => take.id), ['p-run']);
+    assert.equal(landed.renderingTakeIds, undefined);
+    // Held by the adult check: it waits there instead.
+    const held = resolveSceneChecks(savedA, [
+      {
+        promptId: 'p-run',
+        status: 'completed',
+        imageUrl: '/view?filename=p-run.png',
+        adultCheck: { state: 'pending' },
+      },
+    ]);
+    assert.deepEqual(held.checkingTakeIds, ['p-run']);
+    assert.equal(held.renderingTakeIds, undefined);
+    assert.deepEqual(held.takes, []);
+    // Failed: dropped.
+    const failed = resolveSceneChecks(savedA, [{ promptId: 'p-run', status: 'error' }]);
+    assert.equal(failed.renderingTakeIds, undefined);
+    assert.deepEqual(failed.takes, []);
+
+    // Opened again while it renders: back on the card, rendering.
+    const backToA = openScenePatch({ ...cache, ...toB }, 'scene-a', 50)!;
+    assert.equal(backToA.stills?.[0]?.promptId, 'p-run');
+    assert.equal(backToA.stills?.[0]?.status, 'running');
   });
 });

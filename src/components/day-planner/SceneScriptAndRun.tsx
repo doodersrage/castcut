@@ -60,6 +60,7 @@ export default function SceneScriptAndRun({
             stopping={runner.stopping}
             disabled={page.inFlight && !runner.looping}
             onStart={runner.start}
+            onQueueAll={runner.queueAll}
             onStop={runner.stop}
           />
         </SceneRunPanel>

@@ -1707,6 +1707,74 @@ async function seedRunPage(
   return queued;
 }
 
+// Part 14 A: Queue all hands every take to ComfyUI; after the page is closed and opened again
+// each lands on its own Scene, and the run is done. Nothing is queued twice.
+test('Queue all hands every take to ComfyUI, and they land on their Scenes later', async ({ page }) => {
+  let finish = false;
+  const queued = await seedRunPage(page, {}, () =>
+    finish
+      ? { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] }
+      : { status: 'running' }
+  );
+  await page.getByTestId('scene-run-queue-all').click({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'handed', {
+    timeout: 120_000,
+  });
+  await expect(page.getByTestId('scene-run-handed-note')).toBeVisible();
+  expect(queued).toHaveLength(2);
+
+  finish = true;
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 120_000,
+  });
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        const byId = Object.fromEntries(
+          (tool.scenes ?? []).map((entry: { id: string; takes: { id: string }[] }) => [
+            entry.id,
+            entry.takes[0]?.id ?? '',
+          ])
+        );
+        return [byId['run-a'], byId['run-b'], tool.run?.outcomes?.['run-a'], tool.run?.outcomes?.['run-b']].join('|');
+      },
+      { timeout: 60_000 }
+    )
+    .toBe('e2e-scene-1|e2e-scene-2|landed|landed');
+  // Nothing handed was queued again (B's card may redo a pose miss on its own: a new take).
+  const handed = JSON.parse((await storedSceneTool(page)) || '{}').run?.handOff?.handed;
+  expect(handed).toEqual({ 'run-a': 'e2e-scene-1', 'run-b': 'e2e-scene-2' });
+});
+
+// Part 14 A: Cancel after the hand-off takes the jobs ComfyUI hasn't started out of its queue.
+test('Cancel after Queue all removes the takes not started yet', async ({ page }) => {
+  const cancelled: string[] = [];
+  await page.route('**/api/comfyui/cancel', async route => {
+    cancelled.push(String(JSON.parse(route.request().postData() || '{}').promptId ?? ''));
+    await route.fulfill({ json: { ok: true } });
+  });
+  const queued = await seedRunPage(page, {}, () => ({ status: 'pending' }));
+  await page.getByTestId('scene-run-queue-all').click({ timeout: 60_000 });
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'handed', {
+    timeout: 120_000,
+  });
+  expect(queued).toHaveLength(2);
+  await page.getByTestId('scene-run-cancel').click();
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'cancelled');
+  await expect.poll(() => [...cancelled].sort().join(','), { timeout: 30_000 }).toBe(
+    'e2e-scene-1,e2e-scene-2'
+  );
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      return [tool.run?.outcomes?.['run-a'], tool.run?.outcomes?.['run-b']].join('|');
+    })
+    .toBe('skipped|skipped');
+});
+
 // M5 W5: the take limit holds, and Film Director shows what the run did.
 test('a run stops at its take limit, and Film Director shows its log', async ({ page }) => {
   const queued = await seedRunPage(page, { maxTakes: 1 });

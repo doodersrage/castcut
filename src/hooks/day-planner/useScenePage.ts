@@ -104,10 +104,12 @@ export function useScenePage(vm: DayEngineView) {
     }
   }, [active, cache, mounted, scenes, still, write]);
 
-  // Takes left at the adult check on other scenes: settled from the gallery as verdicts land.
+  // Takes left at the adult check, or still rendering (Queue all), on other scenes: settled from
+  // the gallery as they land.
   const settleChecks = useCallback(
     (list: SavedScene[]): SavedScene[] => {
-      if (!list.some(scene => scene.checkingTakeIds?.length)) return list;
+      if (!list.some(scene => scene.checkingTakeIds?.length || scene.renderingTakeIds?.length))
+        return list;
       const gallery = loadComfyGallery().map(entry => ({
         promptId: entry.promptId,
         status: entry.status,
@@ -262,8 +264,12 @@ export function useScenePage(vm: DayEngineView) {
   );
 
   const openScene = useCallback(
-    (sceneId: string) => {
-      if (rendering) {
+    /**
+     * `carryOn` (a Queue all run): a take still rendering goes with its scene and lands there
+     * (SavedScene.renderingTakeIds) instead of keeping this one open.
+     */
+    (sceneId: string, options?: { carryOn?: boolean }) => {
+      if (rendering && !options?.carryOn) {
         setNote('A take is rendering — open another scene when it lands.');
         return;
       }

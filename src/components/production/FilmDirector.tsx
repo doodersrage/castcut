@@ -32,6 +32,7 @@ const RUN_STATE_LABELS: Record<SceneRun['state'], string> = {
   prepared: 'ready, not started',
   running: 'running',
   paused: 'paused',
+  handed: 'in ComfyUI’s queue',
   done: 'done',
   cancelled: 'cancelled',
 };

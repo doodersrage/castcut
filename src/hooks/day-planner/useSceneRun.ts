@@ -4,12 +4,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
-import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { COMFYUI_GALLERY_UPDATED_EVENT, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
+import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
+import { typicalRenderMs } from '@/lib/queue/eta';
 import {
   nextRunStep,
   pausedAfterReload,
+  runQueue,
   runTakeSettled,
+  runTakesHanded,
+  settleHandedRun,
   withRunLog,
   withRunOutcome,
   type SceneRun,
@@ -47,6 +52,11 @@ async function until(ready: () => boolean, timeoutMs: number): Promise<boolean> 
  * finish — then the next; a failure stops it. Pause stops after the take in flight, Cancel too
  * (nothing else is queued). The run record keeps the take in flight, so after a reload it is
  * waited for, not queued again. It never keeps a take.
+ *
+ * Queue all (M5 hand-off, IMPLEMENTATION_PLAN Part 14 A) puts together each Scene's take the same
+ * way but hands it to ComfyUI and opens the next at once: once every take is queued the page can
+ * close. Each lands on its own Scene (SavedScene.renderingTakeIds) and the run settles from the
+ * Gallery; Cancel then takes the jobs not started yet out of ComfyUI's queue.
  */
 export function useSceneRun(vm: DayEngineView, page: ScenePage) {
   const runRef = useRef<SceneRun | undefined>(page.run);
@@ -76,6 +86,37 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     if (page.run.state === 'running') save(pausedAfterReload(page.run));
   }, [page.run, save]);
 
+  // Takes handed to ComfyUI: their polls (re)started once, then settled as the Gallery hears.
+  const polledRef = useRef(new Set<string>());
+  const handedKey = page.run
+    ? runTakesHanded(page.run)
+        .map(([, id]) => id)
+        .join(',')
+    : '';
+  useEffect(() => {
+    if (!handedKey) return;
+    const gallery = loadComfyGallery();
+    for (const promptId of handedKey.split(',')) {
+      if (polledRef.current.has(promptId)) continue;
+      polledRef.current.add(promptId);
+      const known = gallery.find(item => item.promptId === promptId);
+      if (known?.status === 'pending' || known?.status === 'running' || !known) {
+        void scheduleComfyGalleryPoll(promptId, { comfyUrl: known?.comfyUrl });
+      }
+    }
+    const settle = () => {
+      const run = runRef.current;
+      if (!run) return;
+      const nameOf = (id: string) =>
+        pageRef.current.castScenes.find(scene => scene.id === id)?.name ?? 'A Scene';
+      const next = settleHandedRun(run, loadComfyGallery(), nameOf);
+      if (next !== run) save(next);
+    };
+    settle();
+    window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
+    return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
+  }, [handedKey, save]);
+
   const loop = useCallback(async () => {
     if (loopingRef.current) return;
     loopingRef.current = true;
@@ -96,6 +137,22 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           return;
         }
         const step = nextRunStep(run, pageRef.current.castScenes);
+        if (step.kind === 'done' && run.handOff) {
+          const handed = runTakesHanded(run).length;
+          save(
+            handed
+              ? withRunLog(
+                  { ...run, state: 'handed' },
+                  {
+                    at: Date.now(),
+                    event: 'handed',
+                    detail: `${handed} take${handed === 1 ? ' is' : 's are'} in ComfyUI’s queue — the page can close`,
+                  }
+                )
+              : settleHandedRun({ ...run, state: 'handed' }, loadComfyGallery(), id => id)
+          );
+          return;
+        }
         if (step.kind === 'done') {
           const detail =
             step.reason === 'take-limit'
@@ -115,7 +172,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
 
         // Open it (the page's own Open), unless it is open.
         if (pageRef.current.active?.id !== sceneId) {
-          pageRef.current.openScene(sceneId);
+          pageRef.current.openScene(sceneId, { carryOn: Boolean(run.handOff) });
           const opened = await until(() => pageRef.current.active?.id === sceneId, OPEN_TIMEOUT_MS);
           if (!opened) {
             save(
@@ -177,6 +234,25 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
               { at: Date.now(), sceneId, event: 'queued', detail: promptId }
             )
           );
+        }
+
+        // Queue all: handed to ComfyUI — it lands on its Scene; the next is put together now.
+        if (run.handOff) {
+          const latest = runRef.current ?? run;
+          const { current: _current, ...rest } = latest;
+          save(
+            withRunLog(
+              {
+                ...rest,
+                handOff: {
+                  ...run.handOff,
+                  handed: { ...(latest.handOff?.handed ?? {}), [sceneId]: promptId },
+                },
+              },
+              { at: Date.now(), sceneId, event: 'handed', detail: promptId }
+            )
+          );
+          continue;
         }
 
         // Wait for it to land, then for its checks (the card is free again). Its poll is
@@ -246,17 +322,46 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     void loop();
   }, [loop, save]);
 
-  /** Stop after the take in flight (Pause), or stop for good after it (Cancel). */
+  /** Start a prepared run as Queue all: the Scenes the limits allow now, each handed once. */
+  const queueAll = useCallback(() => {
+    const run = runRef.current;
+    if (!run || run.state !== 'prepared') return;
+    const typicalSec = typicalRenderMs(loadComfyGallery()) / 1000;
+    const sceneIds = runQueue(run, pageRef.current.castScenes, typicalSec).queued.map(
+      entry => entry.sceneId
+    );
+    if (!sceneIds.length) return;
+    stopRef.current = null;
+    const now = Date.now();
+    save(
+      withRunLog(
+        { ...run, state: 'running', startedAt: now, handOff: { sceneIds, handed: {} } },
+        { at: now, event: 'resumed', detail: `queue all: ${sceneIds.length} takes` }
+      )
+    );
+    void loop();
+  }, [loop, save]);
+
+  /**
+   * Stop after the take in flight (Pause), or stop for good after it (Cancel). Cancel also takes
+   * the handed takes ComfyUI hasn't started out of its queue (one rendering finishes).
+   */
   const stop = useCallback(
     (how: 'pause' | 'cancel') => {
       const run = runRef.current;
       if (!run) return;
+      if (how === 'cancel') void cancelHanded(run);
       if (loopingRef.current) {
         stopRef.current = how;
         setStopping(how);
         return;
       }
-      if (run.state === 'running' || run.state === 'paused' || run.state === 'prepared') {
+      if (
+        run.state === 'running' ||
+        run.state === 'paused' ||
+        run.state === 'prepared' ||
+        (run.state === 'handed' && how === 'cancel')
+      ) {
         save(
           withRunLog(
             { ...run, state: how === 'cancel' ? 'cancelled' : 'paused' },
@@ -268,5 +373,15 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     [save]
   );
 
-  return { looping, start, stop, stopping };
+  return { looping, start, queueAll, stop, stopping };
+}
+
+/** The run's handed takes still waiting in ComfyUI's queue, cancelled (Gallery entries too). */
+async function cancelHanded(run: SceneRun): Promise<void> {
+  const handed = new Set(runTakesHanded(run).map(([, promptId]) => promptId));
+  if (!handed.size) return;
+  const waiting = loadComfyGallery().filter(
+    entry => handed.has(entry.promptId?.trim() ?? '') && entry.status === 'pending'
+  );
+  for (const entry of waiting) await cancelComfyGalleryJob(entry).catch(() => undefined);
 }

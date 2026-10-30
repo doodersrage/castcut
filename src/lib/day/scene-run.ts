@@ -10,7 +10,8 @@ import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
 
-export type SceneRunState = 'prepared' | 'running' | 'paused' | 'done' | 'cancelled';
+/** `handed`: every take is in ComfyUI's queue (Queue all, M5 hand-off) and lands on its own. */
+export type SceneRunState = 'prepared' | 'running' | 'paused' | 'handed' | 'done' | 'cancelled';
 
 export type SceneRunItem = { sceneId: string; include: boolean };
 
@@ -22,6 +23,7 @@ export type SceneRunLogEntry = {
   event:
     | 'prepared'
     | 'queued'
+    | 'handed'
     | 'skipped'
     | 'landed'
     | 'failed'
@@ -55,6 +57,12 @@ export type SceneRun = {
   startedAt?: number;
   /** Why it stopped, when it stopped short. */
   stopReason?: string;
+  /**
+   * Queue all (M5 hand-off): the Scenes to queue, fixed at Start by the limits ({@link runQueue}),
+   * and the take handed to ComfyUI for each (Scene id → prompt id) — never queued twice; each is
+   * settled from the Gallery when it finishes ({@link settleHandedRun}).
+   */
+  handOff?: { sceneIds: string[]; handed: Record<string, string> };
   log: SceneRunLogEntry[];
   createdAt: number;
   updatedAt: number;
@@ -190,7 +198,7 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
   if (typeof run.id !== 'string' || typeof run.castId !== 'string' || !Array.isArray(run.items)) {
     return undefined;
   }
-  const states: SceneRunState[] = ['prepared', 'running', 'paused', 'done', 'cancelled'];
+  const states: SceneRunState[] = ['prepared', 'running', 'paused', 'handed', 'done', 'cancelled'];
   const items = run.items
     .filter(
       (item): item is SceneRunItem =>
@@ -232,11 +240,27 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
         }
       : {}),
     ...(typeof run.startedAt === 'number' ? { startedAt: run.startedAt } : {}),
+    ...handOffField(run.handOff),
     ...(typeof run.stopReason === 'string' ? { stopReason: run.stopReason.slice(0, 200) } : {}),
     log: (Array.isArray(run.log) ? run.log : []).slice(-RUN_LOG_MAX) as SceneRunLogEntry[],
     createdAt: whole(run.createdAt, 0, Number.MAX_SAFE_INTEGER, 0),
     updatedAt: whole(run.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
   };
+}
+
+function handOffField(value: unknown): Pick<SceneRun, 'handOff'> {
+  if (!value || typeof value !== 'object') return {};
+  const raw = value as Partial<NonNullable<SceneRun['handOff']>>;
+  const sceneIds = (Array.isArray(raw.sceneIds) ? raw.sceneIds : [])
+    .filter((id): id is string => typeof id === 'string' && Boolean(id))
+    .slice(0, RUN_MAX_ITEMS);
+  const handed = Object.fromEntries(
+    Object.entries(raw.handed && typeof raw.handed === 'object' ? raw.handed : {}).filter(
+      ([sceneId, promptId]) =>
+        sceneIds.includes(sceneId) && typeof promptId === 'string' && promptId
+    )
+  ) as Record<string, string>;
+  return sceneIds.length ? { handOff: { sceneIds, handed } } : {};
 }
 
 /** The run with a log line added (the newest kept, at most RUN_LOG_MAX). */
@@ -245,8 +269,16 @@ export function withRunLog(run: SceneRun, entry: SceneRunLogEntry): SceneRun {
 }
 
 /** Takes the run has rendered (landed or failed): what the take limit counts. */
-export function runTakesTaken(run: Pick<SceneRun, 'outcomes'>): number {
-  return Object.values(run.outcomes ?? {}).filter(outcome => outcome !== 'skipped').length;
+export function runTakesTaken(run: Pick<SceneRun, 'outcomes' | 'handOff'>): number {
+  const settled = Object.values(run.outcomes ?? {}).filter(outcome => outcome !== 'skipped');
+  return settled.length + runTakesHanded(run).length;
+}
+
+/** Takes handed to ComfyUI and not settled yet: [Scene id, prompt id]. */
+export function runTakesHanded(
+  run: Pick<SceneRun, 'outcomes' | 'handOff'>
+): Array<[sceneId: string, promptId: string]> {
+  return Object.entries(run.handOff?.handed ?? {}).filter(([sceneId]) => !run.outcomes?.[sceneId]);
 }
 
 export type RunStep =
@@ -264,6 +296,17 @@ export function nextRunStep(
   now = Date.now()
 ): RunStep {
   if (run.current) return { kind: 'scene', sceneId: run.current.sceneId };
+  // Queue all: the Scenes fixed at Start (the limits were applied then), each handed once.
+  if (run.handOff) {
+    const byId = new Map(scenes.map(scene => [scene.id, scene]));
+    for (const sceneId of run.handOff.sceneIds) {
+      if (run.handOff.handed[sceneId] || run.outcomes?.[sceneId]) continue;
+      const scene = byId.get(sceneId);
+      if (!scene || (run.skipKept && scene.keptTakeId)) continue;
+      return { kind: 'scene', sceneId };
+    }
+    return { kind: 'done', reason: 'finished' };
+  }
   if (runTakesTaken(run) >= run.maxTakes) return { kind: 'done', reason: 'take-limit' };
   if (run.startedAt && now - run.startedAt > run.maxMinutes * 60_000) {
     return { kind: 'done', reason: 'time-limit' };
@@ -285,6 +328,10 @@ export function runProgress(
 ): { done: number; total: number } {
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   const done = Object.keys(run.outcomes ?? {}).length;
+  if (run.handOff) {
+    const open = run.handOff.sceneIds.filter(id => !run.outcomes?.[id]).length;
+    return { done, total: done + open };
+  }
   const open = run.items.filter(item => {
     if (!item.include || run.outcomes?.[item.sceneId]) return false;
     const scene = byId.get(item.sceneId);
@@ -348,6 +395,45 @@ export function runTakeSettled(input: {
   const own = still.promptId === input.promptId || input.isRedo?.(still) === true;
   if (!own) return true;
   return still.status === 'completed' && !input.checksPending(still);
+}
+
+/**
+ * A handed-off run settled from the Gallery: each take that finished is landed (or failed, its
+ * message as the reason; one you cancelled is skipped); once none is left it is done. Takes still
+ * queued or rendering — or not in this browser's Gallery yet — wait.
+ */
+export function settleHandedRun(
+  run: SceneRun,
+  gallery: ReadonlyArray<{ promptId?: string; status?: string; statusMessage?: string | null }>,
+  sceneName: (sceneId: string) => string,
+  now = Date.now()
+): SceneRun {
+  let next = run;
+  for (const [sceneId, promptId] of runTakesHanded(run)) {
+    const entry = gallery.find(item => item.promptId?.trim() === promptId);
+    if (entry?.status === 'completed') {
+      next = withRunOutcome(next, sceneId, 'landed', `${sceneName(sceneId)}: a take landed`, now);
+    } else if (entry?.status === 'error') {
+      const why = entry.statusMessage?.trim() || 'error';
+      const cancelled = why.toLowerCase() === 'cancelled';
+      next = withRunOutcome(
+        next,
+        sceneId,
+        cancelled ? 'skipped' : 'failed',
+        `${sceneName(sceneId)}: ${why}`,
+        now
+      );
+    }
+  }
+  // withRunOutcome clears the take in flight: a paused hand-off keeps its own.
+  if (next !== run && run.current) next = { ...next, current: run.current };
+  if (next.state === 'handed' && runTakesHanded(next).length === 0) {
+    next = withRunLog(
+      { ...next, state: 'done' },
+      { at: now, event: 'done', detail: 'every take handed to ComfyUI has finished' }
+    );
+  }
+  return next;
 }
 
 /** A run found "running" with nothing running it (the page was closed or reloaded): paused. */

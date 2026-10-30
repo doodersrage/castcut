@@ -2652,6 +2652,25 @@ ComfyUI). · S
   hours." → said more; "Okay, one more swim and then we eat." → kept. Whisper still makes up words
   on a long wordless part's room tone, which is why only parts with a line are heard.
 
+**T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
+pick). · M
+- `SceneRun.handOff` (Scene ids fixed at Start by `runQueue`'s limits, and the prompt id handed
+  for each) and a `handed` state. The runner puts together each take with the page's own Render,
+  records it as handed, and opens the next Scene with `openScene(id, { carryOn: true })`. The take
+  still rendering goes with its Scene (`SavedScene.renderingTakeIds`) and lands there
+  (`resolveRenderingTakes`: a take; one held by the adult check moves to `checkingTakeIds`; a
+  failed one is dropped). Opening the Scene again puts it back on the card, rendering.
+- `settleHandedRun` settles the run from the Gallery (landed / failed / cancelled → skipped; done
+  when none is left), and the handed jobs' polls are restarted when the page opens. Cancel takes
+  the handed jobs still `pending` out of ComfyUI's queue (`cancelComfyGalleryJob`). Start the run
+  is unchanged.
+- e2e: Queue all → _In ComfyUI_ with two jobs, then a reload after they finish → each on its own
+  Scene, `done`, nothing queued again; Cancel after the hand-off cancels both pending jobs and
+  marks them skipped.
+- Trade-offs (as proposed): a failure doesn't stop the rest, the minutes limit is the estimate at
+  Start, and card-side checks (Face finish, review, pose redo) run only on the take that lands on
+  the open Scene. The user's own Open still waits for a take rendering on the card.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

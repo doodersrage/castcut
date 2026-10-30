@@ -154,6 +154,15 @@ page.
 3. **Start the run.** Each Scene is opened, its take queued with the page's own Render, and the
    run waits for it to land and its checks to finish before the next. **Pause** and **Cancel** act
    after the take rendering now; nothing else is queued.
+4. Or **Queue all**, to close the tab. Each Scene's take is put together the same way (the first
+   take in an outfit dresses its plate first) and handed straight to ComfyUI's queue, and the
+   next is put together at once. When the run says _In ComfyUI_, every take is queued and the page
+   can close. Each take lands on its own Scene, even one that isn't open. The next time the page
+   is open, the run marks each take landed or failed and says _Done_ when none is left. The limits
+   are applied at the start: the minutes are the estimate shown. **Cancel** then takes the takes
+   ComfyUI hasn't started out of its queue. The trade-offs: a failed take doesn't stop the rest,
+   and the checks that run on the card (Face finish, review, pose redo) only run on the take that
+   lands on the open Scene. Use **Start the run** when you want them on every take.
 
 A run never keeps a take — choosing stays yours. It stops by itself, saying why, when a take
 fails, isn't queued or a Scene can't be opened. It runs while the Scene page is open: closing the

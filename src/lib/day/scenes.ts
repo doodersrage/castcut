@@ -90,6 +90,13 @@ export type SavedScene = {
    */
   checkingTakeIds?: string[];
   /**
+   * Takes still rendering when another scene was opened (their prompt ids, M5 run hand-off): the
+   * job carries on in ComfyUI and lands here when it finishes ({@link resolveSceneChecks}) —
+   * a take, or a take at the adult check; one that failed or was withheld is dropped. Opening the
+   * scene again puts the one still rendering back on the card.
+   */
+  renderingTakeIds?: string[];
+  /**
    * Takes removed from the scene (their ids), so another device's copy of the scene, or the card
    * still showing one, does not bring them back (R6, storage/tool-record-merge.ts).
    */
@@ -357,6 +364,14 @@ function checkingIdsField(value: unknown): Pick<SavedScene, 'checkingTakeIds'> {
   return ids.length ? { checkingTakeIds: ids } : {};
 }
 
+/** Take prompt ids still rendering off the card: clean, one each, the newest few. */
+function renderingIdsField(value: unknown): Pick<SavedScene, 'renderingTakeIds'> {
+  const ids = [
+    ...new Set((Array.isArray(value) ? value : []).map(id => text(id, 160)).filter(Boolean)),
+  ].slice(-8);
+  return ids.length ? { renderingTakeIds: ids } : {};
+}
+
 /** A stored scene read back (an older or hand-edited copy cleaned), or null when it isn't one. */
 export type SceneScriptLink = { scriptId: string; sceneId: string; shotId: string };
 
@@ -398,6 +413,7 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
       : {}),
     ...scriptLinkField(scene.fromScript),
     ...checkingIdsField(scene.checkingTakeIds),
+    ...renderingIdsField(scene.renderingTakeIds),
     ...removedTakesField(scene.removedTakeIds),
     createdAt,
     updatedAt: time(scene.updatedAt, createdAt),
@@ -413,7 +429,11 @@ function removedTakesField(value: unknown): Pick<SavedScene, 'removedTakeIds'> {
 
 /** A scene that holds renders: a take, or one still at the adult check. */
 function sceneHoldsTakes(scene: SavedScene): boolean {
-  return scene.takes.length > 0 || Boolean(scene.checkingTakeIds?.length);
+  return (
+    scene.takes.length > 0 ||
+    Boolean(scene.checkingTakeIds?.length) ||
+    Boolean(scene.renderingTakeIds?.length)
+  );
 }
 
 /**
@@ -555,8 +575,10 @@ export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
  */
 export function sceneWorkingPatch(scene: SavedScene): Partial<SceneToolCache> {
   const shown = keptTakeOf(scene) ?? scene.takes.at(-1);
-  // A take left at the adult check comes back on the card, held, and is checked there.
+  // A take left at the adult check comes back on the card, held, and is checked there; one still
+  // rendering comes back rendering (its job lands on the card).
   const [checking, checkingPair] = scene.checkingTakeIds ?? [];
+  const rendering = scene.renderingTakeIds?.at(-1);
   const stills: DaySlotStill[] = checking
     ? [
         {
@@ -569,9 +591,11 @@ export function sceneWorkingPatch(scene: SavedScene): Partial<SceneToolCache> {
             : {}),
         },
       ]
-    : shown
-      ? [takeAsStill(scene.slot.id, shown)]
-      : [];
+    : rendering
+      ? [{ slotId: scene.slot.id, promptId: rendering, status: 'running' }]
+      : shown
+        ? [takeAsStill(scene.slot.id, shown)]
+        : [];
   const patch: Partial<SceneToolCache> = {
     activeSceneId: scene.id,
     slots: [scene.slot],
@@ -817,7 +841,29 @@ export function scenesWithWorking(cache: SceneToolCache, now = Date.now()): Save
       ...checkingIdsField([...(recorded.checkingTakeIds ?? []), ...checking]),
     };
   }
+  // A take still rendering goes with its scene too, and lands there (M5 run hand-off).
+  const rendering = renderingTakeIdsOf(
+    normalizeDaySlotStills(cache.stills).find(still => still.slotId === recorded.slot.id)
+  ).filter(id => !recorded.takes.some(take => take.id === id));
+  if (rendering.length) {
+    recorded = {
+      ...recorded,
+      ...renderingIdsField([...(recorded.renderingTakeIds ?? []), ...rendering]),
+    };
+  }
   return recorded === active ? null : upsertScene(scenes, recorded);
+}
+
+/** The card's takes still rendering (queued or running, not at the adult check). */
+export function renderingTakeIdsOf(still: DaySlotStill | undefined): string[] {
+  if (!still) return [];
+  const live = (status: string | undefined) => status === 'queued' || status === 'running';
+  return [
+    live(still.status) && still.adultHold !== 'checking' ? still.promptId?.trim() : '',
+    live(still.twoTakes?.status) && still.twoTakes?.adultHold !== 'checking'
+      ? still.twoTakes?.promptId.trim()
+      : '',
+  ].filter((id): id is string => Boolean(id));
 }
 
 /** The card's takes the adult check holds now (rendered, not yet passed or withheld). */
@@ -860,6 +906,60 @@ export type SceneCheckGalleryEntry = {
  * id) — never the open one. The same object when nothing settled.
  */
 export function resolveSceneChecks(
+  scene: SavedScene,
+  gallery: ReadonlyArray<SceneCheckGalleryEntry>,
+  now = Date.now()
+): SavedScene {
+  return resolveCheckingTakes(resolveRenderingTakes(scene, gallery, now), gallery, now);
+}
+
+/**
+ * Takes that were rendering off the card, settled from the gallery: a finished one is added (or,
+ * held by the adult check, moved to {@link SavedScene.checkingTakeIds}); a failed or withheld one
+ * goes; one not finished — or not in this gallery yet (a reload before it loaded) — waits.
+ */
+export function resolveRenderingTakes(
+  scene: SavedScene,
+  gallery: ReadonlyArray<SceneCheckGalleryEntry>,
+  now = Date.now()
+): SavedScene {
+  const ids = scene.renderingTakeIds ?? [];
+  if (!ids.length) return scene;
+  let takes = scene.takes;
+  const waiting: string[] = [];
+  const checking: string[] = [];
+  for (const id of ids) {
+    const entry = gallery.find(item => item.promptId?.trim() === id);
+    if (!entry || (entry.status !== 'completed' && entry.status !== 'error')) {
+      waiting.push(id);
+      continue;
+    }
+    if (entry.status !== 'completed' || entry.adultCheck?.state === 'withheld') continue;
+    if (entry.adultCheck?.state === 'pending') {
+      checking.push(id);
+      continue;
+    }
+    const imageUrl = storableUrl(entry.imageUrl);
+    if (!imageUrl) {
+      waiting.push(id);
+      continue;
+    }
+    if (!takes.some(take => take.id === id)) {
+      takes = [...takes, { id, promptId: id, imageUrl, at: now }];
+    }
+  }
+  if (waiting.length === ids.length) return scene;
+  const { renderingTakeIds: _ids, ...rest } = scene;
+  return {
+    ...rest,
+    ...renderingIdsField(waiting),
+    ...(checking.length ? checkingIdsField([...(scene.checkingTakeIds ?? []), ...checking]) : {}),
+    takes: takes === scene.takes ? takes : boundedTakes(takes, scene.keptTakeId),
+    updatedAt: now,
+  };
+}
+
+function resolveCheckingTakes(
   scene: SavedScene,
   gallery: ReadonlyArray<SceneCheckGalleryEntry>,
   now = Date.now()
