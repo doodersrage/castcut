@@ -258,3 +258,17 @@ describe('H3 parts with their own beats and lengths', () => {
     );
   });
 });
+
+describe('Animate: how each part’s line is said', () => {
+  it('keeps each part’s own tone, natural as empty', () => {
+    const options = dayAnimateOptions({
+      extraSeconds: 0,
+      talkTotalSeconds: 15,
+      lines: ['Hi there.', 'Come here.'],
+      tones: ['natural', 'whisper'],
+    });
+    assert.deepEqual(options.dialogue?.tones, ['', 'whisper']);
+    const plain = dayAnimateOptions({ extraSeconds: 0, talkTotalSeconds: 15, lines: ['Hi.', ''] });
+    assert.equal(plain.dialogue?.tones, undefined);
+  });
+});

@@ -157,6 +157,8 @@ export type DayAnimateChoice = {
   beats?: string[];
   /** Each extra part's length in seconds (0 = the engine's own; M11 T2). */
   partSeconds?: number[];
+  /** How each extra part's line is said (same order; '' = the slot's own tone). */
+  tones?: string[];
 };
 
 /** The Length pick to remember for the next Animate, or null when it has not changed. */
@@ -181,7 +183,13 @@ export function dayAnimateSettingsPatch(
 export function dayAnimateOptions(choice: DayAnimateChoice): {
   direction?: string;
   extraSeconds: number;
-  dialogue?: { targetSec: number; lines: string[]; beats?: string[]; partSeconds?: number[] };
+  dialogue?: {
+    targetSec: number;
+    lines: string[];
+    beats?: string[];
+    partSeconds?: number[];
+    tones?: string[];
+  };
 } {
   if (choice.talkTotalSeconds === undefined) {
     return { direction: choice.direction, extraSeconds: choice.extraSeconds };
@@ -189,6 +197,10 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
   const lines = (choice.lines ?? []).slice(0, CLIP_EXTEND_MAX_SEGMENTS).map(normalizeSpokenLine);
   const beats = choice.beats?.slice(0, lines.length);
   const partSeconds = normalizeDayPartSeconds(choice.partSeconds).slice(0, lines.length);
+  const tones = lines.map((_, index) => {
+    const tone = choice.tones?.[index]?.trim() ?? '';
+    return tone === 'natural' ? '' : tone.slice(0, 24);
+  });
   const direction = choice.direction ? { direction: choice.direction } : {};
   return choice.talkTotalSeconds > DAY_TALK_TOTAL_SECONDS[0] && lines.length
     ? {
@@ -199,6 +211,7 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
           lines,
           ...(beats?.length ? { beats } : {}),
           ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
+          ...(tones.some(Boolean) ? { tones } : {}),
         },
       }
     : { ...direction, extraSeconds: 0 };

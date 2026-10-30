@@ -421,7 +421,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
          * Longer (Animate sheet): continued in parts once this clip lands — LTX dialogue, or
          * MiniMax-H3 parts (H3 cuts to a new shot past its own ~5 s).
          */
-        dialogue?: Pick<DayPendingDialogue, 'targetSec' | 'lines' | 'beats' | 'partSeconds'>;
+        dialogue?: Pick<
+          DayPendingDialogue,
+          'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones'
+        >;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -684,11 +687,20 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             ? {
                 targetSec: options.dialogue.targetSec,
                 lines: options.dialogue.lines,
-                ...(slot.lineTone &&
-                slot.lineTone !== 'natural' &&
-                options.dialogue.lines.some(Boolean)
-                  ? { tones: options.dialogue.lines.map(() => slot.lineTone as string) }
-                  : {}),
+                // Each part's own tone (Animate), else the slot's for every line.
+                ...(options.dialogue.tones?.some(Boolean)
+                  ? {
+                      tones: options.dialogue.lines.map(
+                        (_, index) =>
+                          options.dialogue!.tones?.[index] ||
+                          (slot.lineTone && slot.lineTone !== 'natural' ? slot.lineTone : '')
+                      ),
+                    }
+                  : slot.lineTone &&
+                      slot.lineTone !== 'natural' &&
+                      options.dialogue.lines.some(Boolean)
+                    ? { tones: options.dialogue.lines.map(() => slot.lineTone as string) }
+                    : {}),
                 ...(options.dialogue.beats?.length ? { beats: options.dialogue.beats } : {}),
                 ...(options.dialogue.partSeconds?.length
                   ? { partSeconds: options.dialogue.partSeconds }

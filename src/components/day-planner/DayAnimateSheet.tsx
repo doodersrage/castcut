@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
-import { FieldError, TextInput } from '@/components/ui/Field';
+import { FieldError, SelectInput, TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { suggestLineForActiveCast } from '@/lib/audio/spoken-line-context';
 import type { SpokenLineHeat } from '@/lib/audio/spoken-line';
@@ -25,7 +25,11 @@ import {
   type DayTalkTotalSeconds,
 } from '@/lib/day/clip-length';
 import type { DaySlot } from '@/lib/day/planner';
-import { normalizeSpokenLine, SPOKEN_LINE_MAX_CHARS } from '@/lib/video/ltx25-renderer';
+import {
+  normalizeSpokenLine,
+  SPOKEN_LINE_MAX_CHARS,
+  SPOKEN_LINE_TONES,
+} from '@/lib/video/ltx25-renderer';
 
 export type DayClipPreview = {
   engineLabel: string;
@@ -91,6 +95,30 @@ export default function DayAnimateSheet({
     normalizeDayTalkTotalSeconds(initialTalkTotalSeconds)
   );
   const [lines, setLines] = useState<string[]>([]);
+  // How each part's line is said ('' = the slot's own tone).
+  const [tones, setTones] = useState<string[]>([]);
+  const toneFor = (index: number) => (
+    <SelectInput
+      value={tones[index] || 'natural'}
+      aria-label={`How part ${index + 2}'s line is said`}
+      disabled={writing || !(lines[index] ?? '').trim()}
+      className="w-auto"
+      onChange={event =>
+        setTones(list => {
+          const next = [...list];
+          next[index] = event.target.value === 'natural' ? '' : event.target.value;
+          return next;
+        })
+      }
+      data-testid={`day-animate-part-tone-${index}`}
+    >
+      {SPOKEN_LINE_TONES.map(option => (
+        <option key={option.id} value={option.id}>
+          {option.label}
+        </option>
+      ))}
+    </SelectInput>
+  );
   // MiniMax-H3 parts (M11 T2): what happens in each, and how long each runs (0 = H3's own).
   const [partBeats, setPartBeats] = useState<string[]>([]);
   const [partSeconds, setPartSeconds] = useState<number[]>([]);
@@ -176,6 +204,7 @@ export default function DayAnimateSheet({
             extraSeconds,
             talkTotalSeconds: talkTotal,
             lines: Array.from({ length: parts }, (_, index) => lines[index] ?? ''),
+            tones: Array.from({ length: parts }, (_, index) => tones[index] ?? ''),
           }
         : chain
           ? {
@@ -184,6 +213,7 @@ export default function DayAnimateSheet({
               talkTotalSeconds: talkTotal,
               // A part may say a line (in the Cast's voice, M11 T16); empty runs without words.
               lines: Array.from({ length: parts }, (_, index) => lines[index]?.trim() ?? ''),
+              tones: Array.from({ length: parts }, (_, index) => tones[index] ?? ''),
               // Each part's own beat; one left empty is written from the scene when the part starts
               // (a bare "carry on" pushed the camera in part after part, M11).
               beats: Array.from({ length: parts }, (_, index) => partBeats[index]?.trim() ?? ''),
@@ -292,22 +322,25 @@ export default function DayAnimateSheet({
                   </Button>
                 </span>
                 {Array.from({ length: parts }, (_, index) => (
-                  <TextInput
-                    key={index}
-                    value={lines[index] ?? ''}
-                    maxLength={SPOKEN_LINE_MAX_CHARS}
-                    placeholder={`Part ${index + 2} — empty for no words`}
-                    aria-label={`Line for part ${index + 2}`}
-                    disabled={writing}
-                    onChange={event =>
-                      setLines(list => {
-                        const next = [...list];
-                        next[index] = event.target.value;
-                        return next;
-                      })
-                    }
-                    data-testid={`day-animate-line-${index}`}
-                  />
+                  <div key={index} className="flex flex-wrap items-center gap-2">
+                    <TextInput
+                      className="min-w-[12rem] flex-1"
+                      value={lines[index] ?? ''}
+                      maxLength={SPOKEN_LINE_MAX_CHARS}
+                      placeholder={`Part ${index + 2} — empty for no words`}
+                      aria-label={`Line for part ${index + 2}`}
+                      disabled={writing}
+                      onChange={event =>
+                        setLines(list => {
+                          const next = [...list];
+                          next[index] = event.target.value;
+                          return next;
+                        })
+                      }
+                      data-testid={`day-animate-line-${index}`}
+                    />
+                    {toneFor(index)}
+                  </div>
                 ))}
                 {writeError ? <FieldError>{writeError}</FieldError> : null}
               </div>
@@ -382,21 +415,25 @@ export default function DayAnimateSheet({
                       }
                       data-testid={`day-animate-part-beat-${index}`}
                     />
-                    <TextInput
-                      value={lines[index] ?? ''}
-                      maxLength={SPOKEN_LINE_MAX_CHARS}
-                      placeholder="A line to say — optional, empty for no words"
-                      aria-label={`Line for part ${index + 2}`}
-                      disabled={writing}
-                      onChange={event =>
-                        setLines(list => {
-                          const next = [...list];
-                          next[index] = event.target.value;
-                          return next;
-                        })
-                      }
-                      data-testid={`day-animate-part-line-${index}`}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <TextInput
+                        className="min-w-[12rem] flex-1"
+                        value={lines[index] ?? ''}
+                        maxLength={SPOKEN_LINE_MAX_CHARS}
+                        placeholder="A line to say — optional, empty for no words"
+                        aria-label={`Line for part ${index + 2}`}
+                        disabled={writing}
+                        onChange={event =>
+                          setLines(list => {
+                            const next = [...list];
+                            next[index] = event.target.value;
+                            return next;
+                          })
+                        }
+                        data-testid={`day-animate-part-line-${index}`}
+                      />
+                      {toneFor(index)}
+                    </div>
                     <SegmentedControl
                       aria-label={`Length of part ${index + 2}`}
                       value={String(partSeconds[index] ?? 0)}

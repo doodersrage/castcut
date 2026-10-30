@@ -2661,6 +2661,8 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
   await expect(sheet.getByTestId('day-animate-part-0-sec-3')).toHaveAttribute('aria-selected', 'true');
   // A part can say a line; the other stays wordless.
   await sheet.getByTestId('day-animate-part-line-1').fill('The view never gets old.');
+  await expect(sheet.getByTestId('day-animate-part-tone-0')).toBeDisabled();
+  await sheet.getByTestId('day-animate-part-tone-1').selectOption('whisper');
   const before = queued.length;
   await sheet.getByTestId('day-animate-submit').click();
   await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(before);
@@ -2672,9 +2674,9 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
         const pending = (tool.stills ?? []).find(
           (still: { pendingDialogue?: unknown }) => still.pendingDialogue
         )?.pendingDialogue as
-          | { beats?: string[]; partSeconds?: number[]; lines?: string[] }
+          | { beats?: string[]; partSeconds?: number[]; lines?: string[]; tones?: string[] }
           | undefined;
-        return JSON.stringify([pending?.beats, pending?.partSeconds, pending?.lines]);
+        return JSON.stringify([pending?.beats, pending?.partSeconds, pending?.lines, pending?.tones]);
       },
       { timeout: 30_000 }
     )
@@ -2683,6 +2685,7 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
         ['She walks to the window.', 'She sits on the sill.'],
         [3, 0],
         ['', 'The view never gets old.'],
+        ['', 'whisper'],
       ])
     );
 });

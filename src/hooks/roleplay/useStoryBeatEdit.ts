@@ -406,6 +406,7 @@ export function useStoryBeatEdit({
             beats: choice?.beats,
             lines: choice?.lines,
             tones: choice?.tones,
+            ...(choice?.partSeconds?.some(Boolean) ? { partSeconds: choice.partSeconds } : {}),
             lead: leadIsMan() ? 'man' : 'woman',
           },
           sharedLlmRequestBody(loadSettingsCache().shared)

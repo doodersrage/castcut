@@ -12,6 +12,8 @@ import {
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { SPOKEN_LINE_TONES } from '@/lib/video/ltx25-renderer';
 import { loadSettingsCache } from '@/lib/settings/cache';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
+import { DAY_H3_PART_SECONDS } from '@/lib/day/clip-length';
 
 export type ClipExtendChoice = {
   direction?: string;
@@ -47,6 +49,8 @@ export default function ClipExtendSheet({
   // A line per part (LTX clips lip-sync; WAN clips cannot).
   const [lines, setLines] = useState<string[]>([]);
   const [tones, setTones] = useState<string[]>([]);
+  // Each H3 part's length (0 = H3's own ~5 s), as on Animate.
+  const [partSeconds, setPartSeconds] = useState<number[]>([]);
   const [engine, setEngine] = useState<'ltx' | 'wan' | 'h3' | null>(null);
   const [partSec, setPartSec] = useState(4.3);
   const [writing, setWriting] = useState(false);
@@ -63,6 +67,7 @@ export default function ClipExtendSheet({
       setBeats(plan.beats);
       setLines(plan.beats.map(() => ''));
       setTones(plan.beats.map(() => ''));
+      setPartSeconds(plan.beats.map(() => 0));
       setPartSec(plan.partSec);
       setEngine(plan.engine);
     } catch (err) {
@@ -76,6 +81,7 @@ export default function ClipExtendSheet({
   const kept = keptIndexes.map(index => beats[index]!.trim());
   const keptLines = keptIndexes.map(index => (lines[index] ?? '').trim());
   const keptTones = keptIndexes.map(index => tones[index] ?? '');
+  const keptSeconds = keptIndexes.map(index => partSeconds[index] ?? 0);
   const start = () => {
     onStart({
       direction: direction.trim() || undefined,
@@ -84,6 +90,7 @@ export default function ClipExtendSheet({
         (engine === 'ltx' || engine === 'h3') && keptLines.some(Boolean) ? keptLines : undefined,
       tones:
         (engine === 'ltx' || engine === 'h3') && keptTones.some(Boolean) ? keptTones : undefined,
+      partSeconds: engine === 'h3' && keptSeconds.some(Boolean) ? keptSeconds : undefined,
     });
     onClose();
   };
@@ -217,6 +224,24 @@ export default function ClipExtendSheet({
                       </SelectInput>
                     </div>
                   ) : null}
+                  {engine === 'h3' ? (
+                    <SegmentedControl
+                      aria-label={`Length of part ${index + 1}`}
+                      value={String(partSeconds[index] ?? 0)}
+                      onChange={value =>
+                        setPartSeconds(list => {
+                          const next = [...list];
+                          next[index] = Number(value) || 0;
+                          return next;
+                        })
+                      }
+                      options={DAY_H3_PART_SECONDS.map(sec => ({
+                        value: String(sec),
+                        label: sec ? `${sec} s` : '~5 s',
+                        testId: `${testId}-part-${index}-sec-${sec}`,
+                      }))}
+                    />
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -226,6 +251,7 @@ export default function ClipExtendSheet({
                     setBeats(list => list.filter((_, at) => at !== index));
                     setLines(list => list.filter((_, at) => at !== index));
                     setTones(list => list.filter((_, at) => at !== index));
+                    setPartSeconds(list => list.filter((_, at) => at !== index));
                   }}
                 >
                   ✕
@@ -240,6 +266,8 @@ export default function ClipExtendSheet({
                   onClick={() => {
                     setBeats(list => [...list, '']);
                     setLines(list => [...list, '']);
+                    setTones(list => [...list, '']);
+                    setPartSeconds(list => [...list, 0]);
                   }}
                   data-testid={`${testId}-add`}
                 >
