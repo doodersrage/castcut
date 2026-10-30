@@ -2610,6 +2610,17 @@ each segment"; "voices kind of sound robotic"). · M
   keeps its sample and ID-LoRA (Steer); WAN does not speak. A voice from the player's own recording
   has no clip: H3 is not anchored on it yet.
 
+**T17 — The same voice on LTX-2.5** (user: "Anything we can do to make it consistent with
+LTX?"). · S
+- LTX talking clips only used a kept voice with Steer on (the ID-LoRA, which warped faces), so by
+  default each invented one. Two new clips (different lines and stills), four ways: no voice
+  (258 / 232 Hz), Steer (242 / 193, SIG 2.88 / 2.96), the sample as reference tokens alone
+  (`LTXVSetAudioRefTokens`, no LoRA: 242 / 193, SIG 3.10 / 3.63), tokens on top of Steer (the same
+  file as Steer). Every line word for word; no face warped. The user picked tokens alone by ear.
+- Now a kept voice always goes with an LTX talking clip, as tokens on the first pass (the refine
+  pass keeps its audio), and Steer (now "Steer harder") switches to the ID-LoRA path
+  (`videoVoiceSteer`). The app-built graph rendered the same as the test (193 Hz, SIG 3.63).
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

@@ -149,7 +149,8 @@ export type CastVoice = {
   /** The player's own recording it was cut from (file name, for display). */
   fromFile?: string;
   /**
-   * Steer talking clips toward it (ID-LoRA). Off unless switched on: on LTX-2.5 the LoRA warped
+   * Steer harder with LTX-2.5's ID-LoRA (talking clips speak in the kept voice without it, M11
+   * T17: as reference tokens). Off unless switched on: on LTX-2.5 the LoRA warped
    * faces around the mouth at full strength (live 2026-10-10); kept voices are never lost.
    */
   steer?: boolean;

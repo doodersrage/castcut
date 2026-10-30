@@ -237,6 +237,28 @@ describe('LTX-2.5 talking clips', () => {
     assert.deepEqual(workflow['52']!.inputs!.model, ['1', 0]);
   });
 
+  it('the kept voice as reference tokens: no LoRA, the first pass only, its audio kept (M11 T17)', () => {
+    for (const endImage of [undefined, 'end.png']) {
+      const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
+        ...(endImage ? { endImage } : {}),
+        speech: { voiceSample: 'castcut-voice-nora.wav', voiceTokens: true },
+      }) as { workflow: G };
+      assert.equal(byClass(workflow, 'LTXVReferenceAudio').length, 0);
+      assert.equal(byClass(workflow, 'LoraLoaderModelOnly').some(node => node.inputs!.lora_name === LTX25_ID_LORA), false);
+      const tokens = byClass(workflow, 'LTXVSetAudioRefTokens');
+      assert.equal(tokens.length, 1);
+      const encoded = workflow[(tokens[0]!.inputs!.audio_latent as string[])[0]]!;
+      assert.equal(encoded.class_type, 'LTXVAudioVAEEncode');
+      assert.equal(workflow[(encoded.inputs!.audio as string[])[0]]!.inputs!.audio, 'castcut-voice-nora.wav');
+      const g1 = workflow[(workflow['19']!.inputs!.guider as string[])[0]]!;
+      const g2 = workflow[(workflow['27']!.inputs!.guider as string[])[0]]!;
+      assert.deepEqual(g1.inputs!.positive, ['52', 0]);
+      assert.deepEqual(g1.inputs!.negative, ['52', 1]);
+      assert.notDeepEqual(g2.inputs!.positive, ['52', 0]);
+      assert.equal(workflow[(workflow['24']!.inputs!.audio_latent as string[])[0]]!.class_type, 'LTXVFreezeLatent');
+    }
+  });
+
   it('a spoken line runs on LTX-2.5 even when WAN is picked — but two-person adult stays on WAN', () => {
     assert.equal(clipEngineForShot('wan-2.2-rapid', { adultDuo: false, speaking: true }), 'ltx-video-2.5');
     assert.equal(

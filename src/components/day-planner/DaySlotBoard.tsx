@@ -678,7 +678,7 @@ export default function DaySlotBoard({
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
                     disabled={busy || voice.taking(slot.id)}
-                    title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                    title="Keep this clip's voice on the Cast: their later talking clips speak in it."
                     data-testid={`day-progress-take-voice-${slot.id}`}
                     onClick={() => void voice.take(slot.id, doneClip)}
                   >

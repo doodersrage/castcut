@@ -53,6 +53,15 @@ export const LTX25_REFINE_NODES = [
 export const LTX25_VOICE_NODE = 'LTXVReferenceAudio';
 
 /**
+ * The kept voice as reference tokens alone (M11 T17): the sample encoded and attached to the
+ * conditioning as context, no ID-LoRA and no identity pass. Live (2026-10-30, two new talking
+ * clips): the same pitch as the LoRA path (242 / 193 Hz) with more natural speech (DNSMOS SIG
+ * 3.10 / 3.63 vs 2.88 / 2.96) and nothing to warp a face; the user picked it by ear. Tokens on top
+ * of the LoRA path changed nothing (the same file).
+ */
+export const LTX25_VOICE_TOKENS_NODE = 'LTXVSetAudioRefTokens';
+
+/**
  * ID-LoRA (LTX-2.3 22B, TalkVid) — what makes LTXVReferenceAudio carry a voice. Live on LTX-2.5
  * (2026-10-09): the clip's pitch moved most of the way to the sample (229 → 193–200 Hz vs a
  * 175 Hz sample) and speaker similarity rose ~0.05; strength 1.5–2 no better than 1.
@@ -300,7 +309,13 @@ export function convertVideoWorkflowToLtx25(
      * `voiceSample` (a ComfyUI input audio file, ~5 s) steers the voice; `idLora` is the
      * ID-LoRA file to apply with it (without it the sample does nothing measurable).
      */
-    speech?: { voiceSample?: string; idLora?: string; restoreFace?: string; ambience?: string };
+    speech?: {
+      voiceSample?: string;
+      idLora?: string;
+      voiceTokens?: boolean;
+      restoreFace?: string;
+      ambience?: string;
+    };
     /**
      * The frame rate LTX is told the clip runs at (default 24, what it plays at). Lower = more
      * movement per frame: two-person adult clips at 12 with LTX_FAST_PACE_LINE move about as much
@@ -669,11 +684,40 @@ function addLtx25EndGuide(next: Workflow, endImage: string): void {
  */
 function addLtx25Speech(
   next: Workflow,
-  speech: { voiceSample?: string; idLora?: string; restoreFace?: string; ambience?: string },
+  speech: {
+    voiceSample?: string;
+    idLora?: string;
+    /** The sample as reference tokens only (the default, LTX25_VOICE_TOKENS_NODE). */
+    voiceTokens?: boolean;
+    restoreFace?: string;
+    ambience?: string;
+  },
   prefix: string
 ): void {
   const voiceSample = speech.voiceSample?.trim();
-  if (voiceSample) {
+  if (voiceSample && speech.voiceTokens && !speech.idLora?.trim()) {
+    next['51'] = { class_type: 'LoadAudio', inputs: { audio: voiceSample } };
+    const pass1 = next['15']?.inputs;
+    if (pass1) {
+      if (!next['46']) {
+        next['57'] = { class_type: 'LTXVDualCFGGuider', inputs: { ...pass1 } };
+        if (next['27']?.inputs) next['27'].inputs.guider = ['57', 0];
+      }
+      next['59'] = {
+        class_type: 'LTXVAudioVAEEncode',
+        inputs: { audio: ['51', 0], audio_vae: ['4', 0] },
+      };
+      next['52'] = {
+        class_type: LTX25_VOICE_TOKENS_NODE,
+        inputs: { positive: pass1.positive, negative: pass1.negative, audio_latent: ['59', 0] },
+      };
+      pass1.positive = ['52', 0];
+      pass1.negative = ['52', 1];
+      // The refine pass keeps the voiced audio as it is (as the LoRA path below).
+      next['58'] = { class_type: 'LTXVFreezeLatent', inputs: { latent: ['20', 1] } };
+      if (next['24']?.inputs) next['24'].inputs.audio_latent = ['58', 0];
+    }
+  } else if (voiceSample) {
     const idLora = speech.idLora?.trim();
     if (idLora) {
       next['50'] = {

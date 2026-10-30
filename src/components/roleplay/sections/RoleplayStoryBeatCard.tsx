@@ -500,7 +500,7 @@ export function RoleplayStoryBeatCard({
                   type="button"
                   className={SHOT_CARD_MENU_ITEM_CLASS}
                   disabled={busy || takingVoice}
-                  title="Keep this clip's voice on the Cast: later talking clips are steered toward it."
+                  title="Keep this clip's voice on the Cast: their later talking clips speak in it."
                   data-testid="story-beat-take-voice"
                   onClick={() => void takeVoice()}
                 >

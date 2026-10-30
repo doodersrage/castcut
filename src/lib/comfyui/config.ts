@@ -4,6 +4,7 @@ import {
   LTX25_REQUIRED_NODE,
   LTX25_SPEECH_NODES,
   LTX25_VOICE_NODE,
+  LTX25_VOICE_TOKENS_NODE,
   LTX25_ID_LORA,
   LTX25_FACE_RESTORE_NODE,
   LTX_PACED_STILL_HOLD,
@@ -276,6 +277,8 @@ export type WorkflowParamValues = {
   videoVoiceSample?: string;
   /** ComfyUI input MP4 (~1.6 s of the Cast speaking): MiniMax-H3 speaks in it (M11 T16). */
   videoVoiceClip?: string;
+  /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
+  videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
   videoLongSide?: string | number;
   /**
@@ -611,6 +614,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceClip?.trim()) {
     result.videoVoiceClip = merged.videoVoiceClip.trim();
+  }
+  if (merged.videoVoiceSteer === 'on') {
+    result.videoVoiceSteer = 'on';
   }
   if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
     result.videoLongSide = merged.videoLongSide;
@@ -2065,7 +2071,12 @@ export function injectPromptsWithFallbacks(
         (!nodeTypes || LTX25_SPEECH_NODES.every(type => nodeTypes.has(type)))
           ? {
               speech: {
-                ...ltx25SpeechOptions(input.params?.videoVoiceSample, nodeTypes, options),
+                ...ltx25SpeechOptions(
+                  input.params?.videoVoiceSample,
+                  nodeTypes,
+                  options,
+                  input.params?.videoVoiceSteer === 'on'
+                ),
                 ...ltx25FaceRestoreOption(nodeTypes, options),
                 ...(input.params?.videoAmbience?.trim() &&
                 (!nodeTypes || LTX25_AMBIENCE_NODES.every(type => nodeTypes.has(type)))
@@ -2447,15 +2458,26 @@ function ltx25RefineOption(
 function ltx25SpeechOptions(
   voiceSample: string | undefined,
   nodeTypes: Set<string> | null,
-  options: { availableLoras?: string[] | null } | undefined
-): { voiceSample?: string; idLora?: string } {
+  options: { availableLoras?: string[] | null } | undefined,
+  /** Steer is on: the ID-LoRA path (else the sample as reference tokens). */
+  steer = false
+): { voiceSample?: string; idLora?: string; voiceTokens?: boolean } {
   const sample = voiceSample?.trim();
-  if (!sample || (nodeTypes && !nodeTypes.has(LTX25_VOICE_NODE))) return {};
-  const idLora = (options?.availableLoras ?? []).find(
-    name => name.split(/[\\/]/).pop() === LTX25_ID_LORA
-  );
-  // Without the ID-LoRA the sample made no measurable difference — skip the extra pass.
-  return idLora ? { voiceSample: sample, idLora } : {};
+  if (!sample) return {};
+  const idLora = steer
+    ? (options?.availableLoras ?? []).find(name => name.split(/[\\/]/).pop() === LTX25_ID_LORA)
+    : undefined;
+  if (idLora && (!nodeTypes || nodeTypes.has(LTX25_VOICE_NODE))) {
+    return { voiceSample: sample, idLora };
+  }
+  // The kept voice as reference tokens: no LoRA, nothing to warp a face (M11 T17).
+  if (
+    !nodeTypes ||
+    (nodeTypes.has(LTX25_VOICE_TOKENS_NODE) && nodeTypes.has('LTXVAudioVAEEncode'))
+  ) {
+    return { voiceSample: sample, voiceTokens: true };
+  }
+  return {};
 }
 
 /** The face pass for a talking clip: CodeFormer (else GFPGAN) through ReActor, when installed. */

@@ -16,18 +16,21 @@ export function castVoiceOf(castId: string | null | undefined): CastVoice | null
 }
 
 /**
- * Queue params for a talking clip: the Cast's voice sample when steering is on (LTX-2.5's
- * ID-LoRA, which can warp a face), and their voice clip whenever they have one (MiniMax-H3 speaks
- * in it, M11 T16 — nothing to warp there).
+ * Queue params for a talking clip with the Cast's kept voice: its sample (LTX-2.5 speaks in it as
+ * reference tokens, M11 T17 — or through the ID-LoRA when Steer is on, which can warp a face) and
+ * its voice clip (MiniMax-H3 speaks in it, M11 T16).
  */
 export function castVoiceSampleFor(castId: string | null | undefined): {
   videoVoiceSample?: string;
   videoVoiceClip?: string;
+  videoVoiceSteer?: 'on';
 } {
   const voice = castVoiceOf(castId);
+  if (!voice) return {};
   return {
-    ...(voice?.steer ? { videoVoiceSample: voice.sample } : {}),
-    ...(voice?.clip?.trim() ? { videoVoiceClip: voice.clip.trim() } : {}),
+    videoVoiceSample: voice.sample,
+    ...(voice.steer ? { videoVoiceSteer: 'on' as const } : {}),
+    ...(voice.clip?.trim() ? { videoVoiceClip: voice.clip.trim() } : {}),
   };
 }
 

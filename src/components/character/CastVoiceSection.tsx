@@ -23,7 +23,8 @@ type Audition = { index: number; url?: string; error?: string };
 
 /**
  * Cast → Voice: hear the Cast in four kinds of voice (short LTX-2.5 clips of them saying hello),
- * keep one, nudge it deeper or higher. Talking clips are steered toward the kept voice (ID-LoRA).
+ * keep one, nudge it deeper or higher. Talking clips speak in the kept voice: MiniMax-H3 from its
+ * voice clip, LTX-2.5 from its sample as reference tokens (M11 T16–T17); Steer adds the ID-LoRA.
  */
 export default function CastVoiceSection({
   character,
@@ -85,7 +86,7 @@ export default function CastVoiceSection({
     setBusy(true);
     const error = await takeCastVoiceFromClip({ castId: character.id, clipUrl: url });
     setBusy(false);
-    setNote(error ?? 'Voice kept. Switch on “Steer talking clips” to use it in clips.');
+    setNote(error ?? 'Voice kept — their talking clips speak in it from now on.');
     refresh();
   };
   const fileRef = useRef<HTMLInputElement>(null);
@@ -94,7 +95,10 @@ export default function CastVoiceSection({
     setNote(null);
     const error = await takeCastVoiceFromFile({ castId: character.id, file });
     setBusy(false);
-    setNote(error ?? 'Your recording is kept. Switch on “Steer talking clips” to use it in clips.');
+    setNote(
+      error ??
+        'Your recording is kept — LTX-2.5 talking clips speak in it (MiniMax-H3 needs a voice kept from a clip or an audition).'
+    );
     refresh();
   };
   // Record in the browser (needs a microphone and https or localhost).
@@ -137,17 +141,17 @@ export default function CastVoiceSection({
   return (
     <ToolSection
       title="Voice"
-      description="What they sound like in talking clips (a line on a Day slot or Story scene). Hear four voices and keep one — later clips are steered toward it."
+      description="What they sound like in talking clips (a line on a Day slot or Story scene). Hear four voices and keep one — every later talking clip speaks in it."
       data-testid="cast-voice-section"
     >
       <div className="space-y-3">
-        {idLora === false ? (
+        {idLora === false && voice?.steer ? (
           <p
             className="type-caption text-[var(--tint-warning-text)]"
             data-testid="cast-voice-needs-lora"
           >
-            Talking clips only keep a voice with the LTX ID-LoRA — install “LTX ID-LoRA (Cast
-            voices)” under Settings → ComfyUI → Models. Auditions work without it.
+            Steer needs the LTX ID-LoRA — install “LTX ID-LoRA (Cast voices)” under Settings →
+            ComfyUI → Models. Without it, clips still speak in this voice.
           </p>
         ) : null}
         {voice?.fromFile ? (
@@ -179,7 +183,7 @@ export default function CastVoiceSection({
                   refresh();
                 }}
               />
-              Steer talking clips toward this voice (helps on some clips, not all)
+              Steer harder on LTX-2.5 (the ID-LoRA — can warp a face)
             </label>
             <Button
               size="sm"

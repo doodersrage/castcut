@@ -56,3 +56,31 @@ describe('a new talking clip speaks in the Cast’s kept voice (M11 T16)', () =>
     assert.ok(!without.some(node => node.class_type === H3_REF_NODE));
   });
 });
+
+describe('LTX talking clips speak in the kept voice (M11 T17)', () => {
+  function ltxClip(params: Record<string, unknown>, loras: string[] = []) {
+    const resolved = resolveQueueParams(undefined, {
+      seed: '7', width: '960', height: '1280', videoFrames: 80, videoFps: 16,
+      inputImageFilename: 'day-still.png', videoSpeech: 'on', ...params,
+    });
+    return Object.values(
+      injectPromptsWithFallbacks(
+        JSON.parse(buildWorkflowScaffoldForModel('ltx-video-2.5').json) as Record<string, unknown>,
+        { positive: 'She says, "Hi there."', negative: '', params: resolved },
+        resolvePlaceholderTokens(),
+        { model: 'ltx-video-2.5', directWorkflowPatching: true, videoRenderer: 'ltx-2.5', availableLoras: loras }
+      ).workflow as Record<string, Node>
+    );
+  }
+  it('as reference tokens by default; through the ID-LoRA with Steer on', () => {
+    const lora = 'ltx-2.3-id-lora-talkvid-3k.safetensors';
+    const byDefault = ltxClip({ videoVoiceSample: 'voice.wav' }, [lora]);
+    assert.ok(byDefault.some(node => node.class_type === 'LTXVSetAudioRefTokens'));
+    assert.ok(!byDefault.some(node => node.class_type === 'LTXVReferenceAudio'));
+    assert.ok(!byDefault.some(node => node.inputs.lora_name === lora));
+    const steered = ltxClip({ videoVoiceSample: 'voice.wav', videoVoiceSteer: 'on' }, [lora]);
+    assert.ok(steered.some(node => node.class_type === 'LTXVReferenceAudio'));
+    assert.ok(steered.some(node => node.inputs.lora_name === lora));
+    assert.ok(!ltxClip({}).some(node => node.class_type === 'LTXVSetAudioRefTokens'));
+  });
+});
