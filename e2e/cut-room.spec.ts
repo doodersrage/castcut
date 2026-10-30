@@ -1146,8 +1146,8 @@ test('make a reel: a vertical short cut, the full cut kept as a version', async 
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
-  await page.getByTestId('cut-reel').selectOption('15');
   await page.getByTestId('cut-tab-options').click();
+  await page.getByTestId('cut-reel').selectOption('15');
   await expect(page.getByTestId('cut-shape-vertical')).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('cut-follow-faces')).toBeChecked();
   await page.getByTestId('cut-tab-versions').click();

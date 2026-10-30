@@ -197,7 +197,7 @@ A shot in Cut comes from its source: a Scene's kept take, a Day slot's still or 
 
 Once you **edit a shot** (trim, hold, framing, speed, caption, overlay…), **save a version** or **cut the film**, the shot is **pinned** to the take it was cut with. A new take in its source no longer replaces it. The shot's card says **New take available** instead:
 
-- **Use it here**: this shot plays the new take. A clip's trim stays when it fits the new clip, ends at the clip's end when only its end ran past, and is reset when it can't apply — the status says which. **Back to the earlier take** then puts the take and its trim back.
+- **Use it here**: this shot plays the new take. A clip's trim stays when it fits the new clip, ends at the clip's end when only its end ran past, and is reset when it can't apply — the status says which. **Back to the earlier take** then puts the take and its trim back — again for the take before that, up to five takes back.
 - **Use for every copy**: the shot and its copies in this edit (Duplicate, Split) switch. Saved versions keep their own takes.
 - **Keep this one**: it stays on the take it was cut with.
 

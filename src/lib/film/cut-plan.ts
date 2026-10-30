@@ -97,9 +97,14 @@ export type CutShotPin = {
    * "Back to the earlier take" puts both back.
    */
   previous?: CutShotPinPrevious;
+  /**
+   * The takes before `previous`, newest first (at most CUT_EARLIER_TAKES): "Back to the earlier
+   * take" steps back through them one at a time. Readers before 3.3 ignore it.
+   */
+  earlier?: CutShotPinPrevious[];
 };
 
-export type CutShotPinPrevious = Omit<CutShotPin, 'declinedUrl' | 'previous'> & {
+export type CutShotPinPrevious = Omit<CutShotPin, 'declinedUrl' | 'previous' | 'earlier'> & {
   trimStartSec?: number;
   trimEndSec?: number;
 };

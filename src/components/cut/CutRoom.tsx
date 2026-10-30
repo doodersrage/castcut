@@ -721,118 +721,112 @@ export default function CutRoom() {
                 </div>
                 {panel === 'shots' ? (
                   <div data-testid="cut-shots">
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={busy}
-                        data-testid="cut-add-gallery"
-                        onClick={() => setGalleryOpen(true)}
+                    <div className="mb-2 space-y-2">
+                      <div className="flex flex-wrap gap-2" role="group" aria-label="Add a shot">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy}
+                          data-testid="cut-add-gallery"
+                          onClick={() => setGalleryOpen(true)}
+                        >
+                          + From Gallery
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy}
+                          data-testid="cut-add-text"
+                          title="A card of white words on black, after the shot under the playhead"
+                          onClick={() => vm.addText(activeKey)}
+                        >
+                          + Text card
+                        </Button>
+                      </div>
+                      <div
+                        className="flex flex-wrap items-center gap-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-2 py-1"
+                        role="group"
+                        aria-label="The picked shot"
+                        data-testid="cut-picked-tools"
                       >
-                        + From Gallery
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={busy}
-                        data-testid="cut-add-text"
-                        title="A card of white words on black, after the shot under the playhead"
-                        onClick={() => vm.addText(activeKey)}
-                      >
-                        + Text card
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy || !activeKey}
-                        data-testid="cut-duplicate"
-                        title="The shot under the playhead again, right after it"
-                        onClick={() => activeKey && vm.duplicate(activeKey)}
-                      >
-                        Duplicate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy || !activeKey || vm.takeBusy !== null}
-                        data-testid="cut-new-take"
-                        title="Render the picked shot again with a new seed; the new take takes its place when ready (Ctrl+Z / Remove brings the old one back)"
-                        onClick={() => activeKey && void vm.newTake(activeKey)}
-                      >
-                        {vm.takeBusy ? 'Queueing…' : 'New take'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy || !splitAt}
-                        data-testid="cut-split"
-                        title="Cut the clip under the playhead in two, where the playhead is"
-                        onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
-                      >
-                        Split at playhead
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy || !clipPoint || vm.freezeBusy}
-                        data-testid="cut-freeze"
-                        title="Hold the clip's frame under the playhead as a still for 2 s, right after the clip (F)"
-                        onClick={() =>
-                          clipPoint && void vm.freezeFrame(clipPoint.key, clipPoint.fileSec)
-                        }
-                      >
-                        {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
-                      </Button>
-                      <select
-                        aria-label="Make a reel"
-                        title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
-                        disabled={busy || kept.length === 0}
-                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
-                        value=""
-                        data-testid="cut-reel"
-                        onChange={event => {
-                          const seconds = Number(event.target.value);
-                          if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
-                          const durations = new Map<string, number>();
-                          preview.loaded?.keys.forEach((key, index) => {
-                            const sec = preview.loaded?.clipSecs[index];
-                            if (key && sec) durations.set(key, sec);
-                          });
-                          vm.makeReel(seconds, durations);
-                        }}
-                      >
-                        <option value="">Make a reel…</option>
-                        <option value="15">15 s reel</option>
-                        <option value="30">30 s reel</option>
-                        <option value="60">60 s reel</option>
-                      </select>
-                      <select
-                        aria-label="Make the picked clip longer"
-                        title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
-                        disabled={busy || !activeIsClip || vm.extendBusy !== null}
-                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
-                        value=""
-                        data-testid="cut-extend"
-                        onChange={event => {
-                          const by = Number(event.target.value);
-                          if (activeKey && by > 0) void vm.extendClip(activeKey, by);
-                        }}
-                      >
-                        <option value="">{vm.extendBusy ? 'Starting…' : 'Make longer…'}</option>
-                        <option value="4">+4 s</option>
-                        <option value="8">+8 s</option>
-                        <option value="15">+15 s</option>
-                      </select>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy || !activeKey || vm.bridgeBusy !== null}
-                        data-testid="cut-bridge"
-                        title="Render a short clip that moves from the end of this shot into the next one, instead of a cut or a fade (a few minutes)"
-                        onClick={() => activeKey && void vm.bridge(activeKey)}
-                      >
-                        {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
-                      </Button>
+                        <span className="type-overline mr-1 text-[var(--text-muted)]">
+                          Picked shot
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-xs"
+                          disabled={busy || !activeKey}
+                          data-testid="cut-duplicate"
+                          title="The shot under the playhead again, right after it"
+                          onClick={() => activeKey && vm.duplicate(activeKey)}
+                        >
+                          Duplicate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-xs"
+                          disabled={busy || !activeKey || vm.takeBusy !== null}
+                          data-testid="cut-new-take"
+                          title="Render the picked shot again with a new seed; the new take takes its place when ready (Ctrl+Z / Remove brings the old one back)"
+                          onClick={() => activeKey && void vm.newTake(activeKey)}
+                        >
+                          {vm.takeBusy ? 'Queueing…' : 'New take'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-xs"
+                          disabled={busy || !splitAt}
+                          data-testid="cut-split"
+                          title="Cut the clip under the playhead in two, where the playhead is"
+                          onClick={() => splitAt && vm.split(splitAt.key, splitAt.fileSec)}
+                        >
+                          Split at playhead
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-xs"
+                          disabled={busy || !clipPoint || vm.freezeBusy}
+                          data-testid="cut-freeze"
+                          title="Hold the clip's frame under the playhead as a still for 2 s, right after the clip (F)"
+                          onClick={() =>
+                            clipPoint && void vm.freezeFrame(clipPoint.key, clipPoint.fileSec)
+                          }
+                        >
+                          {vm.freezeBusy ? 'Freezing…' : 'Freeze frame'}
+                        </Button>
+                        <select
+                          aria-label="Make the picked clip longer"
+                          title="Carry the picked clip on in the same shot (a few minutes); the longer clip takes its place when ready"
+                          disabled={busy || !activeIsClip || vm.extendBusy !== null}
+                          className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                          value=""
+                          data-testid="cut-extend"
+                          onChange={event => {
+                            const by = Number(event.target.value);
+                            if (activeKey && by > 0) void vm.extendClip(activeKey, by);
+                          }}
+                        >
+                          <option value="">{vm.extendBusy ? 'Starting…' : 'Make longer…'}</option>
+                          <option value="4">+4 s</option>
+                          <option value="8">+8 s</option>
+                          <option value="15">+15 s</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="px-2 text-xs"
+                          disabled={busy || !activeKey || vm.bridgeBusy !== null}
+                          data-testid="cut-bridge"
+                          title="Render a short clip that moves from the end of this shot into the next one, instead of a cut or a fade (a few minutes)"
+                          onClick={() => activeKey && void vm.bridge(activeKey)}
+                        >
+                          {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
+                        </Button>
+                      </div>
                     </div>
                     {vm.extras.some(
                       extra => extra.kind === 'bridge' && extra.status !== 'ready'
@@ -1038,6 +1032,29 @@ export default function CutRoom() {
                       <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
                         {cutButton}
                         <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                          <select
+                            aria-label="Make a reel"
+                            title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
+                            disabled={busy || kept.length === 0}
+                            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                            value=""
+                            data-testid="cut-reel"
+                            onChange={event => {
+                              const seconds = Number(event.target.value);
+                              if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
+                              const durations = new Map<string, number>();
+                              preview.loaded?.keys.forEach((key, index) => {
+                                const sec = preview.loaded?.clipSecs[index];
+                                if (key && sec) durations.set(key, sec);
+                              });
+                              vm.makeReel(seconds, durations);
+                            }}
+                          >
+                            <option value="">Make a reel…</option>
+                            <option value="15">15 s reel</option>
+                            <option value="30">30 s reel</option>
+                            <option value="60">60 s reel</option>
+                          </select>
                           <Button
                             size="sm"
                             variant="ghost"

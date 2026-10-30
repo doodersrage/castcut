@@ -192,10 +192,13 @@ export function fitCutTrim(
   };
 }
 
+/** How many takes before the earlier one a shot remembers. */
+export const CUT_EARLIER_TAKES = 5;
+
 function previousOf(edit: CutShotEdit): CutShotPinPrevious | undefined {
   const pin = edit.pin;
   if (!pin?.url) return undefined;
-  const { declinedUrl: _declined, previous: _previous, ...media } = pin;
+  const { declinedUrl: _declined, previous: _previous, earlier: _earlier, ...media } = pin;
   return {
     ...media,
     ...(edit.trimStartSec !== undefined ? { trimStartSec: edit.trimStartSec } : {}),
@@ -240,11 +243,17 @@ export function takeOfferedCutMedia(
     trims[entry] = fitted.outcome;
     used.push(entry);
     const previous = previousOf(current);
+    // The take it had becomes the earlier one; the one before that moves down the list.
+    const earlier = [
+      ...(current.pin?.previous?.url ? [current.pin.previous] : []),
+      ...(current.pin?.earlier ?? []),
+    ].slice(0, CUT_EARLIER_TAKES);
     next = withEdit(next, entry, {
       ...fitted.edit,
       pin: {
         ...cutShotPin({ ...offered, key: entry }, options.now),
         ...(previous ? { previous } : {}),
+        ...(previous && earlier.length ? { earlier } : {}),
       },
     });
   }
@@ -271,11 +280,19 @@ export function backToEarlierCutTake(
   if (!current?.pin || !previous?.url) return edits;
   const { trimStartSec, trimEndSec, ...media } = previous;
   const { trimStartSec: _start, trimEndSec: _end, pin, ...rest } = current;
+  // One step back: the take before that is the earlier one now.
+  const [before, ...older] = pin.earlier ?? [];
   return withEdit(edits, key, {
     ...rest,
     ...(trimStartSec !== undefined ? { trimStartSec } : {}),
     ...(trimEndSec !== undefined ? { trimEndSec } : {}),
-    pin: { ...media, declinedUrl: pin.url, at: now },
+    pin: {
+      ...media,
+      declinedUrl: pin.url,
+      at: now,
+      ...(before?.url ? { previous: before } : {}),
+      ...(before?.url && older.length ? { earlier: older } : {}),
+    },
   });
 }
 

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { CutShotEdits, KeyedShot } from './cut-plan';
-import { backToEarlierCutTake, fitCutTrim, pinnedCutShots, takeOfferedCutMedia } from './cut-pins';
+import {
+  backToEarlierCutTake,
+  CUT_EARLIER_TAKES,
+  fitCutTrim,
+  pinnedCutShots,
+  takeOfferedCutMedia,
+} from './cut-pins';
 
 const clip = { kind: 'clip' as const };
 const oldPin = { url: '/old.mp4', kind: 'clip' as const, entryId: 'old', at: 1 };
@@ -55,6 +61,44 @@ describe('replacing a take keeps what it can (M4 F2)', () => {
       ],
       { state: 'pinned' }
     );
+  });
+
+  it('goes back more than one take, one step at a time', () => {
+    const take = (n: number): KeyedShot => ({
+      key: 'scenes:s1',
+      title: 'Kitchen',
+      url: `/take${n}.mp4`,
+      kind: 'clip',
+    });
+    let edits: CutShotEdits | undefined = { shots: { 'scenes:s1': { pin: { ...oldPin, url: '/take1.mp4' } } } };
+    for (const n of [2, 3, 4]) {
+      edits = takeOfferedCutMedia(edits, 'scenes:s1', take(n), { now: n }).edits;
+    }
+    const pin = () => edits!.shots!['scenes:s1']!.pin!;
+    assert.equal(pin().url, '/take4.mp4');
+    assert.equal(pin().previous?.url, '/take3.mp4');
+    assert.deepEqual(pin().earlier?.map(entry => entry.url), ['/take2.mp4', '/take1.mp4']);
+    for (const expected of ['/take3.mp4', '/take2.mp4', '/take1.mp4']) {
+      edits = backToEarlierCutTake(edits, 'scenes:s1', 50);
+      assert.equal(pin().url, expected);
+    }
+    assert.equal(pin().previous, undefined);
+    assert.equal(pin().earlier, undefined);
+    // Nothing further back.
+    assert.equal(backToEarlierCutTake(edits, 'scenes:s1'), edits);
+  });
+
+  it('remembers at most a few takes back', () => {
+    let edits: CutShotEdits | undefined = { shots: { 'scenes:s1': { pin: oldPin } } };
+    for (let n = 0; n < CUT_EARLIER_TAKES + 4; n += 1) {
+      edits = takeOfferedCutMedia(edits, 'scenes:s1', {
+        key: 'scenes:s1',
+        title: 'Kitchen',
+        url: `/t${n}.mp4`,
+        kind: 'clip',
+      }).edits;
+    }
+    assert.equal(edits!.shots!['scenes:s1']!.pin!.earlier!.length, CUT_EARLIER_TAKES);
   });
 
   it('with no earlier take, going back changes nothing', () => {
