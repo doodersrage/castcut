@@ -68,6 +68,13 @@ export async function grabFrame(
   ]);
 }
 
+/**
+ * AAC bitrate for a clip's pieces and its stitch: each re-encode at ffmpeg's ~128 kb/s default
+ * stacked up (three generations cost a part's speech up to 0.3 of DNSMOS SIG); 256 kb/s measured
+ * transparent (SIG 2.95 → 2.95).
+ */
+export const PIECE_AUDIO_BITRATE = '256k';
+
 /** The piece at 24 fps, `width`×`height`, with a sound track (silence when it has none). */
 export async function normalizePiece(
   ffmpeg: string,
@@ -103,6 +110,8 @@ export async function normalizePiece(
     'yuv420p',
     '-c:a',
     'aac',
+    '-b:a',
+    PIECE_AUDIO_BITRATE,
     '-ar',
     '48000',
     '-ac',

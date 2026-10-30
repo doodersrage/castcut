@@ -2577,6 +2577,23 @@ her phone and some steps"). · M
   first draw, nothing new, 20 min. Left: the first part carries the original clip's walk on a few
   steps down the balcony (its momentum; the keyframe placed her there).
 
+**T16 — A voice that sounds like her, and like a person** (user: "she had a different voice in
+each segment"; "voices kind of sound robotic"). · M
+- Measured on a talking beach clip, 5 → 30 s, a line a part (DNSMOS P.835 SIG for naturalness;
+  median speech pitch for the voice, as WavLM speaker similarity could not tell clips apart):
+  H3 writes a new voice per part — pitch 216 Hz in the clip, then 182 / 167 / 188 / 180 / 213.
+- Robotic, ours: the chain's levelling ran each part through `alimiter` (+gain), which alone cost
+  speech 0.14–0.33 SIG; three AAC generations at ~128–192 kb/s cost a little more; one 256 kb/s
+  encode was transparent. Now: plain gain capped by the part's peak (−1 dBFS), and the pieces and
+  stitch at 256 kb/s (`PIECE_AUDIO_BITRATE`).
+- The voice, tried: H3's reference model with her voice as `<Audio 1>` (pitch 184 / 195, no
+  better; pinned frames looser); each part continuing the last part's final 0.9 s of picture and
+  sound (`MiniMaxH3AddGuide`, 163 / 178, no better); more steps (no better). Re-voicing each H3
+  part with LTX-2.5 over its frozen picture — the line, her voice sample (`LTXVReferenceAudio`,
+  identity guidance 3) and the ID-LoRA — kept every line word for word (Whisper) and moved four of
+  five parts to 184–203 Hz; the fifth went to 258 (229 at guidance 6, but less natural). Waiting
+  on the user's ears (an A / B of the 30 s clip) before it goes in.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

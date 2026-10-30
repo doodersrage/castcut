@@ -6,7 +6,13 @@
 
 import { promises as fs } from 'node:fs';
 import { writeClipSource } from './clip-source-server';
-import { frameStats, grabFrame, normalizePiece, probe } from './clip-pieces-server';
+import {
+  frameStats,
+  grabFrame,
+  normalizePiece,
+  PIECE_AUDIO_BITRATE,
+  probe,
+} from './clip-pieces-server';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -568,6 +574,8 @@ async function cutPiece(ffmpeg: string, piece: string, frames: number, out: stri
     'yuv420p',
     '-c:a',
     'aac',
+    '-b:a',
+    PIECE_AUDIO_BITRATE,
     out,
   ]);
 }
@@ -713,7 +721,7 @@ async function soundLongParts(
     '-c:a',
     'aac',
     '-b:a',
-    '160k',
+    PIECE_AUDIO_BITRATE,
     '-shortest',
     '-movflags',
     '+faststart',
@@ -773,6 +781,14 @@ function reseeded(graph: Record<string, unknown>, seed: number): Record<string, 
 
 /** A file's mean sound level (dBFS), or null without sound or a reading. */
 async function meanVolume(ffmpeg: string, file: string): Promise<number | null> {
+  return (await volumeLevels(ffmpeg, file))?.mean ?? null;
+}
+
+/** A file's mean and peak sound levels (dBFS), or null without sound or a reading. */
+async function volumeLevels(
+  ffmpeg: string,
+  file: string
+): Promise<{ mean: number; peak: number } | null> {
   const log = await new Promise<string>(resolve => {
     const child = spawn(ffmpeg, ['-i', file, '-af', 'volumedetect', '-f', 'null', '-'], {
       stdio: ['ignore', 'ignore', 'pipe'],
@@ -784,8 +800,9 @@ async function meanVolume(ffmpeg: string, file: string): Promise<number | null> 
     child.on('error', () => resolve(''));
     child.on('close', () => resolve(stderr));
   });
-  const match = log.match(/mean_volume:\s*(-?[\d.]+) dB/);
-  return match ? Number(match[1]) : null;
+  const mean = log.match(/mean_volume:\s*(-?[\d.]+) dB/);
+  const peak = log.match(/max_volume:\s*(-?[\d.]+) dB/);
+  return mean ? { mean: Number(mean[1]), peak: peak ? Number(peak[1]) : 0 } : null;
 }
 
 /**
@@ -795,7 +812,14 @@ async function meanVolume(ffmpeg: string, file: string): Promise<number | null> 
 const LEVEL_GAIN = { min: -6, max: 20 };
 const SILENT_DB = -65;
 
-/** `file`'s sound brought to `target` dBFS (within LEVEL_GAIN), in place; silence left alone. */
+/** Headroom a raised part keeps under full scale (dB): its peak lands at −1 dBFS at most. */
+const PEAK_CEILING_DB = -1;
+
+/**
+ * `file`'s sound brought to `target` dBFS (within LEVEL_GAIN), in place; silence left alone.
+ * Plain gain, no further than its peak allows — a limiter (alimiter) here cost a part's speech
+ * 0.14–0.33 of DNSMOS SIG, the main "robotic" step in the chain (live, 2026-10-30).
+ */
 async function levelPieceAudio(
   ffmpeg: string,
   file: string,
@@ -803,9 +827,13 @@ async function levelPieceAudio(
   scratch: string
 ): Promise<void> {
   if (target === null || target < SILENT_DB) return;
-  const now = await meanVolume(ffmpeg, file);
-  if (now === null || now < SILENT_DB) return;
-  const gain = Math.min(LEVEL_GAIN.max, Math.max(LEVEL_GAIN.min, target - now));
+  const levels = await volumeLevels(ffmpeg, file);
+  if (!levels || levels.mean < SILENT_DB) return;
+  const gain = Math.min(
+    LEVEL_GAIN.max,
+    PEAK_CEILING_DB - levels.peak,
+    Math.max(LEVEL_GAIN.min, target - levels.mean)
+  );
   if (Math.abs(gain) < 1.5) return;
   await run(ffmpeg, [
     '-y',
@@ -814,13 +842,13 @@ async function levelPieceAudio(
     '-i',
     file,
     '-af',
-    `volume=${gain.toFixed(1)}dB,alimiter=limit=0.95`,
+    `volume=${gain.toFixed(1)}dB`,
     '-c:v',
     'copy',
     '-c:a',
     'aac',
     '-b:a',
-    '192k',
+    PIECE_AUDIO_BITRATE,
     scratch,
   ]);
   await fs.rename(/* turbopackIgnore: true */ scratch, /* turbopackIgnore: true */ file);
@@ -1460,7 +1488,7 @@ export async function extendClip(
       '-c:a',
       'aac',
       '-b:a',
-      '160k',
+      PIECE_AUDIO_BITRATE,
       '-movflags',
       '+faststart',
       at('extended.mp4'),
