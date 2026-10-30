@@ -1091,6 +1091,8 @@ export async function visionCompletion(options: {
   systemPrompt: string;
   textPrompt: string;
   imageDataUrl: string;
+  /** More pictures after the first, in order (a comparison); sent OpenAI-style. */
+  extraImageDataUrls?: string[];
   maxTokens: number;
   temperature?: number;
   /** Request-scoped vision model override (falls back to LLM_VISION_MODEL). */
@@ -1139,6 +1141,7 @@ async function visionCompletionUnsafe(options: {
   systemPrompt: string;
   textPrompt: string;
   imageDataUrl: string;
+  extraImageDataUrls?: string[];
   maxTokens: number;
   temperature?: number;
   model?: string;
@@ -1173,7 +1176,16 @@ async function visionCompletionUnsafe(options: {
     };
   }
 
-  if (isOllamaBaseUrl(baseUrl)) {
+  // More pictures: each prepared as the first is (one that can't be is sent as given).
+  const extras = await Promise.all(
+    (options.extraImageDataUrls ?? []).map(url =>
+      prepareVisionImageDataUrl(url)
+        .then(ready => ready.imageDataUrl)
+        .catch(() => url)
+    )
+  );
+
+  if (isOllamaBaseUrl(baseUrl) && !extras.length) {
     try {
       return await ollamaNativeVisionCompletionWithFallback({
         baseUrl,
@@ -1207,10 +1219,17 @@ async function visionCompletionUnsafe(options: {
         : []),
       {
         role: 'user',
-        content: [
-          { type: 'text', text: options.textPrompt },
-          { type: 'image_url', image_url: { url: prepared.imageDataUrl } },
-        ],
+        // A comparison reads the pictures first, then the question (live, Qwen3-VL).
+        content: extras.length
+          ? [
+              { type: 'image_url', image_url: { url: prepared.imageDataUrl } },
+              ...extras.map(url => ({ type: 'image_url' as const, image_url: { url } })),
+              { type: 'text', text: options.textPrompt },
+            ]
+          : [
+              { type: 'text', text: options.textPrompt },
+              { type: 'image_url', image_url: { url: prepared.imageDataUrl } },
+            ],
       },
     ],
     maxTokens: options.maxTokens,

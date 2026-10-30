@@ -140,6 +140,11 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   sound written for them; parts that start from the part before take their start frame uncompressed
   and, when it has lost detail, restore it first (SeedVR2, half mixed in). Each part's sound is
   brought to the first clip's level.
+  With the LLM on, the clip's last frame is read first (the vision model): what it shows and what
+  she holds. The written beats follow the picture where the clip's words disagree (a clip said
+  "climbing the stairs" on a flat balcony), keep what she holds in her hand, and bring nothing
+  new in — no smoke, lights or things to look at. Each keyframe is checked the same way: one where
+  she dropped what she held, or where something appeared, is drawn again.
   With MiniMax-H3's reference model in ComfyUI (`minimax_h3_ref2va_pruned_int8_convrot` in
   `models/diffusion_models` and the `minimax_h3_ref2v_turbo_8step` LoRA), each part also sees the
   Cast's face lock and look plate, so her face holds; her clothes stay as the clip has them.

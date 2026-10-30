@@ -40,6 +40,9 @@ import {
   patchWanReplayGraph,
   WAN_EXTEND_BLEND_FRAMES,
   type ClipExtendJob,
+  parseShotInventory,
+  SHOT_INVENTORY_SYSTEM,
+  type ShotInventory,
 } from './extend';
 import {
   buildLtx25ExtendGraph,
@@ -60,7 +63,7 @@ import {
   isH3ClipGraph,
   patchH3ReplayGraph,
 } from '../engine/h3-renderer';
-import { chatCompletion } from '../llm/client';
+import { chatCompletion, visionCompletion } from '../llm/client';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
@@ -113,6 +116,92 @@ async function frameDetail(input: Buffer | string): Promise<number> {
  * each part kept H3's own sound. Null when the edit checkpoint is not installed.
  */
 const KEYFRAME_TRIES = 3;
+/** What the frame shows the person holding (the vision model; nothing when it can't say). */
+async function describeShot(png: Buffer, llm?: LlmRequestOptions): Promise<ShotInventory> {
+  try {
+    const { resolveGalleryVisionTarget } = await import('../gallery/vision-review');
+    const target = await resolveGalleryVisionTarget({ llm });
+    const reply = await visionCompletion({
+      ...target,
+      systemPrompt: SHOT_INVENTORY_SYSTEM,
+      textPrompt: 'What is the person holding?',
+      imageDataUrl: `data:image/png;base64,${png.toString('base64')}`,
+      maxTokens: 600,
+      temperature: 0.1,
+      usageContext: { route: 'clip-extend' },
+    });
+    return parseShotInventory(reply);
+  } catch {
+    return { held: [] };
+  }
+}
+
+/**
+ * Whether `after` (the same place moments later) shows an object, light or part of the place that
+ * `before` does not — the vision model with both pictures (null when it can't say). Measured on
+ * live keyframes: 4 of 5 right; its miss called a streetlight's glow new (one redraw too many).
+ */
+async function addsSomething(
+  before: Buffer,
+  after: Buffer,
+  llm?: LlmRequestOptions
+): Promise<boolean | null> {
+  try {
+    const { resolveGalleryVisionTarget } = await import('../gallery/vision-review');
+    const target = await resolveGalleryVisionTarget({ llm });
+    const reply = await visionCompletion({
+      ...target,
+      systemPrompt: 'Answer with one word: yes or no.',
+      textPrompt:
+        "The second picture is the same place a few seconds after the first. Ignoring the person's pose and what they hold, does the second picture show any object, lamp, light, sign, smoke or piece of the place that is not in the first?",
+      imageDataUrl: `data:image/png;base64,${before.toString('base64')}`,
+      extraImageDataUrls: [`data:image/png;base64,${after.toString('base64')}`],
+      maxTokens: 300,
+      temperature: 0,
+      usageContext: { route: 'clip-extend' },
+    });
+    const answer = reply
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .trim()
+      .toLowerCase();
+    if (/^yes\b/.test(answer)) return true;
+    if (/^no\b/.test(answer)) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether the person in `png` still holds `item` (null when the vision model can't say). */
+async function stillHolds(
+  png: Buffer,
+  item: string,
+  llm?: LlmRequestOptions
+): Promise<boolean | null> {
+  try {
+    const { resolveGalleryVisionTarget } = await import('../gallery/vision-review');
+    const target = await resolveGalleryVisionTarget({ llm });
+    const reply = await visionCompletion({
+      ...target,
+      systemPrompt: 'Answer with one word: yes or no.',
+      textPrompt: `Is the person holding ${item.replace(/\s+in (his|her|their) (left|right) hand$/i, '')} in a hand?`,
+      imageDataUrl: `data:image/png;base64,${png.toString('base64')}`,
+      maxTokens: 300,
+      temperature: 0,
+      usageContext: { route: 'clip-extend' },
+    });
+    const answer = reply
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .trim()
+      .toLowerCase();
+    if (/^yes\b/.test(answer)) return true;
+    if (/^no\b/.test(answer)) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Share of a picture's cells that changed past which a keyframe has left the place. */
 const PLACE_CHANGED = 0.5;
 
@@ -127,13 +216,17 @@ async function pictureChanged(a: Buffer, b: Buffer): Promise<number> {
   return changed / x.length;
 }
 
-async function keyframeEditor(baseUrl: string): Promise<{
+async function keyframeEditor(
+  baseUrl: string,
+  llm?: LlmRequestOptions
+): Promise<{
   edit: (
     png: Buffer,
     beat: string,
     lead: 'woman' | 'man',
     seed: number,
-    place?: string
+    place?: string,
+    held?: readonly string[]
   ) => Promise<Buffer>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
@@ -146,7 +239,7 @@ async function keyframeEditor(baseUrl: string): Promise<{
   if (!checkpoint) return null;
   const sharp = (await import('sharp')).default;
   return {
-    async edit(png, beat, lead, seed, place) {
+    async edit(png, beat, lead, seed, place, held = []) {
       const meta = await sharp(png).metadata();
       const width = meta.width ?? 1024;
       const height = meta.height ?? 1024;
@@ -160,6 +253,9 @@ async function keyframeEditor(baseUrl: string): Promise<{
       const action = beat.trim().replace(/[.\s]+$/, '');
       const setting = place?.trim().replace(/[.\s]+$/, '');
       const where = setting ? ` (${setting})` : '';
+      const holding = held.length
+        ? ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand.`
+        : '';
       let best: { png: Buffer; extra: number } | null = null;
       for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {
         const run = await runComfyUtilityGraph<ComfyImageRef>({
@@ -170,7 +266,7 @@ async function keyframeEditor(baseUrl: string): Promise<{
           prompt: buildRelightGraph({
             checkpoint,
             image: uploaded.name,
-            prompt: `The same photo a few seconds later: ${action}. Keep the same ${lead} exactly — ${their} face, hair and clothes — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears. Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
+            prompt: `The same photo a few seconds later: ${action}. Keep the same ${lead} exactly — ${their} face, hair and clothes — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
             ...relightSize(width, height),
             seed: seed + attempt * 101,
             prefix: 'Castcut-extend-keyframe',
@@ -207,10 +303,23 @@ async function keyframeEditor(baseUrl: string): Promise<{
         // A new place, not a new pose (a beat that "glanced around the room" moved her indoors):
         // most of the picture changed — a redraw, ranked last.
         const moved = await pictureChanged(png, drawn);
+        // What she held is still in her hand (live: an "adjust the collar" keyframe dropped her
+        // phone, and a later one raised it again) — asked of the vision model; unknown counts as kept.
+        const dropped = held.length
+          ? (await Promise.all(held.map(item => stillHolds(drawn, item, llm)))).filter(
+              kept => kept === false
+            ).length
+          : 0;
+        // Nothing new in the place (live: a beat that lit up "string lamps above" hung a
+        // chandelier that stayed for the rest of the clip).
+        const added = (await addsSomething(png, drawn, llm)) ? 4 : 0;
         const extra =
+          dropped * 5 +
+          added +
           (counts
             ? Math.max(0, (counts.faces ?? 1) - 1) + Math.max(0, (counts.hands ?? 2) - 2)
-            : 0) + (moved > PLACE_CHANGED ? 10 : 0);
+            : 0) +
+          (moved > PLACE_CHANGED ? 10 : 0);
         if (!best || extra < best.extra) best = { png: drawn, extra };
         if (extra === 0) break;
       }
@@ -353,6 +462,10 @@ async function writeBeats(input: {
   direction?: string;
   /** A talking clip: who speaks (the beats keep them in place). */
   talking?: { speaker: 'She' | 'He' };
+  /** What the first frame shows them holding. */
+  held?: readonly string[];
+  /** What the first frame shows, in a sentence. */
+  shows?: string;
   llm?: LlmRequestOptions;
 }): Promise<string[]> {
   const fallback = (count: number) => fallbackExtendBeats(count, input.heat, input.talking);
@@ -824,7 +937,11 @@ export type ClipExtendInput = {
 };
 
 /** The player's beats, padded with written ones up to `count`. */
-async function resolveBeats(input: ClipExtendInput, count: number): Promise<string[]> {
+async function resolveBeats(
+  input: ClipExtendInput,
+  count: number,
+  shot: ShotInventory = { held: [] }
+): Promise<string[]> {
   // In place (M11): a part left empty is written, the ones given keep their place.
   const given = Array.from({ length: count }, (_, k) => input.beats?.[k]?.trim() ?? '');
   const missing = given.flatMap((beat, k) => (beat ? [] : [k]));
@@ -835,6 +952,8 @@ async function resolveBeats(input: ClipExtendInput, count: number): Promise<stri
     count: missing.length,
     heat: input.heat ?? 'clean',
     direction: input.direction,
+    held: shot.held,
+    shows: shot.shows,
     // Dialogue parts (a line each): the speaker stays where they are.
     ...(input.lines?.some(line => line.trim())
       ? { talking: { speaker: input.lead === 'man' ? ('He' as const) : ('She' as const) } }
@@ -909,11 +1028,14 @@ export async function planClipExtend(
     const engine = partEngine(history);
     const { total, partSec } = partCount(input, clip.frames / 24, engine, clip.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
+    const end = path.join(/* turbopackIgnore: true */ dir, 'end.png');
+    await grabFrame(ffmpeg, at24, Math.max(0, (clip.frames - 1) / 24), end);
+    const shot = await describeShot(await fs.readFile(/* turbopackIgnore: true */ end), input.llm);
     return {
       total,
       partSec,
       engine,
-      beats: await resolveBeats({ ...input, beats: [] }, total),
+      beats: await resolveBeats({ ...input, beats: [] }, total, shot),
     };
   } finally {
     await fs
@@ -976,7 +1098,14 @@ export async function extendClip(
     const { total } = partCount(input, first.frames / 24, engine, first.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
     onProgress({ total, done: 0 });
-    const beats = await resolveBeats(input, total);
+    // What she holds at the end of the clip, kept in hand by the beats, keyframes and parts.
+    await grabFrame(ffmpeg, at('piece0.mp4'), Math.max(0, (first.frames - 1) / 24), at('end0.png'));
+    const shot = await describeShot(
+      await fs.readFile(/* turbopackIgnore: true */ at('end0.png')),
+      input.llm
+    );
+    const { held } = shot;
+    const beats = await resolveBeats(input, total, shot);
     // Wordless H3 parts render long (M11 T13): their beats as timed blocks, up to 15 s a part —
     // fewer hops, and each hop is where detail went. With a spoken line, parts stay H3's own
     // length with its own sound.
@@ -984,7 +1113,9 @@ export async function extendClip(
     // the last, so no part starts from a generated frame. Long parts when there is no edit model.
     // CASTCUT_EXTEND_KEYFRAMES=off: chained parts (an operator's switch, and the long-part test).
     const keyframes =
-      h3 && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off' ? await keyframeEditor(baseUrl) : null;
+      h3 && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
+        ? await keyframeEditor(baseUrl, input.llm)
+        : null;
     const groups =
       h3 && !keyframes && !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
@@ -1110,7 +1241,8 @@ export async function extendClip(
           beats[k]!,
           input.lead === 'man' ? 'man' : 'woman',
           seed + k * 13,
-          input.setting
+          input.setting,
+          held
         );
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (
@@ -1139,6 +1271,7 @@ export async function extendClip(
               place: input.setting,
               line: group ? undefined : input.lines?.[k],
               speaker: input.lead === 'man' ? 'He' : 'She',
+              held,
               ...(group ? { blocks: group.blocks } : {}),
             }
           ),

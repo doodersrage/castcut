@@ -13,6 +13,7 @@ import {
   patchWanReplayGraph,
   castReferencesForExtend,
   groupH3Blocks,
+  parseShotInventory,
   renumberH3Pictures,
   extendFacesNote,
   pickAnchorFrame,
@@ -266,5 +267,39 @@ describe('long H3 parts (M11 T13)', () => {
     const short = groupH3Blocks(['a', 'b', 'c', 'd'], [3, 0, 2, 9]);
     assert.deepEqual(short.map(group => group.seconds), [15]);
     assert.deepEqual(short[0]!.blocks.map(block => block.seconds), [3, 5, 2, 5]);
+  });
+});
+
+describe('what the shot holds stays in hand (live: a phone came and went)', () => {
+  it('reads what the vision model says is held', () => {
+    assert.deepEqual(
+      parseShotInventory('<think>hmm</think>```json\n{"held":["a phone in her left hand."]}\n```'),
+      { held: ['a phone in her left hand'] }
+    );
+    assert.deepEqual(parseShotInventory('{"shows":"a woman on a balcony.","held":[]}'), {
+      held: [],
+      shows: 'a woman on a balcony.',
+    });
+    assert.deepEqual(parseShotInventory('{"held":["nothing"]}'), { held: [] });
+    assert.deepEqual(parseShotInventory('no idea'), { held: [] });
+  });
+
+  it('tells the beats to keep it, add nothing, and never says "steps"', () => {
+    const [system] = buildExtendBeatsMessages({
+      scene: 'She stands on a balcony at night.',
+      count: 5,
+      held: ['a phone in her left hand'],
+    });
+    assert.match(system!.content, /they hold a phone in her left hand: it stays in that hand in every beat/);
+    assert.match(system!.content, /no smoke, breath, mist/);
+    assert.doesNotMatch(system!.content, /\bsteps\b/i);
+    const [, user] = buildExtendBeatsMessages({
+      scene: 'climbing the stairs',
+      count: 2,
+      shows: 'A woman on a flat balcony.',
+    });
+    assert.match(user!.content, /actually shows: A woman on a flat balcony\. Where .* follow the picture/);
+    const [bare] = buildExtendBeatsMessages({ scene: 'x', count: 2 });
+    assert.doesNotMatch(bare!.content, /they hold/);
   });
 });

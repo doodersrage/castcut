@@ -307,3 +307,14 @@ describe('MiniMax-H3 longer clips without the build-up (M11 T13–T14)', () => {
     assert.equal(h3(keyed.graph).length, H3_PART_FRAMES);
   });
 });
+
+describe('MiniMax-H3 parts keep what she holds', () => {
+  it('says it is held the whole time', () => {
+    const prompt = h3PartPrompt('5s clip. Action: waits.', {
+      beat: 'She looks out at the city.',
+      held: ['a phone in her left hand'],
+    });
+    assert.match(prompt, /She keeps holding a phone in her left hand the whole time\./);
+    assert.doesNotMatch(h3PartPrompt('x', { beat: 'She waits.' }), /keeps holding/);
+  });
+});

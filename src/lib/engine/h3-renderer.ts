@@ -314,8 +314,11 @@ export function h3PartPrompt(
     speaker?: 'She' | 'He';
     /** A long part: its action in timed blocks, rendered silent (H3_LONG_PART_FRAMES). */
     blocks?: ReadonlyArray<{ beat: string; seconds: number }>;
+    /** What the first frame shows them holding — kept in hand (a phone vanished mid-clip). */
+    held?: readonly string[];
   }
 ): string {
+  const held = (part.held ?? []).filter(item => item.trim());
   const place = part.place
     ?.trim()
     .replace(/[.\s]+$/, '')
@@ -339,6 +342,7 @@ export function h3PartPrompt(
         ? `${Math.round(part.blocks.reduce((sum, block) => sum + block.seconds, 0))}s clip, one continuous shot, no cuts, from the first frame to the last — a single take carrying straight on from the first frame. ${h3TimedBlocks(part.blocks)}`
         : `5s clip, one continuous shot with no cuts, carrying straight on from the first frame to the last. ${part.beat.trim()}`,
       `The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view. The place around ${who === 'He' ? 'him' : 'her'} stays exactly as in the first frame, with only what is already there.`,
+      held.length ? `${who} keeps holding ${held.join(' and ')} the whole time.` : '',
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`

@@ -63,7 +63,12 @@ export function buildExtendBeatsMessages(input: {
   direction?: string;
   /** Every part says a line: a talking clip, so the speaker stays put. */
   talking?: boolean;
+  /** What the first frame shows them holding (shotInventory): kept in hand through every beat. */
+  held?: readonly string[];
+  /** What the first frame shows, in a sentence — followed over the shot's words. */
+  shows?: string;
 }) {
+  const held = (input.held ?? []).filter(item => item.trim()).slice(0, 3);
   const direction = input.direction?.trim();
   const heat = input.heat ?? 'clean';
   const system = [
@@ -72,11 +77,20 @@ export function buildExtendBeatsMessages(input: {
     'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips, nobody leaves the frame or the room.',
     // M11: "picking something up" brought a glass and a phone, and the room grew a TV.
     'Only what is already in the shot: no new objects — no phone, drink, screen or prop that the shot so far does not name.',
+    // Live (2026-10-30): "breath visible in air" drew a puff of smoke, "Steps pause mid-stair" on a
+    // flat balcony sent her walking off and snapping back.
+    'Nothing appears or disappears: no smoke, breath, mist, rain, sparks or new lights; no stairs, doors or furniture that are not already there.',
+    // Live: "the torch beam centred on hanging string lamps above" hung a chandelier.
+    'Whatever they look at, point at or light up is already in the picture — never name a new thing to look at.',
+    held.length
+      ? `In the first frame they hold ${held.join(' and ')}: it stays in that hand in every beat — never put down, dropped or swapped for something else.`
+      : '',
+    'Start each beat with who does it (She, He or They) and a verb.',
     // M11 T4: a beat that ended with the face turned away made the next part invent a new face.
     'Each beat ends with the face in view, turned toward the camera.',
     input.talking
       ? TALK_BEATS
-      : 'Small, believable steps — a gesture, a look, touching something already there, moving a little — that add up to a tiny story.',
+      : 'Small, believable actions — a gesture, a look, touching something already there, shifting a little in place — that add up to a tiny story.',
     input.talking ? TALK_HEAT[heat] : BEAT_HEAT[heat],
     direction
       ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
@@ -87,6 +101,10 @@ export function buildExtendBeatsMessages(input: {
     .join('\n');
   const user = [
     `The shot so far: ${input.scene.trim().slice(0, 500)}`,
+    // Live: the clip's words said "climbing the stairs", the picture was a flat balcony.
+    input.shows?.trim()
+      ? `What the picture actually shows: ${input.shows.trim()} Where the shot's words and the picture disagree, follow the picture.`
+      : '',
     input.setting?.trim() ? `Where: ${input.setting.trim().slice(0, 200)}` : '',
     direction ? `Where it should go: ${direction.slice(0, 300)}` : '',
   ]
@@ -96,6 +114,36 @@ export function buildExtendBeatsMessages(input: {
     { role: 'system' as const, content: system },
     { role: 'user' as const, content: user },
   ];
+}
+
+/** What the first frame shows: what the person holds, read once by the vision model. */
+export type ShotInventory = { held: string[]; shows?: string };
+
+/** The vision model's instructions for {@link parseShotInventory}. */
+export const SHOT_INVENTORY_SYSTEM =
+  'Look at the photo. Say in one plain sentence what it shows: who, where they are and what is around them (e.g. "a woman in a dress standing by the railing of a narrow balcony at night"). Then list only the objects the main person is holding in their hands, each with the hand, e.g. "a phone in her right hand" — not clothes, jewellery or bags worn. Reply with JSON only: {"shows":"...","held":["..."]}, held empty when the hands are empty.';
+
+/** The objects held, from the vision model's reply (at most three, each short). */
+export function parseShotInventory(reply: string | null | undefined): ShotInventory {
+  const text = (reply ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '');
+  const json = text.match(/\{[\s\S]*\}/)?.[0];
+  if (!json) return { held: [] };
+  try {
+    const parsed = JSON.parse(json) as { held?: unknown; shows?: unknown };
+    const held = Array.isArray(parsed.held)
+      ? parsed.held
+          .filter((item): item is string => typeof item === 'string')
+          .map(item => item.replace(/\s+/g, ' ').trim().replace(/[.]+$/, ''))
+          .filter(item => item.length > 1 && item.length <= 80 && !/^(nothing|none)\b/i.test(item))
+      : [];
+    const shows =
+      typeof parsed.shows === 'string'
+        ? parsed.shows.replace(/\s+/g, ' ').trim().slice(0, 240)
+        : '';
+    return { held: held.slice(0, 3), ...(shows ? { shows } : {}) };
+  } catch {
+    return { held: [] };
+  }
 }
 
 /** The numbered beats from the LLM's reply (stage directions and quotes dropped). */

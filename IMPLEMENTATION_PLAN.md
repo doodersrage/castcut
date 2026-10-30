@@ -762,7 +762,8 @@ replaces Scenes or Story.
   - The findings are listed with **It's fine** / **It's real** / **Undo**: the same decisions as
     Cut's Continuity list (synced, and counted by Settings → Check quality).
 - Tests: `day/script-coverage.test.ts` (2) and the S4 e2e (extended).
-- Not done: no coverage view outside the Script section (Cut, Production Home).
+- Not done: no coverage view outside the Script section (Cut, Production Home). _Since: Film
+  Director counts it (M5); Cut lists each script's coverage under What's in it (2026-10-30)._
 
 **S6 — Safe reimport.** _Done 2026-10-26._
 
@@ -1479,6 +1480,11 @@ for Script, Run and Film Director; an LLM shot draft; reordering shots; prepare 
 scene; a sound-effects track; snoozing next actions; coverage outside the Script section;
 server-side packages and runner; undo after a script reimport; more than one step of "Back to
 the earlier take".
+
+_Status 2026-10-30:_ done — phone Film Director (`/m/production`), prepare from one script scene,
+snoozing next actions (Later), coverage in Cut, undo after a script reimport, several steps of
+Back to the earlier take; earlier — phone Script and Run (M10 T5), reordering shots (M9), the
+sound-effects track (M10 T4). Open — an LLM shot draft, server-side packages and runner.
 
 ## 8.3 Tasks (prioritised)
 
@@ -2540,6 +2546,29 @@ the last two segments" of a 30 s H3 clip). · S
   cut, sound −14 to −17 dB in every part, texture 1.75–2.26 to the end, the same beach, face and
   swimsuit throughout.
 - `CASTCUT_EXTEND_KEYFRAMES=off` turns keyframes off (an operator's switch; the long-part test).
+
+**T15 — Nothing pops in or out** (user, on the 30 s balcony clip: "stuff popping in and out like
+her phone and some steps"). · M
+- Found in the user's run (the parts' and keyframes' own metadata): the beats invented what the
+  picture lacked — "Steps pause mid-stair" (the clip's words said *climbing the stairs*; the
+  picture is a flat balcony; the beat writer's own rule said "small, believable steps"), "breath
+  visible in air" (a puff of smoke), "raises phone torch" after an "adjust the collar" keyframe
+  had dropped the phone — and nothing checked a keyframe for what it lost or gained.
+- Now (`extend-server.ts`, `extend.ts`, `h3-renderer.ts`): the clip's last frame is read once by
+  the vision model (`describeShot`: one sentence of what it shows, and what is held). The beats
+  get both — "follow the picture" where the words disagree, what she holds stays in that hand in
+  every beat, nothing appears or disappears, whatever she looks at is already there; "steps" is
+  out of the rule. Each keyframe's edit prompt and each H3 part's prompt say she keeps holding it.
+  Each drawn keyframe is asked (yes/no) whether she still holds each thing (`stillHolds`), and —
+  both pictures to the model (`visionCompletion`'s new `extraImageDataUrls`) — whether anything
+  appeared (`addsSomething`); either redraws it (ranked with the face and hand counts).
+  Measured on the user's keyframes: held 3 of 3 right (keyframe 27 had already dropped the phone;
+  the glow was a streetlight); "anything new" 4 of 5 (its miss: a streetlight's glow called new).
+- Live, the user's clip and its words, 5 → 30 s: the phone held in every frame, no stairs, no
+  smoke; one run's beat "torch beam on string lamps above" still hung a chandelier (before the
+  new-things check and the "look at what is there" rule); the rerun: every keyframe kept on its
+  first draw, nothing new, 20 min. Left: the first part carries the original clip's walk on a few
+  steps down the balcony (its momentum; the keyframe placed her there).
 
 ## 13.3 Definition of done
 
