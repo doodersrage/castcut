@@ -73,6 +73,11 @@ for APP in "${APPIMAGES[@]}"; do
     sed -i 's/^export GDK_BACKEND=x11/# export GDK_BACKEND=x11 # Castcut: prefer session backend/' "$HOOK"
   fi
 
+  # appimagetool (continuous, since late 2026) refuses an AppDir whose files other users can't
+  # read or run — the extract keeps the build's 0700 dirs (apprun-hooks, …).
+  chmod -R a+rX "$EXTRACT_DIR/squashfs-root"
+  chmod a+rx "$EXTRACT_DIR/squashfs-root/AppRun"
+
   ARCH="$ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$APPIMAGETOOL" \
     "$EXTRACT_DIR/squashfs-root" "$APP.new"
   mv -f "$APP.new" "$APP"
