@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.3.1] - 2026-10-30
+
+- Desktop Linux: make the AppDir readable before repacking the AppImage
+
 ## [v3.3.0] - 2026-10-29
 
 - Cut: the editing loop on one screen
