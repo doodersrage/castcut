@@ -2635,6 +2635,11 @@ line options for each part?"). · S
   two sheets offer the same per part. A voice from the player's own recording (sound, no picture)
   anchors H3 by its sample alone (`ref_audios`; the same two clips: 232 / 186 Hz against 235 / 188
   with the clip; the user: "Sounds just like her") — Day, Story and Make longer.
+- Checked, not changed: the "walk-off" in the balcony test's first part was the user's own clip
+  (a stairs shot); our part barely moved. Extra words after a line: an energy check after the
+  line's window missed 3 of 8 parts with extra words and flagged 5 clean ones (a 5 s part leaves
+  ~0.5 s after its window) — catching it needs speech-to-text (a Whisper node in ComfyUI, or a
+  library in the app): for the user to decide.
 
 ## 13.3 Definition of done
 
@@ -2643,3 +2648,35 @@ line options for each part?"). · S
 - Measured on real chains: detail per part no longer falls part over part (T3), and the Cast's
   face and outfit checks hold (T4) — with the numbers in `docs/`.
 - Unit, lint, `tsc` and the touched e2e pass; CI green.
+
+# Part 14 — Proposal: runs that carry on with the tab closed (2026-10-30, for decision)
+
+**Today.** A Scene run (`useSceneRun`, M5 W4) drives the Scene page itself: open a Scene, queue
+its take with the page's own Render (`queueSlot`), wait for it to land and for its checks, then
+the next. A take is assembled in the browser — the Cast's references uploaded, the outfit plate
+dressed (an Edit pass on the first take in an outfit, ~3 min on a fresh install), pose guides,
+identity lock — so closing the tab stops the run (a reload resumes it and waits for the take in
+flight). The server can already queue plain prompts and record them in the Gallery
+(`server-scheduled-batch.ts`), not Scene takes.
+
+**Options.**
+- **A — Queue the whole run up front** (recommended first). *Start the run* assembles every
+  take in the browser, one after another (the same Render code; outfit plates dressed in order),
+  and hands them all to ComfyUI's queue with the run's limits applied; then the tab can close.
+  ComfyUI renders them; each lands in the Gallery as it is recorded today, and the checks run when
+  the page is next open (they already run on takes that landed while it was closed). Cost: M.
+  Trade-off: a take is not re-queued when an earlier one fails, and the minutes limit becomes an
+  estimate at queue time.
+- **B — A server-side runner.** Move take assembly into a server module (references, plates, pose
+  guides, prompt building — today inside the Day/Scene hooks), and run a job loop on the server
+  with the run record in server storage; checks via their existing server routes. The run is fully
+  independent of the browser, steps and failures included. Cost: L–XL (the take assembly is the
+  largest client path in the app); risk: two copies of take building until the client uses it.
+- **C — A headless browser on the server** running the Scene page as today. Reuses everything;
+  adds Chromium to the Docker image (~400 MB) and a fragile moving part. Not recommended.
+
+**Acceptance (A).** Start a run, close the tab: every take renders; reopening shows them on their
+Scenes with their checks; nothing is queued twice (the run record lists the prompt ids); Pause /
+Cancel before the hand-off still work, and Cancel after it removes the not-yet-started jobs from
+ComfyUI's queue.
+
