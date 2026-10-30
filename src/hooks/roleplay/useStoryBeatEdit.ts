@@ -1,5 +1,6 @@
 'use client';
 
+import { castVoiceOf } from '@/lib/cast/voice';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
   castReferencesForExtend,
@@ -334,6 +335,10 @@ export function useStoryBeatEdit({
           castVideoReferences(getCharacter(loadSettingsCache().shared.activeCharacterId)),
           leadIsMan() ? 'man' : 'woman'
         ),
+        // Talking H3 parts speak in the Cast's kept voice (M11 T16), the same from clip to clip.
+        ...(castVoiceOf(loadSettingsCache().shared.activeCharacterId)?.clip
+          ? { voiceClip: castVoiceOf(loadSettingsCache().shared.activeCharacterId)!.clip }
+          : {}),
       };
     },
     [storyRef]

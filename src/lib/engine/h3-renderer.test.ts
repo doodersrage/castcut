@@ -18,6 +18,9 @@ import {
   H3_REF_NODE,
   H3_REF_STEPS,
   withH3References,
+  withH3VoiceAnchor,
+  H3_GUIDE_NODE,
+  timedLine,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -316,5 +319,55 @@ describe('MiniMax-H3 parts keep what she holds', () => {
     });
     assert.match(prompt, /She keeps holding a phone in her left hand the whole time\./);
     assert.doesNotMatch(h3PartPrompt('x', { beat: 'She waits.' }), /keeps holding/);
+  });
+});
+
+describe('a talking part keeps her voice (M11 T16)', () => {
+  it('runs on the reference model with her speaking clip, its first and last frames pinned', () => {
+    const { workflow } = convertVideoWorkflowToH3(wanClipGraph(), { speech: true });
+    const part = patchH3ReplayGraph(workflow, {
+      lastFrame: 'start.png',
+      prompt: 'She says, "Hi."',
+      seed: 1,
+      prefix: 'x',
+      endFrame: 'key.png',
+    })!;
+    const graph = withH3VoiceAnchor(part.graph, {
+      voiceClip: 'voice.mp4',
+      pictures: [{ image: 'face.png', shows: 'her face' }],
+      look: 'Short red hair.',
+    })!;
+    const nodes = Object.values(graph);
+    const ref = nodes.find(node => node.class_type === H3_REF_NODE)!.inputs!;
+    assert.match(String(ref.prompt), /^<Picture 1> is her face\. <Video 1> with its sound <Audio 1> is her, speaking/);
+    assert.match(String(ref.prompt), /Short red hair\. .*She says, "Hi\."/);
+    assert.deepEqual(ref['ref_videos.ref_video_1'], ['h3voiceparts', 0]);
+    assert.deepEqual(ref['ref_video_audios.ref_video_audio_1'], ['h3voiceparts', 1]);
+    assert.equal(graph.h3voice!.inputs!.file, 'voice.mp4');
+    assert.equal(graph[(ref['ref_images.ref_image_1'] as [string, number])[0]]!.inputs!.image, 'face.png');
+    // Pinned: the start frame at 0, the keyframe last; the guider reads the pinned conditioning.
+    const pins = nodes.filter(node => node.class_type === H3_GUIDE_NODE);
+    assert.deepEqual(pins.map(pin => pin.inputs!.frame_idx), [0, -1]);
+    const image = (pin: (typeof pins)[number]) =>
+      graph[(pin.inputs!.image as [string, number])[0]]!.inputs!.image;
+    assert.deepEqual(pins.map(image), ['start.png', 'key.png']);
+    const guider = nodes.find(node => node.class_type === 'BasicGuider' || node.class_type === 'CFGGuider')!;
+    assert.deepEqual(guider.inputs!.conditioning ?? guider.inputs!.positive, ['h3pin2', 0]);
+    assert.equal(nodes.find(node => node.class_type === 'UNETLoader')!.inputs!.unet_name, H3_REF_FILES.transformer);
+    // Not an H3 first/last-frame graph: nothing to anchor.
+    assert.equal(withH3VoiceAnchor(wanClipGraph(), { voiceClip: 'v.mp4' }), null);
+  });
+});
+
+describe('a talking part says its line once (M11 T16)', () => {
+  it('gives the line its window and silence after', () => {
+    const timed = timedLine('She says, "We could stay until the sun goes down." Her lips move.', 124 / 24);
+    assert.equal(
+      timed,
+      'Timing: 0–3.9s: she says "We could stay until the sun goes down." once. 3.9–5.2s: she stops talking, closes her mouth and listens — silence from her, only the sound of the place.'
+    );
+    assert.match(timedLine('He says "Hi."', 5, 'He'), /^Timing: 0–2s: he says "Hi\." once\. 2–5s: he stops talking, closes his mouth/);
+    assert.match(timedLine('She stays put and says clearly, "Want my towel?" Her lips move.', 5), /says "Want my towel\?" once/);
+    assert.equal(timedLine('She waves.', 5), '');
   });
 });

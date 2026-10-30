@@ -424,6 +424,124 @@ export function withH3References(
   return graph;
 }
 
+/**
+ * The line given its own time, and silence after it (M11 T16). Live: on the reference model a short
+ * line left the rest of the part to fill, and 2 of 5 parts babbled on after it ("…let's go to grab
+ * a wretch"); told the line's window and that she stops after it, both re-rendered parts said
+ * their line once (Whisper) — "say nothing more" alone still left a tail on one.
+ */
+export function timedLine(prompt: string, seconds: number, who: 'She' | 'He' = 'She'): string {
+  // "says, …", "says clearly, …" (Day's talking clips), "says softly …".
+  const line = prompt.match(/\bsays\b[^"]{0,24}"([^"]+)"/)?.[1]?.trim();
+  if (!line) return '';
+  const words = line.split(/\s+/).filter(Boolean).length;
+  const span = Math.max(1, seconds);
+  const end = Math.min(span - 1, Math.max(2, Math.round((words / 2.6 + 0.8) * 10) / 10));
+  const fmt = (value: number) => String(Math.round(value * 10) / 10);
+  const pronoun = who === 'He' ? 'he' : 'she';
+  return `Timing: 0–${fmt(end)}s: ${pronoun} says "${line}" once. ${fmt(end)}–${fmt(span)}s: ${pronoun} stops talking, closes ${who === 'He' ? 'his' : 'her'} mouth and listens — silence from ${who === 'He' ? 'him' : 'her'}, only the sound of the place.`;
+}
+
+/** The guide node that pins a picture (or a clip with its sound) at a frame of an H3 video. */
+export const H3_GUIDE_NODE = 'MiniMaxH3AddGuide';
+/** Frames of the voice reference clip (H3's 17k+5 grid): ~1.6 s at 24 fps. */
+export const H3_VOICE_CLIP_FRAMES = 39;
+
+/**
+ * A talking part on the reference model with her voice (M11 T16): `voiceClip` — a short clip of
+ * her speaking, with its sound, from the first clip — is <Video 1> / <Audio 1>, the Cast's
+ * pictures (if any) come before it, and the part's own first and last frames stay pinned
+ * (MiniMaxH3AddGuide, as the first/last-frame model pins them). Live (2026-10-30, a 30 s talking
+ * clip): the user heard each plain H3 part as a new voice, the last two as "someone else
+ * entirely"; anchored this way the voice held and sounded natural ("sounds better overall"). A
+ * 39-frame 512 px reference took 221–227 s a part (the whole 5 s clip at full size: ~430 s).
+ * Null when the graph is not H3's first/last-frame one.
+ */
+export function withH3VoiceAnchor(
+  source: Workflow,
+  input: {
+    /** ComfyUI input video: her speaking, ~1.6 s with sound. */
+    voiceClip: string;
+    pictures?: ReadonlyArray<{ image: string; shows: string }>;
+    look?: string;
+    who?: 'She' | 'He';
+  }
+): Workflow | null {
+  const graph = JSON.parse(JSON.stringify(source)) as Workflow;
+  const entries = Object.entries(graph);
+  const h3 = entries.find(([, node]) => node?.class_type === H3_REQUIRED_NODE);
+  const unet = entries.find(([, node]) => node?.class_type === 'UNETLoader')?.[1];
+  const lora = entries.find(([, node]) => node?.class_type === 'LoraLoaderModelOnly')?.[1];
+  const scheduler = entries.find(([, node]) => node?.class_type === 'BasicScheduler')?.[1];
+  const audioVae = entries.find(
+    ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
+  )?.[0];
+  if (!h3?.[1]?.inputs || !unet?.inputs || !audioVae) return null;
+  const [id, node] = h3;
+  const old = node.inputs!;
+  unet.inputs.unet_name = H3_REF_FILES.transformer;
+  if (lora?.inputs) lora.inputs.lora_name = H3_REF_FILES.turboLora;
+  if (scheduler?.inputs) scheduler.inputs.steps = H3_REF_STEPS;
+  const pictures = input.pictures ?? [];
+  const refs: Record<string, unknown> = {};
+  pictures.forEach((picture, k) => {
+    graph[`h3ref${k + 1}`] = { class_type: 'LoadImage', inputs: { image: picture.image } };
+    refs[`ref_images.ref_image_${k + 1}`] = [`h3ref${k + 1}`, 0];
+  });
+  graph.h3voice = { class_type: 'LoadVideo', inputs: { file: input.voiceClip } };
+  graph.h3voiceparts = { class_type: 'GetVideoComponents', inputs: { video: ['h3voice', 0] } };
+  refs['ref_videos.ref_video_1'] = ['h3voiceparts', 0];
+  refs['ref_video_audios.ref_video_audio_1'] = ['h3voiceparts', 1];
+  const who = input.who ?? 'She';
+  const tags = [
+    ...pictures.map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`),
+    `<Video 1> with its sound <Audio 1> is ${who === 'He' ? 'him' : 'her'}, speaking: ${who.toLowerCase()} speaks in exactly that voice — the same person, pitch, tone, accent and pace. <Audio 1> is only how ${who === 'He' ? 'his' : 'her'} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`,
+  ].join(' ');
+  graph[id] = {
+    class_type: H3_REF_NODE,
+    inputs: {
+      clip: old.clip,
+      prompt: [
+        tags,
+        input.look?.trim(),
+        String(old.prompt ?? ''),
+        timedLine(String(old.prompt ?? ''), Number(old.length) / 24 || 5, who),
+      ]
+        .filter(Boolean)
+        .join(' '),
+      width: old.width,
+      height: old.height,
+      length: old.length,
+      ref_image_size: 'match',
+      vae: old.vae,
+      audio_vae: [audioVae, 0],
+      ...refs,
+    },
+  };
+  // Its first and last frames pinned as the first/last-frame model pinned them.
+  let positive: [string, number] = [id, 0];
+  const pins: Array<[unknown, number]> = [
+    [old.first_frame, 0],
+    [old.last_frame, -1],
+  ];
+  pins.forEach(([image, frame], k) => {
+    if (!isRef(image)) return;
+    graph[`h3pin${k + 1}`] = {
+      class_type: H3_GUIDE_NODE,
+      inputs: { positive, vae: old.vae, latent: [id, 1], image, frame_idx: frame },
+    };
+    positive = [`h3pin${k + 1}`, 0];
+  });
+  // Whatever read the conditioning reads the pinned one.
+  for (const [key, other] of Object.entries(graph)) {
+    if (key.startsWith('h3pin') || !other?.inputs) continue;
+    for (const [name, value] of Object.entries(other.inputs)) {
+      if (isRef(value) && value[0] === id && value[1] === 0) other.inputs[name] = positive;
+    }
+  }
+  return graph;
+}
+
 export function patchH3ReplayGraph(
   source: Record<string, WorkflowNode | undefined>,
   input: {

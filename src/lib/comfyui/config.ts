@@ -12,7 +12,13 @@ import {
   LTX25_REFINE_NODES,
   LTX25_AMBIENCE_NODES,
 } from '../video/ltx25-renderer';
-import { convertVideoWorkflowToH3, H3_REQUIRED_NODE } from '../engine/h3-renderer';
+import {
+  convertVideoWorkflowToH3,
+  H3_GUIDE_NODE,
+  H3_REF_NODE,
+  H3_REQUIRED_NODE,
+  withH3VoiceAnchor,
+} from '../engine/h3-renderer';
 import {
   convertImage21WorkflowToFibo2,
   fibo2RendersStill,
@@ -268,6 +274,8 @@ export type WorkflowParamValues = {
   videoAmbience?: string;
   /** ComfyUI input audio (~5 s) that steers the talking clip's voice (Cast voice sample). */
   videoVoiceSample?: string;
+  /** ComfyUI input MP4 (~1.6 s of the Cast speaking): MiniMax-H3 speaks in it (M11 T16). */
+  videoVoiceClip?: string;
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
   videoLongSide?: string | number;
   /**
@@ -600,6 +608,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceSample?.trim()) {
     result.videoVoiceSample = merged.videoVoiceSample.trim();
+  }
+  if (merged.videoVoiceClip?.trim()) {
+    result.videoVoiceClip = merged.videoVoiceClip.trim();
   }
   if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
     result.videoLongSide = merged.videoLongSide;
@@ -2082,7 +2093,16 @@ export function injectPromptsWithFallbacks(
         speech: input.params?.videoSpeech === 'on',
       });
       if (converted.converted) {
-        injected = { ...injected, workflow: converted.workflow };
+        // A talking clip speaks in the Cast's kept voice (M11 T16) when this ComfyUI has the
+        // reference model and its guide node; otherwise the clip invents one, as before.
+        const voiceClip = input.params?.videoVoiceClip?.trim();
+        const anchored =
+          voiceClip &&
+          input.params?.videoSpeech === 'on' &&
+          (!nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE)))
+            ? withH3VoiceAnchor(converted.workflow, { voiceClip })
+            : null;
+        injected = { ...injected, workflow: anchored ?? converted.workflow };
         onLtx25 = true;
       }
     }

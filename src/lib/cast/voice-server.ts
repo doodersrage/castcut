@@ -139,7 +139,7 @@ export async function voiceSampleFromUpload(bytes: Uint8Array): Promise<Uint8Arr
 }
 
 /** About two semitones: enough to hear, small enough to stay the same person. */
-const VOICE_SHIFT = { deeper: 0.89, higher: 1.12 } as const;
+export const VOICE_SHIFT = { deeper: 0.89, higher: 1.12 } as const;
 
 /** ffmpeg args: the sample pitched down / up at the same speed, mono 24 kHz WAV. */
 export function voiceShiftArgs(

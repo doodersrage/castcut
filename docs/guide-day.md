@@ -145,6 +145,9 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
   "climbing the stairs" on a flat balcony), keep what she holds in her hand, and bring nothing
   new in — no smoke, lights or things to look at. Each keyframe is checked the same way: one where
   she dropped what she held, or where something appeared, is drawn again.
+  With a spoken line, each talking part speaks in her voice: the Cast's kept voice (Cast → Voice),
+  else the first clip's — the part is shown ~1.6 s of her speaking, picture and sound, and keeps
+  its first and last frames (about 3½ min a part instead of 3).
   With MiniMax-H3's reference model in ComfyUI (`minimax_h3_ref2va_pruned_int8_convrot` in
   `models/diffusion_models` and the `minimax_h3_ref2v_turbo_8step` LoRA), each part also sees the
   Cast's face lock and look plate, so her face holds; her clothes stay as the clip has them.

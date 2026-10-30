@@ -116,6 +116,33 @@ export function buildExtendBeatsMessages(input: {
   ];
 }
 
+/** Below this RMS (dBFS) a clip's loudest window is not speech worth anchoring a voice on. */
+export const VOICE_ANCHOR_MIN_DB = -40;
+
+/**
+ * Where a clip speaks most (M11 T16): the start (s) of its loudest `windowSec` window, stepping
+ * `stepSec`, and that window's RMS in dBFS — the voice reference for its talking parts.
+ */
+export function loudestWindow(
+  samples: Int16Array,
+  sampleRate: number,
+  windowSec: number,
+  stepSec = 0.1
+): { start: number; db: number } {
+  const size = Math.max(1, Math.round(windowSec * sampleRate));
+  const step = Math.max(1, Math.round(stepSec * sampleRate));
+  let best = { start: 0, db: -Infinity };
+  for (let from = 0; from + size <= Math.max(size, samples.length); from += step) {
+    let sum = 0;
+    const end = Math.min(samples.length, from + size);
+    for (let i = from; i < end; i += 1) sum += (samples[i]! / 32768) ** 2;
+    const db = 10 * Math.log10(sum / size + 1e-12);
+    if (db > best.db) best = { start: from / sampleRate, db };
+    if (from + size >= samples.length) break;
+  }
+  return best;
+}
+
 /** What the first frame shows: what the person holds, read once by the vision model. */
 export type ShotInventory = { held: string[]; shows?: string };
 
@@ -468,6 +495,11 @@ export type ClipExtendRequest = {
   /** The Cast's pictures and appearance for H3's reference model (M11; extend-server.ts). */
   references?: Array<{ url: string; shows: string }>;
   look?: string;
+  /**
+   * The Cast's kept voice clip (ComfyUI input, cast/voice-anchor-server.ts): H3's talking parts
+   * speak in it, so the voice is the same from clip to clip (else the first clip's voice).
+   */
+  voiceClip?: string;
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
   /** How each line is said (same order; '' / 'natural' = plainly). */

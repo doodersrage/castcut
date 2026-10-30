@@ -66,10 +66,12 @@ import {
   H3_REF_FILES,
   H3_REF_NODE,
   withH3References,
+  withH3VoiceAnchor,
   isH3ClipGraph,
   patchH3ReplayGraph,
 } from '../engine/h3-renderer';
 import { chatCompletion, visionCompletion } from '../llm/client';
+import { voiceAnchorClip } from '../cast/voice-anchor-server';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
@@ -952,6 +954,8 @@ export type ClipExtendInput = {
    */
   references?: Array<{ url: string; shows: string }>;
   look?: string;
+  /** The Cast's kept voice clip (ComfyUI input): talking H3 parts speak in it (M11 T16). */
+  voiceClip?: string;
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
   /** How each line is said (same order). */
@@ -1134,6 +1138,18 @@ export async function extendClip(
     );
     const { held } = shot;
     const beats = await resolveBeats(input, total, shot);
+    // Talking H3 parts speak in the first clip's voice (M11 T16): each part on its own invented a
+    // new one, the last two "someone else entirely".
+    const voiceAnchor =
+      h3 && input.lines?.some(line => line?.trim())
+        ? input.voiceClip?.trim() ||
+          (await voiceAnchorClip({
+            ffmpeg,
+            baseUrl,
+            clip: at('piece0.mp4'),
+            out: at('voice.mp4'),
+          }).catch(() => null))
+        : null;
     // Wordless H3 parts render long (M11 T13): their beats as timed blocks, up to 15 s a part —
     // fewer hops, and each hop is where detail went. With a spoken line, parts stay H3's own
     // length with its own sound.
@@ -1309,9 +1325,20 @@ export async function extendClip(
           ...(endFrame ? { endFrame } : {}),
         });
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
-        // The reference model has no end frame: keyframed parts keep the first/last-frame one.
-        prompt =
-          h3Pictures.length && !endFrame
+        const speaks = Boolean(voiceAnchor && !group && input.lines?.[k]?.trim());
+        const anchored = speaks
+          ? withH3VoiceAnchor(patched.graph, {
+              voiceClip: voiceAnchor!,
+              pictures: h3Pictures,
+              look: h3Look,
+              who: input.lead === 'man' ? 'He' : 'She',
+            })
+          : null;
+        // The reference model has no end frame of its own: without a voice to keep, keyframed
+        // parts keep the first/last-frame one (a talking part pins its frames with guides).
+        prompt = anchored
+          ? anchored
+          : h3Pictures.length && !endFrame
             ? (withH3References(patched.graph, {
                 pictures: [
                   {

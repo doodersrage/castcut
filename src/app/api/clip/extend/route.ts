@@ -107,6 +107,10 @@ export async function POST(request: Request) {
         )
       : undefined,
     look: text(body.look, 600) || undefined,
+    // A ComfyUI input filename (the Cast's voice clip): no path, no URL.
+    voiceClip: /^[\w.-]{1,200}$/.test(text(body.voiceClip, 200))
+      ? text(body.voiceClip, 200)
+      : undefined,
     lines: Array.isArray(body.lines)
       ? body.lines
           .slice(0, 8)

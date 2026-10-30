@@ -30,7 +30,7 @@ import {
   storyClipChoice,
 } from '@/lib/video/ltx25-renderer';
 import { leadIsMan } from '@/hooks/roleplay/useRoleplayBeatQueueCore';
-import { castVoiceSampleFor } from '@/lib/cast/voice';
+import { castVoiceSampleFor, ensureCastVoiceClip } from '@/lib/cast/voice';
 import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
 import { stillPromptPeople } from '@/lib/still/clip-prompt';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
@@ -379,6 +379,9 @@ export function useRoleplayBeatQueuePart2(
 
       let promptId: string | undefined;
       try {
+        if (speaking && !conversation) {
+          await ensureCastVoiceClip(loadSettingsCache().shared.activeCharacterId).catch(() => null);
+        }
         promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: clipModel,

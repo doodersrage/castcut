@@ -7,6 +7,7 @@ import {
   VOICE_UPLOAD_MAX_BYTES,
   voiceSampleFromUpload,
 } from '@/lib/cast/voice-server';
+import { shiftVoiceAnchor, voiceAnchorFromClipUrl } from '@/lib/cast/voice-anchor-server';
 import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
@@ -55,6 +56,8 @@ export async function POST(request: Request) {
   const clipUrl = typeof body.clipUrl === 'string' ? body.clipUrl.trim() : '';
   const shift = body.shift === 'deeper' || body.shift === 'higher' ? body.shift : null;
   const sample = typeof body.sample === 'string' ? body.sample.trim() : '';
+  // The kept voice's clip for MiniMax-H3 (cast/voice-anchor-server.ts), pitched with its sample.
+  const voiceClip = typeof body.clip === 'string' ? body.clip.trim() : '';
   if (!upload && !clipUrl && !(shift && sample)) return apiError('clipUrl is required.', 400);
 
   let comfyUrl: string;
@@ -66,6 +69,21 @@ export async function POST(request: Request) {
     ).replace(/\/+$/, '');
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Invalid ComfyUI URL.', 400);
+  }
+
+  // Only the voice clip, for a voice kept before it was cut too.
+  if (body.clipOnly === true && clipUrl) {
+    try {
+      const clip = await voiceAnchorFromClipUrl({
+        clipUrl,
+        baseUrl: comfyUrl,
+        requestOrigin: new URL(request.url).origin,
+        userId: user?.id ?? null,
+      });
+      return apiJson({ ...(clip ? { clip } : {}) });
+    } catch (error) {
+      return apiError(error instanceof Error ? error.message : 'Could not read that clip.', 422);
+    }
   }
 
   let bytes: Uint8Array;
@@ -90,7 +108,20 @@ export async function POST(request: Request) {
       mimeType: 'audio/wav',
       keepCopy: true,
     });
-    return apiJson({ sample: uploaded.name });
+    // Its voice clip beside the sample: cut from the clip, or pitched as the sample was.
+    const clip = clipUrl
+      ? await voiceAnchorFromClipUrl({
+          clipUrl,
+          baseUrl: comfyUrl,
+          requestOrigin: new URL(request.url).origin,
+          userId: user?.id ?? null,
+        }).catch(() => null)
+      : shift && voiceClip
+        ? await shiftVoiceAnchor({ baseUrl: comfyUrl, clip: voiceClip, direction: shift }).catch(
+            () => null
+          )
+        : null;
+    return apiJson({ sample: uploaded.name, ...(clip ? { clip } : {}) });
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'ComfyUI upload failed.', 502);
   }

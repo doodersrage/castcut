@@ -1,5 +1,6 @@
 'use client';
 
+import { castVoiceOf } from '@/lib/cast/voice';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
@@ -59,6 +60,10 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
           { ...castVideoReferences(ctx.character), outfit: still.dressedPlateUrl },
           ctx.character?.traits?.sex === 'man' ? 'man' : 'woman'
         ),
+        // Talking H3 parts speak in the Cast's kept voice (M11 T16), the same from clip to clip.
+        ...(castVoiceOf(ctx.character?.id)?.clip
+          ? { voiceClip: castVoiceOf(ctx.character?.id)!.clip }
+          : {}),
       };
     },
     [ctx.character, dayMood, stillsRef]

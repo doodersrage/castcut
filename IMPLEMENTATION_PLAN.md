@@ -2591,8 +2591,24 @@ each segment"; "voices kind of sound robotic"). · M
   sound (`MiniMaxH3AddGuide`, 163 / 178, no better); more steps (no better). Re-voicing each H3
   part with LTX-2.5 over its frozen picture — the line, her voice sample (`LTXVReferenceAudio`,
   identity guidance 3) and the ID-LoRA — kept every line word for word (Whisper) and moved four of
-  five parts to 184–203 Hz; the fifth went to 258 (229 at guidance 6, but less natural). Waiting
-  on the user's ears (an A / B of the 30 s clip) before it goes in.
+  five parts to 184–203 Hz; the fifth went to 258 (229 at guidance 6, but less natural). The user
+  heard it as one person but robotic, "the cheapest of microphones" (8.4% of its energy at 4–8 kHz
+  against H3's 1.1%; a tone-match EQ softened it, not enough).
+- In: talking H3 parts on the reference model with ~1.6 s of her speaking — picture and sound — as
+  <Video 1> / <Audio 1>, the Cast's pictures too, and the part's start frame and keyframe pinned by
+  `MiniMaxH3AddGuide` (`withH3VoiceAnchor`). The user: "Works great … you nailed it". The whole
+  5 s clip at full size as the reference cost ~430 s a part; 39 frames at 512 px, 221–227 s (plain
+  H3 ~180 s). In the 30 s chain pitch held 188–213 Hz (plain: 163–216). On that model a short line
+  left the rest of the part to fill and 2 of 5 parts babbled on after it; the line now gets its own
+  window and silence after (`timedLine`) — both re-rendered parts said their line once (Whisper).
+  A reversed reference (no words to copy) did not help: it was not copying, it was filling time.
+- The voice from render to render (user: "Can we keep it consistent from render to render?"): a
+  kept Cast voice (Cast → Voice) also keeps its voice clip (`CastVoice.clip`, cut from the clip or
+  audition it came from, pitched with Deeper / Higher; voices kept before are cut on first use,
+  `ensureCastVoiceClip`). Every new H3 talking clip on Day and Story is anchored on it
+  (`videoVoiceClip`, config.ts), and Make longer uses it before the first clip's own voice. LTX-2.5
+  keeps its sample and ID-LoRA (Steer); WAN does not speak. A voice from the player's own recording
+  has no clip: H3 is not anchored on it yet.
 
 ## 13.3 Definition of done
 

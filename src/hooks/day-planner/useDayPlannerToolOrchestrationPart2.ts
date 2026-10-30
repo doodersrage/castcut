@@ -29,7 +29,7 @@ import {
   normalizeSpokenLine,
   talkingClipPrompt,
 } from '@/lib/video/ltx25-renderer';
-import { castVoiceSampleFor } from '@/lib/cast/voice';
+import { castVoiceSampleFor, ensureCastVoiceClip } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
 import { swapSceneForCast, type SceneToolCache } from '@/lib/day/scenes';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
@@ -618,6 +618,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         if (toolSettings.widescreenFilm === true && !framed) {
           const wide = await wideStillUrl(slot.id, imageUrl);
           if (wide) startUrl = wide;
+        }
+        // A voice kept before voice clips were cut gets its clip now, once (MiniMax-H3 speaks in it).
+        if (speaking && !conversation) {
+          await ensureCastVoiceClip(shared.activeCharacterId).catch(() => null);
         }
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',

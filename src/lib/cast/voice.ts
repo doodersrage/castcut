@@ -15,12 +15,48 @@ export function castVoiceOf(castId: string | null | undefined): CastVoice | null
   return voice?.sample?.trim() ? voice : null;
 }
 
-/** Queue params for a talking clip: the Cast's voice sample, when they have one. */
+/**
+ * Queue params for a talking clip: the Cast's voice sample when steering is on (LTX-2.5's
+ * ID-LoRA, which can warp a face), and their voice clip whenever they have one (MiniMax-H3 speaks
+ * in it, M11 T16 — nothing to warp there).
+ */
 export function castVoiceSampleFor(castId: string | null | undefined): {
   videoVoiceSample?: string;
+  videoVoiceClip?: string;
 } {
   const voice = castVoiceOf(castId);
-  return voice?.steer ? { videoVoiceSample: voice.sample } : {};
+  return {
+    ...(voice?.steer ? { videoVoiceSample: voice.sample } : {}),
+    ...(voice?.clip?.trim() ? { videoVoiceClip: voice.clip.trim() } : {}),
+  };
+}
+
+/**
+ * A voice kept before voice clips were cut (or whose clip is gone): cut it now from the clip the
+ * voice came from and keep it. The clip, or null (a recorded voice has no clip to cut).
+ */
+export async function ensureCastVoiceClip(
+  castId: string | null | undefined,
+  comfyUrl?: string
+): Promise<string | null> {
+  const voice = castVoiceOf(castId);
+  if (!voice) return null;
+  if (voice.clip?.trim()) return voice.clip.trim();
+  if (!voice.fromClipUrl?.trim()) return null;
+  const response = await fetch('/api/cast-voice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      clipUrl: voice.fromClipUrl,
+      clipOnly: true,
+      ...(comfyUrl ? { comfyUrl } : {}),
+    }),
+  }).catch(() => null);
+  const data = (await response?.json().catch(() => ({}))) as { clip?: string } | undefined;
+  if (!response?.ok || !data?.clip) return null;
+  saveCastVoice(castId!.trim(), { ...voice, clip: data.clip });
+  return data.clip;
 }
 
 export function saveCastVoice(castId: string, voice: CastVoice | null): boolean {
@@ -58,10 +94,15 @@ export async function takeCastVoiceFromClip(input: {
   } catch {
     return 'Could not reach the server.';
   }
-  const data = (await response.json().catch(() => ({}))) as { sample?: string; error?: string };
+  const data = (await response.json().catch(() => ({}))) as {
+    sample?: string;
+    clip?: string;
+    error?: string;
+  };
   if (!response.ok || !data.sample) return data.error || 'Could not take a voice from that clip.';
   const saved = saveCastVoice(input.castId, {
     sample: data.sample,
+    ...(data.clip ? { clip: data.clip } : {}),
     fromClipUrl: input.clipUrl,
     at: Date.now(),
   });
@@ -160,11 +201,26 @@ export async function shiftCastVoice(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ sample: voice.sample, shift: direction }),
+    body: JSON.stringify({
+      sample: voice.sample,
+      shift: direction,
+      ...(voice.clip ? { clip: voice.clip } : {}),
+    }),
   });
-  const data = (await response.json().catch(() => ({}))) as { sample?: string; error?: string };
+  const data = (await response.json().catch(() => ({}))) as {
+    sample?: string;
+    clip?: string;
+    error?: string;
+  };
   if (!response.ok || !data.sample) return data.error || 'Could not change the voice.';
-  saveCastVoice(castId, { ...voice, sample: data.sample, at: Date.now() });
+  // The clip follows the sample's pitch; one that could not be shifted is dropped, not kept off-key.
+  const { clip: _old, ...rest } = voice;
+  saveCastVoice(castId, {
+    ...rest,
+    sample: data.sample,
+    ...(data.clip ? { clip: data.clip } : {}),
+    at: Date.now(),
+  });
   return null;
 }
 

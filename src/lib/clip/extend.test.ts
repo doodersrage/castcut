@@ -13,6 +13,7 @@ import {
   patchWanReplayGraph,
   castReferencesForExtend,
   groupH3Blocks,
+  loudestWindow,
   parseShotInventory,
   renumberH3Pictures,
   extendFacesNote,
@@ -301,5 +302,17 @@ describe('what the shot holds stays in hand (live: a phone came and went)', () =
     assert.match(user!.content, /actually shows: A woman on a flat balcony\. Where .* follow the picture/);
     const [bare] = buildExtendBeatsMessages({ scene: 'x', count: 2 });
     assert.doesNotMatch(bare!.content, /they hold/);
+  });
+});
+
+describe('the voice a talking clip is anchored on (M11 T16)', () => {
+  it('finds where the clip speaks most', () => {
+    const rate = 1000;
+    const samples = new Int16Array(5 * rate);
+    for (let i = 2 * rate; i < 3.6 * rate; i += 1) samples[i] = i % 2 ? 8000 : -8000;
+    const found = loudestWindow(samples, rate, 1.6);
+    assert.ok(Math.abs(found.start - 2) < 0.15, `start ${found.start}`);
+    assert.ok(found.db > -15 && found.db < -11, `db ${found.db}`);
+    assert.equal(loudestWindow(new Int16Array(rate), rate, 1.6).db < -100, true);
   });
 });
