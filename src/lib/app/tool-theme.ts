@@ -94,6 +94,7 @@ export const ROUTE_ACCENT: Record<string, ToolAccent> = {
   '/m/fitting': 'rose',
   '/m/day': 'teal',
   '/m/scene': 'teal',
+  '/m/production': 'amber',
   '/m/cut': 'fuchsia',
   '/m/story': 'amber',
   '/plugins/nsfw-generator': 'fuchsia',

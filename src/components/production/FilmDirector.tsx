@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -17,6 +18,14 @@ import { useLocations } from '@/components/location/useLocations';
 import { DEFAULT_CUT_TOOL_CACHE } from '@/lib/film/cut-room';
 import { productionOverview, type SceneState } from '@/lib/film/production-overview';
 import { nextProductionActions } from '@/lib/film/production-next';
+import {
+  clearSnoozes,
+  readSnoozes,
+  snoozeAction,
+  withoutSnoozed,
+  writeSnoozes,
+  type ProductionSnoozes,
+} from '@/lib/film/production-snooze';
 import { normalizeSceneRun, runProgress, type SceneRun } from '@/lib/day/scene-run';
 
 const RUN_STATE_LABELS: Record<SceneRun['state'], string> = {
@@ -35,6 +44,7 @@ import {
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];
 const NO_DECISIONS: FindingDecision[] = [];
@@ -172,6 +182,18 @@ export default function FilmDirector() {
     [castName, castRecord, overview, run]
   );
   const [showAll, setShowAll] = useState(false);
+  // On the phone (/m/production) every link opens the phone page of its tool.
+  const phone = isMobileStudioPath(usePathname());
+  const go = (href: string) => (phone ? toMobileStudioHref(href) : href);
+  // "Later": put off for a day in this browser (the page draws nothing until mounted).
+  const [snoozes, setSnoozes] = useState<ProductionSnoozes>(() =>
+    typeof window === 'undefined' ? {} : readSnoozes()
+  );
+  const keepSnoozes = (next: ProductionSnoozes) => {
+    setSnoozes(next);
+    writeSnoozes(next);
+  };
+  const { shown: listed, snoozed } = withoutSnoozed(actions, snoozes, castId);
 
   if (!mounted) return null;
   const scene = `/scene?character=${encodeURIComponent(castId)}`;
@@ -189,11 +211,11 @@ export default function FilmDirector() {
         <ToolSection title="Pick a Cast" data-testid="director-no-cast">
           <p className="type-caption text-[var(--text-muted)]">
             Film Director shows one Cast’s production. Pick a Cast lead on{' '}
-            <Link className="underline" href="/play">
+            <Link className="underline" href={go('/play')}>
               Film
             </Link>{' '}
             or{' '}
-            <Link className="underline" href="/characters">
+            <Link className="underline" href={go('/characters')}>
               Cast
             </Link>
             .
@@ -202,10 +224,10 @@ export default function FilmDirector() {
       ) : (
         <>
           <ToolSection title="What next" data-testid="director-next">
-            {actions.length ? (
+            {listed.length ? (
               <>
                 <ol className="space-y-2">
-                  {(showAll ? actions : actions.slice(0, 5)).map(action => (
+                  {(showAll ? listed : listed.slice(0, 5)).map(action => (
                     <li
                       key={action.id}
                       className="flex flex-wrap items-center gap-3"
@@ -215,13 +237,22 @@ export default function FilmDirector() {
                         <p className="text-sm font-medium">{action.title}</p>
                         <p className="type-caption text-[var(--text-muted)]">{action.detail}</p>
                       </div>
-                      <ButtonLink href={action.href} size="sm" variant="secondary">
+                      <ButtonLink href={go(action.href)} size="sm" variant="secondary">
                         {action.cta}
                       </ButtonLink>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Put this off for a day — it comes back sooner if it changes"
+                        data-testid={`director-next-later-${action.kind}`}
+                        onClick={() => keepSnoozes(snoozeAction(snoozes, castId, action))}
+                      >
+                        Later
+                      </Button>
                     </li>
                   ))}
                 </ol>
-                {actions.length > 5 ? (
+                {listed.length > 5 ? (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -229,16 +260,36 @@ export default function FilmDirector() {
                     data-testid="director-next-more"
                     onClick={() => setShowAll(!showAll)}
                   >
-                    {showAll ? 'Show fewer' : `Show all ${actions.length}`}
+                    {showAll ? 'Show fewer' : `Show all ${listed.length}`}
                   </Button>
                 ) : null}
               </>
+            ) : actions.length ? (
+              <p
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="director-next-all-later"
+              >
+                Everything here is put off until later.
+              </p>
             ) : (
               <p className="type-caption text-[var(--text-muted)]" data-testid="director-next-none">
                 Nothing waiting on you — every Scene has a kept take, no job failed and nothing is
                 flagged.
               </p>
             )}
+            {snoozed ? (
+              <p className="type-caption mt-2 flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
+                <span data-testid="director-next-snoozed">{snoozed} put off until later</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  data-testid="director-next-unsnooze"
+                  onClick={() => keepSnoozes(clearSnoozes(snoozes, castId))}
+                >
+                  Show them
+                </Button>
+              </p>
+            ) : null}
           </ToolSection>
 
           <ToolSection title="Scenes and takes" data-testid="director-scenes">
@@ -246,45 +297,45 @@ export default function FilmDirector() {
               <Stat
                 label="Scenes"
                 value={overview.scenes.total}
-                href={scene}
+                href={go(scene)}
                 testId="director-scenes-total"
               />
               <Stat
                 label="Rendering or being checked"
                 value={overview.scenes.rendering}
-                href={scene}
+                href={go(scene)}
                 testId="director-scenes-rendering"
               />
               <Stat
                 label="Takes to review (no keeper)"
                 value={overview.scenes.toReview}
-                href={scene}
+                href={go(scene)}
                 tone="attention"
                 testId="director-scenes-review"
               />
               <Stat
                 label="Kept"
                 value={overview.scenes.kept}
-                href={scene}
+                href={go(scene)}
                 testId="director-scenes-kept"
               />
               <Stat
                 label="No take yet"
                 value={overview.scenes.planned}
-                href={scene}
+                href={go(scene)}
                 testId="director-scenes-planned"
               />
               <Stat
                 label="Kept take looks wrong"
                 value={overview.scenes.keptLooksWrong}
-                href={scene}
+                href={go(scene)}
                 tone="problem"
                 testId="director-scenes-looks-wrong"
               />
               <Stat
                 label="In the Cut"
                 value={overview.scenes.inCut}
-                href="/cut?from=scenes"
+                href={go('/cut?from=scenes')}
                 testId="director-scenes-in-cut"
               />
             </Stats>
@@ -319,25 +370,25 @@ export default function FilmDirector() {
                   <Stat
                     label={`Script scenes (${overview.script.planned} planned)`}
                     value={overview.script.scenes}
-                    href={scene}
+                    href={go(scene)}
                     testId="director-script-scenes"
                   />
                   <Stat
                     label="Shots planned"
                     value={overview.script.shots}
-                    href={scene}
+                    href={go(scene)}
                     testId="director-script-shots"
                   />
                   <Stat
                     label="Made into Scenes"
                     value={overview.script.made}
-                    href={scene}
+                    href={go(scene)}
                     testId="director-script-made"
                   />
                   <Stat
                     label="Coverage to look at"
                     value={overview.script.openFindings}
-                    href={scene}
+                    href={go(scene)}
                     tone="attention"
                     testId="director-script-findings"
                   />
@@ -352,7 +403,7 @@ export default function FilmDirector() {
             ) : (
               <p className="type-caption text-[var(--text-muted)]">
                 No script yet — import one on the{' '}
-                <Link className="underline" href={scene}>
+                <Link className="underline" href={go(scene)}>
                   Scene page
                 </Link>
                 .
@@ -365,26 +416,26 @@ export default function FilmDirector() {
               <Stat
                 label="Waiting"
                 value={overview.jobs.waiting}
-                href="/queue"
+                href={go('/queue')}
                 testId="director-jobs-waiting"
               />
               <Stat
                 label="Running"
                 value={overview.jobs.running}
-                href="/queue"
+                href={go('/queue')}
                 testId="director-jobs-running"
               />
               <Stat
                 label="Failed"
                 value={overview.jobs.failed}
-                href="/queue"
+                href={go('/queue')}
                 tone="problem"
                 testId="director-jobs-failed"
               />
               <Stat
                 label="Lost or timed out"
                 value={overview.jobs.lost}
-                href="/queue"
+                href={go('/queue')}
                 tone="problem"
                 testId="director-jobs-lost"
               />
@@ -430,7 +481,7 @@ export default function FilmDirector() {
                       </li>
                     ))}
                 </ol>
-                <ButtonLink href={scene} size="sm" variant="ghost">
+                <ButtonLink href={go(scene)} size="sm" variant="ghost">
                   Open the run
                 </ButtonLink>
               </div>
@@ -447,20 +498,20 @@ export default function FilmDirector() {
               <Stat
                 label="Open findings on kept takes"
                 value={overview.continuity.open}
-                href="/cut?from=scenes"
+                href={go('/cut?from=scenes')}
                 tone="attention"
                 testId="director-continuity-open"
               />
               <Stat
                 label="Saved versions"
                 value={overview.cut.versions}
-                href="/cut"
+                href={go('/cut')}
                 testId="director-cut-versions"
               />
               <Stat
                 label="Films cut"
                 value={overview.cut.films}
-                href="/cut"
+                href={go('/cut')}
                 testId="director-cut-films"
               />
               <Stat
@@ -470,13 +521,13 @@ export default function FilmDirector() {
                     ? new Date(overview.cut.lastFilmAt).toLocaleDateString()
                     : '—'
                 }
-                href="/cut"
+                href={go('/cut')}
                 testId="director-cut-last"
               />
             </Stats>
             <p className="type-caption mt-2 text-[var(--text-muted)]">
               Missing media and the pre-cut checks are read in{' '}
-              <Link className="underline" href="/cut">
+              <Link className="underline" href={go('/cut')}>
                 Cut
               </Link>{' '}
               (they need the files themselves).

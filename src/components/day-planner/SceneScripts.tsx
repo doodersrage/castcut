@@ -389,7 +389,8 @@ export default function SceneScripts({
   /** Prepare a run over the script (M5 W3): its planned shots made into Scenes, nothing rendered. */
   prepareRun?: (
     script: SavedScript,
-    made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>
+    made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>,
+    onlySceneId?: string
   ) => { created: number } | null;
 }) {
   // The store hands them over clean: only their per-Cast cap is applied here (M6 V7).
@@ -411,6 +412,12 @@ export default function SceneScripts({
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
+  // The script as it was before the last new version went in, and the version that replaced it:
+  // Undo is offered until the script changes again.
+  const [reimportUndo, setReimportUndo] = useState<{
+    before: SavedScript;
+    applied: SavedScript;
+  } | null>(null);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
   // M9 T3: the open script as a storyboard instead of its reading.
   const [board, setBoard] = useState(false);
@@ -542,6 +549,51 @@ export default function SceneScripts({
     );
   };
 
+  /** Make the script's (or one scene's) planned shots into Scenes and list the run. */
+  const prepare = (onlySceneId?: string) => {
+    if (!prepareRun || !open || !openParsed) return;
+    const parsed = openParsed;
+    const { fit, overLimit } = shotsToPrepare(open, scenes, onlySceneId);
+    const made = fit.flatMap(shot => {
+      const sceneIndex = parsed.scenes.findIndex(scene => scene.id === shot.sceneId);
+      const scene = parsed.scenes[sceneIndex];
+      if (!scene) return [];
+      const shotIndex = shotsForScene(open.shots, scene.id).findIndex(
+        entry => entry.id === shot.id
+      );
+      return [
+        {
+          shot,
+          draft: shotSceneDraft({
+            shot,
+            scene,
+            sceneIndex,
+            shotIndex,
+            castId,
+            cast,
+            castMap: open.castMap,
+            placeMap: open.placeMap,
+            locations,
+          }),
+        },
+      ];
+    });
+    const result = prepareRun(open, made, onlySceneId);
+    setPrepareNote(
+      result
+        ? [
+            result.created
+              ? `${result.created} planned shot${result.created === 1 ? '' : 's'} made into Scenes`
+              : 'Every planned shot is a Scene already',
+            overLimit ? `${overLimit} not made: the Cast has ${SCENE_LIMIT_PER_CAST} Scenes` : '',
+            'the run is listed below — nothing renders until you start it',
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        : null
+    );
+  };
+
   return (
     <ToolSection data-testid="scene-scripts" title="Script">
       <p className="type-caption mb-2 text-[var(--text-muted)]">
@@ -651,50 +703,7 @@ export default function SceneScripts({
                 disabled={!open.shots?.length}
                 title="Make its planned shots into Scenes and list what a run would render — nothing renders yet"
                 data-testid="script-prepare-run"
-                onClick={() => {
-                  const parsed = openParsed;
-                  const { fit, overLimit } = shotsToPrepare(open, scenes);
-                  const made = fit.flatMap(shot => {
-                    const sceneIndex = parsed.scenes.findIndex(scene => scene.id === shot.sceneId);
-                    const scene = parsed.scenes[sceneIndex];
-                    if (!scene) return [];
-                    const shotIndex = shotsForScene(open.shots, scene.id).findIndex(
-                      entry => entry.id === shot.id
-                    );
-                    return [
-                      {
-                        shot,
-                        draft: shotSceneDraft({
-                          shot,
-                          scene,
-                          sceneIndex,
-                          shotIndex,
-                          castId,
-                          cast,
-                          castMap: open.castMap,
-                          placeMap: open.placeMap,
-                          locations,
-                        }),
-                      },
-                    ];
-                  });
-                  const result = prepareRun(open, made);
-                  setPrepareNote(
-                    result
-                      ? [
-                          result.created
-                            ? `${result.created} planned shot${result.created === 1 ? '' : 's'} made into Scenes`
-                            : 'Every planned shot is a Scene already',
-                          overLimit
-                            ? `${overLimit} not made: the Cast has ${SCENE_LIMIT_PER_CAST} Scenes`
-                            : '',
-                          'the run is listed below — nothing renders until you start it',
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')
-                      : null
-                  );
-                }}
+                onClick={() => prepare()}
               >
                 Prepare a run…
               </Button>
@@ -743,6 +752,7 @@ export default function SceneScripts({
               madeSceneIds={madeSceneIds}
               onClose={() => setReimporting(false)}
               onApply={next => {
+                setReimportUndo({ before: open, applied: next });
                 update({
                   scripts: (cache.scripts ?? []).map(script =>
                     script.id === next.id ? next : script
@@ -751,6 +761,32 @@ export default function SceneScripts({
                 setReimporting(false);
               }}
             />
+          ) : null}
+          {reimportUndo &&
+          reimportUndo.applied.id === open.id &&
+          reimportUndo.applied.updatedAt === open.updatedAt ? (
+            <p
+              className="type-caption flex flex-wrap items-center gap-2"
+              data-testid="script-reimport-done"
+            >
+              The new version is in.
+              <Button
+                size="sm"
+                variant="ghost"
+                data-testid="script-reimport-undo"
+                onClick={() => {
+                  const restored = { ...reimportUndo.before, updatedAt: Date.now() };
+                  update({
+                    scripts: (cache.scripts ?? []).map(script =>
+                      script.id === restored.id ? restored : script
+                    ),
+                  });
+                  setReimportUndo(null);
+                }}
+              >
+                Undo — back to the version before
+              </Button>
+            </p>
           ) : null}
           {orphans.length ? (
             <div className="space-y-1" data-testid="script-orphans">
@@ -839,6 +875,9 @@ export default function SceneScripts({
                     }}
                     onMake={(shot, shotIndex) => makeFromShot(scene, sceneIndex, shot, shotIndex)}
                     onOpenScene={openScene}
+                    {...(prepareRun && sceneShots.length
+                      ? { onPrepareRun: () => prepare(scene.id) }
+                      : {})}
                   />
                 );
               }}

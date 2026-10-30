@@ -60,6 +60,7 @@ const PAGE_FEATURE_MAP: Array<{ prefix: string; feature: AppFeatureId }> = [
   { prefix: '/m/day', feature: 'play' },
   { prefix: '/m/cut', feature: 'play' },
   { prefix: '/m/scene', feature: 'play' },
+  { prefix: '/m/production', feature: 'play' },
   { prefix: '/m/queue', feature: 'queue' },
   { prefix: '/m/gallery', feature: 'gallery' },
   { prefix: '/m', feature: 'gallery' },

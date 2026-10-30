@@ -2,7 +2,16 @@ export const MOBILE_STUDIO_HOME = '/m' as const;
 export const MAX_CHARACTER_PLATES = 24;
 
 export type MobileStudioTabId =
-  'capture' | 'film' | 'queue' | 'gallery' | 'fitting' | 'day' | 'scene' | 'story' | 'cut';
+  | 'capture'
+  | 'film'
+  | 'queue'
+  | 'gallery'
+  | 'fitting'
+  | 'day'
+  | 'scene'
+  | 'story'
+  | 'cut'
+  | 'director';
 
 export type MobileStudioTab = {
   id: MobileStudioTabId;
@@ -21,6 +30,12 @@ export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'capture', href: '/m', label: 'Cast', hint: 'Cast → Day → Cut' },
   { id: 'gallery', href: '/m/gallery', label: 'Gallery', hint: 'Everything you’ve made' },
   { id: 'queue', href: '/m/queue', label: 'Queue', hint: 'What’s rendering' },
+  {
+    id: 'director',
+    href: '/m/production',
+    label: 'Director',
+    hint: 'What next, and where the film stands',
+  },
 ];
 
 /**
@@ -75,6 +90,9 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
   if (path === '/m/scene' || path.startsWith('/m/scene/')) {
     return 'scene';
   }
+  if (path === '/m/production' || path.startsWith('/m/production/')) {
+    return 'director';
+  }
   if (
     path === '/m/story' ||
     path.startsWith('/m/story/') ||
@@ -120,6 +138,7 @@ export function toMobileStudioHref(href: string): string {
     '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
     '/queue': '/m/queue',
+    '/production': '/m/production',
     '/characters': '/m',
   };
   const next = map[path];

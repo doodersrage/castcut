@@ -1,6 +1,6 @@
 # Film Director
 
-**Film Director** (`/production`, in the Film menu) is the whole production of the active Cast on
+**Film Director** (`/production`, in the Film menu; on a phone `/m/production`, under **More → Director**) is the whole production of the active Cast on
 one page: what's made, what's waiting on you, what went wrong, and what automation did. It only
 reads — every number comes from what the tools already keep, and opens the tool that owns it.
 
@@ -25,7 +25,9 @@ place — it never does the work for you.
 | A planned script scene with nothing made | That script |
 | Coverage gaps in a script's shot lists | The Scene page |
 
-Five show at a time; **Show all** lists the rest. When nothing waits, it says so.
+Five show at a time; **Show all** lists the rest. When nothing waits, it says so. **Later** puts
+an item off for a day in this browser — it comes back sooner if it changes (a third failed job
+after two) — and **Show them** brings back everything put off.
 
 ## The overview
 

@@ -201,7 +201,9 @@ export function useScenePage(vm: DayEngineView) {
   const prepareRun = useCallback(
     (
       script: SavedScript,
-      made: ReadonlyArray<{ shot: PlannedShot; draft: ShotSceneDraft }>
+      made: ReadonlyArray<{ shot: PlannedShot; draft: ShotSceneDraft }>,
+      /** A run over one script scene only. */
+      onlySceneId?: string
     ): { created: number; run: SceneRun } | null => {
       if (!castId || script.castId !== castId) return null;
       const now = Date.now();
@@ -234,7 +236,12 @@ export function useScenePage(vm: DayEngineView) {
           : {}),
         updatedAt: now,
       };
-      const run = runFromScript({ script: nextScript, scenes: allScenes, now });
+      const run = runFromScript({
+        script: nextScript,
+        scenes: allScenes,
+        now,
+        ...(onlySceneId ? { onlySceneId } : {}),
+      });
       write({ scenes: allScenes, run });
       // Its shots now name their Scenes (scripts keep their own store: scene-script-store.ts).
       applySceneScriptsPatch({

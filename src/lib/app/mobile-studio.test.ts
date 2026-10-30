@@ -37,6 +37,7 @@ describe('mobile studio paths', () => {
   it('maps tab ids from the pathname', () => {
     assert.equal(mobileStudioTabFromPath('/m'), 'capture');
     assert.equal(mobileStudioTabFromPath('/m/queue'), 'queue');
+    assert.equal(mobileStudioTabFromPath('/m/production'), 'director');
     assert.equal(mobileStudioTabFromPath('/m/gallery'), 'gallery');
     assert.equal(mobileStudioTabFromPath('/m/fitting'), 'fitting');
     assert.equal(mobileStudioTabFromPath('/m/day'), 'day');
@@ -52,6 +53,7 @@ describe('mobile studio paths', () => {
     assert.equal(toMobileStudioHref('/play'), '/m/film');
     assert.equal(toMobileStudioHref('/gallery'), '/m/gallery');
     assert.equal(toMobileStudioHref('/queue'), '/m/queue');
+    assert.equal(toMobileStudioHref('/production'), '/m/production');
     assert.equal(toMobileStudioHref('/characters'), '/m');
     assert.equal(toMobileStudioHref('/characters/c1'), '/m?character=c1');
     assert.equal(

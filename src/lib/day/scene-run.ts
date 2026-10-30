@@ -71,15 +71,19 @@ export const RUN_LOG_MAX = 200;
  */
 export function shotsToPrepare(
   script: SavedScript,
-  scenes: readonly SavedScene[]
+  scenes: readonly SavedScene[],
+  /** Only this script scene's shots (a run for one scene). */
+  onlySceneId?: string
 ): { fit: PlannedShot[]; overLimit: number } {
   const parsed = parseScript(script.source);
   const existing = new Set(scenes.map(scene => scene.id));
-  const pending = parsed.scenes.flatMap(scene =>
-    shotsForScene(script.shots, scene.id).filter(
-      shot => !shot.madeSceneId || !existing.has(shot.madeSceneId)
-    )
-  );
+  const pending = parsed.scenes
+    .filter(scene => !onlySceneId || scene.id === onlySceneId)
+    .flatMap(scene =>
+      shotsForScene(script.shots, scene.id).filter(
+        shot => !shot.madeSceneId || !existing.has(shot.madeSceneId)
+      )
+    );
   const room = Math.max(0, SCENE_LIMIT_PER_CAST - scenesForCast(scenes, script.castId).length);
   return { fit: pending.slice(0, room), overLimit: Math.max(0, pending.length - room) };
 }
@@ -91,6 +95,8 @@ export function runFromScript(input: {
   skipKept?: boolean;
   now?: number;
   id?: string;
+  /** Only this script scene's Scenes (a run for one scene). */
+  onlySceneId?: string;
 }): SceneRun {
   const now = input.now ?? Date.now();
   const skipKept = input.skipKept !== false;
@@ -98,7 +104,12 @@ export function runFromScript(input: {
   const parsed = parseScript(input.script.source);
   const seen = new Set<string>();
   const items: SceneRunItem[] = [];
-  for (const scene of parsed.scenes) {
+  const picked = parsed.scenes.filter(
+    scene => !input.onlySceneId || scene.id === input.onlySceneId
+  );
+  const one = input.onlySceneId ? picked[0] : undefined;
+  const label = one ? `${input.script.name} — ${one.heading || 'one scene'}` : input.script.name;
+  for (const scene of picked) {
     for (const shot of shotsForScene(input.script.shots, scene.id)) {
       const made = shot.madeSceneId ? byId.get(shot.madeSceneId) : undefined;
       if (!made || seen.has(made.id)) continue;
@@ -110,16 +121,14 @@ export function runFromScript(input: {
     id: input.id ?? `run-${now.toString(36)}`,
     castId: input.script.castId,
     scriptId: input.script.id,
-    label: input.script.name,
+    label,
     items: items.slice(0, RUN_MAX_ITEMS),
     maxTakes: RUN_DEFAULT_MAX_TAKES,
     maxMinutes: RUN_DEFAULT_MAX_MINUTES,
     skipKept,
     state: 'prepared',
     position: 0,
-    log: [
-      { at: now, event: 'prepared', detail: `${items.length} Scenes from “${input.script.name}”` },
-    ],
+    log: [{ at: now, event: 'prepared', detail: `${items.length} Scenes from “${label}”` }],
     createdAt: now,
     updatedAt: now,
   };

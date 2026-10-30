@@ -97,6 +97,16 @@ test('next actions: ranked, and Review takes opens that very Scene', async ({ pa
   });
   const review = page.getByTestId('director-next-review-takes');
   await expect(review).toContainText('Review 2 takes of Kitchen');
+  // "Later" puts the reference off — for a reload too — and Show them brings it back.
+  await page.getByTestId('director-next-later-cast-reference').click();
+  await expect(page.getByTestId('director-next-cast-reference')).toHaveCount(0);
+  await expect(page.getByTestId('director-next-snoozed')).toHaveText('1 put off until later');
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('director-next-snoozed')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('director-next-cast-reference')).toHaveCount(0);
+  await page.getByTestId('director-next-unsnooze').click();
+  await expect(next.locator('li').first()).toHaveAttribute('data-testid', 'director-next-cast-reference');
   await review.getByRole('link', { name: 'Review takes' }).click();
   await expect(page).toHaveURL(new RegExp(`/scene\\?character=${CAST}&scene=n-review`), {
     timeout: 30_000,
@@ -110,4 +120,34 @@ test('with no Cast picked, it says how to pick one', async ({ page }) => {
   await gotoStable(page, '/production');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('director-no-cast')).toBeVisible({ timeout: 30_000 });
+});
+
+test('on the phone: the overview fits, and its links stay on the phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Nora', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        scenes: [
+          { id: 'p-review', castId: CAST, name: 'Kitchen', slot: { id: 'morning', label: 'Morning' }, takes: [take('p-r1'), take('p-r2')], createdAt: 2, updatedAt: 2 },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, '/m/production');
+  await dismissBlockingOverlays(page);
+  const review = page.getByTestId('director-next-review-takes');
+  await expect(review).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('mobile-studio-dock')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expect(review.getByRole('link', { name: 'Review takes' })).toHaveAttribute(
+    'href',
+    new RegExp(`^/m/scene\\?character=${CAST}&scene=p-review`)
+  );
+  await expect(page.getByTestId('director-scenes-review')).toHaveAttribute('href', `/m/scene?character=${CAST}`);
 });

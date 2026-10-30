@@ -60,6 +60,7 @@ export default function SceneScriptShots({
   onDecide,
   orphans = false,
   scriptShots,
+  onPrepareRun,
 }: {
   scene: ScriptScene;
   sceneIndex: number;
@@ -79,6 +80,8 @@ export default function SceneScriptShots({
   onDecide?: (id: string, kind: FindingDecisionKind | null) => void;
   /** Shots of scenes no longer in the script (S6): shown and removable, not drafted or made. */
   orphans?: boolean;
+  /** Prepare a run over this scene's shots alone (nothing renders yet). */
+  onPrepareRun?: () => void;
 }) {
   const number = scene.number ?? String(sceneIndex + 1);
   const change = (id: string, patch: Partial<PlannedShot>) =>
@@ -402,16 +405,29 @@ export default function SceneScriptShots({
           ))}
         </ul>
       ) : null}
-      {shots.length && shots.length < SHOTS_PER_SCENE ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          data-testid={`script-shots-add-${scene.id}`}
-          onClick={() => onShots([...shots, addedShot(shots, scene)])}
-        >
-          Add a shot
-        </Button>
-      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {shots.length && shots.length < SHOTS_PER_SCENE ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            data-testid={`script-shots-add-${scene.id}`}
+            onClick={() => onShots([...shots, addedShot(shots, scene)])}
+          >
+            Add a shot
+          </Button>
+        ) : null}
+        {onPrepareRun && shots.length ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            title="Make this scene's planned shots into Scenes and list a run over them alone — nothing renders yet"
+            data-testid={`script-prepare-run-${scene.id}`}
+            onClick={onPrepareRun}
+          >
+            Prepare a run for this scene
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

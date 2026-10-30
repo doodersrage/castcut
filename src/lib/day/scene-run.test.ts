@@ -71,6 +71,23 @@ describe('a prepared run (M5 W3)', () => {
     assert.deepEqual(runQueue(run, [scene('a')], 60).gone, ['c']);
   });
 
+  it('prepares a run for one script scene alone', () => {
+    const script = scriptWith({ 'int-kitchen-day~1': 'a', 'ext-roof-night~1': 'b', 'ext-roof-night~2': 'c' });
+    assert.deepEqual(
+      shotsToPrepare(scriptWith(), [], 'ext-roof-night').fit.map(shot => shot.id),
+      ['ext-roof-night~1', 'ext-roof-night~2']
+    );
+    const run = runFromScript({
+      script,
+      scenes: [scene('a'), scene('b'), scene('c')],
+      now: 5,
+      id: 'r1',
+      onlySceneId: 'ext-roof-night',
+    });
+    assert.deepEqual(run.items.map(item => item.sceneId), ['b', 'c']);
+    assert.match(run.label, /^Draft — /);
+  });
+
   it('reads a stored run back, and keeps its log bounded', () => {
     const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
     const stored = normalizeSceneRun(JSON.parse(JSON.stringify({ ...run, maxTakes: 999, state: 'bogus' })))!;

@@ -133,7 +133,8 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   changed, new or removed (matched by its id, else by its heading) with what happens to its
   shots, and nothing changes until **Replace with this version**. A shot that became a Scene is
   never dropped: shots of removed scenes are kept under **Shots from scenes no longer in the
-  script** and come back if the scene does.
+  script** and come back if the scene does. Right after, **Undo — back to the version before**
+  puts the old text and every shot back (until the script is changed again).
 
 Scripts are kept with the Cast (up to 12) and sync like the scenes.
 
@@ -144,7 +145,8 @@ page.
 
 1. **Prepare a run…** on an open script makes its planned shots into Scenes (not opened — the one
    you have open stays) and lists what a run would render: each Scene, its engine and about how
-   long. Nothing renders yet.
+   long. Nothing renders yet. Under a scene's shots, **Prepare a run for this scene** does the same
+   for that scene alone.
 2. Set the limits — at most so many takes, about so many minutes — leave Scenes with a kept take
    out (the default), and switch any Scene in or out.
 3. **Start the run.** Each Scene is opened, its take queued with the page's own Render, and the

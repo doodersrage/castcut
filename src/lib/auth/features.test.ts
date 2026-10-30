@@ -62,6 +62,7 @@ describe('auth/features', () => {
 
     it('resolves the more specific "/m/queue" prefix over the broader "/m" prefix', () => {
       assert.equal(featureForPath('/m/queue'), 'queue');
+      assert.equal(featureForPath('/m/production'), 'play');
       assert.equal(featureForPath('/m/gallery'), 'gallery');
       assert.equal(featureForPath('/m'), 'gallery');
       assert.equal(featureForPath('/m/capture'), 'gallery');

@@ -1236,6 +1236,20 @@ test('a new version of a script is reviewed, and a removed scene keeps its made 
     .toBe(
       'true|int-kitchen-morning~1>int-kitchen-morning,ext-rooftop-night~1>ext-rooftop-late-night,int-office-day~1>int-office-day'
     );
+
+  // Undo puts the version before back: its text and every shot, the dropped one too.
+  await page.getByTestId('script-reimport-undo').click();
+  await expect(page.getByTestId('script-reimport-done')).toHaveCount(0);
+  await expect(page.getByTestId('script-scene-int-bar-night')).toHaveCount(0);
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      const script = tool.scripts?.[0];
+      return script
+        ? [script.source.includes('INT. BAR - NIGHT'), (script.shots ?? []).length].join('|')
+        : '';
+    })
+    .toBe('false|4');
 });
 
 // M5 W3: a run is prepared from a script — Scenes made, the list and its limits — nothing renders.
@@ -1308,6 +1322,13 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await page.getByTestId('scene-run-discard').click();
   await page.getByTestId('confirm-dialog-confirm').click();
   await expect(run).toHaveCount(0);
+
+  // A run for one scene: the roof's shot alone.
+  await page.getByTestId('script-scene-ext-roof-night').locator('summary').click();
+  await page.getByTestId('script-prepare-run-ext-roof-night').click();
+  await expect(page.getByTestId('script-prepare-note')).toContainText('Every planned shot is a Scene already');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('1 take, one at a time');
+  expect(queued).toHaveLength(0);
 });
 
 // M5 W4: a run renders its Scenes one at a time with the page's own Render, never keeps a take,
@@ -2291,6 +2312,8 @@ for (const phone of [false, true]) {
 }
 
 test('phone: every /m page has an opaque header and Film dock, dark and light', async ({ browser }) => {
+  // Ten pages in two colour schemes, each a cold dev compile at first.
+  test.setTimeout(240_000);
   for (const colorScheme of ['dark', 'light'] as const) {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -2307,7 +2330,7 @@ test('phone: every /m page has an opaque header and Film dock, dark and light', 
       characters: cast,
       tools: { scene: sceneWithTakes() },
     });
-    for (const path of ['/m', '/m/film', '/m/day', '/m/scene', '/m/story', '/m/fitting', '/m/cut', '/m/gallery', '/m/queue']) {
+    for (const path of ['/m', '/m/film', '/m/day', '/m/scene', '/m/story', '/m/fitting', '/m/cut', '/m/gallery', '/m/queue', '/m/production']) {
       await gotoStable(page, `${path}?character=${CAST}`);
       await dismissBlockingOverlays(page);
       await expect(page.getByTestId('mobile-studio-dock')).toBeVisible({ timeout: 60_000 });
