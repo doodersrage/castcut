@@ -185,13 +185,13 @@ export default function FilmDirector() {
   // On the phone (/m/production) every link opens the phone page of its tool.
   const phone = isMobileStudioPath(usePathname());
   const go = (href: string) => (phone ? toMobileStudioHref(href) : href);
-  // "Later": put off for a day in this browser (the page draws nothing until mounted).
-  const [snoozes, setSnoozes] = useState<ProductionSnoozes>(() =>
-    typeof window === 'undefined' ? {} : readSnoozes()
-  );
+  // "Later": put off for a day in this browser — read from the app's browser store once the
+  // page is mounted (it is ready by then); a write draws the list again.
+  const [, setSnoozeWrites] = useState(0);
+  const snoozes: ProductionSnoozes = mounted ? readSnoozes() : {};
   const keepSnoozes = (next: ProductionSnoozes) => {
-    setSnoozes(next);
     writeSnoozes(next);
+    setSnoozeWrites(count => count + 1);
   };
   const { shown: listed, snoozed } = withoutSnoozed(actions, snoozes, castId);
 

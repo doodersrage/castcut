@@ -1,9 +1,11 @@
 /**
  * "Later" on Film Director's next actions: an action put off for a day is left out of the list
  * until then — or until it changes (its title carries its counts: three failed jobs becoming four
- * is a new thing to do). Kept in this browser only: a convenience, not production data. Pure,
- * but for the two storage helpers.
+ * is a new thing to do). Kept in this browser only (the app's browser store — a raw
+ * localStorage key is moved into it at startup, and was then not found after a reload): a
+ * convenience, not production data. Pure, but for the two storage helpers.
  */
+import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import type { ProductionAction } from './production-next';
 
 /** How long "Later" puts an action off. */
@@ -50,7 +52,7 @@ export function clearSnoozes(snoozes: ProductionSnoozes, castId: string): Produc
 
 export function readSnoozes(): ProductionSnoozes {
   try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}') as unknown;
+    const raw = readBrowserValue<unknown>(STORAGE_KEY);
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
     return Object.fromEntries(
       Object.entries(raw).filter((entry): entry is [string, number] => typeof entry[1] === 'number')
@@ -62,8 +64,8 @@ export function readSnoozes(): ProductionSnoozes {
 
 export function writeSnoozes(snoozes: ProductionSnoozes): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snoozes));
+    writeBrowserValue(STORAGE_KEY, snoozes);
   } catch {
-    // Private mode or full storage: the snooze lasts for this visit.
+    // Storage unavailable: the snooze lasts for this visit.
   }
 }
