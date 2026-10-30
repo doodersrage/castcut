@@ -436,6 +436,8 @@ export function beginRoleplayClipRetryPatch(beat: RoleplayStoryBeat): Partial<Ro
     clipTakes: nextTakes,
     clipTakeIndex: nextTakes.length - 1,
     clipPromptId: undefined,
+    // A new clip is its own render: the last one's (Make longer / Add voice) no longer names it.
+    clipRenderPromptId: undefined,
     clipUrl: undefined,
     clipStatus: 'writing',
   };
@@ -453,6 +455,7 @@ export function roleplayClipQueueResultPatch(
       clipTakes: [nextTake],
       clipTakeIndex: 0,
       clipPromptId: promptId,
+      clipRenderPromptId: undefined,
       clipUrl: undefined,
       clipStatus: status,
     };
@@ -465,6 +468,7 @@ export function roleplayClipQueueResultPatch(
     clipTakes: nextTakes,
     clipTakeIndex: index,
     clipPromptId: promptId,
+    clipRenderPromptId: undefined,
     clipUrl: nextTakes[index]?.clipUrl,
     clipStatus: status,
   };

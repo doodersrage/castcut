@@ -208,6 +208,28 @@ describe('day-planner', () => {
     assert.equal(slots[0]?.sceneHints, 'quiet breakfast ');
   });
 
+  it('upsertDaySlotStill: a new clip drops the last clip\'s render id (Make longer read it)', () => {
+    const before = [
+      {
+        slotId: 'morning' as const,
+        promptId: 'still',
+        status: 'completed' as const,
+        clipPromptId: 'kept-copy',
+        clipRenderPromptId: 'old-render',
+        clipStatus: 'completed' as const,
+      },
+    ];
+    const queued = upsertDaySlotStill(before, {
+      slotId: 'morning',
+      clipPromptId: 'new-render',
+      clipRenderPromptId: undefined,
+      clipStatus: 'queued',
+      clipUrl: undefined,
+    });
+    assert.equal(queued[0]?.clipPromptId, 'new-render');
+    assert.equal(queued[0]?.clipRenderPromptId, undefined);
+  });
+
   it('upsertDaySlotStill drops the last take\'s shot cut when a new take is queued', () => {
     const cut = '/view?filename=reframe-1.png';
     const before = [

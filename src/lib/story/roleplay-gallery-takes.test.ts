@@ -536,3 +536,22 @@ describe("mergeRoleplayStoryStills", () => {
     assert.equal(result.story[0]!.clipStatus, "completed");
   });
 });
+
+describe("a new clip drops the last clip's render id", () => {
+  it("is cleared when a clip is started and when it is queued", () => {
+    const beat = {
+      clipPromptId: "kept-copy",
+      clipRenderPromptId: "old-render",
+      clipUrl: "/view?filename=old.mp4",
+      clipStatus: "completed",
+    } as unknown as Parameters<typeof beginRoleplayClipRetryPatch>[0];
+    const started = beginRoleplayClipRetryPatch(beat);
+    assert.ok("clipRenderPromptId" in started);
+    assert.equal(started.clipRenderPromptId, undefined);
+    const queued = roleplayClipQueueResultPatch({ ...beat, ...started }, "new-render");
+    assert.equal(queued.clipPromptId, "new-render");
+    assert.ok("clipRenderPromptId" in queued);
+    assert.equal(queued.clipRenderPromptId, undefined);
+    assert.equal({ ...beat, ...started, ...queued }.clipRenderPromptId, undefined);
+  });
+});

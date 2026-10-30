@@ -1222,6 +1222,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         status: id ? 'queued' : 'error',
         imageUrl: undefined,
         clipPromptId: undefined,
+        clipRenderPromptId: undefined,
         clipUrl: undefined,
         clipStatus: undefined,
         promptCheck: undefined,
@@ -3363,6 +3364,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           status: promptId ? 'queued' : 'error',
           imageUrl: undefined,
           clipPromptId: undefined,
+          clipRenderPromptId: undefined,
           clipUrl: undefined,
           clipStatus: undefined,
           // Shown on the slot card ("Prompt check: fixed 1"); a clean prompt clears the last one.

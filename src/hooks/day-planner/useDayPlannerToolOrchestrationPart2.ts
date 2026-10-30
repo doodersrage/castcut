@@ -711,6 +711,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           clipPromptId: typeof promptId === 'string' ? promptId : undefined,
+          // A new clip is its own render: the last clip's (Make longer / Add voice) no longer
+          // names it — Make longer read the old job and continued an H3 clip on LTX-2.5.
+          clipRenderPromptId: undefined,
           clipStatus: promptId ? 'queued' : 'error',
           clipUrl: undefined,
           pendingDialogue: dialogue,
