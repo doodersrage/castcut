@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { Quaternion, Vector3 } from 'three';
+import { limbJoints } from '@/lib/pose/rig3d-pose';
 import type { NormalizedBody } from '@/lib/pose/library';
 import type { PoseRig3dFigure } from '@/lib/pose/rig3d';
 import {
@@ -17,7 +18,9 @@ import { moveFrames } from './moves';
 import { directionFrames, endOfBeats } from './timeline';
 import { DEFAULT_DIRECTOR_CAMERA, DIRECTOR_FPS, normalizeDirection, type Direction } from './types';
 import {
+  cameraFrame,
   followLead,
+  pinVideoFeet,
   liftVideoMotion,
   parseVideoPoseFrames,
   removeFlips,
@@ -143,5 +146,36 @@ describe('director: a move from your own video', () => {
     const videoStart = placementOf(frames[Math.round((0.5 + 2.9) * DIRECTOR_FPS) + 1]!);
     assert.ok(Math.hypot(videoStart.x - afterWalk.x, videoStart.z - afterWalk.z) < 0.1);
     assert.equal(videoBeatFrames(wave, 5, DIRECTOR_FPS).length, 81);
+  });
+
+  it('reads the camera from the frame that shows the most of her', () => {
+    const half = person(0.5, 0.5, 0.5);
+    half[10] = null;
+    half[13] = null;
+    assert.equal(cameraFrame([null, half, person(0.5, 0.5, 0.5), person(0.5, 0.5, 0.5)]), 2);
+    assert.equal(cameraFrame([half]), 0);
+  });
+
+  it('holds a standing foot still where the flat read let it slide', () => {
+    // Standing, the hips drifting 1–2 cm a frame as a flat read's depth wobbles: the feet go too.
+    const frames = Array.from({ length: 24 }, (_, i) => {
+      const figure = restFigure('female');
+      figure.position = [
+        figure.position[0] + 0.015 * Math.sin(i * 1.7),
+        figure.position[1],
+        figure.position[2] + 0.012 * Math.cos(i * 2.3),
+      ];
+      return figure;
+    });
+    const spread = (list: PoseRig3dFigure[]) => {
+      const xs = list.map(frame => limbJoints(frame, 'L', 'leg').end.x);
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    const before = spread(frames);
+    const pinned = pinVideoFeet(frames);
+    assert.ok(before > 0.02, `the feet slid ${before.toFixed(3)} m`);
+    assert.ok(spread(pinned) < 0.002, `held within ${spread(pinned).toFixed(4)} m`);
+    // The hips still move as read.
+    assert.deepEqual(pinned[3]!.position, frames[3]!.position);
   });
 });

@@ -19,6 +19,7 @@ import data from '@/lib/data/director-mocap-moves.json';
 import type { PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
 import { figureWorld, restFigure, setBoneWorldRotation, solveLimbIK } from '@/lib/pose/rig3d-pose';
 import { groundFigure, mixFigures } from './figure-ops';
+import { lockPlantedFeet } from './plant';
 import { restOf } from './motion';
 
 type Vec3 = [number, number, number];
@@ -360,62 +361,6 @@ const SWAY = 0.06;
 /** Half the hand-keyed moves' standing stance (moves.ts `standing`), m, and each foot's turn out. */
 const STANCE_HALF = 0.1;
 const STANCE_TURN = 5 * (Math.PI / 180);
-
-/** A foot this close to its lowest (m) and this slow (m/s) is planted. */
-const PLANT_HEIGHT = 0.03;
-const PLANT_SPEED = 0.3;
-
-/**
- * Planted feet pinned: while a foot is down and all but still, its ankle holds the middle of where
- * it was over that stretch (the knee moves with it) and the foot its turn from the middle of it.
- * Capture jitter and the retarget's scaling otherwise let a standing foot creep a few millimetres
- * a frame.
- */
-type FootPath = Array<{ ankle: Vector3; knee: Vector3; foot: Quaternion }>;
-
-function lockPlantedFeet(path: FootPath, fps: number): FootPath {
-  const lowest = Math.min(...path.map(p => p.ankle.y));
-  const planted = path.map((p, i) => {
-    const a = path[Math.max(0, i - 1)]!.ankle;
-    const b = path[Math.min(path.length - 1, i + 1)]!.ankle;
-    const span = (Math.min(path.length - 1, i + 1) - Math.max(0, i - 1)) / fps || 1 / fps;
-    const speed = Math.hypot(b.x - a.x, b.z - a.z) / span;
-    return p.ankle.y - lowest < PLANT_HEIGHT && speed < PLANT_SPEED;
-  });
-  const out = path.map(p => ({
-    ankle: p.ankle.clone(),
-    knee: p.knee.clone(),
-    foot: p.foot.clone(),
-  }));
-  for (let i = 0; i < path.length;) {
-    if (!planted[i]) {
-      i += 1;
-      continue;
-    }
-    let j = i;
-    while (j + 1 < path.length && planted[j + 1]) j += 1;
-    let x = 0;
-    let z = 0;
-    for (let n = i; n <= j; n += 1) {
-      x += path[n]!.ankle.x;
-      z += path[n]!.ankle.z;
-    }
-    x /= j - i + 1;
-    z /= j - i + 1;
-    const turn = path[Math.round((i + j) / 2)]!.foot;
-    for (let n = i; n <= j; n += 1) {
-      out[n]!.foot = turn.clone();
-      const dx = x - path[n]!.ankle.x;
-      const dz = z - path[n]!.ankle.z;
-      out[n]!.ankle.x += dx;
-      out[n]!.ankle.z += dz;
-      out[n]!.knee.x += dx;
-      out[n]!.knee.z += dz;
-    }
-    i = j + 1;
-  }
-  return out;
-}
 
 /**
  * How much to draw the feet in toward her middle (1 = as captured): some performers stood with

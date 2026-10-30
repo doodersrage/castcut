@@ -15,9 +15,17 @@ import { Quaternion } from 'three';
 import type { NormalizedBody } from '@/lib/pose/library';
 import { parseOpenPoseJson } from '@/lib/pose/score';
 import type { PoseRig3dFigure, Rig3dBodyKind } from '@/lib/pose/rig3d';
-import { liftBody, liftBodyWithCamera } from '@/lib/pose/rig3d-pose';
+import {
+  figureWorld,
+  liftBody,
+  liftBodyWithCamera,
+  limbJoints,
+  setBoneWorldRotation,
+  solveLimbIK,
+} from '@/lib/pose/rig3d-pose';
+import { lockPlantedFeet, type FootPath } from './plant';
 import { groundFigure, mixFigures, ORIGIN, placementOf, transformFigure } from './figure-ops';
-import { VIDEO_MOTION_MAX_FRAMES } from './types';
+import { DIRECTOR_FPS, VIDEO_MOTION_MAX_FRAMES } from './types';
 /** Fewer frames than this with a person in them: not enough to move by. */
 const MIN_READ_FRAMES = 8;
 
@@ -196,8 +204,12 @@ export function liftVideoMotion(read: VideoPoseRead, kind: Rig3dBodyKind): PoseR
   }
   const span = leads.slice(firstSeen, lastSeen + 1);
   const aspect = read.canvas.width / Math.max(1, read.canvas.height);
-  // One camera for the whole video, read from the first frame (a fixed camera, as most are).
-  const { camera } = liftBodyWithCamera(span[0]!, aspect, { body: kind, proportions: false });
+  // One camera for the whole video (a fixed camera, as most are), read from the frame that shows
+  // the most of her — the first frame can catch her half in view, walking in.
+  const { camera } = liftBodyWithCamera(span[cameraFrame(span)]!, aspect, {
+    body: kind,
+    proportions: false,
+  });
   const lifted: Array<PoseRig3dFigure | null> = span.map(body =>
     body ? liftBody(body, aspect, { camera, body: kind, proportions: false }) : null
   );
@@ -212,13 +224,63 @@ export function liftVideoMotion(read: VideoPoseRead, kind: Rig3dBodyKind): PoseR
     if (b >= lifted.length) return lifted[a]!;
     return mixFigures(lifted[a]!, lifted[b]!, (i - a) / (b - a));
   });
-  const smoothed = smoothFigures(removeFlips(filled));
+  const smoothed = pinVideoFeet(smoothFigures(removeFlips(filled)));
   const start = placementOf(smoothed[0]!);
   // Rounded for keeping, then set on the floor (rounding the turns moves the feet a little).
   return smoothed.map(figure => {
     const kept = groundFigure(compactFigure(transformFigure(figure, start, ORIGIN)));
     kept.position = kept.position.map(v => round(v, 4)) as [number, number, number];
     return kept;
+  });
+}
+
+/** The frame the camera is read from: the most joints in view (the earliest of equals). */
+export function cameraFrame(bodies: ReadonlyArray<NormalizedBody | null>): number {
+  let best = 0;
+  let most = -1;
+  bodies.forEach((body, i) => {
+    const count = body ? body.filter(Boolean).length : -1;
+    if (count > most) {
+      most = count;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/** A video foot slower than this (m/s) is standing: a swinging foot moves at 2–4 m/s. */
+const VIDEO_STILL_SPEED = 0.6;
+
+/**
+ * Feet that stand still in the video stand still on her (as captured moves' do): a foot down and
+ * all but still is held at the middle of where it stood, and the leg reaches it by IK. A flat
+ * picture reads depth poorly, so a planted foot otherwise slid a few centimetres a frame.
+ */
+export function pinVideoFeet(frames: PoseRig3dFigure[], fps = DIRECTOR_FPS): PoseRig3dFigure[] {
+  if (frames.length < 3) return frames;
+  const worlds = frames.map(frame => figureWorld(frame));
+  const path = (side: 'L' | 'R'): FootPath =>
+    lockPlantedFeet(
+      frames.map((frame, i) => {
+        const leg = limbJoints(frame, side, 'leg', worlds[i]);
+        return {
+          ankle: leg.end,
+          knee: leg.mid,
+          foot: worlds[i]!.quat[`foot_${side}`]!.clone(),
+        };
+      }),
+      fps,
+      VIDEO_STILL_SPEED
+    );
+  const targets = { L: path('L'), R: path('R') };
+  return frames.map((frame, i) => {
+    const figure = structuredClone(frame);
+    for (const side of ['L', 'R'] as const) {
+      const { ankle, knee, foot } = targets[side][i]!;
+      solveLimbIK(figure, side, 'leg', ankle, knee);
+      setBoneWorldRotation(figure, `foot_${side}`, foot);
+    }
+    return figure;
   });
 }
 
