@@ -143,7 +143,7 @@ export type CastVoice = {
   /**
    * ~1.6 s of them speaking, picture and sound (a ComfyUI input MP4, cast/voice-anchor-server.ts):
    * what MiniMax-H3 speaks in, clip after clip (M11 T16). Cut from the clip the voice came from;
-   * none for a voice from the player's own recording.
+   * none for a voice from the player's own recording (H3 then takes the sample alone).
    */
   clip?: string;
   /** The player's own recording it was cut from (file name, for display). */

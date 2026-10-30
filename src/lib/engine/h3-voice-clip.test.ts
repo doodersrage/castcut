@@ -84,3 +84,17 @@ describe('LTX talking clips speak in the kept voice (M11 T17)', () => {
     assert.ok(!ltxClip({}).some(node => node.class_type === 'LTXVSetAudioRefTokens'));
   });
 });
+
+describe('a recorded voice (sound only) on MiniMax-H3', () => {
+  it('anchors on the sample when there is no voice clip; the clip wins when there is one', () => {
+    const nodes = talkingClip({ videoVoiceSample: 'castcut-voice.wav' });
+    const ref = nodes.find(node => node.class_type === H3_REF_NODE);
+    assert.ok(ref);
+    assert.match(String(ref.inputs.prompt), /^<Audio 1> is her voice: she speaks in exactly that voice/);
+    assert.ok(nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
+    assert.ok(!nodes.some(node => node.class_type === 'LoadVideo'));
+    const both = talkingClip({ videoVoiceSample: 'castcut-voice.wav', videoVoiceClip: 'clip.mp4' });
+    assert.ok(both.some(node => node.class_type === 'LoadVideo' && node.inputs.file === 'clip.mp4'));
+    assert.ok(!both.some(node => node.class_type === 'LoadAudio'));
+  });
+});

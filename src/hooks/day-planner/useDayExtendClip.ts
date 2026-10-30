@@ -61,9 +61,12 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
           ctx.character?.traits?.sex === 'man' ? 'man' : 'woman'
         ),
         // Talking H3 parts speak in the Cast's kept voice (M11 T16), the same from clip to clip.
+        // A recorded voice (no clip): its sample alone.
         ...(castVoiceOf(ctx.character?.id)?.clip
           ? { voiceClip: castVoiceOf(ctx.character?.id)!.clip }
-          : {}),
+          : castVoiceOf(ctx.character?.id)
+            ? { voiceSample: castVoiceOf(ctx.character?.id)!.sample }
+            : {}),
       };
     },
     [ctx.character, dayMood, stillsRef]

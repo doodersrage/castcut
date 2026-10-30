@@ -2106,12 +2106,16 @@ export function injectPromptsWithFallbacks(
       if (converted.converted) {
         // A talking clip speaks in the Cast's kept voice (M11 T16) when this ComfyUI has the
         // reference model and its guide node; otherwise the clip invents one, as before.
+        // The kept voice's clip, else its sample alone (a voice from the player's recording).
         const voiceClip = input.params?.videoVoiceClip?.trim();
+        const voiceAudio = voiceClip ? undefined : input.params?.videoVoiceSample?.trim();
         const anchored =
-          voiceClip &&
+          (voiceClip || voiceAudio) &&
           input.params?.videoSpeech === 'on' &&
           (!nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE)))
-            ? withH3VoiceAnchor(converted.workflow, { voiceClip })
+            ? withH3VoiceAnchor(converted.workflow, {
+                ...(voiceClip ? { voiceClip } : { voiceAudio }),
+              })
             : null;
         injected = { ...injected, workflow: anchored ?? converted.workflow };
         onLtx25 = true;

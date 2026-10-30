@@ -466,7 +466,13 @@ export function withH3VoiceAnchor(
   source: Workflow,
   input: {
     /** ComfyUI input video: her speaking, ~1.6 s with sound. */
-    voiceClip: string;
+    voiceClip?: string;
+    /**
+     * Or, with no clip, a ComfyUI input audio of her voice alone (a voice from the player's own
+     * recording): <Audio 1>. Live (2026-10-30, the same two clips): pitch 232 / 186 Hz against
+     * 235 / 188 with the clip; the user: "Sounds just like her".
+     */
+    voiceAudio?: string;
     pictures?: ReadonlyArray<{ image: string; shows: string }>;
     look?: string;
     who?: 'She' | 'He';
@@ -482,6 +488,9 @@ export function withH3VoiceAnchor(
     ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
   )?.[0];
   if (!h3?.[1]?.inputs || !unet?.inputs || !audioVae) return null;
+  const voiceClip = input.voiceClip?.trim();
+  const voiceAudio = input.voiceAudio?.trim();
+  if (!voiceClip && !voiceAudio) return null;
   const [id, node] = h3;
   const old = node.inputs!;
   unet.inputs.unet_name = H3_REF_FILES.transformer;
@@ -493,14 +502,20 @@ export function withH3VoiceAnchor(
     graph[`h3ref${k + 1}`] = { class_type: 'LoadImage', inputs: { image: picture.image } };
     refs[`ref_images.ref_image_${k + 1}`] = [`h3ref${k + 1}`, 0];
   });
-  graph.h3voice = { class_type: 'LoadVideo', inputs: { file: input.voiceClip } };
-  graph.h3voiceparts = { class_type: 'GetVideoComponents', inputs: { video: ['h3voice', 0] } };
-  refs['ref_videos.ref_video_1'] = ['h3voiceparts', 0];
-  refs['ref_video_audios.ref_video_audio_1'] = ['h3voiceparts', 1];
+  if (voiceClip) {
+    graph.h3voice = { class_type: 'LoadVideo', inputs: { file: voiceClip } };
+    graph.h3voiceparts = { class_type: 'GetVideoComponents', inputs: { video: ['h3voice', 0] } };
+    refs['ref_videos.ref_video_1'] = ['h3voiceparts', 0];
+    refs['ref_video_audios.ref_video_audio_1'] = ['h3voiceparts', 1];
+  } else {
+    graph.h3voice = { class_type: 'LoadAudio', inputs: { audio: voiceAudio } };
+    refs['ref_audios.ref_audio_1'] = ['h3voice', 0];
+  }
   const who = input.who ?? 'She';
+  const them = who === 'He' ? 'him' : 'her';
   const tags = [
     ...pictures.map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`),
-    `<Video 1> with its sound <Audio 1> is ${who === 'He' ? 'him' : 'her'}, speaking: ${who.toLowerCase()} speaks in exactly that voice — the same person, pitch, tone, accent and pace. <Audio 1> is only how ${who === 'He' ? 'his' : 'her'} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`,
+    `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${who.toLowerCase()} speaks in exactly that voice — the same person, pitch, tone, accent and pace. <Audio 1> is only how ${who === 'He' ? 'his' : 'her'} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`,
   ].join(' ');
   graph[id] = {
     class_type: H3_REF_NODE,

@@ -95,10 +95,7 @@ export default function CastVoiceSection({
     setNote(null);
     const error = await takeCastVoiceFromFile({ castId: character.id, file });
     setBusy(false);
-    setNote(
-      error ??
-        'Your recording is kept — LTX-2.5 talking clips speak in it (MiniMax-H3 needs a voice kept from a clip or an audition).'
-    );
+    setNote(error ?? 'Your recording is kept — their talking clips speak in it from now on.');
     refresh();
   };
   // Record in the browser (needs a microphone and https or localhost).

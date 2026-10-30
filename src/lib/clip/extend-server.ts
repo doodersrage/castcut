@@ -956,6 +956,8 @@ export type ClipExtendInput = {
   look?: string;
   /** The Cast's kept voice clip (ComfyUI input): talking H3 parts speak in it (M11 T16). */
   voiceClip?: string;
+  /** Or, with no clip (a voice from the player's recording), its sample alone (ComfyUI input). */
+  voiceSample?: string;
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
   lines?: string[];
   /** How each line is said (same order). */
@@ -1153,7 +1155,7 @@ export async function extendClip(
     let voiceAnchor =
       h3 && input.lines?.some(line => line?.trim())
         ? input.voiceClip?.trim() ||
-          (firstSpeaks
+          (firstSpeaks && !input.voiceSample?.trim()
             ? await voiceAnchorClip({
                 ffmpeg,
                 baseUrl,
@@ -1340,10 +1342,11 @@ export async function extendClip(
           ...(endFrame ? { endFrame } : {}),
         });
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
-        const speaks = Boolean(voiceAnchor && !group && input.lines?.[k]?.trim());
+        const voiceAudio = voiceAnchor ? undefined : input.voiceSample?.trim();
+        const speaks = Boolean((voiceAnchor || voiceAudio) && !group && input.lines?.[k]?.trim());
         const anchored = speaks
           ? withH3VoiceAnchor(patched.graph, {
-              voiceClip: voiceAnchor!,
+              ...(voiceAnchor ? { voiceClip: voiceAnchor } : { voiceAudio }),
               pictures: h3Pictures,
               look: h3Look,
               who: input.lead === 'man' ? 'He' : 'She',
@@ -1502,7 +1505,7 @@ export async function extendClip(
       }
       // No voice to keep yet (a wordless first clip, no kept Cast voice): the first part that
       // speaks sets it for the parts after it.
-      if (h3 && !voiceAnchor && !group && input.lines?.[k]?.trim()) {
+      if (h3 && !voiceAnchor && !input.voiceSample?.trim() && !group && input.lines?.[k]?.trim()) {
         voiceAnchor = await voiceAnchorClip({
           ffmpeg,
           baseUrl,

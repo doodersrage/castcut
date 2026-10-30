@@ -500,6 +500,8 @@ export type ClipExtendRequest = {
    * speak in it, so the voice is the same from clip to clip (else the first clip's voice).
    */
   voiceClip?: string;
+  /** Or, with no clip (a recorded voice), the Cast's voice sample (ComfyUI input audio). */
+  voiceSample?: string;
   /** A spoken line per beat (same order, '' = none) — LTX clips only. */
   lines?: string[];
   /** How each line is said (same order; '' / 'natural' = plainly). */

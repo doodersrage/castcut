@@ -2631,6 +2631,10 @@ line options for each part?"). · S
   quotes a line), and a wordless part of a talking clip made up a sentence ("Nobody speaks in this
   part" now). Rerun: the wordless part silent (speech band −44 dB), both lines said; the third
   part's line came out once more with a few words after it (1 of the last 10 anchored lines).
+- Then: Animate's part lines got a tone each, and Make it 30 s (Story) a length per H3 part — the
+  two sheets offer the same per part. A voice from the player's own recording (sound, no picture)
+  anchors H3 by its sample alone (`ref_audios`; the same two clips: 232 / 186 Hz against 235 / 188
+  with the clip; the user: "Sounds just like her") — Day, Story and Make longer.
 
 ## 13.3 Definition of done
 

@@ -111,6 +111,9 @@ export async function POST(request: Request) {
     voiceClip: /^[\w.-]{1,200}$/.test(text(body.voiceClip, 200))
       ? text(body.voiceClip, 200)
       : undefined,
+    voiceSample: /^[\w.-]{1,200}$/.test(text(body.voiceSample, 200))
+      ? text(body.voiceSample, 200)
+      : undefined,
     lines: Array.isArray(body.lines)
       ? body.lines
           .slice(0, 8)
