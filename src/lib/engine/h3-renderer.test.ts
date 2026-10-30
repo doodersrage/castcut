@@ -371,3 +371,11 @@ describe('a talking part says its line once (M11 T16)', () => {
     assert.equal(timedLine('She waves.', 5), '');
   });
 });
+
+describe('a wordless part of a talking clip stays wordless', () => {
+  it('says outright that nobody speaks', () => {
+    assert.match(h3PartPrompt('x', { beat: 'She looks out.', wordless: true }), /Nobody speaks in this part/);
+    assert.doesNotMatch(h3PartPrompt('x', { beat: 'She looks out.' }), /Nobody speaks/);
+    assert.doesNotMatch(h3PartPrompt('x', { beat: 'b', line: 'Hi.', wordless: true }), /Nobody speaks/);
+  });
+});

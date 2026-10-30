@@ -1,6 +1,6 @@
 'use client';
 
-import { castVoiceOf } from '@/lib/cast/voice';
+import { castVoiceOf, ensureCastVoiceClip } from '@/lib/cast/voice';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
@@ -214,15 +214,20 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
         patchStill(slotId, { pendingDialogue: undefined });
         dialogueRef.current = true;
-        void extendSlotClip(
-          slot,
-          { lines, tones, beats, partSeconds },
-          {
-            // Exactly one part per line, whatever the server measures the first clip at.
-            extendBySec: dayTalkExtendBySec(lines.length),
-            label: spoken ? `Dialogue, about ${targetSec} s` : `About ${targetSec} s`,
-          }
-        )
+        // A voice kept before voice clips were cut gets its clip first (talking parts speak in it).
+        void (spoken ? ensureCastVoiceClip(ctx.character?.id) : Promise.resolve(null))
+          .catch(() => null)
+          .then(() =>
+            extendSlotClip(
+              slot,
+              { lines, tones, beats, partSeconds },
+              {
+                // Exactly one part per line, whatever the server measures the first clip at.
+                extendBySec: dayTalkExtendBySec(lines.length),
+                label: spoken ? `Dialogue, about ${targetSec} s` : `About ${targetSec} s`,
+              }
+            )
+          )
           .then(error =>
             setExtendResult({
               slotId,
@@ -239,7 +244,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, [dialogueTick, extendSlotClip, patchStill, slots, stills, stillsRef]);
+  }, [ctx.character?.id, dialogueTick, extendSlotClip, patchStill, slots, stills, stillsRef]);
 
   return { extendSlotClip, extendRequestFor, extending, extendResult };
 }

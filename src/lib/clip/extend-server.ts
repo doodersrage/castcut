@@ -1140,15 +1140,27 @@ export async function extendClip(
     const beats = await resolveBeats(input, total, shot);
     // Talking H3 parts speak in the first clip's voice (M11 T16): each part on its own invented a
     // new one, the last two "someone else entirely".
-    const voiceAnchor =
+    // The first clip's voice only when it speaks a line (its prompt quotes one): a wordless
+    // clip's wind and street sound passed for speech and the parts spoke in a 113 Hz rumble (live).
+    const firstSpeaks = h3
+      ? /\bsays\b[^"]{0,24}"[^"]+"/.test(
+          String(
+            Object.values(h3).find(node => node?.class_type === 'MiniMaxH3ImageToVideo')?.inputs
+              ?.prompt ?? ''
+          )
+        )
+      : false;
+    let voiceAnchor =
       h3 && input.lines?.some(line => line?.trim())
         ? input.voiceClip?.trim() ||
-          (await voiceAnchorClip({
-            ffmpeg,
-            baseUrl,
-            clip: at('piece0.mp4'),
-            out: at('voice.mp4'),
-          }).catch(() => null))
+          (firstSpeaks
+            ? await voiceAnchorClip({
+                ffmpeg,
+                baseUrl,
+                clip: at('piece0.mp4'),
+                out: at('voice.mp4'),
+              }).catch(() => null)
+            : null)
         : null;
     // Wordless H3 parts render long (M11 T13): their beats as timed blocks, up to 15 s a part —
     // fewer hops, and each hop is where detail went. With a spoken line, parts stay H3's own
@@ -1314,6 +1326,9 @@ export async function extendClip(
               beat: group ? '' : beats[k]!,
               place: input.setting,
               line: group ? undefined : input.lines?.[k],
+              wordless: Boolean(
+                !group && !input.lines?.[k]?.trim() && input.lines?.some(line => line?.trim())
+              ),
               speaker: input.lead === 'man' ? 'He' : 'She',
               held,
               ...(group ? { blocks: group.blocks } : {}),
@@ -1484,6 +1499,16 @@ export async function extendClip(
           firstLoudness,
           at(`piece${k + 1}-l.mp4`)
         );
+      }
+      // No voice to keep yet (a wordless first clip, no kept Cast voice): the first part that
+      // speaks sets it for the parts after it.
+      if (h3 && !voiceAnchor && !group && input.lines?.[k]?.trim()) {
+        voiceAnchor = await voiceAnchorClip({
+          ffmpeg,
+          baseUrl,
+          clip: at(`piece${k + 1}.mp4`),
+          out: at(`voice${k + 1}.mp4`),
+        }).catch(() => null);
       }
       pieces.push(at(`piece${k + 1}.mp4`));
       // Piece frame i is the segment's frame i + 1 (its first is dropped).

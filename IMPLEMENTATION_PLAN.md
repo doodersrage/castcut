@@ -2621,6 +2621,17 @@ LTX?"). · S
   pass keeps its audio), and Steer (now "Steer harder") switches to the ID-LoRA path
   (`videoVoiceSteer`). The app-built graph rendered the same as the test (193 Hz, SIG 3.63).
 
+**T18 — A line for each part in Animate** (user: "For the animate popover dialogue, can we add
+line options for each part?"). · S
+- MiniMax-H3's Animate parts (Then… and a length each) take an optional line; a part with one says
+  it in the Cast's kept voice. With no kept voice and a wordless first clip, the first part that
+  speaks sets the voice for the rest. Live on the balcony clip (wordless; parts: none, a line, a
+  line): found and fixed — the first clip's wind and street sound passed the loudness check and
+  the parts spoke in a 113 Hz rumble (the first clip's voice is now taken only when its prompt
+  quotes a line), and a wordless part of a talking clip made up a sentence ("Nobody speaks in this
+  part" now). Rerun: the wordless part silent (speech band −44 dB), both lines said; the third
+  part's line came out once more with a few words after it (1 of the last 10 anchored lines).
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

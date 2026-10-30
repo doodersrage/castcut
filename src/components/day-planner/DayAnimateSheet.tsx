@@ -182,7 +182,8 @@ export default function DayAnimateSheet({
               direction: edited && !current.talking ? direction : undefined,
               extraSeconds: 0,
               talkTotalSeconds: talkTotal,
-              lines: Array.from({ length: parts }, () => ''),
+              // A part may say a line (in the Cast's voice, M11 T16); empty runs without words.
+              lines: Array.from({ length: parts }, (_, index) => lines[index]?.trim() ?? ''),
               // Each part's own beat; one left empty is written from the scene when the part starts
               // (a bare "carry on" pushed the camera in part after part, M11).
               beats: Array.from({ length: parts }, (_, index) => partBeats[index]?.trim() ?? ''),
@@ -341,8 +342,10 @@ export default function DayAnimateSheet({
                 )}
                 : MiniMax-H3 makes one ~5 s shot at a time, so this is the first clip, then {parts}{' '}
                 more part{parts === 1 ? '' : 's'}, each starting where the last one ends, with the
-                place’s sound. They render after the first clip lands — about 2½ minutes a part —
-                and come back as one clip (the short one stays in the Gallery).
+                place’s sound. A part with a line says it, in the Cast’s kept voice (else the first
+                part that speaks sets the voice for the rest). They render after the first clip
+                lands — about 2½ minutes a part, a little more with a line — and come back as one
+                clip (the short one stays in the Gallery).
               </p>
               <div className="space-y-2" data-testid="day-animate-parts">
                 <span className="flex items-center justify-between gap-2">
@@ -378,6 +381,21 @@ export default function DayAnimateSheet({
                         })
                       }
                       data-testid={`day-animate-part-beat-${index}`}
+                    />
+                    <TextInput
+                      value={lines[index] ?? ''}
+                      maxLength={SPOKEN_LINE_MAX_CHARS}
+                      placeholder="A line to say — optional, empty for no words"
+                      aria-label={`Line for part ${index + 2}`}
+                      disabled={writing}
+                      onChange={event =>
+                        setLines(list => {
+                          const next = [...list];
+                          next[index] = event.target.value;
+                          return next;
+                        })
+                      }
+                      data-testid={`day-animate-part-line-${index}`}
                     />
                     <SegmentedControl
                       aria-label={`Length of part ${index + 2}`}

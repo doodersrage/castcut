@@ -316,6 +316,8 @@ export function h3PartPrompt(
     blocks?: ReadonlyArray<{ beat: string; seconds: number }>;
     /** What the first frame shows them holding — kept in hand (a phone vanished mid-clip). */
     held?: readonly string[];
+    /** No line in a clip whose other parts speak: said outright that nobody speaks. */
+    wordless?: boolean;
   }
 ): string {
   const held = (part.held ?? []).filter(item => item.trim());
@@ -346,7 +348,10 @@ export function h3PartPrompt(
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
-        : '',
+        : part.wordless
+          ? // Live: a wordless part of a talking clip made up a line of its own.
+            `Nobody speaks in this part — no words, ${who === 'He' ? 'his' : 'her'} mouth closed or smiling; only the sound of the place.`
+          : '',
       part.blocks?.length
         ? 'Camera: one locked-off shot, no cuts, no new shot, no camera move.'
         : `Sound: the natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and the small sounds of what is happening${line ? ', under the voice' : ''}.`,
