@@ -9,6 +9,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.1] - 2026-10-30
+
+- Scene runs: Queue all hands every take to ComfyUI, so the tab can close
+- Longer clips: a part that says more than its line is rendered again
+- Plan: the run-with-the-tab-closed proposal, and what the open items turned out to be
+- A voice from your own recording holds on MiniMax-H3 too
+- Animate and Make it 30 s: the same per-part options
+
 ## [v3.4.0] - 2026-10-30
 
 - Animate: a line for each MiniMax-H3 part
