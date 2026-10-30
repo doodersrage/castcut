@@ -2641,6 +2641,17 @@ line options for each part?"). · S
   ~0.5 s after its window) — catching it needs speech-to-text (a Whisper node in ComfyUI, or a
   library in the app): for the user to decide.
 
+**T19 — A part that says more than its line is rendered again** (the user picked Whisper in
+ComfyUI). · S
+- Castcut nodes 1.8.0: `CastcutTranscribe` (AUDIO → text, also in the job's history as
+  `castcut_text`; Whisper through ComfyUI's own transformers, whisper-base, ~290 MB on first use;
+  near-silent audio gives ''). After a voice-anchored H3 part with a line renders, Make longer
+  hears it and, if `saysMoreThanLine` (3+ words beyond the line, or the line twice), renders it
+  again on another seed with the hard-cut retries (at most two). Without the node, nothing changes.
+- On the real parts: "I could stand here for hours. Let us up and out. I could stand here for
+  hours." → said more; "Okay, one more swim and then we eat." → kept. Whisper still makes up words
+  on a long wordless part's room tone, which is why only parts with a line are heard.
+
 ## 13.3 Definition of done
 
 - A longer clip's parts each do what their beat says; the first action does not repeat.

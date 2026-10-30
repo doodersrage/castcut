@@ -14,6 +14,7 @@ import {
   castReferencesForExtend,
   groupH3Blocks,
   loudestWindow,
+  saysMoreThanLine,
   parseShotInventory,
   renumberH3Pictures,
   extendFacesNote,
@@ -314,5 +315,20 @@ describe('the voice a talking clip is anchored on (M11 T16)', () => {
     assert.ok(Math.abs(found.start - 2) < 0.15, `start ${found.start}`);
     assert.ok(found.db > -15 && found.db < -11, `db ${found.db}`);
     assert.equal(loudestWindow(new Int16Array(rate), rate, 1.6).db < -100, true);
+  });
+});
+
+describe('a part that says more than its line (M11 T19)', () => {
+  const line = 'The water is still warm, you should come in.';
+  it('catches words after the line, and the line said twice', () => {
+    assert.equal(saysMoreThanLine('The water is still warm, you should come in. I will just sit on to cause you grow was that.', line), true);
+    assert.equal(saysMoreThanLine('The water is still warm, you should come in. The water is still warm, you should come in.', line), true);
+    assert.equal(saysMoreThanLine('We could stay until the sun goes down. So, like what’s it?', 'We could stay until the sun goes down.'), true);
+  });
+  it('lets a clean line through, and a word misheard in it', () => {
+    assert.equal(saysMoreThanLine('The water is still warm, you should come in.', line), false);
+    assert.equal(saysMoreThanLine('The water is still warm, you could come in.', line), false);
+    assert.equal(saysMoreThanLine('Okay, one more swim, and then we eat.', 'Okay, one more swim and then we eat.'), false);
+    assert.equal(saysMoreThanLine('', line), false);
   });
 });

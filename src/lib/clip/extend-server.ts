@@ -47,6 +47,7 @@ import {
   WAN_EXTEND_BLEND_FRAMES,
   type ClipExtendJob,
   parseShotInventory,
+  saysMoreThanLine,
   SHOT_INVENTORY_SYSTEM,
   type ShotInventory,
 } from './extend';
@@ -730,6 +731,43 @@ async function soundLongParts(
     input.out,
   ]);
   return input.out;
+}
+
+/** Castcut's Whisper node (comfyui-nodes/castcut 1.8.0). */
+const TRANSCRIBE_NODE = 'CastcutTranscribe';
+
+/**
+ * Whether a rendered part (a local MP4) says more than `line`: transcribed on ComfyUI by
+ * CastcutTranscribe. False when the node is missing or the check fails — the part is kept.
+ */
+async function partSaysMore(baseUrl: string, file: string, line: string): Promise<boolean> {
+  if (!(await resolveComfyNode(baseUrl, [TRANSCRIBE_NODE]))) return false;
+  const uploaded = await uploadComfyInputContent({
+    baseUrl,
+    bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ file)),
+    filename: 'castcut-extend-hear.mp4',
+    mimeType: 'video/mp4',
+  });
+  const run = await runComfyUtilityGraph<string>({
+    baseUrl,
+    label: 'clip-extend-hear',
+    priority: 'front',
+    timeoutMs: 5 * 60_000,
+    prompt: {
+      hear1: { class_type: 'LoadVideo', inputs: { file: uploaded.name } },
+      hear2: { class_type: 'GetVideoComponents', inputs: { video: ['hear1', 0] } },
+      hear3: {
+        class_type: TRANSCRIBE_NODE,
+        inputs: { audio: ['hear2', 1], model: 'openai/whisper-base', language: 'en' },
+      },
+    },
+    read: entry => {
+      const text = (entry.outputs?.hear3 as { castcut_text?: unknown[] } | undefined)
+        ?.castcut_text?.[0];
+      return typeof text === 'string' ? text : undefined;
+    },
+  });
+  return typeof run.result === 'string' && saysMoreThanLine(run.result, line);
 }
 
 /** Times a part with a hard cut is rendered again, and what a cut is. */
@@ -1443,10 +1481,17 @@ export async function extendClip(
       if (!rendered.result)
         throw new Error('A segment finished without a clip — check the ComfyUI log.');
       await download(baseUrl, rendered.result, at(`seg${k}.bin`));
-      // H3 can cut to a new shot mid-part (a wide of the sea between two close keyframes, live):
-      // rendered again on another seed, up to CUT_RETRIES times.
+      // H3 can cut to a new shot mid-part (a wide of the sea between two close keyframes, live), or
+      // say more than its line (about 1 in 10 voice-anchored parts, M11 T19 — heard by Castcut's
+      // transcribe node when ComfyUI has it): rendered again on another seed, up to CUT_RETRIES.
+      const partLine = h3 && !group ? (input.lines?.[k]?.trim() ?? '') : '';
       for (let retry = 1; h3 && retry <= CUT_RETRIES; retry += 1) {
-        if (!(await hasHardCut(ffmpeg, at(`seg${k}.bin`)))) break;
+        const cut = await hasHardCut(ffmpeg, at(`seg${k}.bin`));
+        const more =
+          !cut && partLine
+            ? await partSaysMore(baseUrl, at(`seg${k}.bin`), partLine).catch(() => false)
+            : false;
+        if (!cut && !more) break;
         const again = await runComfyUtilityGraph<ComfyImageRef>({
           baseUrl,
           label: 'clip-extend',

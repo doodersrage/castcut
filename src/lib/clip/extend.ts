@@ -116,6 +116,38 @@ export function buildExtendBeatsMessages(input: {
   ];
 }
 
+const spokenWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+
+/**
+ * Whether a part said more than its line (M11 T19): the transcript (Whisper, CastcutTranscribe)
+ * with the line's words taken out leaves `extra` or more words, or says the line twice. Live
+ * transcripts: "The water is still warm, you should come in. I will just sit on to cause you grow
+ * was that." (more), "…come in. The water is still warm, you should come in." (twice), "We could
+ * stay until the sun goes down." (clean); a word misheard inside the line is not more.
+ */
+export function saysMoreThanLine(transcript: string, line: string, extra = 3): boolean {
+  const heard = spokenWords(transcript);
+  const said = spokenWords(line);
+  if (!said.length || !heard.length) return false;
+  // Every word of the line taken out once (in any order: Whisper reorders nothing, but a word
+  // misheard stays in as one word over).
+  const left = [...heard];
+  for (const word of said) {
+    const at = left.indexOf(word);
+    if (at >= 0) left.splice(at, 1);
+  }
+  const twice =
+    said.length >= 3 && said.filter(word => left.includes(word)).length >= said.length * 0.7;
+  return twice || left.length >= extra;
+}
+
 /** Below this RMS (dBFS) a clip's loudest window is not speech worth anchoring a voice on. */
 export const VOICE_ANCHOR_MIN_DB = -40;
 

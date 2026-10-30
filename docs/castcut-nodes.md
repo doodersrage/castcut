@@ -7,6 +7,7 @@ of as separate ComfyUI calls. Everything works without it.
 | --- | --- |
 | **Best of two for hard poses** (Day) renders both takes in one job: one model load, one encode, the pose check runs inside ComfyUI and the closer take is saved as the still, the other beside it. | Best of two queues the second take after the first and checks each one with a separate ComfyUI call. |
 | **Cut-outs** (Isolate on white, plates) repair the matte and composite onto the fill in the same job. | The matte comes back to the app, is repaired there and composited in a second step. |
+| **Longer talking clips** (1.8.0): each MiniMax-H3 part with a line is heard (Whisper, `CastcutTranscribe`) and rendered again on another seed if it said more than its line — about 1 in 10 did. The Whisper model (~290 MB) downloads on first use. | A part that says more than its line is kept; render the clip again by hand. |
 
 The pack is one Python file, `castcut_nodes.py`, using only what ComfyUI already has (numpy,
 Pillow). It adds five nodes under the *Castcut* category: Pose Score, Pick Best, Face Distance,

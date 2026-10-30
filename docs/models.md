@@ -39,6 +39,7 @@ time. Off by default; without the file the setting says so and stills render as 
 | --- | --- | --- |
 | **Score this film** | ACE-Step 1.5 | 10 GB |
 | **Room sound under talking** | castcut-nodes 1.7.0+ (a node pack) | — |
+| **Talking parts said more than their line: rendered again** | castcut-nodes 1.8.0+ (Whisper base, downloaded on first use) | 290 MB |
 | **Face finish** | ComfyUI-ReActor + CodeFormer | small |
 
 ## Finishing tools

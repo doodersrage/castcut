@@ -32,7 +32,7 @@ try:  # numpy ships with ComfyUI; the pose functions below don't need it.
 except ImportError:  # pragma: no cover - only without numpy
     np = None
 
-CASTCUT_VERSION = "1.7.0"
+CASTCUT_VERSION = "1.8.0"
 
 # Every node's object_info `description` ends with this marker, so the app can tell which version
 # is installed without running anything (src/lib/castcut-nodes-setup.ts parses it). Keep the
@@ -1656,6 +1656,73 @@ class CastcutAudioMatchLevel:
         return (scaled, float(gain))
 
 
+# Whisper pipelines, one per model, loaded on first use (transformers is ComfyUI's own).
+_TRANSCRIBERS = {}
+#: Below this loudness (dB, its loudest 30% of 50 ms windows) a clip is taken as silent: Whisper
+#: makes words up on room tone ("Thank you for watching." on a wordless balcony clip, live).
+TRANSCRIBE_SILENT_DB = -50.0
+
+
+def transcribe_audio(audio, model="openai/whisper-base", language="en", _pipeline=None):
+    """What `audio` says, as text ('' when it is silent). `_pipeline` replaces Whisper in tests."""
+    levels = _audio_db_levels(audio["waveform"], audio["sample_rate"])
+    loud = float(np.mean(np.sort(levels)[-max(1, int(len(levels) * 0.3)):]))
+    if loud < TRANSCRIBE_SILENT_DB:
+        return ""
+    data = audio["waveform"]
+    data = data.detach().cpu().numpy() if hasattr(data, "detach") else np.asarray(data)
+    mono = np.asarray(data, dtype=np.float32).reshape(-1, data.shape[-1]).mean(axis=0)
+    rate = int(audio["sample_rate"])
+    if rate != 16000:
+        count = int(round(len(mono) * 16000 / rate))
+        mono = np.interp(np.linspace(0, len(mono) - 1, count), np.arange(len(mono)), mono).astype(np.float32)
+    asr = _pipeline
+    if asr is None:
+        if model not in _TRANSCRIBERS:
+            import torch
+            from transformers import pipeline
+
+            _TRANSCRIBERS[model] = pipeline(
+                "automatic-speech-recognition",
+                model=model,
+                device=0 if torch.cuda.is_available() else -1,
+            )
+        asr = _TRANSCRIBERS[model]
+    result = asr(
+        {"raw": mono, "sampling_rate": 16000},
+        generate_kwargs={"language": language, "task": "transcribe"},
+    )
+    return str(result.get("text", "") if isinstance(result, dict) else result).strip()
+
+
+class CastcutTranscribe:
+    """What a clip says (Whisper): Castcut checks a talking part said its line and nothing more."""
+
+    DESCRIPTION = _describe(
+        "Transcribe audio with Whisper (transformers). Silent audio gives ''. The text is also in the job's history (ui castcut_text)."
+    )
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "model": (["openai/whisper-base", "openai/whisper-small"], {"default": "openai/whisper-base"}),
+                "language": ("STRING", {"default": "en"}),
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
+    FUNCTION = "transcribe"
+    CATEGORY = CATEGORY
+    OUTPUT_NODE = True
+
+    def transcribe(self, audio, model="openai/whisper-base", language="en"):
+        text = transcribe_audio(audio, model=model, language=(language or "en").strip() or "en")
+        return {"ui": {"castcut_text": [text]}, "result": (text,)}
+
+
 NODE_CLASS_MAPPINGS = {
     "CastcutPoseScore": CastcutPoseScore,
     "CastcutPickBest": CastcutPickBest,
@@ -1663,6 +1730,7 @@ NODE_CLASS_MAPPINGS = {
     "CastcutMaskRepair": CastcutMaskRepair,
     "CastcutReport": CastcutReport,
     "CastcutAudioMatchLevel": CastcutAudioMatchLevel,
+    "CastcutTranscribe": CastcutTranscribe,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -1672,6 +1740,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CastcutMaskRepair": "Castcut Mask Repair",
     "CastcutReport": "Castcut Report",
     "CastcutAudioMatchLevel": "Castcut Audio Match Level",
+    "CastcutTranscribe": "Castcut Transcribe",
 }
 
 
