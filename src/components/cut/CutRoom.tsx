@@ -923,8 +923,14 @@ export default function CutRoom() {
                           ? (vm.previewShots.find(shot => shot.key === activeKey)?.title ?? null)
                           : null
                       }
-                      onGenerate={(prompt, shotKind) =>
-                        void vm.generateShot({ prompt, shotKind, afterKey: activeKey ?? null })
+                      withCast={vm.generateWithCast}
+                      onGenerate={(prompt, shotKind, withCast) =>
+                        void vm.generateShot({
+                          prompt,
+                          shotKind,
+                          afterKey: activeKey ?? null,
+                          withCast,
+                        })
                       }
                       onRemove={vm.removeAdded}
                     />

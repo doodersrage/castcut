@@ -1157,3 +1157,59 @@ test('make a reel: a vertical short cut, the full cut kept as a version', async 
   await page.getByTestId('cut-version-open-Full cut').click();
   await expect(page.getByTestId('cut-shape-wide')).toHaveAttribute('aria-checked', 'true');
 });
+
+test('Generate a shot with the Cast (Phantom): her pictures sent, the clip joins the film', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [
+        {
+          id: CAST,
+          name: 'Rae',
+          version: 1,
+          updatedAt: Date.now(),
+          ipAdapter: { imageFilename: 'rae-face.png', imageUrl: '/icon.svg' },
+        },
+      ],
+      removedIds: [],
+    },
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        slots: [{ id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' }],
+        stills: [{ slotId: 'morning', status: 'completed', imageUrl: thumb, promptId: 'ph-m' }],
+      },
+    },
+  });
+  const sent: Array<Record<string, unknown>> = [];
+  await page.route('**/api/cut/phantom**', async route => {
+    const request = route.request();
+    if (request.method() === 'POST') {
+      sent.push(request.postDataJSON() as Record<string, unknown>);
+      await route.fulfill({ json: { promptId: 'ph-1' } });
+      return;
+    }
+    const url = new URL(request.url());
+    if (url.searchParams.get('ready')) {
+      await route.fulfill({ json: { available: true, fast: true } });
+      return;
+    }
+    await route.fulfill({ json: { status: 'ready', url: thumb } });
+  });
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot', { timeout: 30_000 });
+  await page.getByTestId('cut-generate').click();
+  const withCast = page.getByTestId('cut-generate-with-cast');
+  await expect(withCast).toBeChecked();
+  await expect(page.getByTestId('cut-generate-form')).toContainText('With Rae');
+  await expect(page.getByTestId('cut-generate-kind')).toBeDisabled();
+  await page.getByTestId('cut-generate-prompt').fill('she waves from the doorway');
+  await page.getByTestId('cut-generate-go').click();
+  await expect.poll(() => sent.length).toBe(1);
+  expect(sent[0]).toMatchObject({ words: 'she waves from the doorway', shape: 'wide', castName: 'Rae' });
+  expect(sent[0]!.references).toEqual(['/icon.svg']);
+  // Ready: the clip is in the film.
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+});

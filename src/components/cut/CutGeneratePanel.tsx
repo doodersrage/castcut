@@ -3,6 +3,8 @@
 /**
  * Generate a shot from words (cut-generate.ts): a missing shot or B-roll, rendered in the cut's
  * shape and placed after the picked shot. Shots still rendering (or that failed) are listed.
+ * With the Cast (Phantom, video/phantom.ts, when ComfyUI has it): a clip of her made straight from
+ * her pictures.
  */
 
 import { useState } from 'react';
@@ -16,6 +18,7 @@ export default function CutGeneratePanel({
   busy,
   disabled,
   afterTitle,
+  withCast,
   onGenerate,
   onRemove,
 }: {
@@ -24,12 +27,16 @@ export default function CutGeneratePanel({
   disabled?: boolean;
   /** The shot the new one goes after (null: the end of the film). */
   afterTitle: string | null;
-  onGenerate: (prompt: string, shotKind: 'still' | 'clip') => void;
+  /** The Cast a shot can be made with (Phantom is installed and she has pictures), else null. */
+  withCast?: { name: string } | null;
+  onGenerate: (prompt: string, shotKind: 'still' | 'clip', withCast: boolean) => void;
   onRemove: (key: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [shotKind, setShotKind] = useState<'still' | 'clip'>('clip');
+  const [castOn, setCastOn] = useState(true);
+  const cast = Boolean(withCast && castOn);
   const pending = extras.filter(
     (extra): extra is Extract<CutExtra, { kind: 'generated' }> =>
       extra.kind === 'generated' && extra.status !== 'ready'
@@ -43,7 +50,7 @@ export default function CutGeneratePanel({
           onSubmit={event => {
             event.preventDefault();
             if (!prompt.trim()) return;
-            onGenerate(prompt, shotKind);
+            onGenerate(prompt, cast ? 'clip' : shotKind, cast);
             setPrompt('');
             setOpen(false);
           }}
@@ -65,12 +72,24 @@ export default function CutGeneratePanel({
               data-testid="cut-generate-prompt"
             />
           </label>
+          {withCast ? (
+            <label className="flex items-center gap-1.5 type-caption">
+              <input
+                type="checkbox"
+                checked={castOn}
+                disabled={disabled || busy}
+                onChange={event => setCastOn(event.target.checked)}
+                data-testid="cut-generate-with-cast"
+              />
+              With {withCast.name} — a clip of her made from her pictures (Phantom, about 2 min)
+            </label>
+          ) : null}
           <ToolActionRow>
             <select
               aria-label="Picture or clip"
-              disabled={disabled || busy}
+              disabled={disabled || busy || cast}
               className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
-              value={shotKind}
+              value={cast ? 'clip' : shotKind}
               onChange={event => setShotKind(event.target.value === 'still' ? 'still' : 'clip')}
               data-testid="cut-generate-kind"
             >

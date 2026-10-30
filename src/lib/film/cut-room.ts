@@ -273,7 +273,8 @@ export function cutExtraShots(
           url: extra.url,
           kind: extra.shotKind,
           ...(extra.stillUrl && extra.shotKind === 'clip' ? { thumbUrl: extra.stillUrl } : {}),
-          ...(extra.promptId ? { entryId: extra.promptId } : {}),
+          // A Phantom shot's prompt id is ComfyUI's, not a Gallery entry's.
+          ...(extra.promptId && extra.engine !== 'phantom' ? { entryId: extra.promptId } : {}),
         });
       }
     } else if (extra.kind === 'extended') {

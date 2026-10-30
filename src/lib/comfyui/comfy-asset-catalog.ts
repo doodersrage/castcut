@@ -813,7 +813,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors',
     bytes: 6735906897,
-    modelIds: ['wan-video', 'copy-moves', 'lip-sync', 'music-dance', 'clip-realism'],
+    modelIds: ['wan-video', 'copy-moves', 'lip-sync', 'music-dance', 'clip-realism', 'cut-phantom'],
     notes:
       'Required for official WAN split graphs, Copy moves and Lip-sync. Rapid AIO already includes CLIP.',
   },
@@ -1078,7 +1078,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2_1_VAE_bf16.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/vae/Wan2_1_VAE_bf16.safetensors',
     bytes: 253806278,
-    modelIds: ['copy-moves', 'lip-sync', 'music-dance', 'clip-realism'],
+    modelIds: ['copy-moves', 'lip-sync', 'music-dance', 'clip-realism', 'cut-phantom'],
     notes: 'VAE for Copy moves and Lip-sync.',
   },
   {
@@ -1132,6 +1132,28 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     bytes: 18342596856,
     modelIds: ['music-dance'],
     notes: 'Dance to music: renders each segment at 30 fps.',
+  },
+  // ── Phantom (Cut: Generate a shot with the Cast) ──────────────
+  {
+    id: 'wan-phantom-14b-fp8',
+    label: 'Phantom 14B (Wan 2.1 subject-to-video, fp8 scaled)',
+    kind: 'unet',
+    filename: 'Wan2_1-T2V-14B-Phantom_fp8_e4m3fn_scaled_KJ.safetensors',
+    url: 'https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/T2V/Wan2_1-T2V-14B-Phantom_fp8_e4m3fn_scaled_KJ.safetensors',
+    bytes: 15001361458,
+    modelIds: ['cut-phantom'],
+    notes:
+      "Cut → Generate a shot → With the Cast: a clip of her made from her pictures. Uses WAN's umt5 text encoder and the Wan 2.1 VAE.",
+  },
+  {
+    id: 'lightx2v-t2v-14b-distill',
+    label: 'lightx2v T2V 14B step-distill LoRA (rank 64)',
+    kind: 'lora',
+    filename: 'lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors',
+    url: 'https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors',
+    bytes: 630697104,
+    modelIds: ['cut-phantom'],
+    notes: 'Makes Phantom shots in 6 steps (about 1½ min instead of 14).',
   },
   {
     id: 'lightx2v-i2v-480p-distill',

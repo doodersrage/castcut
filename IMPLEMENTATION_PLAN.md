@@ -2394,6 +2394,12 @@ the Animate sheet, with **Write the beats** as "Make it 30 s" has.
   Hugging Face) in `models/diffusion_models`, with `minimax_h3_ref2v_turbo_8step_v1.0_768p`.
   Not done: other engines' identity LoRAs (WAN Stand-In / Phantom / MAGREF-style) — none is
   installed here; a separate task.
+  _Since (2026-10-30): Phantom (Wan 2.1 subject-to-video, `video/phantom.ts`) is in — as Cut's
+  Generate a shot **With <Cast>**, not as a clip engine: it makes a clip from words and her
+  pictures and cannot start from a frame. Spike: 6 steps with the lightx2v T2V LoRA, 92 s for
+  5 s at 480p, face 0.35–0.38 to her reference (her H3 keyframes: 0.22); 20 steps without it,
+  14 min. It added light beams and a tattoo once (now in the negative). Queued by
+  `/api/cut/phantom`, followed through ComfyUI's history (a reload or restart keeps it)._
 
 **T7 — The T5 Casts, the take's outfit, Scene, and LTX** (user, 2026-10-29). · M
 - The T5 Casts (Mara, Lena), a 4 s H3 clip each from their park take, made 13 s longer (three

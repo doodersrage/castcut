@@ -94,7 +94,7 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 
 **Export for an editor** downloads a .zip for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline, the music and the subtitles. After a cut, **Subtitles (.srt)** downloads the film's subtitles on their own.
 
-**Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it.
+**Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it. With Phantom installed (Models: *Phantom 14B* and its step-distill LoRA, about 16 GB), **With <Cast>** makes it a clip of her straight from her pictures — her face lock and reference — in about 1½ minutes, no picture drawn first: a shot of her that was never rendered. It has no sound worth keeping (muted, as generated clips are).
 
 Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, and **J / L cuts** in the shot list — *sound in early* (hear it before it is seen; needs a trimmed start) and *sound runs on* (keep hearing it over the next shot; needs a trimmed end).
 

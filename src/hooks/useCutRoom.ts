@@ -73,6 +73,7 @@ import { cutGenerateModel } from '@/lib/queue/tool-model';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
+import { castVideoReferences } from '@/lib/character/plate';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
@@ -957,6 +958,70 @@ export function useCutRoom() {
     },
     [updateCut]
   );
+  // A shot with the Cast (Phantom, video/phantom.ts): offered when this ComfyUI has it.
+  const [phantomReady, setPhantomReady] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const comfyUrl = loadComfyUiSettings().apiUrl?.trim();
+    void fetch(
+      `/api/cut/phantom?ready=1${comfyUrl ? `&comfyUrl=${encodeURIComponent(comfyUrl)}` : ''}`,
+      { credentials: 'same-origin' }
+    )
+      .then(response => (response.ok ? response.json() : null))
+      .then((ready: { available?: boolean } | null) => {
+        if (live) setPhantomReady(ready?.available === true);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  /** The film's Cast and her pictures for a shot with her (the Day's lead, else the Scenes'). */
+  const phantomCastFor = (): { name: string; references: string[]; look?: string } | null => {
+    const cast =
+      getCharacter(
+        day.toolSettings.stillsCharacterId?.trim() || shared.activeCharacterId?.trim() || ''
+      ) ?? getCharacter(sceneCastId);
+    if (!cast) return null;
+    const { face, body, look } = castVideoReferences(cast);
+    const references = [face, body].filter((url): url is string => Boolean(url));
+    if (!references.length) return null;
+    return { name: cast.name || 'the Cast', references, ...(look ? { look } : {}) };
+  };
+  /** Follow a Phantom shot on ComfyUI until it is ready (or failed). */
+  const awaitPhantom = useCallback(
+    async (key: string, promptId: string) => {
+      if (waitingGenerated.current.has(key)) return;
+      waitingGenerated.current.add(key);
+      const comfyUrl = loadComfyUiSettings().apiUrl?.trim();
+      const query = new URLSearchParams({ promptId, ...(comfyUrl ? { comfyUrl } : {}) });
+      try {
+        const deadline = Date.now() + 30 * 60_000;
+        while (Date.now() < deadline) {
+          const response = await fetch(`/api/cut/phantom?${query.toString()}`, {
+            credentials: 'same-origin',
+          }).catch(() => null);
+          const state = (await response?.json().catch(() => null)) as {
+            status?: string;
+            url?: string;
+          } | null;
+          if (state?.status === 'ready' && state.url) {
+            patchGenerated(key, { status: 'ready', url: state.url });
+            return;
+          }
+          if (state?.status === 'failed') {
+            patchGenerated(key, { status: 'failed' });
+            return;
+          }
+          await new Promise(resolve => setTimeout(resolve, 5_000));
+        }
+        patchGenerated(key, { status: 'failed' });
+      } finally {
+        waitingGenerated.current.delete(key);
+      }
+    },
+    [patchGenerated]
+  );
   /** Animate a generated picture (image to video on the bridge engine); the new prompt id. */
   const queueGeneratedClip = useCallback(
     async (prompt: string, stillUrl: string) => {
@@ -1034,18 +1099,87 @@ export function useCutRoom() {
     if (!cut.mounted) return;
     for (const extra of extras) {
       if (extra.kind === 'generated' && extra.status === 'rendering' && extra.promptId) {
-        void awaitGenerated(extra.key, extra.promptId);
+        void (extra.engine === 'phantom' ? awaitPhantom : awaitGenerated)(
+          extra.key,
+          extra.promptId
+        );
       }
     }
-  }, [awaitGenerated, cut.mounted, extras]);
+  }, [awaitGenerated, awaitPhantom, cut.mounted, extras]);
   /** Generate a shot from words, placed after `afterKey` (the end of the film when null). */
   const generateShot = useCallback(
-    async (input: { prompt: string; shotKind: 'still' | 'clip'; afterKey: string | null }) => {
+    async (input: {
+      prompt: string;
+      shotKind: 'still' | 'clip';
+      afterKey: string | null;
+      /** With the film's Cast (Phantom): a clip of her from her pictures. */
+      withCast?: boolean;
+    }) => {
       const words = input.prompt.trim();
       if (!words) return;
       setError(null);
       setGenerateBusy(true);
       try {
+        const castShot = input.withCast ? phantomCastFor() : null;
+        if (input.withCast && !castShot)
+          throw new Error('The Cast has no pictures to make the shot from.');
+        if (castShot) {
+          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const response = await fetch('/api/cut/phantom', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              words,
+              references: castShot.references,
+              shape: filmShapeOf(stateRef.current.options),
+              castName: castShot.name,
+              look: castShot.look,
+              comfyUrl,
+            }),
+          });
+          const data = (await response.json().catch(() => ({}))) as {
+            promptId?: string;
+            error?: string;
+          };
+          if (!response.ok || !data.promptId) {
+            throw new Error(data.error ?? 'ComfyUI did not take the shot.');
+          }
+          const key = newKey();
+          const edits = stateRef.current.options.shotEdits;
+          commitEdit(
+            {
+              extras: [
+                ...stateRef.current.extras,
+                {
+                  key,
+                  kind: 'generated',
+                  prompt: words,
+                  shotKind: 'clip',
+                  status: 'rendering',
+                  stage: 'clip',
+                  promptId: data.promptId,
+                  engine: 'phantom',
+                },
+              ],
+              options: {
+                ...stateRef.current.options,
+                shotEdits: {
+                  ...edits,
+                  order: orderWith(orderNow(), key, input.afterKey),
+                  // Phantom makes no sound worth keeping: muted, like other generated clips.
+                  shots: { ...edits?.shots, [key]: { volume: 0 } },
+                },
+              },
+            },
+            true
+          );
+          setStatus(
+            `Rendering a shot of ${castShot.name} from her pictures — it joins the film when it’s ready (about two minutes).`
+          );
+          void awaitPhantom(key, data.promptId);
+          return;
+        }
         const canvas = cutGenerateCanvas(filmShapeOf(stateRef.current.options));
         const promptId = await actions.sendComfyUi(cutGenerateStillPrompt(words), null, undefined, {
           queueTool: 'image',
@@ -1106,7 +1240,7 @@ export function useCutRoom() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [actions.sendComfyUi, awaitGenerated, commitEdit, shared.model]
+    [actions.sendComfyUi, awaitGenerated, awaitPhantom, commitEdit, shared.model]
   );
   // Make longer (clip-extend-server.ts): the clip carried on by `bySec`, in the background. The
   // longer copy stands in for the original once it is ready (the original is left out then).
@@ -2595,6 +2729,12 @@ export function useCutRoom() {
     takeOffered,
     backToEarlierTake,
     scriptCoverage,
+    // Generate a shot with the Cast: offered when ComfyUI has Phantom and she has pictures.
+    generateWithCast: phantomReady
+      ? phantomCastFor()
+        ? { name: phantomCastFor()!.name }
+        : null
+      : null,
     missingMedia,
     mediaChecking: mediaCheck.checking,
     recheckMedia,
