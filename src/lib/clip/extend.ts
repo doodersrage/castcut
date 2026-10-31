@@ -45,6 +45,10 @@ const BEAT_HEAT: Record<SpokenLineHeat, string> = {
 const TALK_BEATS =
   'One person is talking to the camera the whole time. Each beat is a small gesture made where they are — a nod, a hand gesture, a smile, a tilt of the head, a glance aside and back. They stay exactly where they are, at the same distance from the camera: never stepping, leaning or moving toward it, never sitting down or standing up.';
 
+/** Two people talking (M11 T21): they stay where they are, turned to each other. */
+const TALK_BEATS_TWO =
+  'Two people are talking together the whole time, where they are. Each beat is a small gesture or reaction — a nod, a smile, a look at the other, a hand gesture, a laugh. They stay exactly where they are, at the same distance from the camera: never stepping, leaning or moving toward it, never sitting down or standing up.';
+
 const TALK_HEAT: Record<SpokenLineHeat, string> = {
   clean: 'Everyday, natural gestures.',
   flirty: 'Playful and flirty is fine in the looks and smiles; nothing explicit.',
@@ -67,7 +71,10 @@ export function buildExtendBeatsMessages(input: {
   held?: readonly string[];
   /** What the first frame shows, in a sentence — followed over the shot's words. */
   shows?: string;
+  /** People in view (shotInventory): two write beats for both (M11 T21). */
+  people?: number;
 }) {
+  const two = (input.people ?? 1) >= 2;
   const held = (input.held ?? []).filter(item => item.trim()).slice(0, 3);
   const direction = input.direction?.trim();
   const heat = input.heat ?? 'clean';
@@ -89,14 +96,22 @@ export function buildExtendBeatsMessages(input: {
       ? `In the first frame they hold ${held.join(' and ')}: it stays in that hand in every beat — never put down, dropped or swapped for something else.`
       : '',
     'Start each beat with who does it (She, He or They) and a verb.',
+    // M11 T21: two people in the shot — the keyframes kept dropping one.
+    two
+      ? 'Two people are in the shot and both stay in it, in view, in every beat — never one alone. Each beat is something they do together or to each other, or one of them does while the other reacts: a look, a laugh, a touch on the arm, leaning closer, passing something already there.'
+      : '',
     // M11 T4: a beat that ended with the face turned away made the next part invent a new face.
-    'Each beat ends with the face in view, turned toward the camera.',
+    two
+      ? 'Each beat ends with both faces in view.'
+      : 'Each beat ends with the face in view, turned toward the camera.',
     // Live: beats that ended mid-gesture ("stretches one arm overhead") became keyframes held for
     // the rest of the part — the arm went up in a second and stayed there.
     'Each beat is one whole small gesture that finishes within it and ends settled and relaxed — hands resting, arms down or back where they were; never end on an arm raised, a hand in the air or a limb held out.',
-    input.talking
-      ? TALK_BEATS
-      : 'Small, believable actions — a gesture, a look, touching something already there, shifting a little in place — that add up to a tiny story.',
+    input.talking && two
+      ? TALK_BEATS_TWO
+      : input.talking
+        ? TALK_BEATS
+        : 'Small, believable actions — a gesture, a look, touching something already there, shifting a little in place — that add up to a tiny story.',
     input.talking ? TALK_HEAT[heat] : BEAT_HEAT[heat],
     direction
       ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
@@ -243,11 +258,16 @@ export function loudestWindow(
 }
 
 /** What the first frame shows: what the person holds, read once by the vision model. */
-export type ShotInventory = { held: string[]; shows?: string };
+export type ShotInventory = {
+  held: string[];
+  shows?: string;
+  /** How many people are clearly in view (M11 T21: two-person parts); 1 when it can't say. */
+  people?: number;
+};
 
 /** The vision model's instructions for {@link parseShotInventory}. */
 export const SHOT_INVENTORY_SYSTEM =
-  'Look at the photo. Say in one plain sentence what it shows: who, where they are and what is around them (e.g. "a woman in a dress standing by the railing of a narrow balcony at night"). Then list only the objects the main person is holding in their hands, each with the hand, e.g. "a phone in her right hand" — not clothes, jewellery or bags worn. Reply with JSON only: {"shows":"...","held":["..."]}, held empty when the hands are empty.';
+  'Look at the photo. Say in one plain sentence what it shows: who, where they are and what is around them (e.g. "a woman in a dress standing by the railing of a narrow balcony at night"). Then list only the objects the main person is holding in their hands, each with the hand, e.g. "a phone in her right hand" — not clothes, jewellery or bags worn. Also count the people clearly in view (not tiny figures far in the background). Reply with JSON only: {"shows":"...","people":1,"held":["..."]}, held empty when the hands are empty.';
 
 /** The objects held, from the vision model's reply (at most three, each short). */
 export function parseShotInventory(reply: string | null | undefined): ShotInventory {
@@ -255,7 +275,7 @@ export function parseShotInventory(reply: string | null | undefined): ShotInvent
   const json = text.match(/\{[\s\S]*\}/)?.[0];
   if (!json) return { held: [] };
   try {
-    const parsed = JSON.parse(json) as { held?: unknown; shows?: unknown };
+    const parsed = JSON.parse(json) as { held?: unknown; shows?: unknown; people?: unknown };
     const held = Array.isArray(parsed.held)
       ? parsed.held
           .filter((item): item is string => typeof item === 'string')
@@ -266,7 +286,15 @@ export function parseShotInventory(reply: string | null | undefined): ShotInvent
       typeof parsed.shows === 'string'
         ? parsed.shows.replace(/\s+/g, ' ').trim().slice(0, 240)
         : '';
-    return { held: held.slice(0, 3), ...(shows ? { shows } : {}) };
+    const people =
+      typeof parsed.people === 'number' && Number.isFinite(parsed.people)
+        ? Math.min(4, Math.max(1, Math.round(parsed.people)))
+        : undefined;
+    return {
+      held: held.slice(0, 3),
+      ...(shows ? { shows } : {}),
+      ...(people && people > 1 ? { people } : {}),
+    };
   } catch {
     return { held: [] };
   }

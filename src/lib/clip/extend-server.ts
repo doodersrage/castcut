@@ -189,6 +189,10 @@ async function addsSomething(
 const PERSON_CHANGED_QUESTION =
   'The second picture is the same person a few seconds after the first. Ignoring how they pose or move, does the person wear or hold anything in one picture that they do not wear or hold in the other — sunglasses, glasses, a hat, a scarf, jewellery, a bag, a phone, a cup, a glass, a book?';
 
+/** The same, for two people in the shot (M11 T21). */
+const PEOPLE_CHANGED_QUESTION =
+  'The second picture is the same two people a few seconds after the first. Ignoring how they pose or move, does either person wear or hold anything in one picture that they do not wear or hold in the other — sunglasses, glasses, a hat, a scarf, jewellery, a bag, a phone, a cup, a glass, a book — or is one of the two people missing?';
+
 /**
  * Whether the person wears or holds something in one picture and not the other (null when the
  * vision model can't say). Live (2026-10-31): a keyframe put sunglasses on her that the first
@@ -197,7 +201,8 @@ const PERSON_CHANGED_QUESTION =
 async function personChanged(
   before: Buffer,
   after: Buffer,
-  llm?: LlmRequestOptions
+  llm?: LlmRequestOptions,
+  people = 1
 ): Promise<boolean | null> {
   try {
     const { resolveGalleryVisionTarget } = await import('../gallery/vision-review');
@@ -205,7 +210,7 @@ async function personChanged(
     const reply = await visionCompletion({
       ...target,
       systemPrompt: 'Answer with one word: yes or no.',
-      textPrompt: PERSON_CHANGED_QUESTION,
+      textPrompt: people >= 2 ? PEOPLE_CHANGED_QUESTION : PERSON_CHANGED_QUESTION,
       imageDataUrl: `data:image/png;base64,${before.toString('base64')}`,
       extraImageDataUrls: [`data:image/png;base64,${after.toString('base64')}`],
       maxTokens: 300,
@@ -278,7 +283,8 @@ async function keyframeEditor(
     lead: 'woman' | 'man',
     seed: number,
     place?: string,
-    held?: readonly string[]
+    held?: readonly string[],
+    people?: number
   ) => Promise<Buffer>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
@@ -291,7 +297,9 @@ async function keyframeEditor(
   if (!checkpoint) return null;
   const sharp = (await import('sharp')).default;
   return {
-    async edit(png, beat, lead, seed, place, held = []) {
+    async edit(png, beat, lead, seed, place, held = [], people = 1) {
+      // Two people in the shot (M11 T21): both kept, two faces expected, four hands allowed.
+      const two = people >= 2;
       const meta = await sharp(png).metadata();
       const width = meta.width ?? 1024;
       const height = meta.height ?? 1024;
@@ -320,7 +328,9 @@ async function keyframeEditor(
             image: uploaded.name,
             // The moment after the action, settled (live: keyframes drawn mid-gesture held a raised
             // arm for a whole part), and what she wears unchanged (sunglasses came and went).
-            prompt: `The same photo a few seconds later, just after this: ${action}. The gesture is finished and ${their} body is settled and relaxed — arms resting, no hand held up in the air. Keep the same ${lead} exactly — ${their} face, hair, clothes and everything ${lead === 'man' ? 'he' : 'she'} wears, nothing put on or taken off — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
+            prompt: two
+              ? `The same photo a few seconds later, just after this: ${action}. The gesture is finished and both are settled and relaxed — arms resting, no hand held up in the air. Keep both people exactly — each one's face, hair, clothes and everything they wear, nothing put on or taken off — and both stay in the picture, in the same place${where}, light and camera framing: the location does not change, only their poses do, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; exactly two people, each with two arms and two hands.`
+              : `The same photo a few seconds later, just after this: ${action}. The gesture is finished and ${their} body is settled and relaxed — arms resting, no hand held up in the air. Keep the same ${lead} exactly — ${their} face, hair, clothes and everything ${lead === 'man' ? 'he' : 'she'} wears, nothing put on or taken off — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
             ...relightSize(width, height),
             seed: seed + attempt * 101,
             prefix: 'Castcut-extend-keyframe',
@@ -368,13 +378,15 @@ async function keyframeEditor(
         // chandelier that stayed for the rest of the clip).
         const added = (await addsSomething(png, drawn, llm)) ? 4 : 0;
         // Nothing put on, taken off or brought in on the person (sunglasses came and went).
-        const changed = (await personChanged(png, drawn, llm)) ? 4 : 0;
+        const changed = (await personChanged(png, drawn, llm, people)) ? 4 : 0;
         const extra =
           dropped * 5 +
           added +
           changed +
           (counts
-            ? Math.max(0, (counts.faces ?? 1) - 1) + Math.max(0, (counts.hands ?? 2) - 2)
+            ? // A face more or fewer than the shot has (two people: one dropped is a defect too).
+              Math.abs((counts.faces ?? people) - people) +
+              Math.max(0, (counts.hands ?? 2 * people) - 2 * people)
             : 0) +
           (moved > PLACE_CHANGED ? 10 : 0);
         if (!best || extra < best.extra) best = { png: drawn, extra };
@@ -523,6 +535,8 @@ async function writeBeats(input: {
   held?: readonly string[];
   /** What the first frame shows, in a sentence. */
   shows?: string;
+  /** People in view (two: beats for both). */
+  people?: number;
   llm?: LlmRequestOptions;
 }): Promise<string[]> {
   const fallback = (count: number) => fallbackExtendBeats(count, input.heat, input.talking);
@@ -1117,6 +1131,7 @@ async function resolveBeats(
     direction: input.direction,
     held: shot.held,
     shows: shot.shows,
+    people: shot.people,
     // Dialogue parts (a line each): the speaker stays where they are.
     ...(input.lines?.some(line => line.trim())
       ? { talking: { speaker: input.lead === 'man' ? ('He' as const) : ('She' as const) } }
@@ -1429,7 +1444,8 @@ export async function extendClip(
           input.lead === 'man' ? 'man' : 'woman',
           seed + k * 13,
           input.setting,
-          held
+          held,
+          shot.people
         );
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (
@@ -1462,6 +1478,7 @@ export async function extendClip(
               ),
               speaker: input.lead === 'man' ? 'He' : 'She',
               held,
+              people: shot.people,
               ...(group ? { blocks: group.blocks } : {}),
             }
           ),

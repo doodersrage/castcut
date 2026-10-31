@@ -42,6 +42,25 @@ describe('Make it 30 s', () => {
     assert.doesNotMatch(system!.content, /picking something up/);
   });
 
+  // M11 T21: two people in the shot — beats for both, counted by the shot inventory.
+  it('writes beats for two people when the shot has two', () => {
+    const [system] = buildExtendBeatsMessages({ scene: 'a couple on a bench', count: 3, people: 2 });
+    assert.match(system!.content, /Two people are in the shot and both stay in it/);
+    assert.match(system!.content, /both faces in view/);
+    const [talk] = buildExtendBeatsMessages({ scene: 'a couple', count: 3, people: 2, talking: true });
+    assert.match(talk!.content, /Two people are talking together/);
+    assert.doesNotMatch(talk!.content, /One person is talking/);
+    const [one] = buildExtendBeatsMessages({ scene: 'a woman', count: 3 });
+    assert.doesNotMatch(one!.content, /Two people/);
+    assert.deepEqual(parseShotInventory('{"shows":"a couple on a bench","people":2,"held":[]}'), {
+      held: [],
+      shows: 'a couple on a bench',
+      people: 2,
+    });
+    assert.equal(parseShotInventory('{"shows":"a woman","people":1,"held":[]}').people, undefined);
+    assert.equal(parseShotInventory('{"shows":"a crowd","people":9,"held":[]}').people, 4);
+  });
+
   // Live (2026-10-31): sunglasses put on and taken off; an arm raised and held for a whole part.
   it('keeps what they wear, and ends each beat settled', () => {
     const [system] = buildExtendBeatsMessages({ scene: 'relaxing on a pool lounger', count: 3 });

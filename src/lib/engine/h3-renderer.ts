@@ -318,8 +318,11 @@ export function h3PartPrompt(
     held?: readonly string[];
     /** No line in a clip whose other parts speak: said outright that nobody speaks. */
     wordless?: boolean;
+    /** People in the shot (M11 T21): two keep both in view, and the motion is theirs. */
+    people?: number;
   }
 ): string {
+  const two = (part.people ?? 1) >= 2;
   const held = (part.held ?? []).filter(item => item.trim());
   const place = part.place
     ?.trim()
@@ -343,13 +346,16 @@ export function h3PartPrompt(
       part.blocks?.length
         ? `${Math.round(part.blocks.reduce((sum, block) => sum + block.seconds, 0))}s clip, one continuous shot, no cuts, from the first frame to the last — a single take carrying straight on from the first frame. ${h3TimedBlocks(part.blocks)}`
         : `5s clip, one continuous shot with no cuts, carrying straight on from the first frame to the last. ${part.beat.trim()}`,
-      `The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view. The place around ${who === 'He' ? 'him' : 'her'} stays exactly as in the first frame, with only what is already there.`,
+      `The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view. The place around ${two ? 'them' : who === 'He' ? 'him' : 'her'} stays exactly as in the first frame, with only what is already there.`,
+      two ? 'Both people stay in the shot, in view, from the first frame to the last.' : '',
       held.length ? `${who} keeps holding ${held.join(' and ')} the whole time.` : '',
       // Live (2026-10-31): a part reached its end pose in a second and froze there, and
       // sunglasses came and went between parts.
       part.blocks?.length
         ? ''
-        : `The movement is unhurried and fills the whole part: ${who.toLowerCase()} makes the gesture, then settles back into a relaxed pose — never freezing, still breathing and shifting a little to the last frame. ${who} wears exactly what ${who === 'He' ? 'he' : 'she'} wears in the first frame the whole time, nothing put on or taken off.`,
+        : two
+          ? 'The movement is unhurried and fills the whole part: they make the gesture, then settle back into relaxed poses — never freezing, still breathing and shifting a little to the last frame. Each wears exactly what they wear in the first frame the whole time, nothing put on or taken off.'
+          : `The movement is unhurried and fills the whole part: ${who.toLowerCase()} makes the gesture, then settles back into a relaxed pose — never freezing, still breathing and shifting a little to the last frame. ${who} wears exactly what ${who === 'He' ? 'he' : 'she'} wears in the first frame the whole time, nothing put on or taken off.`,
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`

@@ -210,6 +210,12 @@ describe('H3 camera words', async () => {
     // Live (2026-10-31): a part froze in its end pose; sunglasses came and went.
     assert.match(part, /unhurried and fills the whole part: she makes the gesture, then settles/);
     assert.match(said, /He wears exactly what he wears in the first frame/);
+    // M11 T21: two people — both kept in view, the motion theirs.
+    const both = h3PartPrompt(clip, { beat: 'They laugh together.', people: 2 });
+    assert.match(both, /Both people stay in the shot, in view/);
+    assert.match(both, /they make the gesture, then settle back into relaxed poses/);
+    assert.match(both, /The place around them/);
+    assert.doesNotMatch(part, /Both people/);
   });
 });
 

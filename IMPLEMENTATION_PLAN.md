@@ -2672,6 +2672,20 @@ ComfyUI). · S
   each part's prompt asks for unhurried movement that fills the part and settles, never freezing.
   The motion change wants the user's eye on a real run.
 
+**T21 — Two people in a longer clip** (the user's ask: two people doing something and talking
+now and then). Make longer is built for one person today: keyframes say "one person" and count a
+second face as a defect, every line is the lead's in the lead's voice, beats are written for one
+person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In steps:
+1. Two-person parts (now): the shot inventory counts the people in view; with two, beats are
+   written for both (both stay in view, things they do together or to each other), keyframes
+   keep both people and what each wears, expect two faces and up to four hands, and the part
+   prompts say "they". First test: a wordless two-person clip made longer.
+2. Who says each line: a speaker per line (the Cast or the partner) in Animate and Make it 30 s,
+   the prompt naming who talks and who listens.
+3. Two voices: the partner's kept voice (a Cast member's) as a second H3 voice reference — a
+   listening test first (does H3's reference model keep each voice on the right person?).
+4. The speech checks carry over (the line check per speaker).
+
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M
 - `SceneRun.handOff` (Scene ids fixed at Start by `runQueue`'s limits, and the prompt id handed
