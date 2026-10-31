@@ -2703,6 +2703,13 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   partner came out with a generic Western face in 3 of 3 seeds, with it she kept her features in
   3 of 3. Two-person parts no longer pick their end frame by the Cast's face match (it favoured
   frames where the partner looked like the lead; LTX/WAN paths).
+- One-person face drift (the user, the v3.4.3 pool clip: "only later in the video"): each
+  keyframe is edited from the last, and the face drifted part by part — cosine distance to the
+  first clip's face 0.59 by the fifth keyframe and at the end. A face reference (Image 2) did not
+  pull a drifted face back (the edit keeps Image 1's face); Face finish did: 0.59 → 0.31 / 0.32
+  over two seeds. Each keyframe now gets Day's Face finish against the Cast's face picture when its
+  own plan says the face is past FACE_FINISH_SKIP_DISTANCE (two people: only hers); any failure
+  keeps the keyframe as drawn.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

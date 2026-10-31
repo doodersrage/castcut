@@ -273,6 +273,79 @@ async function pictureChanged(a: Buffer, b: Buffer): Promise<number> {
   return changed / x.length;
 }
 
+/**
+ * The Cast's face picture (the first reference showing her face) uploaded to ComfyUI, as a view
+ * URL Face finish reads; null without one.
+ */
+async function stageCastFace(baseUrl: string, input: ClipExtendInput): Promise<string | null> {
+  const face = (input.references ?? []).find(reference => /\bface$/i.test(reference.shows));
+  if (!face) return null;
+  const { fetchFilmShotBytes } = await import('../video/shot-fetch');
+  const fetched = await fetchFilmShotBytes({
+    url: face.url,
+    requestOrigin: input.requestOrigin,
+    userId: input.userId,
+  });
+  const uploaded = await uploadComfyInputContent({
+    baseUrl,
+    bytes: new Uint8Array(fetched.buffer),
+    filename: 'castcut-extend-castface.png',
+    mimeType: fetched.contentType || 'image/png',
+  });
+  return `/api/comfyui/view?${new URLSearchParams({ filename: uploaded.name, type: 'input' }).toString()}`;
+}
+
+/**
+ * A keyframe with the Cast's face put back by Face finish (Day's pass: two people, only hers),
+ * when its own plan says the face drifted past FACE_FINISH_SKIP_DISTANCE; null when it is close
+ * enough or the pass can't run — the keyframe is kept as drawn.
+ */
+async function finishKeyframeFace(input: {
+  baseUrl: string;
+  image: ComfyImageRef;
+  faceUrl: string;
+  people: number;
+  seed: number;
+  size: { width: number; height: number };
+}): Promise<Buffer | null> {
+  const { planFaceFinishInComfy, runFaceFinishInComfy } = await import('../face/finish-server');
+  const imageUrl = `/api/comfyui/view?${new URLSearchParams({
+    filename: input.image.filename,
+    subfolder: input.image.subfolder ?? '',
+    type: input.image.type || 'output',
+  }).toString()}`;
+  const plan = await planFaceFinishInComfy({
+    imageUrl,
+    faceUrl: input.faceUrl,
+    comfyUrl: input.baseUrl,
+    people: input.people,
+  });
+  if (!plan.available || !plan.decision?.finish) return null;
+  const finished = await runFaceFinishInComfy({
+    imageUrl,
+    faceUrl: input.faceUrl,
+    comfyUrl: input.baseUrl,
+    seed: input.seed,
+    people: input.people,
+    probe: plan.probe,
+  });
+  if (!finished.available) return null;
+  const view = await fetch(
+    `${input.baseUrl}/view?${new URLSearchParams({
+      filename: finished.image.filename,
+      subfolder: finished.image.subfolder ?? '',
+      type: finished.image.type || 'output',
+    }).toString()}`,
+    { signal: AbortSignal.timeout(60_000) }
+  );
+  if (!view.ok) return null;
+  const sharp = (await import('sharp')).default;
+  return sharp(Buffer.from(await view.arrayBuffer()))
+    .resize(input.size.width, input.size.height, { kernel: 'lanczos3', fit: 'cover' })
+    .png()
+    .toBuffer();
+}
+
 async function keyframeEditor(
   baseUrl: string,
   llm?: LlmRequestOptions
@@ -287,7 +360,7 @@ async function keyframeEditor(
     people?: number,
     /** An input-folder picture with every face clear (two people: Image 2, faces only). */
     faces?: string
-  ) => Promise<Buffer>;
+  ) => Promise<{ png: Buffer; image: ComfyImageRef }>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
     signal: AbortSignal.timeout(8000),
@@ -322,7 +395,7 @@ async function keyframeEditor(
           ? ` Still held exactly as before: ${held.join(' and ')} — the same number of each, nothing doubled, each one firmly in a hand.`
           : ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand, firmly.`
         : '';
-      let best: { png: Buffer; extra: number } | null = null;
+      let best: { png: Buffer; extra: number; image: ComfyImageRef } | null = null;
       for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {
         const run = await runComfyUtilityGraph<ComfyImageRef>({
           baseUrl,
@@ -396,11 +469,11 @@ async function keyframeEditor(
               Math.max(0, (counts.hands ?? 2 * people) - 2 * people)
             : 0) +
           (moved > PLACE_CHANGED ? 10 : 0);
-        if (!best || extra < best.extra) best = { png: drawn, extra };
+        if (!best || extra < best.extra) best = { png: drawn, extra, image: run.result };
         if (extra === 0) break;
       }
       if (!best) throw new Error('A keyframe could not be drawn — check the ComfyUI log.');
-      return best.png;
+      return { png: best.png, image: best.image };
     },
   };
 }
@@ -1368,6 +1441,8 @@ export async function extendClip(
     } catch {
       faceReference = null;
     }
+    // The Cast's face picture in ComfyUI, for Face finish on the keyframes (keyframed parts only).
+    const castFace = keyframes ? await stageCastFace(baseUrl, input).catch(() => null) : null;
     const faces: Array<number | null> = [];
     for (let k = 0; k < renders; k += 1) {
       const group = groups?.[k];
@@ -1451,7 +1526,7 @@ export async function extendClip(
       // The keyframe this part ends on: the start edited a few seconds on, by its beat.
       let endFrame: string | undefined;
       if (keyframes) {
-        const png = await keyframes.edit(
+        const drawnKeyframe = await keyframes.edit(
           await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`)),
           beats[k]!,
           input.lead === 'man' ? 'man' : 'woman',
@@ -1461,6 +1536,19 @@ export async function extendClip(
           shot.people,
           facesImage
         );
+        // Her own face put back when the keyframe drifted from it (each keyframe is edited from the
+        // last, and the face drifted part by part: 0.59 from the Cast's by the fifth, 0.31 after).
+        const png =
+          (castFace
+            ? await finishKeyframeFace({
+                baseUrl,
+                image: drawnKeyframe.image,
+                faceUrl: castFace,
+                people: shot.people ?? 1,
+                seed: seed + k * 17,
+                size,
+              }).catch(() => null)
+            : null) ?? drawnKeyframe.png;
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (
           await uploadComfyInputContent({
