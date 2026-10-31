@@ -133,6 +133,67 @@ const spokenWords = (text: string) =>
  * stay until the sun goes down." (clean); a word misheard inside the line is not more.
  */
 export function saysMoreThanLine(transcript: string, line: string, extra = 3): boolean {
+  if (!saysLine(transcript, line)) return false;
+  return saysMoreThanLineHeard(transcript, line, extra);
+}
+
+/**
+ * Whether the transcript has the line: most of its words heard (`share`), in any order — a word
+ * misheard is fine. Live (no voice to keep, the plain model): "Brought out yet, and I'll come.
+ * I'd snore at the area in Van Mengse. Come on." for "I really need to get back to reading my
+ * book." — not said; silence ('') is not said either.
+ */
+export function saysLine(transcript: string, line: string, share = 0.6): boolean {
+  const said = spokenWords(line);
+  if (!said.length) return true;
+  const left = spokenWords(transcript);
+  let found = 0;
+  for (const word of said) {
+    const at = left.indexOf(word);
+    if (at >= 0) {
+      left.splice(at, 1);
+      found += 1;
+    }
+  }
+  return found >= said.length * share;
+}
+
+/**
+ * What Whisper makes up on room tone, music or waves (heard on 71 live parts): taken out before
+ * counting words, so a wordless part is not re-rendered for a phrase nobody said.
+ */
+const WHISPER_STOCK = [
+  /thank you( (so|very) much)?( for watching)?/g,
+  /i'?ll see you in the next video/g,
+  /don'?t forget to like,? share and subscribe/g,
+  /\bmusic( playing)?\b/g,
+  /\bbye( bye)?\b/g,
+  /\byou\b/g,
+];
+
+/** The loudest 50 ms of a wordless part (dBFS) above which it may hold a voice, not just a room. */
+export const WORDLESS_SPEECH_DB = -12;
+
+/**
+ * Whether a part meant to be wordless (in a talking clip) speaks: loud enough to be a voice and
+ * three or more different words heard once Whisper's stock phrases are out — a word looped ("No,
+ * no, no…") is Whisper on a quiet room. Live: "Brought out yet, and I'll come. I'd snore at the
+ * area in Van Mengse." (−2 dB) and "between the two sides and the other side." (−3 dB) speak;
+ * "Thank you for watching." on music at −2 dB and "I'm sorry, I'm sorry…" at −22 dB do not.
+ */
+export function wordlessSpeaks(transcript: string, loudestDb: number): boolean {
+  if (!(loudestDb > WORDLESS_SPEECH_DB)) return false;
+  let text = transcript.toLowerCase().replace(/[’]/g, "'");
+  for (const stock of WHISPER_STOCK) text = text.replace(stock, ' ');
+  return new Set(spokenWords(text)).size >= 3;
+}
+
+/** A part that did not say its line as written: said something else, or more than it. */
+export function lineHeardWrong(transcript: string, line: string): boolean {
+  return !saysLine(transcript, line) || saysMoreThanLine(transcript, line);
+}
+
+function saysMoreThanLineHeard(transcript: string, line: string, extra: number): boolean {
   const heard = spokenWords(transcript);
   const said = spokenWords(line);
   if (!said.length || !heard.length) return false;

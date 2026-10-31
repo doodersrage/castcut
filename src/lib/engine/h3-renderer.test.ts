@@ -21,6 +21,7 @@ import {
   withH3VoiceAnchor,
   H3_GUIDE_NODE,
   timedLine,
+  withH3TimedLine,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -377,5 +378,22 @@ describe('a wordless part of a talking clip stays wordless', () => {
     assert.match(h3PartPrompt('x', { beat: 'She looks out.', wordless: true }), /Nobody speaks in this part/);
     assert.doesNotMatch(h3PartPrompt('x', { beat: 'She looks out.' }), /Nobody speaks/);
     assert.doesNotMatch(h3PartPrompt('x', { beat: 'b', line: 'Hi.', wordless: true }), /Nobody speaks/);
+  });
+});
+
+describe('a talking H3 part with no voice to keep gets its line timed', () => {
+  it('adds the timing to the plain model once, and leaves a wordless part alone', () => {
+    const graph = {
+      '1': {
+        class_type: 'MiniMaxH3ImageToVideo',
+        inputs: { prompt: 'She says, "I really need to get back to reading my book."', length: 124 },
+      },
+    };
+    const timed = withH3TimedLine(graph);
+    assert.match(String(timed['1']!.inputs.prompt), /Timing: 0–[\d.]+s: she says "I really need/);
+    assert.equal(graph['1'].inputs.prompt.includes('Timing'), false);
+    assert.equal(withH3TimedLine(timed), timed);
+    const wordless = { '1': { class_type: 'MiniMaxH3ImageToVideo', inputs: { prompt: 'She reads.', length: 124 } } };
+    assert.equal(withH3TimedLine(wordless), wordless);
   });
 });

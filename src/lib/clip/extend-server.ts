@@ -47,7 +47,10 @@ import {
   WAN_EXTEND_BLEND_FRAMES,
   type ClipExtendJob,
   parseShotInventory,
-  saysMoreThanLine,
+  lineHeardWrong,
+  loudestWindow,
+  wordlessSpeaks,
+  WORDLESS_SPEECH_DB,
   SHOT_INVENTORY_SYSTEM,
   type ShotInventory,
 } from './extend';
@@ -67,6 +70,7 @@ import {
   H3_REF_FILES,
   H3_REF_NODE,
   withH3References,
+  withH3TimedLine,
   withH3VoiceAnchor,
   isH3ClipGraph,
   patchH3ReplayGraph,
@@ -737,11 +741,11 @@ async function soundLongParts(
 const TRANSCRIBE_NODE = 'CastcutTranscribe';
 
 /**
- * Whether a rendered part (a local MP4) says more than `line`: transcribed on ComfyUI by
- * CastcutTranscribe. False when the node is missing or the check fails — the part is kept.
+ * What a rendered part (a local MP4) says, transcribed on ComfyUI by CastcutTranscribe; null when
+ * the node is missing or the check fails (the part is then kept as it is).
  */
-async function partSaysMore(baseUrl: string, file: string, line: string): Promise<boolean> {
-  if (!(await resolveComfyNode(baseUrl, [TRANSCRIBE_NODE]))) return false;
+async function hearPart(baseUrl: string, file: string): Promise<string | null> {
+  if (!(await resolveComfyNode(baseUrl, [TRANSCRIBE_NODE]))) return null;
   const uploaded = await uploadComfyInputContent({
     baseUrl,
     bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ file)),
@@ -767,8 +771,51 @@ async function partSaysMore(baseUrl: string, file: string, line: string): Promis
       return typeof text === 'string' ? text : undefined;
     },
   });
-  return typeof run.result === 'string' && saysMoreThanLine(run.result, line);
+  return typeof run.result === 'string' ? run.result : null;
 }
+
+/** The loudest 50 ms of a file's sound (dBFS); null without sound. */
+async function loudestDb(ffmpeg: string, file: string): Promise<number | null> {
+  const rate = 16000;
+  const pcm = await new Promise<Buffer>(resolve => {
+    const child = spawn(
+      ffmpeg,
+      ['-v', 'error', '-i', file, '-vn', '-ac', '1', '-ar', String(rate), '-f', 's16le', '-'],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
+    child.on('error', () => resolve(Buffer.alloc(0)));
+    child.on('close', () => resolve(Buffer.concat(chunks)));
+  });
+  if (pcm.length < rate / 10) return null;
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
+  return loudestWindow(samples, rate, 0.05, 0.05).db;
+}
+
+/**
+ * Whether a part was heard saying the wrong thing: a talking part not its `line` (or more), a
+ * wordless one any words at all. False when it can't be heard.
+ */
+async function partHeardWrong(
+  ffmpeg: string,
+  baseUrl: string,
+  file: string,
+  line: string
+): Promise<boolean> {
+  if (line) {
+    const heard = await hearPart(baseUrl, file);
+    return heard !== null && lineHeardWrong(heard, line);
+  }
+  // Loudness first: a quiet part holds no voice, and needs no ComfyUI call.
+  const loudest = await loudestDb(ffmpeg, file);
+  if (loudest === null || !(loudest > WORDLESS_SPEECH_DB)) return false;
+  const heard = await hearPart(baseUrl, file);
+  return heard !== null && wordlessSpeaks(heard, loudest);
+}
+
+/** How far a wordless part that still speaks after its retries is turned down (dB). */
+const WORDLESS_DUCK_DB = -24;
 
 /** Times a part with a hard cut is rendered again, and what a cut is. */
 const CUT_RETRIES = 2;
@@ -1392,21 +1439,28 @@ export async function extendClip(
           : null;
         // The reference model has no end frame of its own: without a voice to keep, keyframed
         // parts keep the first/last-frame one (a talking part pins its frames with guides).
+        // A talking part with no voice to keep (the plain model): its line timed all the same.
+        const timed = (graph: typeof patched.graph) =>
+          !group && input.lines?.[k]?.trim()
+            ? withH3TimedLine(graph, input.lead === 'man' ? 'He' : 'She')
+            : graph;
         prompt = anchored
           ? anchored
           : h3Pictures.length && !endFrame
-            ? (withH3References(patched.graph, {
-                pictures: [
-                  {
-                    image: lastFrame.name,
-                    shows:
-                      'the first frame: the shot as it is now, which the video starts from exactly',
-                  },
-                  ...h3Pictures,
-                ],
-                look: h3Look,
-              }) ?? patched.graph)
-            : patched.graph;
+            ? timed(
+                withH3References(patched.graph, {
+                  pictures: [
+                    {
+                      image: lastFrame.name,
+                      shows:
+                        'the first frame: the shot as it is now, which the video starts from exactly',
+                    },
+                    ...h3Pictures,
+                  ],
+                  look: h3Look,
+                }) ?? patched.graph
+              )
+            : timed(patched.graph);
         saveNode = patched.saveNode;
         if (!endFrame) withTailPreview(prompt, partFrames);
       } else if (wan) {
@@ -1485,13 +1539,24 @@ export async function extendClip(
       // say more than its line (about 1 in 10 voice-anchored parts, M11 T19 — heard by Castcut's
       // transcribe node when ComfyUI has it): rendered again on another seed, up to CUT_RETRIES.
       const partLine = h3 && !group ? (input.lines?.[k]?.trim() ?? '') : '';
-      for (let retry = 1; h3 && retry <= CUT_RETRIES; retry += 1) {
+      // A wordless part of a talking clip: H3's plain model made up garbled speech in 2 of 3 live
+      // ("Nobody speaks" in the prompt notwithstanding) — heard like a talking part.
+      const wordlessPart = Boolean(
+        h3 && !group && !partLine && input.lines?.some(line => line?.trim())
+      );
+      // Heard still saying something other than its line after the retries: not a voice to keep.
+      let lineWrong = false;
+      for (let retry = 1; h3 && retry <= CUT_RETRIES + 1; retry += 1) {
         const cut = await hasHardCut(ffmpeg, at(`seg${k}.bin`));
-        const more =
-          !cut && partLine
-            ? await partSaysMore(baseUrl, at(`seg${k}.bin`), partLine).catch(() => false)
+        const wrong =
+          !cut && (partLine || wordlessPart)
+            ? await partHeardWrong(ffmpeg, baseUrl, at(`seg${k}.bin`), partLine).catch(() => false)
             : false;
-        if (!cut && !more) break;
+        if (!cut && !wrong) break;
+        if (retry > CUT_RETRIES) {
+          lineWrong = wrong;
+          break;
+        }
         const again = await runComfyUtilityGraph<ComfyImageRef>({
           baseUrl,
           label: 'clip-extend',
@@ -1507,6 +1572,32 @@ export async function extendClip(
         });
         if (!again.result) break;
         await download(baseUrl, again.result, at(`seg${k}.bin`));
+      }
+      // A wordless part still speaking after its retries: turned down to the room, so it says
+      // nothing you can hear instead of garble (its sounds go down with it).
+      if (wordlessPart && lineWrong) {
+        await run(ffmpeg, [
+          '-y',
+          '-v',
+          'error',
+          '-i',
+          at(`seg${k}.bin`),
+          '-map',
+          '0',
+          '-c:v',
+          'copy',
+          '-af',
+          `volume=${WORDLESS_DUCK_DB}dB`,
+          '-c:a',
+          'aac',
+          '-b:a',
+          PIECE_AUDIO_BITRATE,
+          '-f',
+          'mp4',
+          at(`seg${k}-quiet.bin`),
+        ])
+          .then(() => fs.rename(at(`seg${k}-quiet.bin`), at(`seg${k}.bin`)))
+          .catch(() => undefined);
       }
       // The segment's colours matched at the seam: its first frame shows what the frame it started
       // from shows (WAN / H3: that frame; LTX: the tail's first frame), so the difference is only
@@ -1539,7 +1630,8 @@ export async function extendClip(
       );
       // Its sound at the first clip's level: H3 writes each part's sound on its own, and a part
       // came out 25 dB quieter than the one before (live, keyframed parts).
-      if (h3 && !group && first.audio) {
+      // A wordless part turned down for its garble stays down.
+      if (h3 && !group && first.audio && !(wordlessPart && lineWrong)) {
         firstLoudness ??= await meanVolume(ffmpeg, at('piece0.mp4'));
         await levelPieceAudio(
           ffmpeg,
@@ -1550,7 +1642,14 @@ export async function extendClip(
       }
       // No voice to keep yet (a wordless first clip, no kept Cast voice): the first part that
       // speaks sets it for the parts after it.
-      if (h3 && !voiceAnchor && !input.voiceSample?.trim() && !group && input.lines?.[k]?.trim()) {
+      if (
+        h3 &&
+        !voiceAnchor &&
+        !lineWrong &&
+        !input.voiceSample?.trim() &&
+        !group &&
+        input.lines?.[k]?.trim()
+      ) {
         voiceAnchor = await voiceAnchorClip({
           ffmpeg,
           baseUrl,

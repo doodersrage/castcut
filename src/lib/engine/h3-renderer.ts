@@ -447,6 +447,27 @@ export function timedLine(prompt: string, seconds: number, who: 'She' | 'He' = '
   return `Timing: 0–${fmt(end)}s: ${pronoun} says "${line}" once. ${fmt(end)}–${fmt(span)}s: ${pronoun} stops talking, closes ${who === 'He' ? 'his' : 'her'} mouth and listens — silence from ${who === 'He' ? 'him' : 'her'}, only the sound of the place.`;
 }
 
+/**
+ * `graph` with its H3 node's spoken line timed ({@link timedLine}): for a talking part with no
+ * voice to keep, which renders on the plain model — without it a line came out garbled or
+ * repeated to the end of the part. Unchanged when the prompt has no line.
+ */
+export function withH3TimedLine<T extends Record<string, WorkflowNode | undefined>>(
+  graph: T,
+  who: 'She' | 'He' = 'She'
+): T {
+  const id = Object.keys(graph).find(key =>
+    [H3_REQUIRED_NODE, H3_REF_NODE].includes(graph[key]?.class_type ?? '')
+  );
+  const node = id ? graph[id] : undefined;
+  if (!id || !node) return graph;
+  const prompt = String(node.inputs?.prompt ?? '');
+  if (/\bTiming: 0–/.test(prompt)) return graph;
+  const timing = timedLine(prompt, Number(node.inputs?.length) / 24 || 5, who);
+  if (!timing) return graph;
+  return { ...graph, [id]: { ...node, inputs: { ...node.inputs, prompt: `${prompt} ${timing}` } } };
+}
+
 /** The guide node that pins a picture (or a clip with its sound) at a frame of an H3 video. */
 export const H3_GUIDE_NODE = 'MiniMaxH3AddGuide';
 /** Frames of the voice reference clip (H3's 17k+5 grid): ~1.6 s at 24 fps. */

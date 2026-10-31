@@ -2651,6 +2651,17 @@ ComfyUI). · S
 - On the real parts: "I could stand here for hours. Let us up and out. I could stand here for
   hours." → said more; "Okay, one more swim and then we eat." → kept. Whisper still makes up words
   on a long wordless part's room tone, which is why only parts with a line are heard.
+- Follow-up (live, a Cast with no kept voice): wordless parts of a talking clip spoke garbled
+  words on H3's plain model ("Brought out yet, and I'll come…", "between the two sides and the
+  other side."), "Nobody speaks" in the prompt notwithstanding. They are heard too now
+  (`wordlessSpeaks`: loudest 50 ms over −12 dB and 3+ different words once Whisper's stock
+  phrases — "Thank you for watching.", "Music"… — are out; calibrated on 71 live parts) and
+  re-rendered up to twice; one still speaking is turned down 24 dB (and not levelled back up).
+  Talking parts: one with no voice to keep gets `timedLine` too (`withH3TimedLine`); a part that
+  did not say its line (`saysLine`: under 60% of its words, or silence) is re-rendered; one still
+  wrong after its retries is not kept as the voice anchor.
+  Separately (33532234): animating a slot again kept the last clip's `clipRenderPromptId`, so
+  Make longer read the old job and continued an H3 clip on LTX-2.5.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

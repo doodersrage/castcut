@@ -15,6 +15,9 @@ import {
   groupH3Blocks,
   loudestWindow,
   saysMoreThanLine,
+  saysLine,
+  lineHeardWrong,
+  wordlessSpeaks,
   parseShotInventory,
   renumberH3Pictures,
   extendFacesNote,
@@ -330,5 +333,47 @@ describe('a part that says more than its line (M11 T19)', () => {
     assert.equal(saysMoreThanLine('The water is still warm, you could come in.', line), false);
     assert.equal(saysMoreThanLine('Okay, one more swim, and then we eat.', 'Okay, one more swim and then we eat.'), false);
     assert.equal(saysMoreThanLine('', line), false);
+  });
+});
+
+describe('a part that did not say its line (no voice to keep)', () => {
+  const line = 'I really need to get back to reading my book.';
+  it('is heard wrong when garbled or silent, right when said', () => {
+    const garbled = "Brought out yet, and I'll come. I'd snore at the area in Van Mengse. Come on.";
+    assert.equal(saysLine(garbled, line), false);
+    assert.equal(lineHeardWrong(garbled, line), true);
+    assert.equal(lineHeardWrong('', line), true);
+    assert.equal(lineHeardWrong('I really need to get back to reading my book.', line), false);
+    assert.equal(lineHeardWrong('I really need to get back to reading the book.', line), false);
+    assert.equal(
+      lineHeardWrong('I really need to get back to reading my book. Okay, okay, okay then.', line),
+      true
+    );
+  });
+});
+
+describe('a wordless part that speaks anyway', () => {
+  it('is caught when loud with real words, not for Whisper stock phrases or loops', () => {
+    assert.equal(
+      wordlessSpeaks("Brought out yet, and I'll come. I'd snore at the area in Van Mengse. Come on.", -2),
+      true
+    );
+    assert.equal(wordlessSpeaks('between the two sides and the other side.', -3), true);
+    for (const stock of [
+      'Thank you for watching.',
+      'Thank you very much.',
+      'Music',
+      'music playing',
+      "I'll see you in the next video. Bye bye.",
+      'Thank you for watching. Don\'t forget to like, share and subscribe.',
+      'Thank you so much for watching.',
+      'you',
+      'No, no, no, no, no, no, no, no',
+      '',
+    ]) {
+      assert.equal(wordlessSpeaks(stock, -2), false, stock);
+    }
+    // Quiet: Whisper making things up on a room, not a voice.
+    assert.equal(wordlessSpeaks("I'm sorry, I'm sorry, I'm sorry, I really am here", -22), false);
   });
 });
