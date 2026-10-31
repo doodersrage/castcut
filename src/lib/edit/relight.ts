@@ -70,6 +70,11 @@ export function buildRelightGraph(input: {
   loraStrength?: number;
   /** No Relight LoRA (a plain edit on the checkpoint: Sketch). */
   noLora?: boolean;
+  /**
+   * A second input image the prompt calls Image 2 (only to look at, not edited): Make longer's
+   * two-person keyframes see both faces in it (M11 T21).
+   */
+  reference?: string;
 }): Record<string, unknown> {
   const graph: Record<string, unknown> = {
     '1': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: input.checkpoint } },
@@ -90,12 +95,25 @@ export function buildRelightGraph(input: {
     },
     '5': {
       class_type: 'TextEncodeQwenImageEditPlus',
-      inputs: { clip: ['1', 1], prompt: input.prompt, image1: ['4', 0] },
+      inputs: {
+        clip: ['1', 1],
+        prompt: input.prompt,
+        image1: ['4', 0],
+        ...(input.reference ? { image2: ['20', 0] } : {}),
+      },
     },
     '6': {
       class_type: 'TextEncodeQwenImageEditPlus',
-      inputs: { clip: ['1', 1], prompt: '', image1: ['4', 0] },
+      inputs: {
+        clip: ['1', 1],
+        prompt: '',
+        image1: ['4', 0],
+        ...(input.reference ? { image2: ['20', 0] } : {}),
+      },
     },
+    ...(input.reference
+      ? { '20': { class_type: 'LoadImage', inputs: { image: input.reference } } }
+      : {}),
     '7': { class_type: 'VAEEncode', inputs: { pixels: ['4', 0], vae: ['1', 2] } },
     '8': { class_type: 'ReferenceLatent', inputs: { conditioning: ['5', 0], latent: ['7', 0] } },
     '9': { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['2', 0], shift: 3.1 } },

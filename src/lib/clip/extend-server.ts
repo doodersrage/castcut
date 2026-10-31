@@ -284,7 +284,9 @@ async function keyframeEditor(
     seed: number,
     place?: string,
     held?: readonly string[],
-    people?: number
+    people?: number,
+    /** An input-folder picture with every face clear (two people: Image 2, faces only). */
+    faces?: string
   ) => Promise<Buffer>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
@@ -297,7 +299,7 @@ async function keyframeEditor(
   if (!checkpoint) return null;
   const sharp = (await import('sharp')).default;
   return {
-    async edit(png, beat, lead, seed, place, held = [], people = 1) {
+    async edit(png, beat, lead, seed, place, held = [], people = 1, faces) {
       // Two people in the shot (M11 T21): both kept, two faces expected, four hands allowed.
       const two = people >= 2;
       const meta = await sharp(png).metadata();
@@ -333,12 +335,13 @@ async function keyframeEditor(
             // The moment after the action, settled (live: keyframes drawn mid-gesture held a raised
             // arm for a whole part), and what she wears unchanged (sunglasses came and went).
             prompt: two
-              ? `The same photo a few seconds later, just after this: ${action}. The gesture is finished and both are settled and relaxed — arms resting, no hand held up in the air. Keep both people exactly — each one's face, hair, clothes and everything they wear, nothing put on or taken off — and both stay in the picture, in the same place${where}, light and camera framing: the location does not change, only their poses do, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; exactly two people, each with two arms and two hands.`
+              ? `The same photo a few seconds later, just after this: ${action}. The gesture is finished and both are settled and relaxed — arms resting, no hand held up in the air. Keep both people exactly — each one's face, hair, clothes and everything they wear, nothing put on or taken off — and both stay in the picture, in the same place${where}, light and camera framing: the location does not change, only their poses do, and nothing new appears — no smoke, mist or new light.${holding}${faces ? " Image 2 shows the same two people a little earlier, both faces clear: each person keeps their own face exactly as in Image 2 — they are two different people with different faces, and neither takes on the other's features. Image 2 is only for their faces; the picture is Image 1 a few seconds later." : ''} Photorealistic, sharp, natural skin texture; exactly two people, each with two arms and two hands.`
               : `The same photo a few seconds later, just after this: ${action}. The gesture is finished and ${their} body is settled and relaxed — arms resting, no hand held up in the air. Keep the same ${lead} exactly — ${their} face, hair, clothes and everything ${lead === 'man' ? 'he' : 'she'} wears, nothing put on or taken off — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
             ...relightSize(width, height),
             seed: seed + attempt * 101,
             prefix: 'Castcut-extend-keyframe',
             noLora: true,
+            ...(two && faces ? { reference: faces } : {}),
           }),
           read: entry =>
             (entry.outputs?.[RELIGHT_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined)
@@ -1350,6 +1353,9 @@ export async function extendClip(
     // The Cast's face as the first clip shows it (M11 T4): each part after the first starts from
     // the frame of the part before that matches it best. Off when the face check can't run.
     let faceReference: string | null = null;
+    // The same picture by its input-folder name: two people's keyframes see both faces in it (live:
+    // a keyframe drawn from a frame where the partner was turned away gave her the lead's face).
+    let facesImage: string | undefined;
     try {
       const uploaded = await uploadComfyInputContent({
         baseUrl,
@@ -1358,6 +1364,7 @@ export async function extendClip(
         mimeType: 'image/png',
       });
       faceReference = `/api/comfyui/view?${new URLSearchParams({ filename: uploaded.name, type: 'input' }).toString()}`;
+      facesImage = uploaded.name;
     } catch {
       faceReference = null;
     }
@@ -1367,7 +1374,9 @@ export async function extendClip(
       // The part's frames: its blocks and the start frame it drops (H3's own shot otherwise).
       const partFrames = group ? h3GridFrames(Math.round(group.seconds * 24) + 1) : H3_PART_FRAMES;
       // A generated part (never the player's own clip) cut at its best face frame.
-      if (k > 0 && faceReference && !keyframes) {
+      // Two people: not by face match — the Cast's face picked the frames where the partner looked
+      // most like her.
+      if (k > 0 && faceReference && !keyframes && (shot.people ?? 1) < 2) {
         const anchor = await faceAnchorFrame({
           ffmpeg,
           piece: pieces[k]!,
@@ -1449,7 +1458,8 @@ export async function extendClip(
           seed + k * 13,
           input.setting,
           held,
-          shot.people
+          shot.people,
+          facesImage
         );
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (

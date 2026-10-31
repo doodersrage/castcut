@@ -256,6 +256,12 @@ describe('Sketch', () => {
     const graph = buildRelightGraph({ checkpoint: 'c', image: 'i', prompt: 'p', width: 512, height: 512, seed: 1, prefix: 'x', noLora: true });
     assert.equal(ofType(graph, 'LoraLoaderModelOnly').length, 0);
     assert.deepEqual(ofType(graph, 'ModelSamplingAuraFlow')[0]?.inputs.model, ['1', 0]);
+    // M11 T21: a second picture to look at (Image 2) on both encoders, not edited.
+    const withFaces = buildRelightGraph({ checkpoint: 'c', image: 'i', prompt: 'p', width: 512, height: 512, seed: 1, prefix: 'x', noLora: true, reference: 'faces.png' }) as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    assert.deepEqual(withFaces['20'], { class_type: 'LoadImage', inputs: { image: 'faces.png' } });
+    assert.deepEqual(withFaces['5']!.inputs.image2, ['20', 0]);
+    assert.deepEqual(withFaces['6']!.inputs.image2, ['20', 0]);
+    assert.equal((graph as Record<string, { inputs: Record<string, unknown> }>)['5']!.inputs.image2, undefined);
   });
 });
 

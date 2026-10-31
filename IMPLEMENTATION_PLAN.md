@@ -2695,6 +2695,14 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   women"; not things on a table), and beats, keyframes and parts keep "the same number of each,
   nothing doubled, each one firmly in a hand". On that frame the new keyframe wording kept one
   shared glass in 3 of 3 seeds (the old one dropped it in 3 of 3).
+- Also live: the partner took on the lead's face. The first clip ended close in with her turned
+  away, so keyframe 1 (an edit that only sees that frame) invented her face, drawn toward the
+  face it could see; each later keyframe carried it on. Two-person keyframes now get the first
+  clip's first frame (both faces clear) as Image 2 — "each keeps their own face exactly as in
+  Image 2, two different people" (relight graph `reference`). On that frame: without it the
+  partner came out with a generic Western face in 3 of 3 seeds, with it she kept her features in
+  3 of 3. Two-person parts no longer pick their end frame by the Cast's face match (it favoured
+  frames where the partner looked like the lead; LTX/WAN paths).
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M
