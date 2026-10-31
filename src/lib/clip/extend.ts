@@ -93,7 +93,8 @@ export function buildExtendBeatsMessages(input: {
     // later keyframe took them off again — they popped in and out.
     "What they wear stays exactly as in the first frame, in every beat: nothing is put on, taken off or brought in — no sunglasses, glasses, hat, jewellery or bag that the picture does not show, whatever the shot's words say.",
     held.length
-      ? `In the first frame they hold ${held.join(' and ')}: it stays in that hand in every beat — never put down, dropped or swapped for something else.`
+      ? // Live (two people): one glass they shared became a glass each in the next part.
+        `In the first frame they hold ${held.join(' and ')}: it stays in that hand in every beat, held the same way — the same number of each thing (one shared glass stays one shared glass) — never put down, dropped, doubled or swapped for something else.`
       : '',
     'Start each beat with who does it (She, He or They) and a verb.',
     // M11 T21: two people in the shot — the keyframes kept dropping one.
@@ -267,7 +268,7 @@ export type ShotInventory = {
 
 /** The vision model's instructions for {@link parseShotInventory}. */
 export const SHOT_INVENTORY_SYSTEM =
-  'Look at the photo. Say in one plain sentence what it shows: who, where they are and what is around them (e.g. "a woman in a dress standing by the railing of a narrow balcony at night"). Then list only the objects the main person is holding in their hands, each with the hand, e.g. "a phone in her right hand" — not clothes, jewellery or bags worn. Also count the people clearly in view (not tiny figures far in the background). Reply with JSON only: {"shows":"...","people":1,"held":["..."]}, held empty when the hands are empty.';
+  'Look at the photo. Say in one plain sentence what it shows: who, where they are and what is around them (e.g. "a woman in a dress standing by the railing of a narrow balcony at night"). Count the people clearly in view (not tiny figures far in the background). Then list only the objects that are in someone\'s hand right now, each object once, saying how many there are and who holds it, e.g. "a phone in her right hand", "one glass shared by both women", "a cup in each woman\'s hand" — not things standing on a table or lying nearby, not clothes, jewellery or bags worn, and not straws, lids or other parts of something already listed. Reply with JSON only: {"shows":"...","people":1,"held":["..."]}, held empty when the hands are empty.';
 
 /** The objects held, from the vision model's reply (at most three, each short). */
 export function parseShotInventory(reply: string | null | undefined): ShotInventory {

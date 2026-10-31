@@ -348,7 +348,11 @@ export function h3PartPrompt(
         : `5s clip, one continuous shot with no cuts, carrying straight on from the first frame to the last. ${part.beat.trim()}`,
       `The framing stays as in the first frame from start to end: the same distance, the same height, everything in view that was in view. The place around ${two ? 'them' : who === 'He' ? 'him' : 'her'} stays exactly as in the first frame, with only what is already there.`,
       two ? 'Both people stay in the shot, in view, from the first frame to the last.' : '',
-      held.length ? `${who} keeps holding ${held.join(' and ')} the whole time.` : '',
+      held.length
+        ? two
+          ? `They keep holding exactly what they hold — ${held.join(' and ')} — the whole time, the same number of each, every one firmly in a hand.`
+          : `${who} keeps holding ${held.join(' and ')} the whole time.`
+        : '',
       // Live (2026-10-31): a part reached its end pose in a second and froze there, and
       // sunglasses came and went between parts.
       part.blocks?.length

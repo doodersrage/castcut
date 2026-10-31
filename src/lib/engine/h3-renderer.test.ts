@@ -329,6 +329,10 @@ describe('MiniMax-H3 parts keep what she holds', () => {
     });
     assert.match(prompt, /She keeps holding a phone in her left hand the whole time\./);
     assert.doesNotMatch(h3PartPrompt('x', { beat: 'She waits.' }), /keeps holding/);
+    assert.match(
+      h3PartPrompt('x', { beat: 'They laugh.', held: ['one glass shared by both women'], people: 2 }),
+      /They keep holding exactly what they hold — one glass shared by both women — the whole time, the same number of each/
+    );
   });
 });
 

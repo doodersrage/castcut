@@ -313,8 +313,12 @@ async function keyframeEditor(
       const action = beat.trim().replace(/[.\s]+$/, '');
       const setting = place?.trim().replace(/[.\s]+$/, '');
       const where = setting ? ` (${setting})` : '';
+      // Held exactly as before, how many included (live, two people: one shared glass was drawn
+      // as two), each firmly in a hand (a glass floated between them).
       const holding = held.length
-        ? ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand.`
+        ? two
+          ? ` Still held exactly as before: ${held.join(' and ')} — the same number of each, nothing doubled, each one firmly in a hand.`
+          : ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand, firmly.`
         : '';
       let best: { png: Buffer; extra: number } | null = null;
       for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {

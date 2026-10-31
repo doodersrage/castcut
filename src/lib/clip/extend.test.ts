@@ -323,6 +323,8 @@ describe('what the shot holds stays in hand (live: a phone came and went)', () =
       held: ['a phone in her left hand'],
     });
     assert.match(system!.content, /they hold a phone in her left hand: it stays in that hand in every beat/);
+    // Live (two people): one shared glass became a glass each.
+    assert.match(system!.content, /the same number of each thing \(one shared glass stays one shared glass\)/);
     assert.match(system!.content, /no smoke, breath, mist/);
     assert.doesNotMatch(system!.content, /\bsteps\b/i);
     const [, user] = buildExtendBeatsMessages({

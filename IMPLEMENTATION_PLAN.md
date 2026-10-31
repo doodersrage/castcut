@@ -2685,6 +2685,16 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
 3. Two voices: the partner's kept voice (a Cast member's) as a second H3 voice reference — a
    listening test first (does H3's reference model keep each voice on the right person?).
 4. The speech checks carry over (the line check per speaker).
+- Step 1 live (v3.4.4, two women at a beach bar): both stayed in every part and moved on their
+  own; but the H3 first clip had turned their two glasses into one shared glass, the inventory
+  listed only "the main person's" things ("a glass in her left hand", "a straw in her right
+  hand"), every keyframe drew a glass each, and the one glass split into two; a glass floated
+  between them in part 3. The vision model can't count glasses (a count and an "is this exactly
+  true" question both failed), so the held things are now said right instead: the inventory
+  lists what anyone holds, each object once with how many and who ("one glass shared by both
+  women"; not things on a table), and beats, keyframes and parts keep "the same number of each,
+  nothing doubled, each one firmly in a hand". On that frame the new keyframe wording kept one
+  shared glass in 3 of 3 seeds (the old one dropped it in 3 of 3).
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M
