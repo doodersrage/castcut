@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.3] - 2026-10-31
+
+- Longer clips: nothing worn pops in or out, and gestures settle instead of freezing
+
 ## [v3.4.2] - 2026-10-31
 
 - Longer clips: wordless parts stay wordless, talking parts say their line
