@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.5] - 2026-10-31
+
+- Longer clips: her face stays hers to the end — Face finish on drifted keyframes
+- Longer clips: in a two-person shot each keeps their own face
+- Longer clips: what two people hold stays as it is — one shared glass stays one
+
 ## [v3.4.4] - 2026-10-31
 
 - Longer clips: two people in the shot stay two (T21 step 1)
