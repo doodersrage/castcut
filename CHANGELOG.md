@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.2] - 2026-10-31
+
+- Longer clips: wordless parts stay wordless, talking parts say their line
+- Make longer: a new clip no longer inherits the last clip's render id
+
 ## [v3.4.1] - 2026-10-30
 
 - Scene runs: Queue all hands every take to ComfyUI, so the tab can close
