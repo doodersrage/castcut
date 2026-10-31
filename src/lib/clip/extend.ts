@@ -82,12 +82,18 @@ export function buildExtendBeatsMessages(input: {
     'Nothing appears or disappears: no smoke, breath, mist, rain, sparks or new lights; no stairs, doors or furniture that are not already there.',
     // Live: "the torch beam centred on hanging string lamps above" hung a chandelier.
     'Whatever they look at, point at or light up is already in the picture — never name a new thing to look at.',
+    // Live (2026-10-31): a beat put sunglasses on her that the first frame never showed, and a
+    // later keyframe took them off again — they popped in and out.
+    "What they wear stays exactly as in the first frame, in every beat: nothing is put on, taken off or brought in — no sunglasses, glasses, hat, jewellery or bag that the picture does not show, whatever the shot's words say.",
     held.length
       ? `In the first frame they hold ${held.join(' and ')}: it stays in that hand in every beat — never put down, dropped or swapped for something else.`
       : '',
     'Start each beat with who does it (She, He or They) and a verb.',
     // M11 T4: a beat that ended with the face turned away made the next part invent a new face.
     'Each beat ends with the face in view, turned toward the camera.',
+    // Live: beats that ended mid-gesture ("stretches one arm overhead") became keyframes held for
+    // the rest of the part — the arm went up in a second and stayed there.
+    'Each beat is one whole small gesture that finishes within it and ends settled and relaxed — hands resting, arms down or back where they were; never end on an arm raised, a hand in the air or a limb held out.',
     input.talking
       ? TALK_BEATS
       : 'Small, believable actions — a gesture, a look, touching something already there, shifting a little in place — that add up to a tiny story.',

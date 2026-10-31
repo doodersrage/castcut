@@ -42,6 +42,14 @@ describe('Make it 30 s', () => {
     assert.doesNotMatch(system!.content, /picking something up/);
   });
 
+  // Live (2026-10-31): sunglasses put on and taken off; an arm raised and held for a whole part.
+  it('keeps what they wear, and ends each beat settled', () => {
+    const [system] = buildExtendBeatsMessages({ scene: 'relaxing on a pool lounger', count: 3 });
+    assert.match(system!.content, /nothing is put on, taken off or brought in — no sunglasses/);
+    assert.match(system!.content, /ends settled and relaxed/);
+    assert.match(system!.content, /never end on an arm raised/);
+  });
+
   // M11 T4: the next part starts from the frame whose face is most the Cast's.
   it('picks the best face frame, the latest when near it, the last frame when none has a face', () => {
     assert.deepEqual(

@@ -207,6 +207,9 @@ describe('H3 camera words', async () => {
     const said = h3PartPrompt(clip, { beat: 'He nods.', line: 'Then we go.', speaker: 'He' });
     assert.match(said, /He says, "Then we go\." — his lips move/);
     assert.match(said, /under the voice/);
+    // Live (2026-10-31): a part froze in its end pose; sunglasses came and went.
+    assert.match(part, /unhurried and fills the whole part: she makes the gesture, then settles/);
+    assert.match(said, /He wears exactly what he wears in the first frame/);
   });
 });
 

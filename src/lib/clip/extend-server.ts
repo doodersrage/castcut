@@ -185,6 +185,45 @@ async function addsSomething(
   }
 }
 
+/** What a keyframe is asked about the person, beside the place (personChanged). */
+const PERSON_CHANGED_QUESTION =
+  'The second picture is the same person a few seconds after the first. Ignoring how they pose or move, does the person wear or hold anything in one picture that they do not wear or hold in the other — sunglasses, glasses, a hat, a scarf, jewellery, a bag, a phone, a cup, a glass, a book?';
+
+/**
+ * Whether the person wears or holds something in one picture and not the other (null when the
+ * vision model can't say). Live (2026-10-31): a keyframe put sunglasses on her that the first
+ * clip never showed, and a later one took them off — addsSomething looks past the person.
+ */
+async function personChanged(
+  before: Buffer,
+  after: Buffer,
+  llm?: LlmRequestOptions
+): Promise<boolean | null> {
+  try {
+    const { resolveGalleryVisionTarget } = await import('../gallery/vision-review');
+    const target = await resolveGalleryVisionTarget({ llm });
+    const reply = await visionCompletion({
+      ...target,
+      systemPrompt: 'Answer with one word: yes or no.',
+      textPrompt: PERSON_CHANGED_QUESTION,
+      imageDataUrl: `data:image/png;base64,${before.toString('base64')}`,
+      extraImageDataUrls: [`data:image/png;base64,${after.toString('base64')}`],
+      maxTokens: 300,
+      temperature: 0,
+      usageContext: { route: 'clip-extend' },
+    });
+    const answer = reply
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .trim()
+      .toLowerCase();
+    if (/^yes\b/.test(answer)) return true;
+    if (/^no\b/.test(answer)) return false;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** Whether the person in `png` still holds `item` (null when the vision model can't say). */
 async function stillHolds(
   png: Buffer,
@@ -279,7 +318,9 @@ async function keyframeEditor(
           prompt: buildRelightGraph({
             checkpoint,
             image: uploaded.name,
-            prompt: `The same photo a few seconds later: ${action}. Keep the same ${lead} exactly — ${their} face, hair and clothes — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
+            // The moment after the action, settled (live: keyframes drawn mid-gesture held a raised
+            // arm for a whole part), and what she wears unchanged (sunglasses came and went).
+            prompt: `The same photo a few seconds later, just after this: ${action}. The gesture is finished and ${their} body is settled and relaxed — arms resting, no hand held up in the air. Keep the same ${lead} exactly — ${their} face, hair, clothes and everything ${lead === 'man' ? 'he' : 'she'} wears, nothing put on or taken off — and the same place${where}, light and camera framing: the location does not change, only ${their} pose does, and nothing new appears — no smoke, mist or new light.${holding} Photorealistic, sharp, natural skin texture; one person, two arms, two hands.`,
             ...relightSize(width, height),
             seed: seed + attempt * 101,
             prefix: 'Castcut-extend-keyframe',
@@ -326,9 +367,12 @@ async function keyframeEditor(
         // Nothing new in the place (live: a beat that lit up "string lamps above" hung a
         // chandelier that stayed for the rest of the clip).
         const added = (await addsSomething(png, drawn, llm)) ? 4 : 0;
+        // Nothing put on, taken off or brought in on the person (sunglasses came and went).
+        const changed = (await personChanged(png, drawn, llm)) ? 4 : 0;
         const extra =
           dropped * 5 +
           added +
+          changed +
           (counts
             ? Math.max(0, (counts.faces ?? 1) - 1) + Math.max(0, (counts.hands ?? 2) - 2)
             : 0) +

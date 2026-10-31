@@ -2662,6 +2662,15 @@ ComfyUI). · S
   wrong after its retries is not kept as the voice anchor.
   Separately (33532234): animating a slot again kept the last clip's `clipRenderPromptId`, so
   Make longer read the old job and continued an H3 clip on LTX-2.5.
+- Follow-up (live, 2026-10-31, v3.4.2): sunglasses the first clip never showed were put on in
+  keyframe 1 and taken off in keyframe 5 (popping in and out), and parts reached their keyframe
+  pose in a second and held it (an arm raised overhead for the rest of the part). Beats now keep
+  what the person wears (nothing put on, taken off or brought in, whatever the shot's words say)
+  and end each gesture settled; the keyframe is drawn just after the action, settled, wearing the
+  same; a keyframe is redrawn when the person wears or holds something in one picture and not the
+  other (`personChanged` — 10/10 on this run's keyframes, both pop-ins and the unchanged pairs);
+  each part's prompt asks for unhurried movement that fills the part and settles, never freezing.
+  The motion change wants the user's eye on a real run.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M
