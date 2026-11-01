@@ -29,6 +29,7 @@ import {
   largestFaceBox,
   mapRotatedFaceBox,
   parseFaceBoxLists,
+  type FaceBox,
   type FaceLocateResult,
   type FaceLocateRotation,
 } from '@/lib/face/locate';
@@ -186,4 +187,35 @@ export async function locateFaceInComfy(input: {
     };
   }
   return { available: true, face: null, faces: 0 };
+}
+
+/**
+ * Every face in a picture already in ComfyUI's input folder (upright only), largest first — Make
+ * longer's two-person parts give H3 each person's face (M11 T21). Empty when none is found or
+ * the FaceAnalysis pack is missing.
+ */
+export async function locateFacesInComfy(input: {
+  imageName: string;
+  comfyUrl?: string;
+}): Promise<FaceBox[]> {
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const [models, box, preview] = await Promise.all([
+    resolveComfyNode(baseUrl, ['FaceAnalysisModels']),
+    resolveComfyNode(baseUrl, ['FaceBoundingBox']),
+    resolveComfyNode(baseUrl, ['PreviewAny']),
+  ]);
+  if (!models || !box || !preview) return [];
+  try {
+    const run = await runComfyUtilityGraph({
+      baseUrl,
+      label: 'face-locate',
+      priority: 'check',
+      timeoutMs: 60_000,
+      prompt: buildFaceLocateGraph({ imageName: input.imageName, rotation: 'none' }),
+      read: readBoxTexts,
+    });
+    return parseFaceBoxLists(run.result).sort((a, b) => b.width * b.height - a.width * a.height);
+  } catch {
+    return [];
+  }
 }

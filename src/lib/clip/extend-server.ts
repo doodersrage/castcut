@@ -273,79 +273,6 @@ async function pictureChanged(a: Buffer, b: Buffer): Promise<number> {
   return changed / x.length;
 }
 
-/**
- * The Cast's face picture (the first reference showing her face) uploaded to ComfyUI, as a view
- * URL Face finish reads; null without one.
- */
-async function stageCastFace(baseUrl: string, input: ClipExtendInput): Promise<string | null> {
-  const face = (input.references ?? []).find(reference => /\bface$/i.test(reference.shows));
-  if (!face) return null;
-  const { fetchFilmShotBytes } = await import('../video/shot-fetch');
-  const fetched = await fetchFilmShotBytes({
-    url: face.url,
-    requestOrigin: input.requestOrigin,
-    userId: input.userId,
-  });
-  const uploaded = await uploadComfyInputContent({
-    baseUrl,
-    bytes: new Uint8Array(fetched.buffer),
-    filename: 'castcut-extend-castface.png',
-    mimeType: fetched.contentType || 'image/png',
-  });
-  return `/api/comfyui/view?${new URLSearchParams({ filename: uploaded.name, type: 'input' }).toString()}`;
-}
-
-/**
- * A keyframe with the Cast's face put back by Face finish (Day's pass: two people, only hers),
- * when its own plan says the face drifted past FACE_FINISH_SKIP_DISTANCE; null when it is close
- * enough or the pass can't run — the keyframe is kept as drawn.
- */
-async function finishKeyframeFace(input: {
-  baseUrl: string;
-  image: ComfyImageRef;
-  faceUrl: string;
-  people: number;
-  seed: number;
-  size: { width: number; height: number };
-}): Promise<Buffer | null> {
-  const { planFaceFinishInComfy, runFaceFinishInComfy } = await import('../face/finish-server');
-  const imageUrl = `/api/comfyui/view?${new URLSearchParams({
-    filename: input.image.filename,
-    subfolder: input.image.subfolder ?? '',
-    type: input.image.type || 'output',
-  }).toString()}`;
-  const plan = await planFaceFinishInComfy({
-    imageUrl,
-    faceUrl: input.faceUrl,
-    comfyUrl: input.baseUrl,
-    people: input.people,
-  });
-  if (!plan.available || !plan.decision?.finish) return null;
-  const finished = await runFaceFinishInComfy({
-    imageUrl,
-    faceUrl: input.faceUrl,
-    comfyUrl: input.baseUrl,
-    seed: input.seed,
-    people: input.people,
-    probe: plan.probe,
-  });
-  if (!finished.available) return null;
-  const view = await fetch(
-    `${input.baseUrl}/view?${new URLSearchParams({
-      filename: finished.image.filename,
-      subfolder: finished.image.subfolder ?? '',
-      type: finished.image.type || 'output',
-    }).toString()}`,
-    { signal: AbortSignal.timeout(60_000) }
-  );
-  if (!view.ok) return null;
-  const sharp = (await import('sharp')).default;
-  return sharp(Buffer.from(await view.arrayBuffer()))
-    .resize(input.size.width, input.size.height, { kernel: 'lanczos3', fit: 'cover' })
-    .png()
-    .toBuffer();
-}
-
 async function keyframeEditor(
   baseUrl: string,
   llm?: LlmRequestOptions
@@ -360,7 +287,7 @@ async function keyframeEditor(
     people?: number,
     /** An input-folder picture with every face clear (two people: Image 2, faces only). */
     faces?: string
-  ) => Promise<{ png: Buffer; image: ComfyImageRef }>;
+  ) => Promise<Buffer>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
     signal: AbortSignal.timeout(8000),
@@ -395,7 +322,7 @@ async function keyframeEditor(
           ? ` Still held exactly as before: ${held.join(' and ')} — the same number of each, nothing doubled, each one firmly in a hand.`
           : ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand, firmly.`
         : '';
-      let best: { png: Buffer; extra: number; image: ComfyImageRef } | null = null;
+      let best: { png: Buffer; extra: number } | null = null;
       for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {
         const run = await runComfyUtilityGraph<ComfyImageRef>({
           baseUrl,
@@ -469,11 +396,11 @@ async function keyframeEditor(
               Math.max(0, (counts.hands ?? 2 * people) - 2 * people)
             : 0) +
           (moved > PLACE_CHANGED ? 10 : 0);
-        if (!best || extra < best.extra) best = { png: drawn, extra, image: run.result };
+        if (!best || extra < best.extra) best = { png: drawn, extra };
         if (extra === 0) break;
       }
       if (!best) throw new Error('A keyframe could not be drawn — check the ComfyUI log.');
-      return { png: best.png, image: best.image };
+      return best.png;
     },
   };
 }
@@ -729,29 +656,91 @@ async function cutPiece(ffmpeg: string, piece: string, frames: number, out: stri
  * The Cast's pictures in ComfyUI's input folder for H3's reference model (M11) — none when this
  * ComfyUI lacks the node, the reference transformer or its Turbo LoRA, or a picture can't be read.
  */
+/**
+ * Two people in the shot (M11 T21): each one's face cut from the first clip's opening frame and
+ * uploaded, left then right, for H3's reference model — with no keyframes, whose edits invented a
+ * face turned away from them (the partner took on the lead's). Live on the bar clip, one part,
+ * the same seed: on the plain model the partner's face drifted to a generic one by mid-part; given
+ * both faces she kept hers to the end, and the lead matched hers better too. Null when the
+ * reference model or face finding is missing, or two faces aren't found.
+ */
+async function duoFacePictures(
+  baseUrl: string,
+  framePath: string
+): Promise<{ pictures: Array<{ image: string; shows: string }>; look: string } | null> {
+  if (!(await h3ReferenceModelReady(baseUrl))) return null;
+  const sharp = (await import('sharp')).default;
+  const frame = await fs.readFile(/* turbopackIgnore: true */ framePath);
+  const staged = await uploadComfyInputContent({
+    baseUrl,
+    bytes: new Uint8Array(frame),
+    filename: 'castcut-extend-faces.png',
+    mimeType: 'image/png',
+  });
+  const { locateFacesInComfy } = await import('../face/locate-server');
+  const boxes = (await locateFacesInComfy({ imageName: staged.name, comfyUrl: baseUrl }))
+    .slice(0, 2)
+    .sort((a, b) => a.x - b.x);
+  if (boxes.length < 2) return null;
+  const meta = await sharp(frame).metadata();
+  const width = meta.width ?? 1024;
+  const height = meta.height ?? 1024;
+  const pictures: Array<{ image: string; shows: string }> = [];
+  for (const [index, box] of boxes.entries()) {
+    // The head with some hair and neck: the box grown 1.8× each way, centred on it.
+    const w = Math.min(width, Math.round(box.width * 1.8));
+    const h = Math.min(height, Math.round(box.height * 1.8));
+    const left = Math.max(0, Math.min(width - w, Math.round(box.x + box.width / 2 - w / 2)));
+    const top = Math.max(0, Math.min(height - h, Math.round(box.y + box.height / 2 - h / 2)));
+    const crop = await sharp(frame)
+      .extract({ left, top, width: w, height: h })
+      .resize({ width: 512, kernel: 'lanczos3' })
+      .png()
+      .toBuffer();
+    const uploaded = await uploadComfyInputContent({
+      baseUrl,
+      bytes: new Uint8Array(crop),
+      filename: 'castcut-extend-face.png',
+      mimeType: 'image/png',
+    });
+    pictures.push({
+      image: uploaded.name,
+      shows: `the face of the person on the ${index === 0 ? 'left' : 'right'}`,
+    });
+  }
+  return {
+    pictures,
+    // Picture 1 is the start frame (withH3References); the faces follow it.
+    look: 'The person on the left has exactly the face in <Picture 2>; the person on the right has exactly the face in <Picture 3> — two different people, each keeping their own face the whole time.',
+  };
+}
+
+/** Whether this ComfyUI has H3's reference model (its node, transformer and turbo LoRA). */
+async function h3ReferenceModelReady(baseUrl: string): Promise<boolean> {
+  const [node, unets, loras] = await Promise.all([
+    resolveComfyNode(baseUrl, [H3_REF_NODE]),
+    fetch(`${baseUrl}/object_info/UNETLoader`).then(response => response.json()),
+    fetch(`${baseUrl}/object_info/LoraLoaderModelOnly`).then(response => response.json()),
+  ]).catch(() => [null, null, null] as const);
+  const names = (info: unknown, loader: string, field: string): string[] => {
+    const options = (
+      info as Record<string, { input?: { required?: Record<string, unknown[]> } }>
+    )?.[loader]?.input?.required?.[field]?.[0];
+    return Array.isArray(options) ? options.map(String) : [];
+  };
+  return Boolean(
+    node &&
+    names(unets, 'UNETLoader', 'unet_name').includes(H3_REF_FILES.transformer) &&
+    names(loras, 'LoraLoaderModelOnly', 'lora_name').includes(H3_REF_FILES.turboLora)
+  );
+}
+
 async function h3ReferencePictures(
   baseUrl: string,
   input: ClipExtendInput
 ): Promise<{ pictures: Array<{ image: string; shows: string }>; look?: string }> {
   try {
-    const [node, unets, loras] = await Promise.all([
-      resolveComfyNode(baseUrl, [H3_REF_NODE]),
-      fetch(`${baseUrl}/object_info/UNETLoader`).then(response => response.json()),
-      fetch(`${baseUrl}/object_info/LoraLoaderModelOnly`).then(response => response.json()),
-    ]);
-    const names = (info: unknown, loader: string, field: string): string[] => {
-      const options = (
-        info as Record<string, { input?: { required?: Record<string, unknown[]> } }>
-      )?.[loader]?.input?.required?.[field]?.[0];
-      return Array.isArray(options) ? options.map(String) : [];
-    };
-    if (
-      !node ||
-      !names(unets, 'UNETLoader', 'unet_name').includes(H3_REF_FILES.transformer) ||
-      !names(loras, 'LoraLoaderModelOnly', 'lora_name').includes(H3_REF_FILES.turboLora)
-    ) {
-      return { pictures: [] };
-    }
+    if (!(await h3ReferenceModelReady(baseUrl))) return { pictures: [] };
     const { fetchFilmShotBytes } = await import('../video/shot-fetch');
     const pictures: Array<{ image: string; shows: string }> = [];
     const kept: number[] = [];
@@ -1394,12 +1383,17 @@ export async function extendClip(
     // Keyframes first (M11 T14): each part runs between two clean stills, the next edited from
     // the last, so no part starts from a generated frame. Long parts when there is no edit model.
     // CASTCUT_EXTEND_KEYFRAMES=off: chained parts (an operator's switch, and the long-part test).
+    // Two people: each part on H3's reference model given both faces, no keyframes (duoFacePictures).
+    const duoFaces =
+      h3 && (shot.people ?? 1) >= 2
+        ? await duoFacePictures(baseUrl, at('reference.png')).catch(() => null)
+        : null;
     const keyframes =
-      h3 && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
+      h3 && !duoFaces && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
         ? await keyframeEditor(baseUrl, input.llm)
         : null;
     const groups =
-      h3 && !keyframes && !input.lines?.some(line => line?.trim())
+      h3 && !keyframes && !duoFaces && !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
         : null;
     const renders = groups?.length ?? total;
@@ -1441,8 +1435,6 @@ export async function extendClip(
     } catch {
       faceReference = null;
     }
-    // The Cast's face picture in ComfyUI, for Face finish on the keyframes (keyframed parts only).
-    const castFace = keyframes ? await stageCastFace(baseUrl, input).catch(() => null) : null;
     const faces: Array<number | null> = [];
     for (let k = 0; k < renders; k += 1) {
       const group = groups?.[k];
@@ -1526,7 +1518,7 @@ export async function extendClip(
       // The keyframe this part ends on: the start edited a few seconds on, by its beat.
       let endFrame: string | undefined;
       if (keyframes) {
-        const drawnKeyframe = await keyframes.edit(
+        const png = await keyframes.edit(
           await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`)),
           beats[k]!,
           input.lead === 'man' ? 'man' : 'woman',
@@ -1536,19 +1528,6 @@ export async function extendClip(
           shot.people,
           facesImage
         );
-        // Her own face put back when the keyframe drifted from it (each keyframe is edited from the
-        // last, and the face drifted part by part: 0.59 from the Cast's by the fifth, 0.31 after).
-        const png =
-          (castFace
-            ? await finishKeyframeFace({
-                baseUrl,
-                image: drawnKeyframe.image,
-                faceUrl: castFace,
-                people: shot.people ?? 1,
-                seed: seed + k * 17,
-                size,
-              }).catch(() => null)
-            : null) ?? drawnKeyframe.png;
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (
           await uploadComfyInputContent({
@@ -1595,8 +1574,8 @@ export async function extendClip(
         const anchored = speaks
           ? withH3VoiceAnchor(patched.graph, {
               ...(voiceAnchor ? { voiceClip: voiceAnchor } : { voiceAudio }),
-              pictures: h3Pictures,
-              look: h3Look,
+              pictures: duoFaces?.pictures ?? h3Pictures,
+              look: duoFaces?.look ?? h3Look,
               who: input.lead === 'man' ? 'He' : 'She',
             })
           : null;
@@ -1609,7 +1588,7 @@ export async function extendClip(
             : graph;
         prompt = anchored
           ? anchored
-          : h3Pictures.length && !endFrame
+          : (duoFaces?.pictures ?? h3Pictures).length && !endFrame
             ? timed(
                 withH3References(patched.graph, {
                   pictures: [
@@ -1618,9 +1597,9 @@ export async function extendClip(
                       shows:
                         'the first frame: the shot as it is now, which the video starts from exactly',
                     },
-                    ...h3Pictures,
+                    ...(duoFaces?.pictures ?? h3Pictures),
                   ],
-                  look: h3Look,
+                  look: duoFaces?.look ?? h3Look,
                 }) ?? patched.graph
               )
             : timed(patched.graph);

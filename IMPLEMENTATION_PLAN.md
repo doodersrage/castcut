@@ -2710,6 +2710,20 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   over two seeds. Each keyframe now gets Day's Face finish against the Cast's face picture when its
   own plan says the face is past FACE_FINISH_SKIP_DISTANCE (two people: only hers); any failure
   keeps the keyframe as drawn.
+- v3.4.5 live, both clips: Face finish made every face airbrushed ("plastic") and can't touch the
+  partner — removed. The partner still drifted (the face reference cut it, didn't stop it). Every
+  part stopped dead in its last second (frame-difference ~0.1 against 0.4–2.7 before it):
+  stop-motion at each join — "then settles back" in the part prompt, now "keeps going… still
+  moving at the last frame". The pool clip picked its glass up off the table and left a second one
+  there (a keyframe did it). Naming what is within reach made it worse (3 of 3 doubled against 0
+  of 3), so picking things up stays allowed with no extra words; the vision model can't count
+  glasses, so there is no reliable check.
+- Two people now render each part on H3's reference model given both faces (cut from the first
+  clip's opening frame by FaceBoundingBox, left and right), with no keyframes and no long silent
+  parts. One part of the bar clip, same seed: plain, the partner went generic by mid-part; given
+  the faces she kept hers to the end, the lead matched hers better, and the motion ran to the last
+  frame. Without the reference model or two faces found, the keyframed path as before. Whether
+  detail holds over five parts without keyframes is for a full run.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

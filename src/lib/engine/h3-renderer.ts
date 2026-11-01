@@ -354,12 +354,13 @@ export function h3PartPrompt(
           : `${who} keeps holding ${held.join(' and ')} the whole time.`
         : '',
       // Live (2026-10-31): a part reached its end pose in a second and froze there, and
-      // sunglasses came and went between parts.
+      // sunglasses came and went between parts; "then settles back" made every part stop dead in its
+      // last second (stop-motion at each join, v3.4.5).
       part.blocks?.length
         ? ''
         : two
-          ? 'The movement is unhurried and fills the whole part: they make the gesture, then settle back into relaxed poses — never freezing, still breathing and shifting a little to the last frame. Each wears exactly what they wear in the first frame the whole time, nothing put on or taken off.'
-          : `The movement is unhurried and fills the whole part: ${who.toLowerCase()} makes the gesture, then settles back into a relaxed pose — never freezing, still breathing and shifting a little to the last frame. ${who} wears exactly what ${who === 'He' ? 'he' : 'she'} wears in the first frame the whole time, nothing put on or taken off.`,
+          ? 'The movement is unhurried and keeps going through the whole part — still moving at the last frame, never freezing or holding a pose. Each wears exactly what they wear in the first frame the whole time, nothing put on or taken off.'
+          : `The movement is unhurried and keeps going through the whole part — still moving at the last frame, never freezing or holding a pose. ${who} wears exactly what ${who === 'He' ? 'he' : 'she'} wears in the first frame the whole time, nothing put on or taken off.`,
       own,
       line
         ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
