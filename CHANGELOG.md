@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.6] - 2026-11-01
+
+- Longer clips: two people keep their faces on H3's reference model; no plastic faces
+
 ## [v3.4.5] - 2026-10-31
 
 - Longer clips: her face stays hers to the end — Face finish on drifted keyframes
