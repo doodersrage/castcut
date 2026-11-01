@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.7] - 2026-11-01
+
+- Longer clips: beats that would make a prop pop in are swapped for safe ones
+- Longer clips: the restorer only steps in when a start frame has really gone soft
+
 ## [v3.4.6] - 2026-11-01
 
 - Longer clips: two people keep their faces on H3's reference model; no plastic faces
