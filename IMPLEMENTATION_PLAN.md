@@ -2735,6 +2735,14 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   +10% saturation over 30 s. A time-curve eq on the stitch recovered ~40% of the brightness but
   not the saturation and made the first join's jump larger (2.55 → 4.04) — not shipped; to redo
   in RGB (lutrgb per part, ramped) and measure again.
+- v3.4.6 solo (pool): good overall, but props popped — every draft of keyframe 2 put sunglasses
+  on her (gone again by keyframe 3), every draft of keyframe 3 had her sip from a glass that
+  also stayed on the table. The checks caught them; the least-bad draft was used anyway. Written
+  beats are now screened in code (`screenExtendBeat`: a worn thing the first frame, what she
+  holds and the direction don't name, or picking up / putting down / drinking with empty hands
+  unless the player's direction asks, becomes a safe beat), the beat writer is told nobody
+  handles what isn't in hand, and a keyframe whose every draft fails gets one more with a safe
+  beat — the part then runs that beat.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

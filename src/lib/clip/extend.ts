@@ -89,6 +89,10 @@ export function buildExtendBeatsMessages(input: {
     'Nothing appears or disappears: no smoke, breath, mist, rain, sparks or new lights; no stairs, doors or furniture that are not already there.',
     // Live: "the torch beam centred on hanging string lamps above" hung a chandelier.
     'Whatever they look at, point at or light up is already in the picture — never name a new thing to look at.',
+    // Live (v3.4.6): a sip from a glass left the same glass standing on the table.
+    direction
+      ? ''
+      : 'Nobody picks anything up, puts anything down or drinks from anything that is not already in their hand.',
     // Live (2026-10-31): a beat put sunglasses on her that the first frame never showed, and a
     // later keyframe took them off again — they popped in and out.
     "What they wear stays exactly as in the first frame, in every beat: nothing is put on, taken off or brought in — no sunglasses, glasses, hat, jewellery or bag that the picture does not show, whatever the shot's words say.",
@@ -319,6 +323,58 @@ export function parseExtendBeats(reply: string | null | undefined): string[] {
 }
 
 /** Beats when the LLM is off or says nothing usable: the shot carries on, gently. */
+/** Things worn that a beat may not put on or take off unless the picture already shows them. */
+const WORN_THINGS =
+  /\b(sun ?glasses|glasses|shades|hats?|caps?|scarf|scarves|necklaces?|earrings?|bracelets?|jewell?ery|bags?|purses?|watch(es)?)\b/gi;
+/** Picking something up, putting it down, or drinking from it. */
+const HANDLES_THINGS =
+  /\b(picks?|picking) up\b|\b(puts?|putting|sets?|setting|places?|placing) (it |them |her \w+ |his \w+ |the \w+ )?down\b|\b(grabs?|lifts?|reaches for|sips?|drinks?|takes? a (sip|drink))\b/i;
+
+/**
+ * A written beat that would make something pop in or out, swapped for a safe one (live, v3.4.6:
+ * every draft of a keyframe put sunglasses on her that the first frame never showed, and another
+ * had her sip from a glass while the same glass stayed on the table). Unsafe: a worn thing the
+ * first frame (`shows`), what she holds and the player's direction don't name; picking up,
+ * putting down or drinking when her hands are empty and the direction doesn't ask for it — the
+ * player can still have her finish her drink. The player's own beats are never screened.
+ */
+export function screenExtendBeat(
+  beat: string,
+  context: { shows?: string; held?: readonly string[]; direction?: string; people?: number },
+  index = 0
+): string {
+  const known = [context.shows, ...(context.held ?? []), context.direction].join(' ').toLowerCase();
+  const worn = (beat.match(WORN_THINGS) ?? []).some(word => {
+    const stem = word
+      .toLowerCase()
+      .replace(/(es|s)$/, '')
+      .replace(/\s+/g, ' ');
+    return !known.includes(stem);
+  });
+  const handles =
+    HANDLES_THINGS.test(beat) &&
+    !(context.held ?? []).length &&
+    !(context.direction && HANDLES_THINGS.test(context.direction));
+  return worn || handles ? safeExtendBeat(index, context.people) : beat;
+}
+
+/** A small movement where they are, nothing handled or put on: what a screened beat becomes. */
+export function safeExtendBeat(index = 0, people = 1): string {
+  const steps =
+    people >= 2
+      ? [
+          'They stay where they are, sharing a look and a small smile.',
+          'They shift a little where they are and settle, relaxed.',
+          'They lean a little closer and laugh softly, staying where they are.',
+        ]
+      : [
+          'She shifts a little where she is and settles, relaxed.',
+          'She turns her head slowly, takes a breath, and smiles to herself.',
+          'She stretches a little where she is, then relaxes again.',
+        ];
+  return steps[index % steps.length]!;
+}
+
 export function fallbackExtendBeats(
   count: number,
   heat: SpokenLineHeat = 'clean',

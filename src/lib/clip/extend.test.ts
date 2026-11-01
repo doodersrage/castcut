@@ -18,6 +18,8 @@ import {
   saysLine,
   lineHeardWrong,
   wordlessSpeaks,
+  screenExtendBeat,
+  safeExtendBeat,
   parseShotInventory,
   renumberH3Pictures,
   extendFacesNote,
@@ -404,5 +406,27 @@ describe('a wordless part that speaks anyway', () => {
     }
     // Quiet: Whisper making things up on a room, not a voice.
     assert.equal(wordlessSpeaks("I'm sorry, I'm sorry, I'm sorry, I really am here", -22), false);
+  });
+});
+
+describe('written beats that would make a prop pop in or out', () => {
+  const shows = 'a woman in a white swimsuit lounging on a poolside chair, a glass of juice on the side table';
+  it('swaps a beat that puts on something the picture never showed', () => {
+    const beat = 'She slides on a pair of sunglasses and tilts her head back.';
+    assert.equal(screenExtendBeat(beat, { shows }), safeExtendBeat(0));
+    // Already there: kept.
+    assert.equal(screenExtendBeat(beat, { shows: `${shows}, sunglasses on her head` }), beat);
+  });
+  it('swaps picking up or sipping with empty hands, unless the player asks for it', () => {
+    const sip = 'She reaches over and takes a sip of her juice, then relaxes.';
+    assert.equal(screenExtendBeat(sip, { shows }, 1), safeExtendBeat(1));
+    assert.equal(screenExtendBeat(sip, { shows, direction: 'she finishes her drink' }), sip);
+    assert.equal(screenExtendBeat(sip, { shows, held: ['a glass of juice in her right hand'] }), sip);
+    assert.equal(screenExtendBeat('She puts the glass down on the table.', { shows }), safeExtendBeat(0));
+  });
+  it('keeps ordinary beats, and swaps for two people with a beat for both', () => {
+    const plain = 'She stretches her arms and smiles toward the pool.';
+    assert.equal(screenExtendBeat(plain, { shows }), plain);
+    assert.match(screenExtendBeat('They grab their bags.', { shows, people: 2 }), /^They /);
   });
 });

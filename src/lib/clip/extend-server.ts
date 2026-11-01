@@ -48,6 +48,8 @@ import {
   type ClipExtendJob,
   parseShotInventory,
   lineHeardWrong,
+  safeExtendBeat,
+  screenExtendBeat,
   loudestWindow,
   wordlessSpeaks,
   WORDLESS_SPEECH_DB,
@@ -310,7 +312,7 @@ async function keyframeEditor(
     people?: number,
     /** An input-folder picture with every face clear (two people: Image 2, faces only). */
     faces?: string
-  ) => Promise<Buffer>;
+  ) => Promise<{ png: Buffer; beat: string }>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
     signal: AbortSignal.timeout(8000),
@@ -335,7 +337,6 @@ async function keyframeEditor(
         mimeType: 'image/png',
       });
       const their = lead === 'man' ? 'his' : 'her';
-      const action = beat.trim().replace(/[.\s]+$/, '');
       const setting = place?.trim().replace(/[.\s]+$/, '');
       const where = setting ? ` (${setting})` : '';
       // Held exactly as before, how many included (live, two people: one shared glass was drawn
@@ -345,8 +346,13 @@ async function keyframeEditor(
           ? ` Still held exactly as before: ${held.join(' and ')} — the same number of each, nothing doubled, each one firmly in a hand.`
           : ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand, firmly.`
         : '';
-      let best: { png: Buffer; extra: number } | null = null;
-      for (let attempt = 0; attempt < KEYFRAME_TRIES; attempt += 1) {
+      let best: { png: Buffer; extra: number; beat: string } | null = null;
+      // Every draft failed its checks (live: all three put on sunglasses the beat asked for):
+      // one more with a safe beat, rather than the least-bad draft.
+      for (let attempt = 0; attempt <= KEYFRAME_TRIES; attempt += 1) {
+        if (attempt === KEYFRAME_TRIES && (!best || best.extra === 0)) break;
+        const drawnBeat = attempt === KEYFRAME_TRIES ? safeExtendBeat(seed, people) : beat;
+        const action = drawnBeat.trim().replace(/[.\s]+$/, '');
         const run = await runComfyUtilityGraph<ComfyImageRef>({
           baseUrl,
           label: 'extend-keyframe',
@@ -419,11 +425,11 @@ async function keyframeEditor(
               Math.max(0, (counts.hands ?? 2 * people) - 2 * people)
             : 0) +
           (moved > PLACE_CHANGED ? 10 : 0);
-        if (!best || extra < best.extra) best = { png: drawn, extra };
+        if (!best || extra < best.extra) best = { png: drawn, extra, beat: drawnBeat };
         if (extra === 0) break;
       }
       if (!best) throw new Error('A keyframe could not be drawn — check the ComfyUI log.');
-      return best.png;
+      return { png: best.png, beat: best.beat };
     },
   };
 }
@@ -1232,7 +1238,12 @@ async function resolveBeats(
     llm: input.llm,
   });
   missing.forEach((k, at) => {
-    given[k] = written[at] ?? '';
+    // Written beats are screened: nothing worn appears or goes, nothing handled from empty hands.
+    given[k] = screenExtendBeat(
+      written[at] ?? '',
+      { shows: shot.shows, held: shot.held, direction: input.direction, people: shot.people },
+      k
+    );
   });
   return given;
 }
@@ -1542,7 +1553,7 @@ export async function extendClip(
       // The keyframe this part ends on: the start edited a few seconds on, by its beat.
       let endFrame: string | undefined;
       if (keyframes) {
-        const png = await keyframes.edit(
+        const drawn = await keyframes.edit(
           await fs.readFile(/* turbopackIgnore: true */ at(`last${k}.png`)),
           beats[k]!,
           input.lead === 'man' ? 'man' : 'woman',
@@ -1552,6 +1563,9 @@ export async function extendClip(
           shot.people,
           facesImage
         );
+        const png = drawn.png;
+        // The part runs the beat its keyframe was drawn with (a safe one when every draft failed).
+        beats[k] = drawn.beat;
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
         endFrame = (
           await uploadComfyInputContent({
