@@ -2724,6 +2724,17 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   the faces she kept hers to the end, the lead matched hers better, and the motion ran to the last
   frame. Without the reference model or two faces found, the keyframed path as before. Whether
   detail holds over five parts without keyframes is for a full run.
+- v3.4.6 live (bar clip): faces held, but texture built up from mid-clip — stringy legs,
+  patterned sand. SeedVR2 restored the start frame before almost every part: the "lost detail"
+  test measured at full size, where H3's frames really are soft (93–226 against the first clip's
+  220), while their mid-scale texture had risen (half size 379 → 839 against 468). A start frame
+  is now restored only when soft at both sizes (once in that run, not four times). Also seen: a
+  part cut to a close-up of knees (caught by the cut check and rendered again) and a man appeared
+  at the bar in part 4 (nothing checks new people on the keyframe-free path yet).
+- Tone anchor (the user's find: colour-match to the first image): measured drift −4% brightness,
+  +10% saturation over 30 s. A time-curve eq on the stitch recovered ~40% of the brightness but
+  not the saturation and made the first join's jump larger (2.55 → 4.04) — not shipped; to redo
+  in RGB (lutrgb per part, ramped) and measure again.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

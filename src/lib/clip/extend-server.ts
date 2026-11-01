@@ -114,10 +114,33 @@ function run(bin: string, args: string[]): Promise<string> {
   });
 }
 
-async function frameDetail(input: Buffer | string): Promise<number> {
+async function frameDetail(input: Buffer | string, width?: number): Promise<number> {
   const sharp = (await import('sharp')).default;
-  const { data, info } = await sharp(input).greyscale().raw().toBuffer({ resolveWithObject: true });
+  const grey = sharp(input).greyscale();
+  const { data, info } = await (width ? grey.resize({ width }) : grey)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   return laplacianVariance(data, info.width, info.height);
+}
+
+/** The first clip's detail at full size and at DETAIL_HALF_WIDTH: what a start frame is held to. */
+type DetailTarget = { full: number; half: number };
+const DETAIL_HALF_WIDTH = 512;
+
+async function detailTarget(file: string): Promise<DetailTarget> {
+  return { full: await frameDetail(file), half: await frameDetail(file, DETAIL_HALF_WIDTH) };
+}
+
+/**
+ * Whether a start frame has really gone soft: under the first clip's detail at full size and at
+ * half. Live (v3.4.6, the bar clip without keyframes): H3's frames lost fine detail (full size
+ * 93–226 against 220) while their mid-scale texture rose (half size 379 → 839 against 468), so a
+ * full-size test alone sent every part to the restorer, whose texture compounded — stringy legs
+ * and patterned sand by the fourth part.
+ */
+async function startFrameSoft(png: Buffer, target: DetailTarget): Promise<boolean> {
+  if ((await frameDetail(png)) >= target.full) return false;
+  return (await frameDetail(png, DETAIL_HALF_WIDTH)) < target.half;
 }
 
 /**
@@ -420,12 +443,12 @@ const RESTORE_MIX = 0.5;
 async function restoreStartFrame(
   baseUrl: string,
   png: Buffer,
-  target: number
+  target: DetailTarget
 ): Promise<Buffer | null> {
   try {
     // Only once the frame has lost detail against the first clip's: restored every part, the
     // restorer's own texture compounded (sand turned blotchy, skin oily by the fourth part).
-    if ((await frameDetail(png)) >= target) return png;
+    if (!(await startFrameSoft(png, target))) return png;
     const sharp = (await import('sharp')).default;
     const meta = await sharp(png).metadata();
     if (!meta.width || !meta.height) return null;
@@ -498,9 +521,10 @@ async function restoreStartFrame(
  * A WAN hop's start frame sharpened back toward the clip's own detail (WAN_START_SHARPEN_STEPS):
  * each part starts from the last one's softest frame, and the softening otherwise compounds.
  */
-async function sharpenStartFrame(png: Buffer, target: number): Promise<Buffer> {
+async function sharpenStartFrame(png: Buffer, reference: DetailTarget): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
-  if ((await frameDetail(png)) >= target) return png;
+  if (!(await startFrameSoft(png, reference))) return png;
+  const target = reference.full;
   const tries: Buffer[] = [];
   const detail: number[] = [];
   for (const m2 of WAN_START_SHARPEN_STEPS) {
@@ -1332,7 +1356,7 @@ export async function extendClip(
     // The first clip's first frame: the detail parts are sharpened back toward, and the face they
     // keep (each part's colours are matched at its seam instead).
     await grabFrame(ffmpeg, at('piece0.mp4'), 0, at('reference.png'));
-    const referenceDetail = await frameDetail(at('reference.png'));
+    const referenceDetail = await detailTarget(at('reference.png'));
     const history = await readHistoryGraph(baseUrl, input.clipPromptId);
     const engine = partEngine(history);
     const wan = engine === 'wan' ? history : null;
