@@ -338,9 +338,16 @@ export function withPlacePhotoInPrompt(
      * photo, as her home's do.
      */
     place?: string;
+    /**
+     * The shot's Setting words as the prompt says them: the Day recipe's "SCENE: she is in the
+     * <words> — show that place around her." and "Place: <words>." become the room in the photo
+     * (a location with no look of its own — one made from a photo — has no ", at Name: …").
+     */
+    words?: string;
   } = {}
 ): string {
   const room = `in the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours`;
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // The long Outfit Keep brief explains Image 3 as an OpenPose map at length: those lines go
   // (they told the model the room photo was a skeleton).
   const unmapped = prompt
@@ -370,10 +377,26 @@ export function withPlacePhotoInPrompt(
           `$1the room shown in Image ${image} is where the subject is — exactly that room: `
         )
     : unmapped;
-  const placeWords = options.place?.trim()
-    ? `|at ${options.place.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
-    : '';
-  return placed
+  const placeWords = options.place?.trim() ? `|at ${escape(options.place.trim())}` : '';
+  const words = options.words
+    ?.trim()
+    .replace(/[.\s]+$/, '')
+    .replace(/^(?:an?|the)\s+/i, '');
+  const worded = words
+    ? placed
+        .replace(
+          new RegExp(
+            `\\bSCENE: (she|he) is in (?:the )?${escape(words)} — show that place around (?:her|him)\\.`,
+            'i'
+          ),
+          `SCENE: $1 is ${room}.`
+        )
+        .replace(
+          new RegExp(`\\bPlace: (?:the )?${escape(words)}\\.`, 'i'),
+          `Place: the room shown in Image ${image}.`
+        )
+    : placed;
+  return worded
     .replace(/,? exactly as the pose map in Image \d shows/g, '')
     .replace(
       /\s*Match (?:her|his|their two) bod(?:y|ies) to the (?:second|third|fourth) image \(pose map\)\./g,
@@ -403,9 +426,9 @@ export function withPlacePhotoInPrompt(
  */
 export function withRoomPhotoAsImage2(
   prompt: string,
-  options: { beat?: string; place?: string } = {}
+  options: { beat?: string; place?: string; words?: string } = {}
 ): string | null {
-  const placed = withPlacePhotoInPrompt(prompt, 2, { place: options.place });
+  const placed = withPlacePhotoInPrompt(prompt, 2, { place: options.place, words: options.words });
   if (!placed.includes('in the room shown in Image 2')) return null;
   const beat = options.beat?.trim().replace(/[.\s]+$/, '');
   const pose = beat

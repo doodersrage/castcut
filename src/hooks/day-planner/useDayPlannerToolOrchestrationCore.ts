@@ -1,6 +1,6 @@
 'use client';
 
-import { loadLocations } from '@/lib/location/records';
+import { loadLocations, shotPlacePhoto } from '@/lib/location/records';
 import { useKeeperStandIn } from '@/hooks/fitting-room/useKeeperStandIn';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import {
@@ -2570,22 +2570,30 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         const clothedRoomEngine =
           /qwen-image-edit-2511|qwen_image_edit_2511/i.test(stillModel ?? '') ||
           (roomLedEngine && !partnerFace && /\bSCENE: /.test(finalized));
-        // Set in a location record (M8): its picture, when it has one — never a room of her home.
-        const slotLocationId = queueTarget.locationId?.trim();
-        const slotLocation = slotLocationId
-          ? loadLocations().find(entry => entry.id === slotLocationId)
-          : undefined;
+        // Set in a location record (M8): its picture, when it has one — never a room of her home
+        // (a photo added beside the Setting is kept on one). The adult and group prompts below
+        // say "the room shown in Image N": an outdoor location's photo is not theirs.
+        const slotLocations = queueTarget.locationId?.trim() ? loadLocations() : [];
+        const settingPhoto = (indoorsOnly = false) =>
+          shotPlacePhoto(
+            queueTarget.locationId,
+            slotLocations,
+            () => castPlacePhotoFor(lookCharacter, queueTarget.location),
+            { indoorsOnly }
+          );
         const roomPhoto: { filename: string; locationName?: string } | null =
           !adultStill &&
           !queueTarget.thirdCastId?.trim() &&
-          // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so).
-          (!vacationFaceBreak || Boolean(partnerFace)) &&
+          // A two-person still keeps its face-break crop as Image 1 (the 4/4 test above ran so);
+          // one person's face-break crop too on Qwen-Image 2.1 with Image 2 free (the room rides
+          // there) — on Edit 2511 her Image 2 is the plate.
+          (!vacationFaceBreak ||
+            Boolean(partnerFace) ||
+            (poseModelFamily(stillModel) === 'qwen-image-2.1' &&
+              !extraFilenames[1]?.trim() &&
+              !extraUrls[1])) &&
           !kleinFaceFilename
-            ? slotLocationId
-              ? slotLocation?.photo
-                ? { filename: slotLocation.photo, locationName: slotLocation.name }
-                : null
-              : castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? settingPhoto()
             : null;
         // Image 3 beside an Image 2; or, on Qwen-Image 2.1 with Image 2 free (a dressed plate wears
         // the outfit, so no clothing image rides along), Image 2 itself — the photo was never sent
@@ -2598,7 +2606,10 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                 imageTwoFree &&
                 !partnerFace &&
                 poseModelFamily(stillModel) === 'qwen-image-2.1' &&
-                withRoomPhotoAsImage2(finalized, { place: roomPhoto.locationName })
+                withRoomPhotoAsImage2(finalized, {
+                  place: roomPhoto.locationName,
+                  words: queueTarget.location,
+                })
               ? { ...roomPhoto, asImage: 2 }
               : null;
         if (placePhoto?.asImage === 3) {
@@ -2702,7 +2713,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           !extraUrls[1] &&
           Boolean(extraFilenames[2]?.trim() || extraUrls[2]) &&
           !extraFilenames[3]?.trim()
-            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? settingPhoto(true)
             : null;
         if (adultPlacePhoto) {
           extraUrls[1] = extraUrls[2];
@@ -2724,7 +2735,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           !/OpenPose keypoint skeleton|Image 3 has two skeletons/.test(finalized) &&
           Boolean(extraFilenames[1]?.trim() || extraUrls[1]) &&
           !extraFilenames[3]?.trim()
-            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? settingPhoto(true)
             : null;
         if (adultDuoPlacePhoto) {
           extraUrls[2] = undefined;
@@ -2754,7 +2765,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               Boolean(partnerFace) &&
               /rapid-aio/i.test(stillModel ?? '') &&
               /OpenPose keypoint skeleton|Image 3 has two skeletons/.test(finalized)))
-            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? settingPhoto(true)
             : null;
         if (roomAsImage4) {
           extraUrls[3] = undefined;
@@ -2769,7 +2780,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           !placePhoto &&
           Boolean(extraFilenames[3]?.trim()) &&
           !extraFilenames[4]?.trim()
-            ? castPlacePhotoFor(lookCharacter, queueTarget.location)
+            ? settingPhoto(true)
             : null;
         if (roomAsImage5) {
           extraUrls[4] = undefined;
@@ -3091,11 +3102,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                   ? (withRoomPhotoAsImage2(finalized, {
                       beat: queueTarget.sceneHints,
                       place: placePhoto.locationName,
+                      words: queueTarget.location,
                     }) ?? finalized)
                   : placePhoto
                     ? withPlacePhotoInPrompt(finalized, 3, {
                         lead: roomLedEngine,
                         place: placePhoto.locationName,
+                        words: queueTarget.location,
                       })
                     : adultPlacePhoto
                       ? withPlacePhotoInAdultPrompt(finalized)

@@ -4,6 +4,7 @@ import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
 import LocationsSection from '@/components/location/LocationsSection';
+import { emptyPlacePhoto } from '@/lib/location/empty-photo-client';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -45,7 +46,7 @@ export default function SceneScriptAndRun({
           llmBody={sharedLlmRequestBody(vm.shared)}
         />
       ) : null}
-      <LocationsSection scenes={page.scenes} />
+      <LocationsSection scenes={page.scenes} emptyPhoto={emptyPlacePhoto} />
       {page.run ? (
         <SceneRunPanel
           run={page.run}

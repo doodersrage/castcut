@@ -54,6 +54,8 @@ export type SceneTake = {
 
 export type SceneTakeReview = 'approved' | 'rejected';
 
+export type SceneContinuation = { sceneId: string; takeId: string };
+
 export type SavedScene = {
   id: string;
   /** The Cast lead this scene is of. */
@@ -82,6 +84,8 @@ export type SavedScene = {
   fromDaySlot?: DaySlotId;
   /** "Make it a Scene" (M3 S4): the script, its scene and the planned shot it was made from. */
   fromScript?: SceneScriptLink;
+  /** "Continue scene": the scene and take whose clip's last frame this scene starts from. */
+  continuesFrom?: SceneContinuation;
   /**
    * Takes that had rendered but were still at the adult check when another scene was opened
    * (their prompt ids). The verdict lands on their gallery entry: a pass adds the take here
@@ -412,12 +416,21 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
       ? { fromDaySlot: scene.fromDaySlot }
       : {}),
     ...scriptLinkField(scene.fromScript),
+    ...continuationField(scene.continuesFrom),
     ...checkingIdsField(scene.checkingTakeIds),
     ...renderingIdsField(scene.renderingTakeIds),
     ...removedTakesField(scene.removedTakeIds),
     createdAt,
     updatedAt: time(scene.updatedAt, createdAt),
   };
+}
+
+function continuationField(value: unknown): Pick<SavedScene, 'continuesFrom'> {
+  if (!value || typeof value !== 'object') return {};
+  const link = value as Partial<SceneContinuation>;
+  const sceneId = text(link.sceneId, 80);
+  const takeId = text(link.takeId, 160);
+  return sceneId && takeId ? { continuesFrom: { sceneId, takeId } } : {};
 }
 
 function removedTakesField(value: unknown): Pick<SavedScene, 'removedTakeIds'> {
@@ -1404,4 +1417,73 @@ export function placeImportedScenes(
       now: now + index,
     })
   );
+}
+
+/** What a continuing scene leaves behind: the beat and the lines belong to the moment just shot. */
+const CONTINUE_CLEARS = [
+  'sceneHints',
+  'sceneHintsTyped',
+  'sceneHintsDay',
+  'eventMove',
+  'line',
+  'lineFullFrame',
+  'lineTone',
+  'replyLine',
+  'lineLanguage',
+  'lineOriginal',
+  'replyOriginal',
+  'narration',
+] as const satisfies ReadonlyArray<keyof DaySlot>;
+
+/** A continuing scene's name: "Kitchen" → "Kitchen, continued" (then "… continued 2", …). */
+export function continuedSceneName(
+  scenes: ReadonlyArray<Pick<SavedScene, 'name' | 'castId'>>,
+  castId: string,
+  name: string
+): string {
+  const base = `${name.replace(/, continued(?: \d+)?$/, '').trim() || 'Scene'}, continued`.slice(
+    0,
+    60
+  );
+  const taken = new Set(scenes.filter(scene => scene.castId === castId).map(scene => scene.name));
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n += 1) {
+    const next = `${base.slice(0, 56)} ${n}`;
+    if (!taken.has(next)) return next;
+  }
+}
+
+/**
+ * "Continue scene": a new scene that starts where `take`'s clip ends — its last frame
+ * (`frameUrl`, a ComfyUI input) as the kept take, so Make it move carries on from that pose and
+ * place. The Cast, partner and mood, outfit, setting, location and story state go with it; the beat
+ * and the lines are left for what happens next.
+ */
+export function sceneContinuing(input: {
+  scene: SavedScene;
+  take: SceneTake;
+  frameUrl: string;
+  name: string;
+  now?: number;
+  id?: string;
+}): SavedScene {
+  const now = input.now ?? Date.now();
+  const slot = { ...input.scene.slot };
+  for (const field of CONTINUE_CLEARS) delete slot[field];
+  const takeId = `continue-${now.toString(36)}`;
+  const scene = createScene({
+    castId: input.scene.castId,
+    name: input.name,
+    id: input.id,
+    slot,
+    mood: input.scene as unknown as Record<string, unknown>,
+    ...(input.scene.outfit ? { outfit: input.scene.outfit as Record<string, unknown> } : {}),
+    takes: [{ id: takeId, imageUrl: input.frameUrl, at: now }],
+    now,
+  });
+  return {
+    ...scene,
+    keptTakeId: takeId,
+    continuesFrom: { sceneId: input.scene.id, takeId: input.take.id },
+  };
 }

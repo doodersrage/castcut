@@ -594,6 +594,167 @@ test('a location\'s picture is added, shown and removed', async ({ page }) => {
   await expect(cafe.getByTestId('location-photo-input')).toBeVisible();
 });
 
+// A photo beside the Setting: kept as a new location named from the Setting's words, the shot set
+// there (its still is built around the photo, unit-tested in location/records.test.ts); Remove
+// unsets it, and the place stays in Locations.
+test('a photo of the place added beside the Setting becomes the shot\'s location', async ({
+  page,
+}) => {
+  await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(
+    page,
+    { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene: sceneWithTakes() } },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const setting = page.getByTestId('day-slot-location');
+  await expect(setting).toBeVisible({ timeout: 60_000 });
+  await setting.fill('sunlit café terrace, late afternoon');
+  const field = page.getByTestId('day-slot-setting-photo');
+  await expect(field.getByTestId('day-slot-setting-photo-add')).toHaveText(
+    'Add a photo of the place'
+  );
+  await field.getByTestId('day-slot-setting-photo-input').setInputFiles({
+    name: 'terrace.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  });
+  await expect(field.getByTestId('day-slot-setting-photo-thumb')).toHaveAttribute(
+    'src',
+    /filename=e2e-upload-\d+\.png&type=input/,
+    { timeout: 30_000 }
+  );
+  await expect(field).toContainText('Set at Sunlit café terrace');
+  const record = page.getByTestId('day-slot-location-record');
+  await expect(record.locator('option:checked')).toHaveText('Sunlit café terrace');
+  // The Setting's words stay as they were.
+  await expect(setting).toHaveValue('sunlit café terrace, late afternoon');
+
+  await field.getByTestId('day-slot-setting-photo-remove').click();
+  await expect(field.getByTestId('day-slot-setting-photo-thumb')).toHaveCount(0);
+  await expect(record).toHaveValue('');
+  await expect(record.locator('option', { hasText: 'Sunlit café terrace' })).toHaveCount(1);
+});
+
+// A place photo with someone in it: they are taken out before it is kept (a still drew the photo's
+// woman in place of the Cast) — counted, then edited empty on Qwen-Image 2.1 Turbo.
+test('a place photo with someone in it is kept with them taken out', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/duo-still-check', route =>
+    route.fulfill({
+      json: {
+        available: true,
+        counts: { faces: 1, hands: 2, people: 1, wrists: 2, ankles: 2, penises: 0, vaginas: 0 },
+      },
+    })
+  );
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-place-empty.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  await seedSettingsCacheOnNextLoad(
+    page,
+    { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene: sceneWithTakes() } },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const field = page.getByTestId('day-slot-setting-photo');
+  await expect(field).toBeVisible({ timeout: 60_000 });
+  await field.getByTestId('day-slot-setting-photo-input').setInputFiles({
+    name: 'room-with-her.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    ),
+  });
+  await expect(field.getByTestId('day-slot-setting-photo-note')).toContainText(
+    'The people in the photo were taken out',
+    { timeout: 60_000 }
+  );
+  await expect(field.getByTestId('day-slot-setting-photo-thumb')).toBeVisible();
+  const body = JSON.parse(queued[0]!) as { comfy?: { workflowFinal?: boolean; workflowJson?: string } };
+  expect(body.comfy?.workflowFinal).toBe(true);
+  expect(body.comfy?.workflowJson).toContain('Remove every person from <image1> completely');
+});
+
+// "Continue scene": a new scene from where the kept take's clip ends — its last frame (read on the
+// server) as the new scene's kept take, the place kept, the beat left to write.
+test('Continue scene starts a new scene from the kept clip\'s last frame', async ({ page }) => {
+  await stubComfyQueue(page);
+  const clip = '/e2e-scene-clip.mp4';
+  await page.route(`**${clip}`, route =>
+    route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(16) })
+  );
+  const frames: string[] = [];
+  await page.route('**/api/clip/frame', async route => {
+    frames.push(route.request().postData() ?? '');
+    await route.fulfill({ json: { url: '/api/comfyui/view?filename=e2e-last.png&type=input' } });
+  });
+  const seeded = sceneWithTakes();
+  const scene = seeded.scenes[0]!;
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...seeded,
+          scenes: [
+            {
+              ...scene,
+              keptTakeId: 'take-2',
+              takes: [scene.takes[0], { ...scene.takes[1], clipUrl: clip, clipPromptId: 'clip-2' }],
+            },
+          ],
+          stills: [
+            {
+              slotId: 'evening',
+              promptId: 'take-2',
+              imageUrl: '/icon.svg?take=2',
+              status: 'completed',
+              clipUrl: clip,
+              clipPromptId: 'clip-2',
+              clipStatus: 'completed',
+            },
+          ],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const go = page.getByTestId('scene-continue');
+  await expect(go).toBeEnabled({ timeout: 60_000 });
+  await go.click();
+
+  await expect(page.getByTestId('scene-name')).toHaveValue('Kitchen, continued', {
+    timeout: 30_000,
+  });
+  expect(JSON.parse(frames[0]!)).toEqual({ clipUrl: clip });
+  await expect(page.getByTestId('scene-kept').getByRole('img', { name: 'Kept take' })).toHaveAttribute(
+    'src',
+    /filename=e2e-last\.png/
+  );
+  await expect(page.getByTestId('day-slot-location')).toHaveValue('small kitchen');
+  await expect(page.getByTestId('day-slot-beat')).toHaveValue('');
+  // No clip on the new scene yet: Animate it first to continue again.
+  await expect(go).toBeDisabled();
+});
+
 // M8 T5: a shot's story state — what she carries, what changed, the story day — is kept with the
 // Scene and shown on its shot in Cut.
 test('a shot\'s story state is kept after a reload and shown on its Cut card', async ({ page }) => {

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   addScenePatch,
   castFileScenes,
+  continuedSceneName,
   createScene,
   deleteScenePatch,
   keepSceneTake,
@@ -27,6 +28,7 @@ import {
   sceneCutNote,
   sceneCutShots,
   sceneCutUse,
+  sceneContinuing,
   sceneFromDaySlot,
   sceneSlotAt,
   sceneSlotOf,
@@ -1005,5 +1007,80 @@ describe('a take still rendering goes with its scene (M5 Queue all)', () => {
     const backToA = openScenePatch({ ...cache, ...toB }, 'scene-a', 50)!;
     assert.equal(backToA.stills?.[0]?.promptId, 'p-run');
     assert.equal(backToA.stills?.[0]?.status, 'running');
+  });
+});
+
+describe('Continue scene', () => {
+  const kitchen = (): SavedScene => ({
+    ...createScene({
+      castId: 'nora',
+      name: 'Kitchen',
+      id: 'scene-kitchen',
+      slot: {
+        id: 'evening',
+        label: 'Evening',
+        location: 'small kitchen',
+        locationId: 'loc-1',
+        sceneHints: 'stirring a pot of risotto',
+        line: 'Almost ready.',
+        narration: 'She cooks.',
+        state: { carries: [{ text: 'a wooden spoon', carriesOver: true }] },
+      },
+      mood: { dayMood: 'everyday', partnerCharacterId: 'tomas' },
+      outfit: { wardrobeId: 'kit-1' },
+      takes: [
+        {
+          id: 'take-1',
+          promptId: 'take-1',
+          imageUrl: '/still.png',
+          clipUrl: '/clip.mp4',
+          at: 1,
+        },
+      ],
+      now: 1,
+    }),
+    keptTakeId: 'take-1',
+  });
+
+  it('starts from the clip\'s last frame, kept, with the people, place and story — not the beat', () => {
+    const next = sceneContinuing({
+      scene: kitchen(),
+      take: kitchen().takes[0]!,
+      frameUrl: '/api/comfyui/view?filename=last.png&type=input',
+      name: 'Kitchen, continued',
+      now: 50,
+      id: 'scene-next',
+    });
+    assert.equal(next.castId, 'nora');
+    assert.equal(next.name, 'Kitchen, continued');
+    assert.equal(next.partnerCharacterId, 'tomas');
+    assert.equal(next.dayMood, 'everyday');
+    assert.deepEqual(next.continuesFrom, { sceneId: 'scene-kitchen', takeId: 'take-1' });
+    assert.equal(next.takes.length, 1);
+    assert.equal(keptTakeOf(next)?.imageUrl, '/api/comfyui/view?filename=last.png&type=input');
+    assert.equal(keptTakeOf(next)?.clipUrl, undefined);
+    assert.equal(next.slot.location, 'small kitchen');
+    assert.equal(next.slot.locationId, 'loc-1');
+    assert.deepEqual(next.slot.state, { carries: [{ text: 'a wooden spoon', carriesOver: true }] });
+    assert.equal(next.slot.sceneHints, undefined);
+    assert.equal(next.slot.line, undefined);
+    assert.equal(next.slot.narration, undefined);
+    // Saved and read back, it keeps where it came from and its kept frame.
+    const stored = normalizeSavedScene(JSON.parse(JSON.stringify(next)))!;
+    assert.deepEqual(stored.continuesFrom, next.continuesFrom);
+    assert.equal(stored.keptTakeId, next.keptTakeId);
+  });
+
+  it('is named after the scene it continues, numbered when taken', () => {
+    assert.equal(continuedSceneName([], 'nora', 'Kitchen'), 'Kitchen, continued');
+    const taken = [
+      { castId: 'nora', name: 'Kitchen, continued' },
+      { castId: 'nora', name: 'Kitchen, continued 2' },
+    ];
+    assert.equal(continuedSceneName(taken, 'nora', 'Kitchen'), 'Kitchen, continued 3');
+    // Continuing a continuation doesn't stack the word.
+    assert.equal(continuedSceneName(taken, 'nora', 'Kitchen, continued 2'), 'Kitchen, continued 3');
+    // Another Cast's names don't count.
+    assert.equal(continuedSceneName(taken, 'tomas', 'Kitchen'), 'Kitchen, continued');
   });
 });

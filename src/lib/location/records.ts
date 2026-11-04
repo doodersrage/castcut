@@ -224,3 +224,64 @@ export function subscribeLocations(onChange: () => void): () => void {
     window.removeEventListener(BROWSER_STORAGE_HEALTH_EVENT, handler);
   };
 }
+
+/** Words that put a Setting outdoors (a new location's INT/EXT, which the user can change). */
+const OUTDOOR_WORDS =
+  /\b(beach|sea|shore|street|park|garden|terrace|balcony|rooftop|roof|pool|forest|woods|field|meadow|mountain|lake|river|outdoors?|outside|courtyard|patio|deck|yard|harbou?r|pier|dock|desert|trail|square|market)\b/i;
+
+/**
+ * A new location for a photo added beside a Setting (Day and Scene): named by the Setting's first
+ * phrase ("sunlit café terrace, late afternoon" → "Sunlit café terrace"), with no look of its own —
+ * the Setting's words already say it, and the photo shows it. A name already taken gets a number.
+ */
+export function locationFromSetting(
+  setting: string | null | undefined,
+  photo: string,
+  taken: readonly Pick<LocationRecord, 'name'>[],
+  now = Date.now()
+): Omit<LocationRecord, 'createdAt' | 'aliases' | 'look'> & { look: string } {
+  const words = (setting ?? '').replace(/\s+/g, ' ').trim();
+  const phrase = words
+    .split(/[,.;:—–(]/)[0]!
+    .trim()
+    .slice(0, LOCATION_NAME_MAX - 6);
+  const base = phrase ? phrase[0]!.toUpperCase() + phrase.slice(1) : 'Place from a photo';
+  const names = new Set(taken.map(entry => placeKey(entry.name)));
+  let name = base;
+  for (let n = 2; names.has(placeKey(name)); n += 1) name = `${base} ${n}`;
+  return {
+    id: newLocationId(now),
+    name,
+    setting: OUTDOOR_WORDS.test(words) ? 'EXT' : 'INT',
+    look: '',
+    photo,
+  };
+}
+
+/**
+ * The photo of the place a shot is set in: its location's when it is set in one (none when that
+ * location has no photo — never a room of the Cast's home instead), else the Cast's room photo
+ * (`castPhoto`). `indoorsOnly`: the prompts that say "the room shown in Image N" (adult and
+ * group stills) skip an outdoor location's photo.
+ */
+export function shotPlacePhoto(
+  locationId: string | null | undefined,
+  locations: readonly LocationRecord[],
+  castPhoto: () => { filename: string } | null,
+  options: { indoorsOnly?: boolean } = {}
+): { filename: string; locationName?: string } | null {
+  const id = locationId?.trim();
+  if (!id) return castPhoto();
+  const location = locations.find(entry => entry.id === id);
+  if (!location?.photo) return null;
+  if (options.indoorsOnly && location.setting === 'EXT') return null;
+  return { filename: location.photo, locationName: location.name };
+}
+
+/** Whether a place photo has anyone in it (the duo-still-check counts: a body or a face). */
+export function photoShowsPeople(counts: {
+  people?: number | null;
+  faces?: number | null;
+}): boolean {
+  return (counts.people ?? 0) > 0 || (counts.faces ?? 0) > 0;
+}

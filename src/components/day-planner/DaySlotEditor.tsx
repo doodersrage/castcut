@@ -25,6 +25,7 @@ import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { LocationRecord } from '@/lib/location/records';
+import SettingPhotoField from '@/components/day-planner/SettingPhotoField';
 import type { ClothingSummaryThumb } from '@/lib/wardrobe/clothing-summary';
 import {
   daySlotProgressState,
@@ -201,9 +202,39 @@ export default function DaySlotEditor({
           />
         ) : null}
         <div className="grid gap-3" data-testid="day-active-plan">
-          <label className="space-y-1.5">
-            <FieldLabel>Setting</FieldLabel>
+          <div className="space-y-1.5">
+            {/* The presets at the top, beside the field they fill. */}
+            <div
+              className="flex flex-wrap items-center justify-between gap-2"
+              data-testid="day-setting-presets"
+            >
+              <FieldLabel htmlFor={`day-slot-location-${slot.id}`}>Setting</FieldLabel>
+              <SelectInput
+                value=""
+                disabled={busy}
+                className="!w-auto shrink-0"
+                title="Insert a canned location into Setting"
+                data-testid="day-setting-preset"
+                aria-label="Setting preset"
+                onChange={event => {
+                  const preset = ROLEPLAY_SETTING_PRESETS.find(
+                    entry => entry.id === event.target.value
+                  );
+                  if (preset) {
+                    updateSlot(slot.id, { location: preset.setting });
+                  }
+                }}
+              >
+                <option value="">Insert a preset…</option>
+                {ROLEPLAY_SETTING_PRESETS.map(preset => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </div>
             <TextArea
+              id={`day-slot-location-${slot.id}`}
               rows={2}
               data-testid="day-slot-location"
               value={slot.location ?? ''}
@@ -211,7 +242,8 @@ export default function DaySlotEditor({
               placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
               onChange={event => updateSlot(slot.id, { location: event.target.value })}
             />
-          </label>
+          </div>
+          <SettingPhotoField slot={slot} updateSlot={updateSlot} disabled={busy} />
           {locations ? (
             <label className="space-y-1.5">
               <FieldLabel>Location</FieldLabel>
@@ -440,39 +472,6 @@ export default function DaySlotEditor({
             testId="day-slot-clothing"
             onOpen={() => setClothingOpen(true)}
           />
-        </div>
-        <div
-          className="flex items-center justify-between gap-3 border-t border-[var(--border-subtle)] py-2"
-          data-testid="day-setting-presets"
-        >
-          <div className="min-w-0">
-            <p className="type-heading text-sm">Setting presets</p>
-            <p className="type-caption text-[var(--text-muted)]">
-              Insert a canned location into Setting.
-            </p>
-          </div>
-          <SelectInput
-            value=""
-            disabled={busy}
-            className="!w-auto shrink-0"
-            data-testid="day-setting-preset"
-            aria-label="Setting preset"
-            onChange={event => {
-              const preset = ROLEPLAY_SETTING_PRESETS.find(
-                entry => entry.id === event.target.value
-              );
-              if (preset) {
-                updateSlot(slot.id, { location: preset.setting });
-              }
-            }}
-          >
-            <option value="">Insert…</option>
-            {ROLEPLAY_SETTING_PRESETS.map(preset => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </SelectInput>
         </div>
         <DaySameSeedRedo
           slot={slot}

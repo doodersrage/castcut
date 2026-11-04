@@ -239,4 +239,25 @@ describe('withPlacePhotoInLongAdultBrief', () => {
     // Nothing to replace: no photo.
     assert.equal(withRoomPhotoAsImage2('SETTING: a street at night.', { place: 'Harbour café' }), null);
   });
+
+  it('anchors on the Setting\'s own words — a location made from a photo has no look', () => {
+    // The user's face-break still (Qwen-Image 2.1 Turbo, 2026-11-04): the photo never rode along,
+    // its words had no ", at …: …" to replace. With them replaced: the exact room 3/3, the crouch
+    // kept, the woman in the photo left out.
+    const day =
+      'POSE FIRST: she crouches low. SCENE: she is in the Place from a photo — show that place around her. Day photo: One woman alone. Place: Place from a photo. The woman: …';
+    const out = withRoomPhotoAsImage2(day, { place: 'Place from a photo', words: 'Place from a photo' })!;
+    assert.match(out, /SCENE: she is in the room shown in Image 2 — the same walls/);
+    assert.match(out, /Place: the room shown in Image 2\./);
+    assert.doesNotMatch(out, /Place from a photo/);
+    // The words with their own article, or any case.
+    assert.match(
+      withPlacePhotoInPrompt('SCENE: she is in the sunlit Terrace — show that place around her.', 2, {
+        words: 'a sunlit terrace',
+      }),
+      /SCENE: she is in the room shown in Image 2/
+    );
+    // Not these words: left alone.
+    assert.equal(withRoomPhotoAsImage2(day, { words: 'a kitchen' }), null);
+  });
 });

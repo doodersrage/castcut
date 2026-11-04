@@ -9,6 +9,7 @@ import { dayPartOf, type DayPart } from '@/lib/day/parts';
 import type { DaySlotId } from '@/lib/day/planner';
 import {
   addScenePatch,
+  continuedSceneName,
   createScene,
   deleteScenePatch,
   keepSceneTake,
@@ -20,6 +21,7 @@ import {
   recordSceneJobs,
   removeSceneTake,
   resolveSceneChecks,
+  sceneContinuing,
   restoreSceneTake,
   sceneCardBusy,
   sceneCutNote,
@@ -155,6 +157,50 @@ export function useScenePage(vm: DayEngineView) {
     write(addScenePatch({ ...cache, scenes }, scene));
     setNote(checking ? 'The last take is still being checked — it lands in its own scene.' : null);
   }, [cache, castId, checking, rendering, scenes, write]);
+
+  // The page as it is now, for work that finishes after an await (Continue scene's frame grab).
+  const latest = useRef({ cache, scenes });
+  useEffect(() => {
+    latest.current = { cache, scenes };
+  }, [cache, scenes]);
+  const [continuing, setContinuing] = useState(false);
+
+  /**
+   * "Continue scene": a new scene from where the kept take's clip ends — its last frame (read on
+   * the server, /api/clip/frame) as the new scene's kept take, opened, so Animate carries on from
+   * that pose. Null when it started; else what to say.
+   */
+  const continueScene = useCallback(async (): Promise<string | null> => {
+    const from = active;
+    const take = keptTakeOf(from);
+    if (!castId || !from || !take?.clipUrl) return 'Keep a take with a clip first.';
+    if (rendering) return 'A take is rendering — continue when it lands.';
+    setContinuing(true);
+    try {
+      const response = await fetch('/api/clip/frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ clipUrl: take.clipUrl }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!response.ok || !data.url) return data.error || 'Could not read the clip’s last frame.';
+      const now = latest.current;
+      const scene = sceneContinuing({
+        scene: now.scenes.find(entry => entry.id === from.id) ?? from,
+        take,
+        frameUrl: data.url,
+        name: continuedSceneName(now.scenes, castId, from.name),
+      });
+      write(addScenePatch({ ...now.cache, scenes: now.scenes }, scene));
+      setNote(`${scene.name}: starts where ${from.name}’s clip ends — write what happens next.`);
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Could not read the clip’s last frame.';
+    } finally {
+      setContinuing(false);
+    }
+  }, [active, castId, rendering, write]);
 
   /**
    * A new scene from a planned script shot (M3 S4 "Make it a Scene"): the shot filled in from the
@@ -491,6 +537,8 @@ export function useScenePage(vm: DayEngineView) {
     note,
     setNote,
     newScene,
+    continueScene,
+    continuing,
     makeSceneFrom,
     prepareRun,
     updateRun,

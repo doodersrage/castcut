@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocations } from '@/components/location/useLocations';
 import DayDubControl from '@/components/day-planner/DayDubControl';
 import { useCommandActions } from '@/hooks/useCommandActions';
 import { dayCommandActions } from '@/lib/play/command-actions';
@@ -326,6 +327,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const [animateFilesMissing, setAnimateFilesMissing] = useState(false);
   const [progressLightboxSlotIds, setProgressLightboxSlotIds] = useState<DaySlotId[]>([]);
   const [slotSheetOpen, setSlotSheetOpen] = useState(false);
+  // Location records (M8): the Location picker, and the place a Setting photo is kept on.
+  const locations = useLocations();
   const [setupOpen, setSetupOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedId = useId();
@@ -1468,6 +1471,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         ) : null}
       </ToolLayout>
       <DaySlotSheet
+        locations={locations}
         open={slotSheetOpen}
         onClose={() => setSlotSheetOpen(false)}
         slot={activeSlot}

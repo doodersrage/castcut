@@ -7,11 +7,13 @@ import {
   deleteLocation,
   loadLocations,
   locationForPlace,
+  locationFromSetting,
   normalizeLocation,
   normalizeLocations,
   placeKey,
   replaceLocations,
   saveLocation,
+  shotPlacePhoto,
   withLocation,
 } from './records';
 
@@ -170,5 +172,37 @@ describe('location records (M8 T1)', () => {
     }>;
     assert.deepEqual(merged.map(entry => entry.id).sort(), ['loc-bar', 'loc-cafe']);
     assert.equal(merged.find(entry => entry.id === 'loc-cafe')?.look, 'phone edit');
+  });
+});
+
+describe('a photo added beside a Setting', () => {
+  it('becomes a location named from the Setting, outdoors when its words say so', () => {
+    const made = locationFromSetting('sunlit café terrace, late afternoon', 'p.png', [], 1);
+    assert.equal(made.name, 'Sunlit café terrace');
+    assert.equal(made.setting, 'EXT');
+    assert.equal(made.look, '');
+    assert.equal(made.photo, 'p.png');
+    assert.equal(locationFromSetting('her small kitchen at night', 'p.png', []).setting, 'INT');
+    // A name taken gets a number; no words, a plain name.
+    assert.equal(
+      locationFromSetting('Kitchen', 'p.png', [{ name: 'kitchen' }, { name: 'Kitchen 2' }]).name,
+      'Kitchen 3'
+    );
+    assert.equal(locationFromSetting('  ', 'p.png', []).name, 'Place from a photo');
+  });
+
+  it('is the shot’s place photo; the Cast’s room only when the shot has no location', () => {
+    const cafe = { id: 'loc-1', name: 'Cafe', setting: 'INT' as const, look: '', aliases: [], photo: 'cafe.png', createdAt: 1 };
+    const beach = { ...cafe, id: 'loc-2', name: 'Beach', setting: 'EXT' as const, photo: 'beach.png' };
+    const bare = { ...cafe, id: 'loc-3', photo: undefined };
+    const home = () => ({ filename: 'living-room.png' });
+    assert.deepEqual(shotPlacePhoto('loc-1', [cafe], home), { filename: 'cafe.png', locationName: 'Cafe' });
+    assert.deepEqual(shotPlacePhoto(undefined, [cafe], home), { filename: 'living-room.png' });
+    // Set somewhere with no photo: none — never a room of her home instead.
+    assert.equal(shotPlacePhoto('loc-3', [bare], home), null);
+    assert.equal(shotPlacePhoto('loc-gone', [], home), null);
+    // "The room shown in Image N" prompts: not an outdoor place.
+    assert.equal(shotPlacePhoto('loc-2', [beach], home, { indoorsOnly: true }), null);
+    assert.deepEqual(shotPlacePhoto('loc-2', [beach], home)?.filename, 'beach.png');
   });
 });

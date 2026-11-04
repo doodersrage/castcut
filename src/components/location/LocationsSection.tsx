@@ -33,9 +33,15 @@ type Draft = Partial<Pick<LocationRecord, 'name' | 'look' | 'setting'>> & { alia
  */
 export default function LocationsSection({
   scenes,
+  emptyPhoto,
 }: {
   /** Every Cast's Scenes: what a delete would leave without a place. */
   scenes: ReadonlyArray<{ name: string; slot?: { locationId?: string } | null }>;
+  /**
+   * Takes anyone out of a photo just added (Castcut's empty-photo-client.ts): stills drew a
+   * person in the place photo in place of the Cast. Without it the photo is kept as it is.
+   */
+  emptyPhoto?: (input: { photo: string; file: File }) => Promise<{ photo: string; note?: string }>;
 }) {
   const locations = useLocations();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -96,7 +102,12 @@ export default function LocationsSection({
     setPhotoBusy(location.id);
     try {
       const uploaded = await uploadComfyInputImage({ file });
-      saveLocation({ ...location, photo: uploaded.name });
+      // Anyone in it taken out first: stills drew them in place of the Cast.
+      const kept = emptyPhoto
+        ? await emptyPhoto({ photo: uploaded.name, file })
+        : { photo: uploaded.name };
+      saveLocation({ ...location, photo: kept.photo });
+      if (kept.note) setPhotoError({ id: location.id, message: kept.note });
     } catch (error) {
       setPhotoError({
         id: location.id,

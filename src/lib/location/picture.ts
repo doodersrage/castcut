@@ -77,3 +77,43 @@ export function locationPictureGraph(
     },
   };
 }
+
+/**
+ * A place photo with a person in it, emptied (Day/Scene's Setting photo): stills are told the
+ * photo is an EMPTY room, and a person in it was taken on — live (2026-11-04, Qwen-Image 2.1
+ * Turbo, the user's photo of a woman on a white chair by a window, a "sitting in the chair" beat):
+ * the still drew the photo's woman — her cardigan, hair and pose — in place of the Cast. Erased
+ * first (2/2 seeds: the empty chair, curtains, radiator and floor kept), the same beat drew the
+ * Cast herself 3/3 in the room.
+ */
+export const LOCATION_EMPTY_PROMPT =
+  'Remove every person from <image1> completely — the place stays exactly as it is: the same furniture, walls, floor, windows, light and colours; anything they sat or leaned on stays, now empty. Fill in what they covered so it looks untouched. Nobody in the picture. Photorealistic photograph.';
+
+/** The emptied photo's size: its own shape, the long side 1472 (as the picture), on a 16 px grid. */
+export function locationEmptySize(
+  width: number,
+  height: number
+): { width: number; height: number } {
+  const scale = 1472 / Math.max(1, width, height);
+  const snap = (value: number) => Math.max(256, Math.round((value * scale) / 16) * 16);
+  return { width: snap(width), height: snap(height) };
+}
+
+/** The finished graph: Qwen-Image 2.1 Turbo editing the photo (an input-folder file) empty. */
+export function locationEmptyGraph(
+  photo: string,
+  size: { width: number; height: number },
+  seed: number
+): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
+  const graph = locationPictureGraph({ name: '', look: '', setting: 'INT' }, seed);
+  graph['14'] = { class_type: 'LoadImage', inputs: { image: photo } };
+  graph['5']!.inputs = {
+    ...graph['5']!.inputs,
+    prompt: LOCATION_EMPTY_PROMPT,
+    negative_prompt: '',
+    'images.image_1': ['14', 0],
+  };
+  graph['6']!.inputs = { ...graph['6']!.inputs, ...size };
+  graph['13']!.inputs = { ...graph['13']!.inputs, filename_prefix: 'Castcut/location-empty' };
+  return graph;
+}

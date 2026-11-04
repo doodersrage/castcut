@@ -176,5 +176,6 @@
   "src/lib/director/video-motion.ts",
   "src/lib/director/video-motion.worker.ts",
   "src/lib/director/video-pose-server.ts",
-  "src/app/api/director/video-pose/route.ts"
+  "src/app/api/director/video-pose/route.ts",
+  "src/lib/location/empty-photo-client.ts"
 ]

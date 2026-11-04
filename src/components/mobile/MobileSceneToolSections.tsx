@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useId, useRef, useState, type ReactNode } from 'react';
+import { useLocations } from '@/components/location/useLocations';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
@@ -171,6 +172,8 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
   const { queueBlocked, renderOffline, quality, mediaBusy } = views;
   const [sheet, setSheet] = useState<Sheet>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Location records (M8): the Location picker, and the place a Setting photo is kept on.
+  const locations = useLocations();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const advancedId = useId();
   const takeCount = active?.takes.length ?? 0;
@@ -458,6 +461,24 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
                 Direct
               </Button>
             </div>
+            {kept?.clipUrl ? (
+              <Button
+                variant="secondary"
+                className="!min-h-11 w-full justify-center"
+                disabled={rendering || page.continuing}
+                loading={page.continuing}
+                loadingLabel="Reading its last frame"
+                data-testid="scene-continue"
+                title="A new scene that starts where this clip ends: its last frame becomes the new scene's kept take, with the same people, outfit and place — write what happens next and Animate it."
+                onClick={() => {
+                  void page.continueScene().then(error => {
+                    if (error) page.setNote(error);
+                  });
+                }}
+              >
+                Continue scene
+              </Button>
+            ) : null}
             {/* Phone-sized: the select and the switches are 44 px tap targets. */}
             {views.clipEngine ? (
               <div className="[&_label]:!min-h-11 [&_select]:!min-h-11">{views.clipEngine}</div>
@@ -563,6 +584,7 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
         {active ? (
           <div data-testid="scene-editor">
             <DaySlotEditor
+              locations={locations}
               slot={slot}
               slots={slots}
               stills={stills}

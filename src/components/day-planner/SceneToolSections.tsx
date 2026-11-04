@@ -534,6 +534,26 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                 >
                   Direct a move…
                 </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!kept?.clipUrl || rendering || page.continuing}
+                  loading={page.continuing}
+                  loadingLabel="Reading its last frame"
+                  data-testid="scene-continue"
+                  title={
+                    kept?.clipUrl
+                      ? "A new scene that starts where this clip ends: its last frame becomes the new scene's kept take, with the same people, outfit and place — write what happens next and Animate it."
+                      : 'Animate the kept take first — the new scene starts where its clip ends.'
+                  }
+                  onClick={() => {
+                    void page.continueScene().then(error => {
+                      if (error) page.setNote(error);
+                    });
+                  }}
+                >
+                  Continue scene
+                </Button>
                 <ButtonLink
                   href="/cut?from=scenes"
                   size="sm"
