@@ -1048,9 +1048,12 @@ describe('Intimate duos say the act, keep what the beat keeps on, and sweat (202
     const pushed = buildRapidDuoRecipe({
       beat: 'bent over the hotel desk mid-sex with a partner behind, cocktail dress around her waist',
       nude: false,
+      clothedHerOnly: true,
     })!;
     assert.match(pushed, /cocktail dress around her waist/);
-    assert.match(pushed, /Clothes pushed open/);
-    assert.doesNotMatch(pushed, /completely nude/);
+    assert.match(pushed, /Her clothes stay on, pushed open as the beat says/);
+    assert.match(pushed, /he is completely nude/);
+    assert.doesNotMatch(pushed, /trousers/);
+    assert.doesNotMatch(pushed, /Both are completely nude/);
   });
 });

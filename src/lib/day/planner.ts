@@ -4121,7 +4121,7 @@ export function buildDaySlotPrompt(input: {
         lead: input.leadNoun === 'man' ? 'man' : 'woman',
         // What the beat keeps on ("dress pushed up", "heels still on"): every duo still was
         // fully nude while the beat named it (the user, 2026-11-04).
-        ...(duoClothing?.kind === 'pushed' ? { nude: false } : {}),
+        ...(duoClothing?.kind === 'pushed' ? { nude: false, clothedHerOnly: true } : {}),
         ...(duoClothing?.kind === 'keeps' ? { keeps: duoClothing.items } : {}),
       });
       if (recipe) {

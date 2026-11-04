@@ -238,7 +238,10 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // pose lands every time, so the oral beat stays readable (guide: day-slot-pose.ts).
       return `Side view, exactly two people. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`;
     case 'kneeling':
-      return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, ${FULL_PENETRATION}, her arms around his neck and his hands on her hips; both faces in frame.`;
+      // "Both kneel upright … facing each other" with no camera knelt them side by side facing
+      // the lens, 3/3 on the user's night still (Qwen-Image 2.1 Turbo); side view, in profile,
+      // chest to chest: facing each other 3/3 (2026-11-04).
+      return `Side view, both bodies in profile, exactly two people. The woman and the man kneel upright on ${on('bed')} facing each other, chest to chest: her thighs astride his, her knees on ${on('bed')} either side of his hips, ${FULL_PENETRATION}; her arms around his neck, his hands on her hips; their faces close, both in profile.`;
     case 'lap':
       // Front-on, Rapid turned her to the camera and buried him under her 3/3 (03085); side view
       // with both faces in profile kept them chest to chest 3/3 (2026-10-07).
@@ -526,6 +529,10 @@ function nudeKeeping(items: readonly string[]): string {
   return `Both are nude except her ${items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items[0]} — her bare breasts with nipples visible and bare vulva, his bare chest and penis; nothing else on either body.`;
 }
 
+/** A duo beat that keeps her clothes on (Day): hers pushed open as the beat says, him nude. */
+const HER_CLOTHES_PUSHED_OPEN =
+  'Her clothes stay on, pushed open as the beat says — her bare breasts and bare vulva showing; he is completely nude, his bare chest and penis.';
+
 /** Clothed sex ("clothes open"): name the outfit image, or Image 1's underwear plate wins. */
 function clothedLine(outfitImage: RecipeImage | null | undefined): string {
   return outfitImage
@@ -633,6 +640,11 @@ export function buildRapidDuoRecipe(input: {
   nude?: boolean;
   /** Nude, but for these on her (the beat's "heels still on"; duoBeatClothing). */
   keeps?: readonly string[];
+  /**
+   * Clothed (nude: false) for her only: the beat keeps her clothes on, pushed open, and he is
+   * nude (Day: duoBeatClothing — the user, his trousers on was wrong).
+   */
+  clothedHerOnly?: boolean;
   /** Clothed only: the encoder image holding the outfit packshot. */
   outfitImage?: RecipeImage | null;
   /** A Cast member as the man (Day "Partner"), with the encoder image holding his face. */
@@ -717,7 +729,9 @@ export function buildRapidDuoRecipe(input: {
               /his trousers open/,
               "her girlfriend's clothes pushed open too"
             )
-          : clothedLine(input.outfitImage)
+          : input.clothedHerOnly
+            ? HER_CLOTHES_PUSHED_OPEN
+            : clothedLine(input.outfitImage)
       : twoWomen
         ? NUDE_TWO_WOMEN
         : twoMen
