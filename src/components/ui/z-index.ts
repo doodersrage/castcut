@@ -2,7 +2,8 @@
  * The app's stacking order for overlays, low to high. Use these (as `style={{ zIndex }}`)
  * instead of a fresh `z-[NN]` so a new overlay lands where it should against the others.
  *
- * - `sheet` / `sheetRaised`: side sheets (a raised one stacks over another sheet).
+ * - `sheet` / `sheetRaised` / `sheetTop`: side sheets (a raised one stacks over another sheet, a
+ *   top one over a raised one — the clothing editor over the Clothing sheet).
  * - `dialog`: an ordinary modal dialog.
  * - `tray`: the system tray notices — above dialogs so an Undo stays reachable.
  * - `palette`: the command palette.
@@ -15,6 +16,7 @@
 export const Z_INDEX = {
   sheet: 70,
   sheetRaised: 76,
+  sheetTop: 78,
   dialog: 80,
   tray: 90,
   palette: 100,

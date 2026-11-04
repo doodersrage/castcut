@@ -17,8 +17,11 @@ export type SideSheetProps = {
   testId?: string;
   /** Sheet width on desk: `md` (28rem) or `lg` (34rem). Phones always take the full width. */
   size?: 'md' | 'lg';
-  /** Stacks above another sheet (the Clothing sheet over the slot sheet). */
-  layer?: 'base' | 'raised';
+  /**
+   * Stacks above another sheet: `raised` (the Clothing sheet over the slot sheet), `top` (the
+   * clothing editor over the Clothing sheet).
+   */
+  layer?: 'base' | 'raised' | 'top';
   /** Extra attributes on the dialog element (a `data-slot`, for tests). */
   dataAttributes?: Record<string, string>;
   children: ReactNode;
@@ -73,7 +76,14 @@ export default function SideSheet({
     <ModalPortal>
       <div
         className="fixed inset-0 flex max-sm:items-end max-sm:justify-center sm:justify-end"
-        style={{ zIndex: layer === 'raised' ? Z_INDEX.sheetRaised : Z_INDEX.sheet }}
+        style={{
+          zIndex:
+            layer === 'top'
+              ? Z_INDEX.sheetTop
+              : layer === 'raised'
+                ? Z_INDEX.sheetRaised
+                : Z_INDEX.sheet,
+        }}
         data-testid={testId ? `${testId}-root` : undefined}
       >
         <button

@@ -189,6 +189,8 @@ function ClothingEditorBody({
       open
       onClose={onClose}
       testId={testId}
+      // Over the Clothing sheet it opens from (that one is raised over the slot sheet).
+      layer="top"
       title={target.kind === 'saved' ? 'Edit clothing' : 'Edit a copy'}
       description={
         target.kind === 'saved'
