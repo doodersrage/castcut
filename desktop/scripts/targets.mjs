@@ -1,8 +1,8 @@
 import { execSync } from 'node:child_process';
 import os from 'node:os';
 
-/** Official Node 22 distro used as the bundled runtime sidecar. */
-export const BUNDLED_NODE_VERSION = '22.18.0';
+/** Official Node 24 (LTS) distro used as the bundled runtime sidecar. */
+export const BUNDLED_NODE_VERSION = '24.22.2';
 
 const HOST_TRIPLES = {
   'darwin-arm64': 'aarch64-apple-darwin',

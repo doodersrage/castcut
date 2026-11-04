@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 # Static ffmpeg/ffprobe 9.0.2 (musl, amd64 + arm64). Alpine's ffmpeg package was older than 8.0
 # and could not decode animated WebP (WAN's clip format). Pinned tag + digest — bump both together.

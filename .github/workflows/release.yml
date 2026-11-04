@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       # M7 T1: no release from a commit CI hasn't passed (in M6 its e2e job was red for 15
@@ -273,7 +273,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable

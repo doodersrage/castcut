@@ -8,7 +8,7 @@
     "url": "https://github.com/doodersrage/castcut.git"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "next dev --webpack -p 47832",

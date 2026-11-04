@@ -64,7 +64,7 @@ export async function buildFilmNleExport(input: {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `nle-${randomUUID()}`);
-  const media = path.join(dir, 'media');
+  const media = path.join(/* turbopackIgnore: true */ dir, 'media');
   await fs.mkdir(media, { recursive: true });
   const size = FILM_PRESET_SIZE[normalizeFilmResolution(input.recipe.resolution)];
   const shots: NleShot[] = [];
@@ -80,11 +80,11 @@ export async function buildFilmNleExport(input: {
         userId: input.userId,
         requestOrigin: input.requestOrigin,
       });
-      const source = path.join(dir, `${base}.src`);
+      const source = path.join(/* turbopackIgnore: true */ dir, `${base}.src`);
       await fs.writeFile(source, fetched.buffer);
       if (shot.kind === 'clip') {
         const file = `media/${base}.mp4`;
-        const out = path.join(dir, file);
+        const out = path.join(/* turbopackIgnore: true */ dir, file);
         const encoded = await run(ffmpeg, [
           '-y',
           '-v',
@@ -141,7 +141,7 @@ export async function buildFilmNleExport(input: {
           source,
           '-frames:v',
           '1',
-          path.join(dir, file),
+          path.join(/* turbopackIgnore: true */ dir, file),
         ]);
         if (encoded.code !== 0) throw new Error('could not convert the still');
         shots.push({
@@ -167,7 +167,7 @@ export async function buildFilmNleExport(input: {
         userId: input.userId,
         requestOrigin: input.requestOrigin,
       });
-      const source = path.join(dir, 'music.src');
+      const source = path.join(/* turbopackIgnore: true */ dir, 'music.src');
       await fs.writeFile(source, fetched.buffer);
       const file = 'media/music.m4a';
       const encoded = await run(ffmpeg, [
@@ -181,11 +181,13 @@ export async function buildFilmNleExport(input: {
         'aac',
         '-b:a',
         '256k',
-        path.join(dir, file),
+        path.join(/* turbopackIgnore: true */ dir, file),
       ]);
       await fs.rm(source, { force: true });
       const durationSec =
-        encoded.code === 0 ? await durationOf(ffmpeg, path.join(dir, file)) : null;
+        encoded.code === 0
+          ? await durationOf(ffmpeg, path.join(/* turbopackIgnore: true */ dir, file))
+          : null;
       if (durationSec) music = { file, durationSec };
     } catch {
       // The cut still exports; the README lists what came along.
@@ -210,17 +212,18 @@ export async function buildFilmNleExport(input: {
   ];
   const srt = buildSrt(shots);
   if (srt) texts.push(['captions.srt', srt]);
-  for (const [name, text] of texts) await fs.writeFile(path.join(dir, name), text, 'utf8');
+  for (const [name, text] of texts)
+    await fs.writeFile(path.join(/* turbopackIgnore: true */ dir, name), text, 'utf8');
 
   const folder = slug(input.name) || 'castcut-film';
   const entries: ZipDiskEntry[] = [
     ...texts.map(([name]) => ({
       archivePath: `${folder}/${name}`,
-      diskPath: path.join(dir, name),
+      diskPath: path.join(/* turbopackIgnore: true */ dir, name),
     })),
     ...shots.map(shot => ({
       archivePath: `${folder}/${shot.file}`,
-      diskPath: path.join(dir, shot.file),
+      diskPath: path.join(/* turbopackIgnore: true */ dir, shot.file),
     })),
     ...(music
       ? [
@@ -231,7 +234,7 @@ export async function buildFilmNleExport(input: {
         ]
       : []),
   ];
-  const zipPath = path.join(dir, `${folder}.zip`);
+  const zipPath = path.join(/* turbopackIgnore: true */ dir, `${folder}.zip`);
   await createZipFileFromDiskPaths(zipPath, entries);
   return { zipPath, dir, shots: shots.length, skipped };
 }
