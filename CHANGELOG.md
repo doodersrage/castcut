@@ -9,6 +9,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.5.0] - 2026-11-04
+
+- Qwen-Image 2.1 stills: a candid phone photo, lit by the scene's own time and place
+- Intimate: a beat's clothes are hers only; kneeling face to face from the side
+- Clothing editor opens above the Clothing sheet
+- Node 24: CI, releases, the Docker image and the desktop runtime move from Node 22
+- Clothing editor: change a piece's picture with AI, its photo, name, description and tags
+- Intimate: penetration named in the positions, sweat, the beat's clothes kept, and whose body is whose
+- Day: four new moods — Beach day, Festival, Road trip, Holiday season
+
 ## [v3.4.8] - 2026-11-04
 
 - Two people talking: a wrong-voice check, Animate's longer dialogue, and a line with its answer in one part
