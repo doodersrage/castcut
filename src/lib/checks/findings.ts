@@ -21,6 +21,8 @@ export type ContinuityRule =
   | 'outfit-miss'
   /** Auto-review's place check saw somewhere other than the planned place (M7 T2). */
   | 'place-miss'
+  /** A longer clip's part ran from a keyframe that failed every draft's checks (M12 T3). */
+  | 'keyframe-miss'
   /** A shot plays media whose source is gone (Cut's pins, film/cut-pins.ts). */
   | 'source-gone'
   /** Cross-shot (film/continuity-rules.ts): the outfit or look changes with no stated change. */
@@ -146,6 +148,15 @@ export function findingsForGalleryEntry(
       'Auto-review',
       `Not the planned place — she is in ${checks.placeMiss.trim()}`,
       'Redo it, or change where the shot is set.'
+    );
+  }
+  if (checks?.keyframeMiss?.trim()) {
+    add(
+      'keyframe-miss',
+      'warns',
+      'Longer clip',
+      `A keyframe failed its checks — ${checks.keyframeMiss.trim()}`,
+      'Watch that part; make it longer again, or cut before it in Cut.'
     );
   }
   if (checks?.marksMissing?.trim()) {

@@ -1,7 +1,8 @@
 /**
- * Server: "Finish clip" (clip-finish.ts). The clip (WAN's animated WebP or an MP4) becomes an MP4
- * in ComfyUI's input, SeedVR2 brings it up to CLIP_FINISH_LONG_SIDE and RIFE doubles a 16 fps
- * clip's frames, its sound passed through. Returns the finished MP4's ComfyUI view URL.
+ * Server: "Finish clip" (clip-finish.ts). The clip (WAN's animated WebP or an MP4) becomes an MP4,
+ * cut into chunks of a few seconds (clipFinishChunks) that ComfyUI finishes one at a time —
+ * SeedVR2 brings each up to CLIP_FINISH_LONG_SIDE and RIFE doubles a 16 fps clip's frames — then
+ * joined with the clip's own sound and kept in ComfyUI's input. Returns its view URL.
  */
 
 import { promises as fs } from 'node:fs';
@@ -16,8 +17,12 @@ import {
   buildClipFinishGraph,
   CLIP_FINISH_MODELS,
   CLIP_FINISH_SAVE_NODE,
+  clipFinishChunkFrames,
+  clipFinishChunks,
+  clipFinishJoinFilter,
   clipFinishPlan,
 } from './finish';
+import { parseComfyUiSystemStats } from '../comfyui/system-stats';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 import { throwIfCancelled, type ClipJobContext } from './clip-jobs-server';
 import { ffmpegFailureMessage } from './clip-jobs';
@@ -55,6 +60,24 @@ export function readClipStream(log: string): { width: number; height: number; fp
   const fps = line.match(/,\s(\d+(?:\.\d+)?) fps/) ?? line.match(/,\s(\d+(?:\.\d+)?) tbr/);
   if (!size || !fps) return null;
   return { width: Number(size[1]), height: Number(size[2]), fps: Number(fps[1]) };
+}
+
+/** The frames ffmpeg counted decoding a clip (its last "frame=" line), or null. */
+export function readFrameCount(log: string): number | null {
+  const counts = [...log.matchAll(/frame=\s*(\d+)/g)].map(match => Number(match[1]));
+  const last = counts[counts.length - 1];
+  return last && last > 0 ? last : null;
+}
+
+/** ComfyUI's free RAM in bytes (/system_stats), or undefined when it can't say. */
+async function comfyFreeRam(baseUrl: string): Promise<number | undefined> {
+  try {
+    const response = await fetch(`${baseUrl}/system_stats`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return undefined;
+    return parseComfyUiSystemStats(await response.json()).ram?.free || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export class ClipAlreadyFinishedError extends Error {}
@@ -128,51 +151,143 @@ export async function finishClip(input: {
         ? [{ folder: 'frame_interpolation', file: CLIP_FINISH_MODELS.interpolation }]
         : []),
     ]);
+    const frames = readFrameCount(probe);
+    if (!frames) throw new Error('Could not read that clip.');
+    const chunkFrames = clipFinishChunkFrames(plan, stream.fps, await comfyFreeRam(baseUrl));
+    if (!chunkFrames) {
+      throw new Error(
+        'ComfyUI has too little free memory to sharpen this clip, even a second at a time — close other apps on that machine, or restart ComfyUI, and try again.'
+      );
+    }
+    const chunks = clipFinishChunks(frames, chunkFrames);
+    const verb =
+      plan.scale > 1 && plan.multiplier > 1
+        ? 'Sharpening and smoothing'
+        : plan.scale > 1
+          ? 'Sharpening'
+          : 'Smoothing the motion of';
+    const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
+    const finished: string[] = [];
+    for (const [index, chunk] of chunks.entries()) {
+      throwIfCancelled(signal);
+      progress({
+        total: chunks.length + 1,
+        done: index,
+        note:
+          chunks.length > 1
+            ? `${verb} part ${index + 1} of ${chunks.length} on ComfyUI`
+            : `${verb} the clip on ComfyUI`,
+      });
+      // This chunk's frames, silent (the clip's sound goes on when the chunks are joined).
+      const part = path.join(/* turbopackIgnore: true */ dir, `part${index}.mp4`);
+      await run(
+        ffmpeg,
+        [
+          '-y',
+          '-i',
+          mp4,
+          '-vf',
+          `select='between(n\\,${chunk.first}\\,${chunk.last})',setpts=N/FRAME_RATE/TB`,
+          '-fps_mode',
+          'passthrough',
+          '-an',
+          '-c:v',
+          'libx264',
+          '-crf',
+          '12',
+          '-pix_fmt',
+          'yuv420p',
+          part,
+        ],
+        signal
+      );
+      const uploaded = await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ part)),
+        filename: 'castcut-finish-part.mp4',
+        mimeType: 'video/mp4',
+      });
+      const result = await runHeavyComfyGraph<ComfyImageRef>({
+        baseUrl,
+        comfyUrl: input.comfyUrl,
+        label: 'finish-clip',
+        priority: 'queue',
+        // A few seconds of clip; the wait includes renders queued ahead of it.
+        timeoutMs: 20 * 60_000,
+        signal,
+        prompt: buildClipFinishGraph({
+          video: uploaded.name,
+          plan,
+          seed,
+          prefix: 'Castcut-finish-part',
+          audio: false,
+        }),
+        read: entry => {
+          const out = (
+            entry.outputs?.[CLIP_FINISH_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined
+          )?.images?.[0];
+          return out?.filename ? out : undefined;
+        },
+      });
+      const out = result.result;
+      if (!out) throw new Error('Finishing ended without a clip — check the ComfyUI log.');
+      const view = await fetch(
+        `${baseUrl}/view?${new URLSearchParams({
+          filename: out.filename,
+          subfolder: out.subfolder ?? '',
+          type: out.type || 'output',
+        }).toString()}`,
+        { signal: AbortSignal.timeout(120_000) }
+      );
+      if (!view.ok) throw new Error('Could not fetch a finished part from ComfyUI.');
+      const done = path.join(/* turbopackIgnore: true */ dir, `done${index}.mp4`);
+      await fs.writeFile(
+        /* turbopackIgnore: true */ done,
+        new Uint8Array(await view.arrayBuffer())
+      );
+      finished.push(done);
+    }
     throwIfCancelled(signal);
-    progress({
-      total: 2,
-      done: 1,
-      note:
-        plan.scale > 1 && plan.multiplier > 1
-          ? 'Sharpening and smoothing on ComfyUI'
-          : plan.scale > 1
-            ? 'Sharpening on ComfyUI'
-            : 'Smoothing the motion on ComfyUI',
-    });
-    const uploaded = await uploadComfyInputContent({
+    progress({ total: chunks.length + 1, done: chunks.length, note: 'Joining the parts' });
+    const joined = path.join(/* turbopackIgnore: true */ dir, 'finished.mp4');
+    await run(
+      ffmpeg,
+      [
+        '-y',
+        ...finished.flatMap(file => ['-i', file]),
+        '-i',
+        mp4,
+        '-filter_complex',
+        clipFinishJoinFilter(finished.length),
+        '-map',
+        '[v]',
+        '-map',
+        `${finished.length}:a?`,
+        '-c:v',
+        'libx264',
+        '-crf',
+        '14',
+        '-pix_fmt',
+        'yuv420p',
+        '-r',
+        String(plan.fps),
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        '-movflags',
+        '+faststart',
+        joined,
+      ],
+      signal
+    );
+    const kept = await uploadComfyInputContent({
       baseUrl,
-      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ mp4)),
-      filename: 'castcut-finish.mp4',
+      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ joined)),
+      filename: 'castcut-finished.mp4',
       mimeType: 'video/mp4',
     });
-    const result = await runHeavyComfyGraph<ComfyImageRef>({
-      baseUrl,
-      comfyUrl: input.comfyUrl,
-      label: 'finish-clip',
-      priority: 'queue',
-      // A 30-second clip upscaled in chunks takes several minutes.
-      timeoutMs: 20 * 60_000,
-      signal,
-      prompt: buildClipFinishGraph({
-        video: uploaded.name,
-        plan,
-        seed: input.seed ?? Math.floor(Math.random() * 1_000_000),
-        prefix: 'Castcut-finished',
-      }),
-      read: entry => {
-        const out = (
-          entry.outputs?.[CLIP_FINISH_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined
-        )?.images?.[0];
-        return out?.filename ? out : undefined;
-      },
-    });
-    const clip = result.result;
-    if (!clip) throw new Error('Finishing ended without a clip — check the ComfyUI log.');
-    const view = new URLSearchParams({
-      filename: clip.filename,
-      subfolder: clip.subfolder ?? '',
-      type: clip.type || 'output',
-    });
+    const view = new URLSearchParams({ filename: kept.name, type: 'input' });
     return `/api/comfyui/view?${view.toString()}`;
   } finally {
     await fs

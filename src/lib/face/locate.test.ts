@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { largestFaceBox, mapRotatedFaceBox, parseFaceBoxLists } from './locate';
-import { buildFaceLocateGraph } from './locate-server';
+import { buildFaceLocateGraph, locateFacesInComfy } from './locate-server';
 import { computeFaceBoxCropRect, computePortraitFaceCropRect } from './portrait-face-crop';
 
 describe('face-locate', () => {
@@ -51,6 +51,36 @@ describe('face-locate', () => {
     assert.equal(turned.r?.inputs.rotation, '90 degrees');
     assert.deepEqual(turned.b?.inputs.image, ['r', 0]);
     assert.equal(turned.b?.inputs.index, -1);
+  });
+});
+
+describe('locateFacesInComfy', () => {
+  // A ComfyUI with the face nodes whose check fails (or times out behind a long render).
+  const failingComfy = (async (url: string | URL) => {
+    const path = String(url);
+    if (path.includes('/object_info/')) {
+      const node = path.split('/object_info/')[1]!;
+      return new Response(JSON.stringify({ [node]: { input: { required: {} } } }));
+    }
+    if (path.endsWith('/prompt')) return new Response(JSON.stringify({ prompt_id: 'p1' }));
+    if (path.includes('/history/p1')) {
+      return new Response(
+        JSON.stringify({ p1: { status: { status_str: 'error', completed: false, messages: [] } } })
+      );
+    }
+    return new Response('{}');
+  }) as typeof fetch;
+
+  it("answers no faces when the check fails, or throws when asked to (two people's longer clip)", async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = failingComfy;
+    try {
+      const input = { imageName: 'frame.png', comfyUrl: 'http://face-locate-test.invalid:1' };
+      assert.deepEqual(await locateFacesInComfy(input), []);
+      await assert.rejects(locateFacesInComfy({ ...input, throwOnFailure: true }), /face-locate failed/);
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });
 

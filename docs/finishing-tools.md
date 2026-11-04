@@ -61,6 +61,12 @@ The sound is kept.
 !!! example "Live"
 A WAN clip, 672×880 at 16 fps → 978×1280 at 32 fps in under 3 minutes.
 
+- Longer clips are finished a few seconds at a time and joined, so a 30 s clip doesn't run
+  ComfyUI out of memory. A 30 s Make it 30 s clip (768×1024 → 960×1280) took about 15 minutes in
+  10 parts, with ComfyUI using about 2.5 GB more than before it started.
+- Each part is sized to ComfyUI's free memory. If not even a second fits, it stops and says so —
+  close other apps on that machine, or restart ComfyUI.
+
 ---
 
 ## Make more realistic { #realism }

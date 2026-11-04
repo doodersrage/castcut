@@ -614,6 +614,17 @@ export function extendFacesNote(faces: ReadonlyArray<number | null> | undefined)
 }
 
 /**
+ * The longer clip's keyframe check for its Gallery entry (M12 T3): every part whose keyframe failed
+ * all its drafts, or '' (a check that ran and passed — clears an earlier miss when merged).
+ */
+export function extendKeyframeMiss(misses: readonly string[] | undefined): string {
+  return (misses ?? [])
+    .map(miss => miss.trim())
+    .filter(Boolean)
+    .join('; ');
+}
+
+/**
  * The clip's own prompt with a part's beat as its action (M11 T1): the `Action: …` (still-clip
  * template) or `Scene: …` (intimate template) sentence swapped, so every other line — the place,
  * the clothes holding, the people, ages and the quality words — stays word for word, and the first
@@ -693,6 +704,8 @@ export type ClipExtendJob = {
   seconds?: number;
   /** How well each part's start frame matched the Cast's face (M11 T4; null: none in view). */
   faces?: Array<number | null>;
+  /** Parts whose keyframe failed every draft (M12 T3): "part 3: something new in the place". */
+  keyframeMisses?: string[];
   error?: string;
 };
 

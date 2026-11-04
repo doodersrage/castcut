@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { findingsForGalleryEntry } from './findings';
+import { CONTINUITY_RULE_LABELS } from './check-quality';
+import { extendKeyframeMiss } from '../clip/extend';
+import { mergeGalleryPlayChecks } from '../gallery/comfyui-gallery';
+import { galleryNeedsLookReasons } from '../gallery/needs-look';
 
 describe('continuity findings, one shape (M2 C1)', () => {
   it('reads every check a render carries as a finding with its evidence', () => {
@@ -109,5 +113,31 @@ describe('continuity findings, one shape (M2 C1)', () => {
       }),
       []
     );
+  });
+
+  // M12 T3: a longer clip whose keyframe failed every draft — the least-bad one was used.
+  it("reads a longer clip's failed keyframe as a finding, and a pass clears it", () => {
+    const keyframeMiss = extendKeyframeMiss([
+      'part 3: something put on or taken off',
+      ' part 4: the place changed ',
+      '',
+    ]);
+    assert.equal(keyframeMiss, 'part 3: something put on or taken off; part 4: the place changed');
+    assert.equal(extendKeyframeMiss(undefined), '');
+    const [finding] = findingsForGalleryEntry({
+      promptId: 'extend-1',
+      derivedKind: 'extend',
+      playChecks: { keyframeMiss, at: 1 },
+    });
+    assert.equal(finding!.id, 'extend-1:keyframe-miss');
+    assert.equal(finding!.severity, 'warns');
+    assert.match(finding!.evidence, /part 3: something put on or taken off/);
+    assert.equal(CONTINUITY_RULE_LABELS['keyframe-miss'], 'Longer clip: keyframe failed');
+    assert.match(
+      galleryNeedsLookReasons({ derivedKind: 'extend', playChecks: { keyframeMiss, at: 1 } })[0]!,
+      /keyframe failed its checks/
+    );
+    const cleared = mergeGalleryPlayChecks({ keyframeMiss, at: 1 }, { keyframeMiss: '' });
+    assert.equal(cleared.keyframeMiss, undefined);
   });
 });

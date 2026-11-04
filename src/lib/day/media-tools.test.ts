@@ -3,9 +3,13 @@ import { describe, it } from 'node:test';
 import {
   buildClipFinishGraph,
   CLIP_FINISH_SAVE_NODE,
+  clipFinishChunkFrames,
+  clipFinishChunks,
+  clipFinishFrameBytes,
+  clipFinishJoinFilter,
   clipFinishPlan,
 } from '../clip/finish';
-import { readClipStream } from '../clip/finish-server';
+import { readClipStream, readFrameCount } from '../clip/finish-server';
 import { isGpuMemoryError } from '../server/heavy-graph-server';
 import {
   buildLipSyncGraph,
@@ -72,6 +76,45 @@ describe('Finish clip', () => {
       ),
       { width: 672, height: 880, fps: 16.13 }
     );
+    assert.equal(readFrameCount('frame=  120 fps=0.0 q=-0.0\rframe=  720 fps=410 q=-0.0 Lsize=N/A'), 720);
+    assert.equal(readFrameCount('no frames here'), null);
+  });
+
+  // A whole 30 s clip at once held ~40 GB and took ComfyUI down (2026-11-04).
+  it('finishes a long clip in chunks that share the frame at each join', () => {
+    const chunks = clipFinishChunks(720, 120);
+    assert.equal(chunks.length, 6);
+    assert.deepEqual(chunks[0], { first: 0, last: 119 });
+    assert.deepEqual(chunks[1], { first: 119, last: 238 });
+    for (let k = 1; k < chunks.length; k += 1) assert.equal(chunks[k]!.first, chunks[k - 1]!.last);
+    assert.equal(chunks[chunks.length - 1]!.last, 719);
+    // Kept frames: the first chunk whole, each later one less its shared first frame.
+    const kept = chunks.reduce((sum, c, k) => sum + (c.last - c.first + 1) - (k > 0 ? 1 : 0), 0);
+    assert.equal(kept, 720);
+    // RIFE × 2 on each chunk, joined the same way: the whole clip's (F − 1) × 2 + 1.
+    const doubled = chunks.reduce((sum, c, k) => sum + (c.last - c.first) * 2 + 1 - (k > 0 ? 1 : 0), 0);
+    assert.equal(doubled, 719 * 2 + 1);
+    // A short tail joins the chunk before it; a short clip is one chunk.
+    assert.deepEqual(clipFinishChunks(125, 120), [{ first: 0, last: 124 }]);
+    assert.deepEqual(clipFinishChunks(80, 120), [{ first: 0, last: 79 }]);
+  });
+
+  it("sizes a chunk to ComfyUI's free memory, and stops when not a second fits", () => {
+    const plan = clipFinishPlan({ width: 480, height: 832, fps: 16 })!;
+    assert.equal(clipFinishChunkFrames(plan, 16), 80);
+    assert.equal(clipFinishChunkFrames(plan, 16, 256e9), 80);
+    assert.equal(clipFinishChunkFrames(plan, 16, 40 * clipFinishFrameBytes(plan) * 2), 40);
+    assert.equal(clipFinishChunkFrames(plan, 16, 10 * clipFinishFrameBytes(plan) * 2), null);
+  });
+
+  it('joins chunks dropping each later one\'s first frame, and renders chunks silent', () => {
+    assert.equal(
+      clipFinishJoinFilter(3),
+      '[0:v]setpts=PTS-STARTPTS[v0];[1:v]trim=start_frame=1,setpts=PTS-STARTPTS[v1];[2:v]trim=start_frame=1,setpts=PTS-STARTPTS[v2];[v0][v1][v2]concat=n=3:v=1:a=0[v]'
+    );
+    const plan = clipFinishPlan({ width: 480, height: 832, fps: 16 })!;
+    const graph = buildClipFinishGraph({ video: 'in.mp4', plan, seed: 1, prefix: 'x', audio: false });
+    assert.equal(ofType(graph, 'CreateVideo')[0]!.inputs.audio, undefined);
   });
 });
 

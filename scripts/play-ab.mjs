@@ -12,7 +12,8 @@
  * Spec:
  * {
  *   "reference": "Castcut_00195_-cutout.png",   // ComfyUI input image the face is scored against
- *   "seeds": [1111, 2222],
+ *   "seeds": [1111, 2222],             // "own": the graph's own seed (replay the render as it was)
+ *   "original": true,                  // optional: each row starts with the graph's own PNG
  *   "cases": [{
  *     "name": "walk",
  *     "seeds": [123],
@@ -59,6 +60,8 @@ const outDir = resolve(flag('out') ?? join('play-ab-out', runId));
 mkdirSync(outDir, { recursive: true });
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
+/** "s1111", or "own seed" for the graph's own. */
+const seedLabel = seed => (seed === 'own' ? 'own seed' : `s${seed}`);
 
 async function comfy(path, body) {
   const response = await fetch(`${COMFY}${path}`, {
@@ -157,7 +160,7 @@ function applyVariant(graph, variant, seed, prefix) {
     // a RandomNoise node (noise_seed) and replayed the same take for every seed. A linked input
     // (an [id, slot] pair) is left alone.
     for (const key of ['seed', 'noise_seed']) {
-      if (typeof node.inputs?.[key] === 'number') node.inputs[key] = seed;
+      if (seed !== 'own' && typeof node.inputs?.[key] === 'number') node.inputs[key] = seed;
     }
     if (node.class_type === 'KSampler' || node.class_type === 'KSamplerAdvanced') {
       if (variant.steps) node.inputs.steps = variant.steps;
@@ -304,7 +307,7 @@ for (const [index, job] of jobs.entries()) {
     job.faceDistance = await faceDistance(job.reference, inputName);
   }
   console.log(
-    `[${index + 1}/${jobs.length}] ${job.case} ${job.variant} s${job.seed}` +
+    `[${index + 1}/${jobs.length}] ${job.case} ${job.variant} ${seedLabel(job.seed)}` +
       (job.faceDistance != null ? ` face ${job.faceDistance.toFixed(3)}` : '')
   );
 }
@@ -337,15 +340,21 @@ for (const name of variantNames) {
 
 const rows = [];
 for (const testCase of spec.cases) {
+  // The render the graph came from, first in each row (a PNG source only).
+  const original =
+    spec.original && !testCase.graph.endsWith('.json')
+      ? [{ buffer: readFileSync(testCase.graph), label: `${testCase.name} original` }]
+      : [];
   for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
-    rows.push(
-      jobs
+    rows.push([
+      ...original,
+      ...jobs
         .filter(job => job.case === testCase.name && job.seed === seed)
         .map(job => ({
           buffer: job.buffer,
-          label: `${job.case} ${job.variant} s${job.seed}${job.faceDistance != null ? ` ${job.faceDistance.toFixed(2)}` : ''}`,
-        }))
-    );
+          label: `${job.case} ${job.variant} ${seedLabel(job.seed)}${job.faceDistance != null ? ` ${job.faceDistance.toFixed(2)}` : ''}`,
+        })),
+    ]);
   }
 }
 await contactSheet(rows, join(outDir, 'contact.jpg'));

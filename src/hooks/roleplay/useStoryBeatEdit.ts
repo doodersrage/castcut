@@ -6,6 +6,7 @@ import {
   castReferencesForExtend,
   clipExtendProgressNote,
   startClipExtend,
+  extendKeyframeMiss,
   waitForClipExtend,
   type ClipExtendRequest,
 } from '@/lib/clip/extend';
@@ -374,6 +375,10 @@ export function useStoryBeatEdit({
           prompt: `Make it 30 s · ${now.title}`,
           tool: 'roleplay',
           sourcePromptId: now.clipPromptId,
+          // A part's keyframe that failed every draft (M12 T3): a finding on the clip.
+          ...(job.keyframeMisses?.length
+            ? { checks: { keyframeMiss: extendKeyframeMiss(job.keyframeMisses) } }
+            : {}),
         });
         patchBeat(beat, {
           clipUrl: kept.url,

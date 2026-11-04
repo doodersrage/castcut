@@ -197,6 +197,10 @@ export async function locateFaceInComfy(input: {
 export async function locateFacesInComfy(input: {
   imageName: string;
   comfyUrl?: string;
+  /** How long to wait for ComfyUI (default 60 s; the check runs after the job running now). */
+  timeoutMs?: number;
+  /** Throw when the check fails or times out, instead of answering "no faces". */
+  throwOnFailure?: boolean;
 }): Promise<FaceBox[]> {
   const baseUrl = comfyBaseUrl(input.comfyUrl);
   const [models, box, preview] = await Promise.all([
@@ -210,12 +214,13 @@ export async function locateFacesInComfy(input: {
       baseUrl,
       label: 'face-locate',
       priority: 'check',
-      timeoutMs: 60_000,
+      timeoutMs: input.timeoutMs ?? 60_000,
       prompt: buildFaceLocateGraph({ imageName: input.imageName, rotation: 'none' }),
       read: readBoxTexts,
     });
     return parseFaceBoxLists(run.result).sort((a, b) => b.width * b.height - a.width * a.height);
-  } catch {
+  } catch (error) {
+    if (input.throwOnFailure) throw error;
     return [];
   }
 }

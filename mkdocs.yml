@@ -130,6 +130,7 @@ nav:
       - Performance & scripts: performance/guide.md
       - Real-engine run (2026-10-27): performance/real-run-2026-10-27.md
       - Consistency checks (2026-10-27): consistency-report.md
+      - Replaying renders to compare: replay-renders.md
       - Storage budgets: performance/storage-budgets.md
       - Large-project timings: performance/large-project.md
       - A long film: performance/long-film.md

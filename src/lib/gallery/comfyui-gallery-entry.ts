@@ -22,6 +22,11 @@ export type GalleryPlayChecks = {
   placeMiss?: string;
   /** The gesture check (pose/gesture.ts): what the still's hands or action didn't do. */
   gestureMiss?: string;
+  /**
+   * A longer clip whose keyframe failed every draft (M12 T3): the least-bad one was used — which
+   * parts and what their checks saw ("part 3: something new in the place").
+   */
+  keyframeMiss?: string;
   at: number;
 };
 

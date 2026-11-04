@@ -8,7 +8,7 @@
  */
 
 import { addComfyGalleryEntry, loadComfyGallery } from '../gallery/comfyui-gallery';
-import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
+import type { ComfyGalleryEntry, GalleryPlayChecks } from '../gallery/comfyui-gallery-entry';
 import { loadComfyUiSettings } from '../comfyui/settings';
 import { persistGalleryOriginal } from '../gallery/media-client';
 
@@ -42,6 +42,8 @@ export async function keepClipInGallery(input: {
   sourcePromptId?: string;
   /** …or by its gallery entry id (a clip finished from the Gallery itself). */
   sourceEntryId?: string;
+  /** Checks the clip already carries (a longer clip's failed keyframe, M12 T3). */
+  checks?: Omit<GalleryPlayChecks, 'at'>;
   fetchImpl?: typeof fetch;
 }): Promise<{ url: string; entryId?: string; promptId?: string }> {
   try {
@@ -83,6 +85,7 @@ export async function keepClipInGallery(input: {
       durableThumbPath: persisted.thumbPath,
       sourceImageUrl: persisted.originalUrl,
       userTags: [CLIP_KEEP_TAG[input.kind]],
+      ...(input.checks ? { playChecks: { ...input.checks, at: Date.now() } } : {}),
     });
     return { url: persisted.originalUrl, entryId: id, promptId: `${input.kind}-${id}` };
   } catch {

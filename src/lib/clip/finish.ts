@@ -57,6 +57,81 @@ export function clipFinishPlan(input: {
 }
 
 /**
+ * How long a chunk of the clip is finished at a time (s). The whole clip at once held a full-size
+ * copy of every frame per stage — ~40 GB for a 30-second clip, and ComfyUI went down (2026-11-04).
+ */
+export const CLIP_FINISH_CHUNK_SEC = 5;
+/** The shortest chunk worth running (s): below this there isn't the memory to finish the clip. */
+const CLIP_FINISH_MIN_CHUNK_SEC = 1;
+/**
+ * Full-size float copies of each frame the graph holds at once (resized, preprocessed, decoded,
+ * colour-fixed, …), plus RIFE's own — sized so the 30 s clip's ~40 GB reads right.
+ */
+const CLIP_FINISH_FRAME_COPIES = 6;
+/** The share of ComfyUI's free RAM one chunk may take. */
+const CLIP_FINISH_RAM_SHARE = 0.5;
+
+/** Bytes one source frame takes in ComfyUI while finishing (an estimate; see above). */
+export function clipFinishFrameBytes(plan: ClipFinishPlan): number {
+  return plan.width * plan.height * 3 * 4 * (CLIP_FINISH_FRAME_COPIES + plan.multiplier);
+}
+
+/**
+ * Source frames per chunk: CLIP_FINISH_CHUNK_SEC of the clip, fewer when ComfyUI's free RAM
+ * (`ramFree`, bytes; unknown = not limited) holds less. Null when not even
+ * CLIP_FINISH_MIN_CHUNK_SEC fits.
+ */
+export function clipFinishChunkFrames(
+  plan: ClipFinishPlan,
+  sourceFps: number,
+  ramFree?: number
+): number | null {
+  const fps = sourceFps > 0 ? sourceFps : 24;
+  const wanted = Math.max(2, Math.round(CLIP_FINISH_CHUNK_SEC * fps));
+  if (!ramFree || ramFree <= 0) return wanted;
+  const fits = Math.floor((ramFree * CLIP_FINISH_RAM_SHARE) / clipFinishFrameBytes(plan));
+  if (fits < Math.max(2, Math.round(CLIP_FINISH_MIN_CHUNK_SEC * fps))) return null;
+  return Math.min(wanted, fits);
+}
+
+/**
+ * The clip's frames in chunks of about `size`, each starting on the frame the last one ended on:
+ * RIFE makes (n − 1) × m + 1 frames of n, so with each later chunk's first frame dropped the
+ * joined clip has the whole clip's (F − 1) × m + 1, and no pair of frames goes uninterpolated. A
+ * short tail (under a quarter chunk) joins the chunk before it.
+ */
+export function clipFinishChunks(
+  frames: number,
+  size: number
+): Array<{ first: number; last: number }> {
+  if (frames <= 2) return [{ first: 0, last: Math.max(0, frames - 1) }];
+  const step = Math.max(2, Math.floor(size));
+  const chunks: Array<{ first: number; last: number }> = [];
+  let first = 0;
+  while (first < frames - 1) {
+    let last = Math.min(frames - 1, first + step - 1);
+    if (frames - 1 - last < step / 4) last = frames - 1;
+    chunks.push({ first, last });
+    first = last;
+  }
+  return chunks;
+}
+
+/**
+ * ffmpeg's filter joining `count` finished chunks (inputs 0 … count − 1): each later chunk loses
+ * its first frame (the frame the chunk before ended on), then all are joined in order as `[v]`.
+ */
+export function clipFinishJoinFilter(count: number): string {
+  const parts = Array.from(
+    { length: count },
+    (_, index) =>
+      `[${index}:v]${index > 0 ? 'trim=start_frame=1,' : ''}setpts=PTS-STARTPTS[v${index}]`
+  );
+  const inputs = Array.from({ length: count }, (_, index) => `[v${index}]`).join('');
+  return `${parts.join(';')};${inputs}concat=n=${count}:v=1:a=0[v]`;
+}
+
+/**
  * LoadVideo → (SeedVR2 restore at `plan.scale`) → (RIFE × `plan.multiplier`) → SaveVideo MP4,
  * the clip's own sound passed through. SeedVR2 works on latent chunks (SeedVR2TemporalChunk) so a
  * 30-second clip fits on one GPU.
@@ -66,6 +141,8 @@ export function buildClipFinishGraph(input: {
   plan: ClipFinishPlan;
   seed: number;
   prefix: string;
+  /** Pass the clip's sound through (false: a silent chunk, the sound added when joined). */
+  audio?: boolean;
 }): Record<string, unknown> {
   const { plan } = input;
   const graph: Record<string, unknown> = {
@@ -167,7 +244,11 @@ export function buildClipFinishGraph(input: {
   }
   graph['39'] = {
     class_type: 'CreateVideo',
-    inputs: { images: frames, fps: plan.fps, audio: ['2', 1] },
+    inputs: {
+      images: frames,
+      fps: plan.fps,
+      ...(input.audio === false ? {} : { audio: ['2', 1] }),
+    },
   };
   graph[CLIP_FINISH_SAVE_NODE] = {
     class_type: 'SaveVideo',

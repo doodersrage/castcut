@@ -2883,3 +2883,62 @@ Scenes with their checks; nothing is queued twice (the run record lists the prom
 Cancel before the hand-off still work, and Cancel after it removes the not-yet-started jobs from
 ComfyUI's queue.
 
+
+# Part 15 — M12 plan: heavy jobs that don't take ComfyUI down, and checks that don't go quiet (2026-11-04)
+
+An outside review (ChatGPT, pasted by the user) proposed eight areas. Checked against the code:
+the production runner (T20), take review states and findings (M7), Whisper's dialogue checks
+(T18–T19), Cut's cross-shot checks, the Production page and the delivery notes under Cut already
+exist. What it rightly raised, and two open items from T21, are this part. The user: "do all".
+
+**T1 — Sharpen & smooth in time chunks.** · M
+- `finishClip` gave ComfyUI the whole clip: every stage (resize, SeedVR2, decode, colour fix, RIFE
+  at twice the frames) held its own full-size copy of every frame — ~40 GB for 30 s, and ComfyUI
+  went down. The clip is now cut into ~5 s chunks sharing one frame at each join (RIFE turns n
+  frames into (n − 1) × m + 1, so dropping each later chunk's first frame gives the whole clip's
+  count), each finished on its own, then joined with the clip's own sound by ffmpeg.
+- Before it starts, ComfyUI's free RAM (/system_stats) sets a chunk's length; when not even 1 s
+  fits, it stops with a clear message instead of taking ComfyUI down.
+- Progress per chunk; Cancel between and during chunks; the work folder removed either way.
+- Acceptance: a 30 s clip finishes without ComfyUI's memory passing what one chunk needs; the
+  result has the whole clip's frame count and sound; unit tests for the chunk plan and the join.
+
+**T2 — Two people: the face locate waits, or says why.** · S
+- A two-person longer clip found both faces with a 60 s check that waits behind whatever ComfyUI
+  is running; on a busy queue it timed out, read as "no faces", and the clip quietly fell back to
+  the one-person path (the partner then had no face reference). The locate now waits as long as
+  the job ahead can run, and a locate that fails stops the longer clip with a message saying so.
+  Fewer than two faces found (one person in view) still falls back, as before.
+- Acceptance: a timed-out or failed locate fails the job with that reason (unit-tested); a found
+  pair behaves as today.
+
+**T3 — A keyframe that failed its checks is a finding on the clip.** · S
+- When every draft of a part's keyframe fails (something added, put on or dropped, a face or hand
+  too many, the place changed), the least-bad one is used. The clip now carries that as a
+  `keyframeMiss` check: a "warns" finding (`keyframe-miss`), in Needs a look and on the card's
+  badge, decided like any finding.
+- Acceptance: a clip whose keyframe failed carries the finding after Day's and Story's Make it
+  30 s (unit-tested rule; merge clears it when a later check passes).
+
+**T4 — The replay harness, documented.** · S
+- The comparisons made this week (the user's renders replayed with a change, same seeds, a contact
+  sheet) were run from scratch scripts — but the repo already has that harness,
+  `scripts/play-ab.mjs` (replace / latent / steps / inputs / nodes per variant, face distance per
+  render, a contact sheet), undocumented. It gains `"own"` seeds (the render's own seed) and
+  `"original": true` (each row starts with the source render), and `docs/replay-renders.md`.
+
+Order: T1 (it can take ComfyUI down), T2, T3, T4.
+
+**Status 2026-11-04: T1–T4 done** (unit 9,127 pass, lint and `tsc` clean).
+- T1, live on the user's 30 s two-person clip (768×1024, 717 frames): ComfyUI's free RAM (13.9 GB)
+  set 67-frame chunks → 10 parts, 14.6 min. ComfyUI's memory peaked at 10.9 GB (8.6 GB before),
+  where the whole clip had taken ~40 GB and ComfyUI down. Result 960×1280, 717 frames, the sound
+  whole. The joins: frame-to-frame change 1.0–1.27× the source's there (1.07× clip-wide; the
+  clip's biggest jumps, to 2.3×, are not at joins); by eye, no seam across the worst join.
+- T2: unit-tested with a ComfyUI whose check fails — "no faces" by default, an error with
+  `throwOnFailure`; the two-person clip stops with `DuoFacesUnfoundError` before rendering.
+- T3: `keyframeMiss` on the kept clip (Day and Story's Make it 30 s), `keyframe-miss` finding,
+  "keyframe" on the card's badge, Needs a look; not yet seen on a live chain (needs a part whose
+  every draft fails).
+- T4: `play-ab.mjs` run live with `"own"` and `"original"`: the baseline on the render's own seed
+  reproduced it exactly.

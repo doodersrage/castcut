@@ -323,7 +323,12 @@ async function keyframeEditor(
     people?: number,
     /** An input-folder picture with every face clear (two people: Image 2, faces only). */
     faces?: string
-  ) => Promise<{ png: Buffer; beat: string }>;
+  ) => Promise<{
+    png: Buffer;
+    beat: string;
+    /** What the used draft still failed when every draft did (the least-bad one), else none. */
+    misses: string[];
+  }>;
 } | null> {
   const response = await fetch(`${baseUrl}/models/checkpoints`, {
     signal: AbortSignal.timeout(8000),
@@ -357,7 +362,7 @@ async function keyframeEditor(
           ? ` Still held exactly as before: ${held.join(' and ')} — the same number of each, nothing doubled, each one firmly in a hand.`
           : ` ${lead === 'man' ? 'He' : 'She'} is still holding ${held.join(' and ')}, in the same hand, firmly.`
         : '';
-      let best: { png: Buffer; extra: number; beat: string } | null = null;
+      let best: { png: Buffer; extra: number; beat: string; misses: string[] } | null = null;
       // Every draft failed its checks (live: all three put on sunglasses the beat asked for):
       // one more with a safe beat, rather than the least-bad draft.
       for (let attempt = 0; attempt <= KEYFRAME_TRIES; attempt += 1) {
@@ -426,21 +431,24 @@ async function keyframeEditor(
         const added = (await addsSomething(png, drawn, llm)) ? 4 : 0;
         // Nothing put on, taken off or brought in on the person (sunglasses came and went).
         const changed = (await personChanged(png, drawn, llm, people)) ? 4 : 0;
+        // A face more or fewer than the shot has (two people: one dropped is a defect too).
+        const faceOff = counts ? Math.abs((counts.faces ?? people) - people) : 0;
+        const handsOver = counts ? Math.max(0, (counts.hands ?? 2 * people) - 2 * people) : 0;
         const extra =
-          dropped * 5 +
-          added +
-          changed +
-          (counts
-            ? // A face more or fewer than the shot has (two people: one dropped is a defect too).
-              Math.abs((counts.faces ?? people) - people) +
-              Math.max(0, (counts.hands ?? 2 * people) - 2 * people)
-            : 0) +
-          (moved > PLACE_CHANGED ? 10 : 0);
-        if (!best || extra < best.extra) best = { png: drawn, extra, beat: drawnBeat };
+          dropped * 5 + added + changed + faceOff + handsOver + (moved > PLACE_CHANGED ? 10 : 0);
+        const misses = [
+          dropped ? `dropped ${dropped === 1 ? 'what was held' : `${dropped} things held`}` : '',
+          added ? 'something new in the place' : '',
+          changed ? 'something put on or taken off' : '',
+          faceOff ? `${faceOff === 1 ? 'a face' : `${faceOff} faces`} too many or missing` : '',
+          handsOver ? 'an extra hand' : '',
+          moved > PLACE_CHANGED ? 'the place changed' : '',
+        ].filter(Boolean);
+        if (!best || extra < best.extra) best = { png: drawn, extra, beat: drawnBeat, misses };
         if (extra === 0) break;
       }
       if (!best) throw new Error('A keyframe could not be drawn — check the ComfyUI log.');
-      return { png: best.png, beat: best.beat };
+      return { png: best.png, beat: best.beat, misses: best.extra > 0 ? best.misses : [] };
     },
   };
 }
@@ -697,6 +705,18 @@ async function cutPiece(ffmpeg: string, piece: string, frames: number, out: stri
  * The Cast's pictures in ComfyUI's input folder for H3's reference model (M11) — none when this
  * ComfyUI lacks the node, the reference transformer or its Turbo LoRA, or a picture can't be read.
  */
+/** How long two people's face check may wait behind the job ComfyUI is running. */
+const DUO_FACE_LOCATE_TIMEOUT_MS = 30 * 60_000;
+
+/** Two people's face check failed or never ran: the clip stops rather than lose the partner's face. */
+export class DuoFacesUnfoundError extends Error {
+  constructor(reason: string) {
+    super(
+      `Couldn't find the two people's faces in the clip (${reason.replace(/[.\s]+$/, '')}). Nothing was rendered — try Make it longer again.`
+    );
+  }
+}
+
 /**
  * Two people in the shot (M11 T21): each one's face cut from the first clip's opening frame and
  * uploaded, left then right, for H3's reference model — with no keyframes, whose edits invented a
@@ -719,9 +739,18 @@ async function duoFacePictures(
     mimeType: 'image/png',
   });
   const { locateFacesInComfy } = await import('../face/locate-server');
-  const boxes = (await locateFacesInComfy({ imageName: staged.name, comfyUrl: baseUrl }))
-    .slice(0, 2)
-    .sort((a, b) => a.x - b.x);
+  // The check waits for the job ComfyUI is running (a long render: minutes). On a 60 s limit it
+  // timed out behind one, read as "no faces", and the clip went on the one-person path — the
+  // partner with no face of their own (2026-11-04). Now it waits, and a failure stops the clip.
+  const located = await locateFacesInComfy({
+    imageName: staged.name,
+    comfyUrl: baseUrl,
+    timeoutMs: DUO_FACE_LOCATE_TIMEOUT_MS,
+    throwOnFailure: true,
+  }).catch(error => {
+    throw new DuoFacesUnfoundError(error instanceof Error ? error.message : String(error));
+  });
+  const boxes = located.slice(0, 2).sort((a, b) => a.x - b.x);
   if (boxes.length < 2) return null;
   const meta = await sharp(frame).metadata();
   const width = meta.width ?? 1024;
@@ -1458,7 +1487,12 @@ export function startClipExtendJob(input: ClipExtendInput): ClipExtendJob {
 export async function extendClip(
   input: ClipExtendInput,
   onProgress: (progress: Partial<ClipExtendJob>) => void = () => undefined
-): Promise<{ url: string; seconds: number; faces?: Array<number | null> }> {
+): Promise<{
+  url: string;
+  seconds: number;
+  faces?: Array<number | null>;
+  keyframeMisses?: string[];
+}> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
@@ -1567,7 +1601,11 @@ export async function extendClip(
     // Two people: each part on H3's reference model given both faces, no keyframes (duoFacePictures).
     const duoFaces =
       h3 && (shot.people ?? 1) >= 2
-        ? await duoFacePictures(baseUrl, at('reference.png')).catch(() => null)
+        ? await duoFacePictures(baseUrl, at('reference.png')).catch(error => {
+            // A face check that failed stops the clip; anything else keeps the one-person path.
+            if (error instanceof DuoFacesUnfoundError) throw error;
+            return null;
+          })
         : null;
     // Two people talking (M11 T21): a line and the other person's answer straight after it
     // share one part (pairDuoLines) — half the joins in a back-and-forth.
@@ -1641,6 +1679,7 @@ export async function extendClip(
       faceReference = null;
     }
     const faces: Array<number | null> = [];
+    const keyframeMisses: string[] = [];
     // Each voice clip's pitch, read once (two people talking: whose voice a part spoke in).
     const voicePitch: Record<string, number> = {};
     for (let k = 0; k < renders; k += 1) {
@@ -1749,6 +1788,8 @@ export async function extendClip(
           facesImage
         );
         const png = drawn.png;
+        // Every draft failed and the least-bad one is used (M12 T3): said on the clip.
+        if (drawn.misses.length) keyframeMisses.push(`part ${k + 2}: ${drawn.misses.join(', ')}`);
         // The part runs the beat its keyframe was drawn with (a safe one when every draft failed).
         beats[k] = drawn.beat;
         await fs.writeFile(/* turbopackIgnore: true */ at(`keyframe${k + 1}.png`), png);
@@ -2169,6 +2210,7 @@ export async function extendClip(
       url: `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`,
       seconds: Math.round((done.frames / 24) * 10) / 10,
       ...(faces.length ? { faces } : {}),
+      ...(keyframeMisses.length ? { keyframeMisses } : {}),
     };
   } finally {
     await fs

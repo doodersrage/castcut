@@ -1036,6 +1036,7 @@ export function mergeGalleryPlayChecks(
   if ('outfitMiss' in checks) merged.outfitMiss = checks.outfitMiss?.trim() || undefined;
   if ('placeMiss' in checks) merged.placeMiss = checks.placeMiss?.trim() || undefined;
   if ('gestureMiss' in checks) merged.gestureMiss = checks.gestureMiss?.trim() || undefined;
+  if ('keyframeMiss' in checks) merged.keyframeMiss = checks.keyframeMiss?.trim() || undefined;
   return merged;
 }
 

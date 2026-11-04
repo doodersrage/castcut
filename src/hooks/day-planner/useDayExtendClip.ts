@@ -14,6 +14,7 @@ import {
   castReferencesForExtend,
   clipExtendProgressNote,
   extendFacesNote,
+  extendKeyframeMiss,
   startClipExtend,
   waitForClipExtend,
   type ClipExtendRequest,
@@ -110,6 +111,10 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
           prompt,
           tool: 'day',
           sourcePromptId: latest.clipPromptId,
+          // A part's keyframe that failed every draft (M12 T3): a finding on the clip.
+          ...(job.keyframeMisses?.length
+            ? { checks: { keyframeMiss: extendKeyframeMiss(job.keyframeMisses) } }
+            : {}),
         });
         patchStill(slotId, {
           clipUrl: kept.url,
