@@ -52,6 +52,7 @@ export default function ClipExtendSheet({
   // Each H3 part's length (0 = H3's own ~5 s), as on Animate.
   const [partSeconds, setPartSeconds] = useState<number[]>([]);
   const [engine, setEngine] = useState<'ltx' | 'wan' | 'h3' | null>(null);
+  const [people, setPeople] = useState(1);
   const [partSec, setPartSec] = useState(4.3);
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function ClipExtendSheet({
       setPartSeconds(plan.beats.map(() => 0));
       setPartSec(plan.partSec);
       setEngine(plan.engine);
+      setPeople(plan.people ?? 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not write the beats.');
     } finally {
@@ -156,6 +158,13 @@ export default function ClipExtendSheet({
               : 'Or start now and they are written for you.'}
           </span>
         </div>
+        {beats.length && engine === 'h3' && people >= 2 ? (
+          // Two people (M11 T21): every join softens their skin a little; fewer joins hold it.
+          <p className="type-caption text-[var(--text-muted)]" data-testid={`${testId}-two-people`}>
+            Two people: each join softens their skin a little, so their faces hold best from a
+            longer first clip — it needs fewer joins.
+          </p>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
         {beats.length ? (
           <ol className="space-y-2" data-testid={`${testId}-beats`}>

@@ -377,3 +377,35 @@ export async function readComfyImageGraph(
     return null;
   }
 }
+
+/** Castcut's Whisper node (comfyui-nodes/castcut 1.8.0). */
+export const COMFY_TRANSCRIBE_NODE = 'CastcutTranscribe';
+
+/**
+ * What a clip says — `file`, a video already in ComfyUI's input folder — transcribed on ComfyUI
+ * by CastcutTranscribe (Whisper). Null when the node is missing or the run fails; '' when it is
+ * silent.
+ */
+export async function transcribeInComfy(baseUrl: string, file: string): Promise<string | null> {
+  if (!(await resolveComfyNode(baseUrl, [COMFY_TRANSCRIBE_NODE]))) return null;
+  const run = await runComfyUtilityGraph<string>({
+    baseUrl,
+    label: 'transcribe',
+    priority: 'front',
+    timeoutMs: 5 * 60_000,
+    prompt: {
+      hear1: { class_type: 'LoadVideo', inputs: { file } },
+      hear2: { class_type: 'GetVideoComponents', inputs: { video: ['hear1', 0] } },
+      hear3: {
+        class_type: COMFY_TRANSCRIBE_NODE,
+        inputs: { audio: ['hear2', 1], model: 'openai/whisper-base', language: 'en' },
+      },
+    },
+    read: entry => {
+      const text = (entry.outputs?.hear3 as { castcut_text?: unknown[] } | undefined)
+        ?.castcut_text?.[0];
+      return typeof text === 'string' ? text : undefined;
+    },
+  }).catch(() => null);
+  return typeof run?.result === 'string' ? run.result : null;
+}

@@ -20,8 +20,8 @@ import {
   withH3References,
   withH3VoiceAnchor,
   H3_GUIDE_NODE,
-  timedLine,
-  withH3TimedLine,
+  h3Dialogue,
+  withH3Dialogue,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -261,6 +261,26 @@ describe('withH3References', () => {
     assert.equal(h3.inputs!.first_frame, undefined);
   });
 
+  it('gives it videos too, named before the pictures, without their sound', () => {
+    const graph = withH3References(replay(), {
+      pictures: [{ image: 'start.png', shows: 'the first frame' }],
+      videos: [
+        { video: 'before.mp4', tells: 'is the moment before this shot.' },
+        { video: 'look.mp4', tells: 'shows how they really look.' },
+      ],
+    })!;
+    const h3 = graph['10']!;
+    assert.deepEqual(h3.inputs!['ref_videos.ref_video_1'], ['h3vref1p', 0]);
+    assert.deepEqual(h3.inputs!['ref_videos.ref_video_2'], ['h3vref2p', 0]);
+    assert.equal(graph.h3vref1!.inputs!.file, 'before.mp4');
+    assert.deepEqual(graph.h3vref2p!.inputs!.video, ['h3vref2', 0]);
+    assert.equal(h3.inputs!['ref_video_audios.ref_video_audio_1'], undefined);
+    assert.equal(
+      h3.inputs!.prompt,
+      '<Video 1> is the moment before this shot. <Video 2> shows how they really look. <Picture 1> is the first frame. Action: she smiles.'
+    );
+  });
+
   it('is null for a graph that is not H3, or with no pictures', () => {
     assert.equal(withH3References({ '1': { class_type: 'UNETLoader', inputs: {} } }, { pictures: [{ image: 'a', shows: 'b' }] }), null);
     assert.equal(withH3References(replay(), { pictures: [] }), null);
@@ -353,8 +373,11 @@ describe('a talking part keeps her voice (M11 T16)', () => {
     })!;
     const nodes = Object.values(graph);
     const ref = nodes.find(node => node.class_type === H3_REF_NODE)!.inputs!;
-    assert.match(String(ref.prompt), /^<Picture 1> is her face\. <Video 1> with its sound <Audio 1> is her, speaking/);
-    assert.match(String(ref.prompt), /Short red hair\. .*She says, "Hi\."/);
+    assert.match(
+      String(ref.prompt),
+      /^<Picture 1> is her face\. <Video 1> with its sound <Audio 1> is \(S1\), speaking: \(S1\) speaks in exactly that voice/
+    );
+    assert.match(String(ref.prompt), /Short red hair\. .*\(S1\), on-screen, says <d>\[English\] Hi\.<\/d>/);
     assert.deepEqual(ref['ref_videos.ref_video_1'], ['h3voiceparts', 0]);
     assert.deepEqual(ref['ref_video_audios.ref_video_audio_1'], ['h3voiceparts', 1]);
     assert.equal(graph.h3voice!.inputs!.file, 'voice.mp4');
@@ -373,16 +396,25 @@ describe('a talking part keeps her voice (M11 T16)', () => {
   });
 });
 
-describe('a talking part says its line once (M11 T16)', () => {
-  it('gives the line its window and silence after', () => {
-    const timed = timedLine('She says, "We could stay until the sun goes down." Her lips move.', 124 / 24);
-    assert.equal(
-      timed,
-      'Timing: 0–3.9s: she says "We could stay until the sun goes down." once. 3.9–5.2s: she stops talking, closes her mouth and listens — silence from her, only the sound of the place.'
-    );
-    assert.match(timedLine('He says "Hi."', 5, 'He'), /^Timing: 0–2s: he says "Hi\." once\. 2–5s: he stops talking, closes his mouth/);
-    assert.match(timedLine('She stays put and says clearly, "Want my towel?" Her lips move.', 5), /says "Want my towel\?" once/);
-    assert.equal(timedLine('She waves.', 5), '');
+describe('a talking part says its line once, in H3\'s dialogue syntax', () => {
+  it('tags the speaker and the words, and fills the rest with the place, not silence', () => {
+    const said = h3Dialogue(
+      'She stays put and says clearly, "Want to sit by the window while I pour?" Her lips move. The place stays as in the first frame (corner café counter).'
+    )!;
+    assert.match(said, /\(S1\), on-screen, says clearly <d>\[English\] Want to sit by the window while I pour\?<\/d> Her lips move/);
+    assert.doesNotMatch(said, /"Want to sit/);
+    assert.match(said, /Only \(S1\) speaks\. No other voices, no voiceover, no singing\./);
+    assert.match(said, /overall_soundscape: the quiet natural sound of the corner café counter — soft room tone/);
+    assert.match(said, /non_diegetic_music: N\/A$/);
+    assert.doesNotMatch(said, /silence from/);
+  });
+
+  it('ends the words with a stop, keeps a dubbed line\'s language, and says he for him', () => {
+    assert.match(h3Dialogue('She says, "We should go"')!, /<d>\[English\] We should go\.<\/d>/);
+    assert.match(h3Dialogue('She says clearly in Spanish, "Vamos."')!, /says clearly in Spanish <d>\[Spanish\] Vamos\.<\/d>/);
+    assert.match(h3Dialogue('He says "Hi."', 'He')!, /He says it once; after the line he silently keeps looking, lips closed/);
+    assert.match(h3Dialogue('He says "Hi."', 'He')!, /quiet natural sound of the place/);
+    assert.equal(h3Dialogue('She waves.'), null);
   });
 });
 
@@ -394,19 +426,19 @@ describe('a wordless part of a talking clip stays wordless', () => {
   });
 });
 
-describe('a talking H3 part with no voice to keep gets its line timed', () => {
-  it('adds the timing to the plain model once, and leaves a wordless part alone', () => {
+describe('a talking H3 part with no voice to keep says its line in the dialogue syntax', () => {
+  it('rewrites the plain model\'s prompt once, and leaves a wordless part alone', () => {
     const graph = {
       '1': {
         class_type: 'MiniMaxH3ImageToVideo',
         inputs: { prompt: 'She says, "I really need to get back to reading my book."', length: 124 },
       },
     };
-    const timed = withH3TimedLine(graph);
-    assert.match(String(timed['1']!.inputs.prompt), /Timing: 0–[\d.]+s: she says "I really need/);
-    assert.equal(graph['1'].inputs.prompt.includes('Timing'), false);
-    assert.equal(withH3TimedLine(timed), timed);
+    const said = withH3Dialogue(graph);
+    assert.match(String(said['1']!.inputs.prompt), /<d>\[English\] I really need to get back/);
+    assert.equal(graph['1'].inputs.prompt.includes('<d>'), false);
+    assert.equal(withH3Dialogue(said), said);
     const wordless = { '1': { class_type: 'MiniMaxH3ImageToVideo', inputs: { prompt: 'She reads.', length: 124 } } };
-    assert.equal(withH3TimedLine(wordless), wordless);
+    assert.equal(withH3Dialogue(wordless), wordless);
   });
 });

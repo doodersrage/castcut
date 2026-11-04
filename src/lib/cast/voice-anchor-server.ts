@@ -7,7 +7,8 @@
 import { promises as fs } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
-import { loudestWindow, VOICE_ANCHOR_MIN_DB } from '../clip/extend';
+import { transcribeInComfy } from '../comfyui/comfy-utility-graph-server';
+import { voiceAnchorWindow, VOICE_ANCHOR_MIN_DB } from '../clip/extend';
 import { H3_VOICE_CLIP_FRAMES } from '../engine/h3-renderer';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -16,6 +17,8 @@ import { VOICE_SHIFT } from './voice-server';
 
 /** AAC bitrate of the clip (one encode, transparent at 256 kb/s). */
 const AUDIO_BITRATE = '256k';
+/** A click-free start and end to the clip's sound (s). */
+const ANCHOR_FADE_SEC = 0.02;
 
 function run(bin: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -31,6 +34,20 @@ function run(bin: string, args: string[]): Promise<void> {
   });
 }
 
+/** A kept voice clip: its ComfyUI input name, and what it says (Whisper) when that could be heard. */
+export type VoiceAnchor = { clip: string; words?: string };
+
+/**
+ * What a voice clip in ComfyUI's input folder says. H3's reference model now and then says the
+ * clip's own words after the line (live 2026-11-03: 1 of 12 added the audition's "This is what I
+ * sound like"); told the words, it did not (the same seed, and 3 more). Undefined when it can't
+ * be heard.
+ */
+export async function voiceAnchorWords(baseUrl: string, clip: string): Promise<string | undefined> {
+  const words = await transcribeInComfy(baseUrl, clip);
+  return words === null ? undefined : words.trim();
+}
+
 /** The voice clip of `clip` (a local file) uploaded to ComfyUI; null when it barely speaks. */
 export async function voiceAnchorClip(input: {
   ffmpeg: string;
@@ -38,7 +55,7 @@ export async function voiceAnchorClip(input: {
   clip: string;
   /** Where to write the cut (a temp file the caller cleans up). */
   out: string;
-}): Promise<string | null> {
+}): Promise<VoiceAnchor | null> {
   const rate = 16000;
   const pcm = await new Promise<Buffer>(resolve => {
     const child = spawn(
@@ -53,7 +70,9 @@ export async function voiceAnchorClip(input: {
   });
   if (pcm.length < rate) return null;
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
-  const loudest = loudestWindow(samples, rate, H3_VOICE_CLIP_FRAMES / 24);
+  // Between words at both ends: H3 copies the clip's opening sound into the new clip's start.
+  const seconds = H3_VOICE_CLIP_FRAMES / 24;
+  const loudest = voiceAnchorWindow(samples, rate, seconds);
   if (loudest.db < VOICE_ANCHOR_MIN_DB) return null;
   await run(input.ffmpeg, [
     '-y',
@@ -67,6 +86,8 @@ export async function voiceAnchorClip(input: {
     String(H3_VOICE_CLIP_FRAMES),
     '-vf',
     'scale=-2:512',
+    '-af',
+    `afade=t=in:d=${ANCHOR_FADE_SEC},afade=t=out:st=${(seconds - ANCHOR_FADE_SEC).toFixed(3)}:d=${ANCHOR_FADE_SEC}`,
     '-c:v',
     'libx264',
     '-crf',
@@ -84,7 +105,8 @@ export async function voiceAnchorClip(input: {
     mimeType: 'video/mp4',
     keepCopy: true,
   });
-  return uploaded.name;
+  const words = await voiceAnchorWords(input.baseUrl, uploaded.name);
+  return { clip: uploaded.name, ...(words !== undefined ? { words } : {}) };
 }
 
 async function inTempDir<T>(fn: (at: (name: string) => string) => Promise<T>): Promise<T> {
@@ -108,7 +130,7 @@ export async function voiceAnchorFromClipUrl(input: {
   baseUrl: string;
   requestOrigin?: string;
   userId?: string | null;
-}): Promise<string | null> {
+}): Promise<VoiceAnchor | null> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) return null;
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');

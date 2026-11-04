@@ -277,6 +277,8 @@ export type WorkflowParamValues = {
   videoVoiceSample?: string;
   /** ComfyUI input MP4 (~1.6 s of the Cast speaking): MiniMax-H3 speaks in it (M11 T16). */
   videoVoiceClip?: string;
+  /** What that voice clip says (CastVoice.clipWords): H3 is told never to say it. */
+  videoVoiceClipWords?: string;
   /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -614,6 +616,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceClip?.trim()) {
     result.videoVoiceClip = merged.videoVoiceClip.trim();
+  }
+  if (merged.videoVoiceClipWords?.trim()) {
+    result.videoVoiceClipWords = merged.videoVoiceClipWords.trim();
   }
   if (merged.videoVoiceSteer === 'on') {
     result.videoVoiceSteer = 'on';
@@ -2114,7 +2119,9 @@ export function injectPromptsWithFallbacks(
           input.params?.videoSpeech === 'on' &&
           (!nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE)))
             ? withH3VoiceAnchor(converted.workflow, {
-                ...(voiceClip ? { voiceClip } : { voiceAudio }),
+                ...(voiceClip
+                  ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
+                  : { voiceAudio }),
               })
             : null;
         injected = { ...injected, workflow: anchored ?? converted.workflow };

@@ -1,0 +1,95 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { resetBrowserStorageCache } from '../storage/browser-storage';
+import { createBlankCharacter, getCharacter, upsertCharacter, type CastVoice } from '../character/os';
+import {
+  castVoiceExtendFields,
+  castVoiceSampleFor,
+  ensureCastVoiceClip,
+  shiftCastVoice,
+} from './voice';
+
+/** A browser with one Cast member (`voice` kept) and /api/cast-voice answered by `reply`. */
+async function withCast(
+  voice: CastVoice,
+  reply: (body: Record<string, unknown>) => Record<string, unknown>,
+  run: (calls: Array<Record<string, unknown>>) => Promise<void>
+): Promise<void> {
+  const storage = new Map<string, string>();
+  const originalWindow = globalThis.window;
+  const originalFetch = globalThis.fetch;
+  const calls: Array<Record<string, unknown>> = [];
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
+      dispatchEvent: () => true,
+    },
+  });
+  globalThis.fetch = (async (_url: string, init?: { body?: string }) => {
+    const body = JSON.parse(init?.body ?? '{}') as Record<string, unknown>;
+    calls.push(body);
+    return new Response(JSON.stringify(reply(body)), { status: 200 });
+  }) as typeof fetch;
+  try {
+    upsertCharacter({ ...createBlankCharacter('Lisa'), id: 'cast-lisa', voice });
+    await run(calls);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.defineProperty(globalThis, 'window', { configurable: true, value: originalWindow });
+    resetBrowserStorageCache();
+  }
+}
+
+const kept: CastVoice = { sample: 'voice.wav', clip: 'voice-clip.mp4', at: 1 };
+
+describe('a kept voice clip’s words', () => {
+  it('go with the clip to a talking clip and to a longer one', async () => {
+    await withCast({ ...kept, clipWords: 'This is what I sound like.' }, () => ({}), async () => {
+      assert.deepEqual(castVoiceSampleFor('cast-lisa'), {
+        videoVoiceSample: 'voice.wav',
+        videoVoiceClip: 'voice-clip.mp4',
+        videoVoiceClipWords: 'This is what I sound like.',
+      });
+      assert.deepEqual(castVoiceExtendFields('cast-lisa'), {
+        voiceClip: 'voice-clip.mp4',
+        voiceClipWords: 'This is what I sound like.',
+      });
+    });
+    // A recorded voice has no clip: its sample alone.
+    await withCast({ sample: 'mine.wav', at: 1 }, () => ({}), async () => {
+      assert.deepEqual(castVoiceExtendFields('cast-lisa'), { voiceSample: 'mine.wav' });
+    });
+  });
+
+  it('are heard once for a clip kept before them, and kept', async () => {
+    await withCast(kept, () => ({ clipWords: 'This is what I sound like.' }), async calls => {
+      assert.equal(await ensureCastVoiceClip('cast-lisa'), 'voice-clip.mp4');
+      assert.deepEqual(calls, [{ clip: 'voice-clip.mp4', wordsOnly: true }]);
+      assert.equal(getCharacter('cast-lisa')!.voice!.clipWords, 'This is what I sound like.');
+      await ensureCastVoiceClip('cast-lisa');
+      assert.equal(calls.length, 1);
+    });
+  });
+
+  it('stay with a clip pitched deeper, and go with one that could not be', async () => {
+    await withCast(
+      { ...kept, clipWords: 'Hi.' },
+      () => ({ sample: 'deeper.wav', clip: 'deeper-clip.mp4' }),
+      async () => {
+        assert.equal(await shiftCastVoice('cast-lisa', 'deeper'), null);
+        assert.equal(getCharacter('cast-lisa')!.voice!.clip, 'deeper-clip.mp4');
+        assert.equal(getCharacter('cast-lisa')!.voice!.clipWords, 'Hi.');
+      }
+    );
+    await withCast({ ...kept, clipWords: 'Hi.' }, () => ({ sample: 'deeper.wav' }), async () => {
+      await shiftCastVoice('cast-lisa', 'deeper');
+      assert.equal(getCharacter('cast-lisa')!.voice!.clip, undefined);
+      assert.equal(getCharacter('cast-lisa')!.voice!.clipWords, undefined);
+    });
+  });
+});

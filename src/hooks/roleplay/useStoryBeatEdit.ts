@@ -1,6 +1,6 @@
 'use client';
 
-import { castVoiceOf } from '@/lib/cast/voice';
+import { castVoiceExtendFields } from '@/lib/cast/voice';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
   castReferencesForExtend,
@@ -337,11 +337,7 @@ export function useStoryBeatEdit({
         ),
         // Talking H3 parts speak in the Cast's kept voice (M11 T16), the same from clip to clip.
         // A recorded voice (no clip): its sample alone.
-        ...(castVoiceOf(loadSettingsCache().shared.activeCharacterId)?.clip
-          ? { voiceClip: castVoiceOf(loadSettingsCache().shared.activeCharacterId)!.clip }
-          : castVoiceOf(loadSettingsCache().shared.activeCharacterId)
-            ? { voiceSample: castVoiceOf(loadSettingsCache().shared.activeCharacterId)!.sample }
-            : {}),
+        ...castVoiceExtendFields(loadSettingsCache().shared.activeCharacterId),
       };
     },
     [storyRef]

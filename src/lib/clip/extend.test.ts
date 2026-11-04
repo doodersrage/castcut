@@ -14,6 +14,7 @@ import {
   castReferencesForExtend,
   groupH3Blocks,
   loudestWindow,
+  voiceAnchorWindow,
   saysMoreThanLine,
   saysLine,
   lineHeardWrong,
@@ -349,6 +350,26 @@ describe('the voice a talking clip is anchored on (M11 T16)', () => {
     assert.ok(Math.abs(found.start - 2) < 0.15, `start ${found.start}`);
     assert.ok(found.db > -15 && found.db < -11, `db ${found.db}`);
     assert.equal(loudestWindow(new Int16Array(rate), rate, 1.6).db < -100, true);
+  });
+
+  it('starts and ends between words, never on one', () => {
+    // Words at 1.2–1.75, 1.9–2.6, 3.05–4.2 (a talking clip): the loudest 1.6 s starts mid-word.
+    const rate = 1000;
+    const samples = new Int16Array(5 * rate);
+    const word = (from: number, to: number, level: number) => {
+      for (let i = Math.round(from * rate); i < to * rate; i += 1) samples[i] = i % 2 ? level : -level;
+    };
+    word(1.2, 1.75, 6000);
+    word(1.9, 2.6, 9000);
+    word(3.05, 4.2, 9000);
+    const found = voiceAnchorWindow(samples, rate, 1.6);
+    const quiet = (at: number) => samples[Math.round(at * rate)] === 0;
+    assert.ok(quiet(found.start) && quiet(found.start + 0.05), `start ${found.start}`);
+    assert.ok(quiet(found.start + 1.55) && quiet(found.start + 1.6 - 0.001), `end ${found.start + 1.6}`);
+    assert.ok(found.db > -20, `db ${found.db}`);
+    // Speech with no gap anywhere: the loudest window, as before.
+    const steady = new Int16Array(5 * rate).map((_, i) => (i % 2 ? 8000 : -8000));
+    assert.equal(voiceAnchorWindow(steady, rate, 1.6).start, loudestWindow(steady, rate, 1.6).start);
   });
 });
 

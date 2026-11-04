@@ -146,6 +146,12 @@ export type CastVoice = {
    * none for a voice from the player's own recording (H3 then takes the sample alone).
    */
   clip?: string;
+  /**
+   * What `clip` says (Whisper): H3 is told never to say those words (it now and then said the
+   * audition's "This is what I sound like" after a line). Filled in on first use for a clip kept
+   * before 2026-11-03 (ensureCastVoiceClip); '' when it says nothing that could be heard.
+   */
+  clipWords?: string;
   /** The player's own recording it was cut from (file name, for display). */
   fromFile?: string;
   /**

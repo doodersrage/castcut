@@ -2743,6 +2743,52 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   unless the player's direction asks, becomes a safe beat), the beat writer is told nobody
   handles what isn't in hand, and a keyframe whose every draft fails gets one more with a safe
   beat — the part then runs that beat.
+- v3.4.7 live (2026-11-03): both faces held in the two-person clip, but it looked
+  oversharpened. Measured: start frames sent at half-size detail 413 → 424 → 507 → 466 → 437
+  against the first clip's 384; parts 3–4 ran at 490–545 (H3 keeps the texture a part starts
+  from; two starts were restored, none was ever brought back down). The user saw it as gritty,
+  patterned skin turning painted by 30 s.
+- Two-person degradation, the same 30 s chain (seed and beats as the user's run) per try, judged
+  on face sheets every 5 s: start frames softened back to the clip's detail — waxy; untouched —
+  waxy, a little later; long (≤ 15 s) parts — best of those but still degrading; + the original
+  photo as a reference — slightly better; + two reference videos per part (the last ~1.6 s before
+  the join, the first clip's opening ~1.6 s), start frames untouched — the faces held the first
+  clip's skin and makeup through 20 s and softened only a little after. Shipped: that last one
+  (`duoReferenceVideos`; restore/sharpen off for two people; long parts on). A SeedVR2 finish of
+  the last 5 s gave crisp but harsh, older-looking skin — not a cure. Two people on the one-person
+  keyframe path (with a both-faces check redrawing drafts): worse — each keyframe is the edit
+  model's repaint of the last, so the clip went brighter, warmer and airbrushed join by join and
+  the faces drifted (match 0.6 → 0.3). Why one person holds and two don't: one person's parts run
+  between clean keyframes; two people's carry on from H3's own last frame, and every join copies
+  a copy. Not solved, only slowed: fewer joins help most, so the Make longer sheet tells the user
+  two-person clips hold best from a longer first clip. Untried: keyframes all drawn from the first
+  frame and colour-matched to it (see the RGB tone anchor).
+- Seen while testing: "Sharpen & smooth" (`finishClip`) on a 30 s clip loaded the whole clip
+  into RAM (~40 GB) and took ComfyUI down; it needs to run in time chunks. Not fixed yet.
+- 5 s single-person talking clips (the user's six, kept voice on H3's reference model): the voice
+  held, but 5 of 6 said the line, fell silent ~1 s and then made up more, and some opened with a
+  blip. The blip: the voice clip was the loudest 1.6 s and opened on the tail of a word; H3 copies
+  its opening (the new clip's first 0.2 s correlated 0.70 with it). Voice clips now start and end
+  between words (`voiceAnchorWindow`) with 20 ms fades — voices kept before need "Use this voice"
+  again. The made-up speech (same seeds; replays are exact): a clean voice clip, the voice as sound
+  only, a pinned last frame, the line spread over the shot and a soundscape alone all still
+  babbled (1 clean of 15). H3's own dialogue syntax — `(S1), on-screen, says <d>[English] … .</d>`,
+  "Only (S1) speaks", an `overall_soundscape:` of the place instead of "silence", and
+  `non_diegetic_music: N/A` — said the line once and stopped on 3 of 3, and 1 of 2 more on new
+  seeds built by the code (`h3Dialogue`, replacing `timedLine`). The miss repeated the voice clip's
+  own words ("This is what I sound like", the audition's script) after the line.
+- Checked through the app's own code before release (the queue builder's graph, node for node the
+  user's; voice clips cut by `voiceAnchorWindow`): 12 renders, the six prompts × two seeds — no
+  blip on any (all open under −58 dB), 11 of 12 said the line once and stopped; the 12th said
+  the audition's "This is what I sound like" after it. Every audition clip says those words. Told
+  them ("its words (\"…\") are not hers to say — she never says them"), that seed said its line
+  only, and 3 clean ones stayed clean. A voice clip is now heard once by Whisper when it is cut
+  (`CastVoice.clipWords`); a clip kept before is heard on first use (`ensureCastVoiceClip`, not
+  re-cut — a deeper/higher shift is not recorded and would be lost; its blip goes when the voice
+  is kept again).
+- Seen while testing: a two-person longer clip falls back to the one-person keyframed path when
+  the face locate (60 s, `check` priority) times out behind a busy ComfyUI queue — the partner
+  then has no face reference. Not fixed yet.
 
 **T20 — Queue all: a run that carries on with the tab closed** (Part 14, option A; the user's
 pick). · M

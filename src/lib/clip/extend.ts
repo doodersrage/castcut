@@ -262,6 +262,41 @@ export function loudestWindow(
   return best;
 }
 
+/** How long each end of a voice clip must be quiet, and how far under the clip's level. */
+const ANCHOR_EDGE_SEC = 0.06;
+const ANCHOR_EDGE_UNDER_DB = 25;
+
+/**
+ * The voice clip's window (M11 T16): the loudest `windowSec` whose first and last
+ * ANCHOR_EDGE_SEC are quiet — it starts and ends between words. Live (2026-11-03, six 5 s
+ * talking clips): the loudest window had opened on the tail of a word, and H3's reference model
+ * copied that opening into the new clip's first 0.2 s (a blip before the line; the clip's first
+ * 0.2 s correlated 0.70 with the reference's). The loudest window when no window has quiet ends.
+ */
+export function voiceAnchorWindow(
+  samples: Int16Array,
+  sampleRate: number,
+  windowSec: number
+): { start: number; db: number } {
+  const size = Math.max(1, Math.round(windowSec * sampleRate));
+  const edge = Math.max(1, Math.round(ANCHOR_EDGE_SEC * sampleRate));
+  const step = Math.max(1, Math.round(0.02 * sampleRate));
+  const rms = (from: number, to: number) => {
+    let sum = 0;
+    for (let i = from; i < to; i += 1) sum += (samples[i]! / 32768) ** 2;
+    return 10 * Math.log10(sum / Math.max(1, to - from) + 1e-12);
+  };
+  let best = { start: -1, db: -Infinity };
+  for (let from = 0; from + size <= samples.length; from += step) {
+    const db = rms(from, from + size);
+    if (db <= best.db) continue;
+    const quiet = db - ANCHOR_EDGE_UNDER_DB;
+    if (rms(from, from + edge) > quiet || rms(from + size - edge, from + size) > quiet) continue;
+    best = { start: from / sampleRate, db };
+  }
+  return best.start < 0 ? loudestWindow(samples, sampleRate, windowSec) : best;
+}
+
 /** What the first frame shows: what the person holds, read once by the vision model. */
 export type ShotInventory = {
   held: string[];
@@ -694,11 +729,21 @@ export type ClipExtendRequest = {
   lead?: 'woman' | 'man';
 };
 
+/** The parts a clip needs and the beats written for them (Make longer's plan). */
+export type ClipExtendPlan = {
+  total: number;
+  beats: string[];
+  partSec: number;
+  engine: 'ltx' | 'wan' | 'h3';
+  /** How many people the clip's last frame shows (the vision model; absent when it can't say). */
+  people?: number;
+};
+
 /** The parts this clip needs and the beats written for them, nothing rendered (client). */
 export async function requestClipExtendPlan(
   input: ClipExtendRequest,
   llmBody?: Record<string, unknown>
-): Promise<{ total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' | 'h3' }> {
+): Promise<ClipExtendPlan> {
   const response = await fetch('/api/clip/extend', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -706,7 +751,7 @@ export async function requestClipExtendPlan(
     body: JSON.stringify({ ...input, ...llmBody, plan: true }),
   });
   const body = (await response.json().catch(() => ({}))) as {
-    plan?: { total: number; beats: string[]; partSec: number; engine: 'ltx' | 'wan' | 'h3' };
+    plan?: ClipExtendPlan;
     error?: string;
   };
   if (!response.ok || !body.plan) throw new Error(body.error ?? 'Could not plan the extension.');

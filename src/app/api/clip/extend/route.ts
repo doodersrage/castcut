@@ -111,6 +111,8 @@ export async function POST(request: Request) {
     voiceClip: /^[\w.-]{1,200}$/.test(text(body.voiceClip, 200))
       ? text(body.voiceClip, 200)
       : undefined,
+    // What that voice clip says (kept with the voice): H3 is told never to say it.
+    voiceClipWords: text(body.voiceClipWords, 300) || undefined,
     voiceSample: /^[\w.-]{1,200}$/.test(text(body.voiceSample, 200))
       ? text(body.voiceSample, 200)
       : undefined,

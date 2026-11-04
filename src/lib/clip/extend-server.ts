@@ -19,8 +19,10 @@ import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import {
   comfyBaseUrl,
+  COMFY_TRANSCRIBE_NODE,
   resolveComfyNode,
   runComfyUtilityGraph,
+  transcribeInComfy,
   type ComfyHistoryEntry,
   type ComfyImageRef,
 } from '../comfyui/comfy-utility-graph-server';
@@ -72,13 +74,14 @@ import {
   H3_REF_FILES,
   H3_REF_NODE,
   withH3References,
-  withH3TimedLine,
+  withH3Dialogue,
+  H3_VOICE_CLIP_FRAMES,
   withH3VoiceAnchor,
   isH3ClipGraph,
   patchH3ReplayGraph,
 } from '../engine/h3-renderer';
 import { chatCompletion, visionCompletion } from '../llm/client';
-import { voiceAnchorClip } from '../cast/voice-anchor-server';
+import { voiceAnchorClip, type VoiceAnchor } from '../cast/voice-anchor-server';
 import {
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
@@ -745,6 +748,69 @@ async function duoFacePictures(
   };
 }
 
+/** How long each two-person reference video runs: H3's reference clips' own length. */
+const DUO_VIDEO_FRAMES = H3_VOICE_CLIP_FRAMES;
+
+/**
+ * A two-person part's reference videos (M11 T21): the last ~1.6 s of the part before, which it
+ * carries straight on from, and the first clip's opening ~1.6 s, how the two people and the place
+ * really look — silent, 512 px high. Live on the bar clip (30 s, the same seed): their faces held
+ * the first clip's skin and makeup through 20 s and only softened a little after, against grit
+ * and a painted look by 30 s with the start frame alone, restored or not.
+ */
+async function duoReferenceVideos(
+  ffmpeg: string,
+  baseUrl: string,
+  previous: string,
+  firstClip: string,
+  at: (name: string) => string,
+  k: number
+): Promise<Array<{ video: string; tells: string }>> {
+  const cut = async (from: string, tail: boolean, name: string) => {
+    await run(ffmpeg, [
+      '-y',
+      '-v',
+      'error',
+      ...(tail ? ['-sseof', String(-(DUO_VIDEO_FRAMES + 2) / 24)] : []),
+      '-i',
+      from,
+      '-frames:v',
+      String(DUO_VIDEO_FRAMES),
+      '-an',
+      '-vf',
+      'scale=-2:512',
+      '-c:v',
+      'libx264',
+      '-crf',
+      '12',
+      at(name),
+    ]);
+    return (
+      await uploadComfyInputContent({
+        baseUrl,
+        bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ at(name))),
+        filename: 'castcut-extend-ref.mp4',
+        mimeType: 'video/mp4',
+      })
+    ).name;
+  };
+  return [
+    {
+      video: await cut(previous, true, `ref-before${k}.mp4`),
+      tells:
+        'is the last moment before this shot: the video carries straight on from its end, with the same motion, look and detail.',
+    },
+    {
+      video: await cut(firstClip, false, `ref-look${k}.mp4`),
+      tells: DUO_LOOK_VIDEO,
+    },
+  ];
+}
+
+/** What the first clip's opening tells a two-person part. */
+const DUO_LOOK_VIDEO =
+  'shows how the two people and the place really look: their skin, hair and light — every frame keeps exactly that look and fine detail, natural skin, never waxy, painted or grainy.';
+
 /** Whether this ComfyUI has H3's reference model (its node, transformer and turbo LoRA). */
 async function h3ReferenceModelReady(baseUrl: string): Promise<boolean> {
   const [node, unets, loras] = await Promise.all([
@@ -894,41 +960,19 @@ async function soundLongParts(
   return input.out;
 }
 
-/** Castcut's Whisper node (comfyui-nodes/castcut 1.8.0). */
-const TRANSCRIBE_NODE = 'CastcutTranscribe';
-
 /**
  * What a rendered part (a local MP4) says, transcribed on ComfyUI by CastcutTranscribe; null when
  * the node is missing or the check fails (the part is then kept as it is).
  */
 async function hearPart(baseUrl: string, file: string): Promise<string | null> {
-  if (!(await resolveComfyNode(baseUrl, [TRANSCRIBE_NODE]))) return null;
+  if (!(await resolveComfyNode(baseUrl, [COMFY_TRANSCRIBE_NODE]))) return null;
   const uploaded = await uploadComfyInputContent({
     baseUrl,
     bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ file)),
     filename: 'castcut-extend-hear.mp4',
     mimeType: 'video/mp4',
   });
-  const run = await runComfyUtilityGraph<string>({
-    baseUrl,
-    label: 'clip-extend-hear',
-    priority: 'front',
-    timeoutMs: 5 * 60_000,
-    prompt: {
-      hear1: { class_type: 'LoadVideo', inputs: { file: uploaded.name } },
-      hear2: { class_type: 'GetVideoComponents', inputs: { video: ['hear1', 0] } },
-      hear3: {
-        class_type: TRANSCRIBE_NODE,
-        inputs: { audio: ['hear2', 1], model: 'openai/whisper-base', language: 'en' },
-      },
-    },
-    read: entry => {
-      const text = (entry.outputs?.hear3 as { castcut_text?: unknown[] } | undefined)
-        ?.castcut_text?.[0];
-      return typeof text === 'string' ? text : undefined;
-    },
-  });
-  return typeof run.result === 'string' ? run.result : null;
+  return transcribeInComfy(baseUrl, uploaded.name);
 }
 
 /** The loudest 50 ms of a file's sound (dBFS); null without sound. */
@@ -1198,6 +1242,8 @@ export type ClipExtendInput = {
   look?: string;
   /** The Cast's kept voice clip (ComfyUI input): talking H3 parts speak in it (M11 T16). */
   voiceClip?: string;
+  /** What the voice clip says (Whisper, kept with the Cast's voice): H3 is told never to say it. */
+  voiceClipWords?: string;
   /** Or, with no clip (a voice from the player's recording), its sample alone (ComfyUI input). */
   voiceSample?: string;
   /** A spoken line per beat (same order; empty = no line). LTX parts only — WAN cannot lip-sync. */
@@ -1284,9 +1330,13 @@ function partCount(
 }
 
 /** The parts and the beats for them, nothing rendered ("Write the beats"). */
-export async function planClipExtend(
-  input: ClipExtendInput
-): Promise<{ total: number; beats: string[]; partSec: number; engine: ClipExtendEngine }> {
+export async function planClipExtend(input: ClipExtendInput): Promise<{
+  total: number;
+  beats: string[];
+  partSec: number;
+  engine: ClipExtendEngine;
+  people?: number;
+}> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('../video/shot-fetch');
@@ -1318,6 +1368,7 @@ export async function planClipExtend(
       partSec,
       engine,
       beats: await resolveBeats({ ...input, beats: [] }, total, shot),
+      ...(shot.people ? { people: shot.people } : {}),
     };
   } finally {
     await fs
@@ -1400,9 +1451,14 @@ export async function extendClip(
           )
         )
       : false;
-    let voiceAnchor =
+    let voiceAnchor: VoiceAnchor | null =
       h3 && input.lines?.some(line => line?.trim())
-        ? input.voiceClip?.trim() ||
+        ? (input.voiceClip?.trim()
+            ? {
+                clip: input.voiceClip.trim(),
+                ...(input.voiceClipWords !== undefined ? { words: input.voiceClipWords } : {}),
+              }
+            : null) ||
           (firstSpeaks && !input.voiceSample?.trim()
             ? await voiceAnchorClip({
                 ffmpeg,
@@ -1428,7 +1484,7 @@ export async function extendClip(
         ? await keyframeEditor(baseUrl, input.llm)
         : null;
     const groups =
-      h3 && !keyframes && !duoFaces && !input.lines?.some(line => line?.trim())
+      h3 && !keyframes && !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
         : null;
     const renders = groups?.length ?? total;
@@ -1536,8 +1592,11 @@ export async function extendClip(
       // Sharpened back toward the first clip's detail on WAN and H3 (M11 T3): each part starts from
       // the last one's softest frame, and the softening compounds.
       // Restored (SeedVR2) where it can be, else sharpened back toward the first clip's detail.
+      // Two people: untouched — H3 carries on whatever texture it is given, and restored or
+      // sharpened start frames turned their skin gritty then painted by 30 s (live, v3.4.7);
+      // softened ones, waxy. Their parts see the first clip's own look instead (DUO_LOOK_VIDEO).
       const startBytes =
-        (wan || h3) && !(keyframes && k > 0)
+        (wan || h3) && !(keyframes && k > 0) && !duoFaces
           ? ((await restoreStartFrame(baseUrl, matched, referenceDetail)) ??
             (await sharpenStartFrame(matched, referenceDetail)))
           : matched;
@@ -1611,7 +1670,9 @@ export async function extendClip(
         const speaks = Boolean((voiceAnchor || voiceAudio) && !group && input.lines?.[k]?.trim());
         const anchored = speaks
           ? withH3VoiceAnchor(patched.graph, {
-              ...(voiceAnchor ? { voiceClip: voiceAnchor } : { voiceAudio }),
+              ...(voiceAnchor
+                ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words }
+                : { voiceAudio }),
               pictures: duoFaces?.pictures ?? h3Pictures,
               look: duoFaces?.look ?? h3Look,
               who: input.lead === 'man' ? 'He' : 'She',
@@ -1622,8 +1683,14 @@ export async function extendClip(
         // A talking part with no voice to keep (the plain model): its line timed all the same.
         const timed = (graph: typeof patched.graph) =>
           !group && input.lines?.[k]?.trim()
-            ? withH3TimedLine(graph, input.lead === 'man' ? 'He' : 'She')
+            ? withH3Dialogue(graph, input.lead === 'man' ? 'He' : 'She')
             : graph;
+        // Two people: the moment before the part and the first clip's opening as videos, beside
+        // their faces (a talking part's <Video 1> is its voice: none there).
+        const videos =
+          duoFaces && !anchored && !endFrame
+            ? await duoReferenceVideos(ffmpeg, baseUrl, previous, at('piece0.mp4'), at, k)
+            : undefined;
         prompt = anchored
           ? anchored
           : (duoFaces?.pictures ?? h3Pictures).length && !endFrame
@@ -1638,6 +1705,7 @@ export async function extendClip(
                     ...(duoFaces?.pictures ?? h3Pictures),
                   ],
                   look: duoFaces?.look ?? h3Look,
+                  ...(videos ? { videos } : {}),
                 }) ?? patched.graph
               )
             : timed(patched.graph);

@@ -396,6 +396,11 @@ export function withH3References(
     /** Input-folder images: [the start frame, …the Cast's pictures]. */
     pictures: ReadonlyArray<{ image: string; shows: string }>;
     look?: string;
+    /**
+     * Input-folder videos (no sound), each with what it tells — "<Video k> …", the rest of the
+     * sentence (M11 T21: the moment before the part, and how the first clip really looks).
+     */
+    videos?: ReadonlyArray<{ video: string; tells: string }>;
   }
 ): Workflow | null {
   const graph = JSON.parse(JSON.stringify(source)) as Workflow;
@@ -415,7 +420,18 @@ export function withH3References(
   const tags = input.pictures
     .map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`)
     .join(' ');
+  const videoTags = (input.videos ?? [])
+    .map((video, k) => `<Video ${k + 1}> ${video.tells}`)
+    .join(' ');
   const refs: Record<string, unknown> = {};
+  input.videos?.forEach((video, k) => {
+    graph[`h3vref${k + 1}`] = { class_type: 'LoadVideo', inputs: { file: video.video } };
+    graph[`h3vref${k + 1}p`] = {
+      class_type: 'GetVideoComponents',
+      inputs: { video: [`h3vref${k + 1}`, 0] },
+    };
+    refs[`ref_videos.ref_video_${k + 1}`] = [`h3vref${k + 1}p`, 0];
+  });
   input.pictures.forEach((picture, k) => {
     // The start frame's loader (its size sets the video's) is <Picture 1>.
     const loader = k === 0 && isRef(old.first_frame) ? graph[old.first_frame[0]] : undefined;
@@ -432,7 +448,9 @@ export function withH3References(
     class_type: H3_REF_NODE,
     inputs: {
       clip: old.clip,
-      prompt: [tags, input.look?.trim(), String(old.prompt ?? '')].filter(Boolean).join(' '),
+      prompt: [videoTags, tags, input.look?.trim(), String(old.prompt ?? '')]
+        .filter(Boolean)
+        .join(' '),
       width: old.width,
       height: old.height,
       length: old.length,
@@ -445,30 +463,46 @@ export function withH3References(
   return graph;
 }
 
+/** A dubbed line's language ("says clearly in Spanish, …", day/dub.ts); English otherwise. */
+const DIALOGUE_LANGUAGE =
+  /\bin (Spanish|French|German|Italian|Portuguese|Japanese|Korean|Chinese)\b/;
+
 /**
- * The line given its own time, and silence after it (M11 T16). Live: on the reference model a short
- * line left the rest of the part to fill, and 2 of 5 parts babbled on after it ("…let's go to grab
- * a wretch"); told the line's window and that she stops after it, both re-rendered parts said
- * their line once (Whisper) — "say nothing more" alone still left a tail on one.
+ * The prompt's spoken line in H3's own dialogue syntax: the speaker tagged `(S1)`, the words in
+ * `<d>[Language] … .</d>`, and after the line the place's sound — never silence. Live
+ * (2026-11-03, three of the user's 5 s talking clips on the reference model, same seeds): the line
+ * in plain quotes with "silence from her" after it said the line, fell silent ~1 s, then made up
+ * more ("…and didn't just launch night from York"), whatever else changed — a clean voice clip,
+ * the voice as sound alone, a pinned last frame, the line spread over the shot (1 clean of 12);
+ * the soundscape alone 0 of 3. In this syntax all 3 said the line once and stopped (Whisper).
+ * Null when the prompt has no line.
  */
-export function timedLine(prompt: string, seconds: number, who: 'She' | 'He' = 'She'): string {
-  // "says, …", "says clearly, …" (Day's talking clips), "says softly …".
-  const line = prompt.match(/\bsays\b[^"]{0,24}"([^"]+)"/)?.[1]?.trim();
-  if (!line) return '';
-  const words = line.split(/\s+/).filter(Boolean).length;
-  const span = Math.max(1, seconds);
-  const end = Math.min(span - 1, Math.max(2, Math.round((words / 2.6 + 0.8) * 10) / 10));
-  const fmt = (value: number) => String(Math.round(value * 10) / 10);
+export function h3Dialogue(prompt: string, who: 'She' | 'He' = 'She'): string | null {
+  // "says, …", "says clearly, …" (Day's talking clips), "says softly …", "says clearly in Spanish, …".
+  const quoted = prompt.match(/\bsays\b([^"]{0,32})"([^"]+)"/);
+  const words = quoted?.[2]?.trim();
+  if (!quoted || !words) return null;
+  const how = quoted[1]!.replace(/[,\s]+$/, '').trimEnd();
+  const language = how.match(DIALOGUE_LANGUAGE)?.[1] ?? 'English';
+  const line = /[.?!…]$/.test(words) ? words : `${words}.`;
+  const place = prompt.match(/\bfirst frame \(([^)]+)\)/)?.[1]?.trim();
   const pronoun = who === 'He' ? 'he' : 'she';
-  return `Timing: 0–${fmt(end)}s: ${pronoun} says "${line}" once. ${fmt(end)}–${fmt(span)}s: ${pronoun} stops talking, closes ${who === 'He' ? 'his' : 'her'} mouth and listens — silence from ${who === 'He' ? 'him' : 'her'}, only the sound of the place.`;
+  const said = `${prompt.slice(0, quoted.index)}(S1), on-screen, says${how} <d>[${language}] ${line}</d>${prompt.slice(quoted.index! + quoted[0].length)}`;
+  return [
+    said.trim(),
+    `${who} says it once; after the line ${pronoun} silently keeps looking, lips closed, until the shot ends.`,
+    'Only (S1) speaks. No other voices, no voiceover, no singing.',
+    `overall_soundscape: the quiet natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and gentle ambience, no voices.`,
+    'non_diegetic_music: N/A',
+  ].join(' ');
 }
 
 /**
- * `graph` with its H3 node's spoken line timed ({@link timedLine}): for a talking part with no
- * voice to keep, which renders on the plain model — without it a line came out garbled or
- * repeated to the end of the part. Unchanged when the prompt has no line.
+ * `graph` with its H3 node's spoken line in the dialogue syntax ({@link h3Dialogue}): for a talking
+ * part with no voice to keep, which renders on the plain model — without it a line came out
+ * garbled or repeated to the end of the part. Unchanged when the prompt has no line.
  */
-export function withH3TimedLine<T extends Record<string, WorkflowNode | undefined>>(
+export function withH3Dialogue<T extends Record<string, WorkflowNode | undefined>>(
   graph: T,
   who: 'She' | 'He' = 'She'
 ): T {
@@ -478,10 +512,19 @@ export function withH3TimedLine<T extends Record<string, WorkflowNode | undefine
   const node = id ? graph[id] : undefined;
   if (!id || !node) return graph;
   const prompt = String(node.inputs?.prompt ?? '');
-  if (/\bTiming: 0–/.test(prompt)) return graph;
-  const timing = timedLine(prompt, Number(node.inputs?.length) / 24 || 5, who);
-  if (!timing) return graph;
-  return { ...graph, [id]: { ...node, inputs: { ...node.inputs, prompt: `${prompt} ${timing}` } } };
+  if (/<d>\[/.test(prompt)) return graph;
+  const said = h3Dialogue(prompt, who);
+  if (!said) return graph;
+  return { ...graph, [id]: { ...node, inputs: { ...node.inputs, prompt: said } } };
+}
+
+/** What the voice reference is for: its sound only, and — when known — the words it says, never said. */
+function voiceWordsLine(words: string | undefined, who: 'She' | 'He'): string {
+  const her = who === 'He' ? 'his' : 'her';
+  const said = words?.replace(/["“”]/g, '').trim();
+  return said
+    ? `<Audio 1> is only how ${her} voice sounds: its words ("${said}") are not ${her}s to say — ${who === 'He' ? 'he' : 'she'} never says them.`
+    : `<Audio 1> is only how ${her} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`;
 }
 
 /** The guide node that pins a picture (or a clip with its sound) at a frame of an H3 video. */
@@ -510,6 +553,12 @@ export function withH3VoiceAnchor(
      * 235 / 188 with the clip; the user: "Sounds just like her".
      */
     voiceAudio?: string;
+    /**
+     * What the voice clip says (Whisper, cast/voice-anchor-server.ts): named as words she never
+     * says. Live (2026-11-03): 1 of 12 talking clips said the clip's own "This is what I sound
+     * like" after its line; told them, the same seed did not, nor 3 that were clean before.
+     */
+    clipWords?: string;
     pictures?: ReadonlyArray<{ image: string; shows: string }>;
     look?: string;
     who?: 'She' | 'He';
@@ -549,21 +598,19 @@ export function withH3VoiceAnchor(
     refs['ref_audios.ref_audio_1'] = ['h3voice', 0];
   }
   const who = input.who ?? 'She';
-  const them = who === 'He' ? 'him' : 'her';
+  // The line in H3's dialogue syntax: the voice belongs to its speaker, (S1).
+  const said = h3Dialogue(String(old.prompt ?? ''), who);
+  const them = said ? '(S1)' : who === 'He' ? 'him' : 'her';
+  const speaker = said ? '(S1)' : who.toLowerCase();
   const tags = [
     ...pictures.map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`),
-    `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${who.toLowerCase()} speaks in exactly that voice — the same person, pitch, tone, accent and pace. <Audio 1> is only how ${who === 'He' ? 'his' : 'her'} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`,
+    `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${speaker} speaks in exactly that voice — the same person, pitch, tone, accent and pace. ${voiceWordsLine(input.clipWords, who)}`,
   ].join(' ');
   graph[id] = {
     class_type: H3_REF_NODE,
     inputs: {
       clip: old.clip,
-      prompt: [
-        tags,
-        input.look?.trim(),
-        String(old.prompt ?? ''),
-        timedLine(String(old.prompt ?? ''), Number(old.length) / 24 || 5, who),
-      ]
+      prompt: [tags, input.look?.trim(), said ?? String(old.prompt ?? '')]
         .filter(Boolean)
         .join(' '),
       width: old.width,

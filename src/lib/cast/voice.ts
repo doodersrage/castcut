@@ -23,20 +23,43 @@ export function castVoiceOf(castId: string | null | undefined): CastVoice | null
 export function castVoiceSampleFor(castId: string | null | undefined): {
   videoVoiceSample?: string;
   videoVoiceClip?: string;
+  videoVoiceClipWords?: string;
   videoVoiceSteer?: 'on';
 } {
   const voice = castVoiceOf(castId);
   if (!voice) return {};
+  const clip = voice.clip?.trim();
   return {
     videoVoiceSample: voice.sample,
     ...(voice.steer ? { videoVoiceSteer: 'on' as const } : {}),
-    ...(voice.clip?.trim() ? { videoVoiceClip: voice.clip.trim() } : {}),
+    ...(clip ? { videoVoiceClip: clip } : {}),
+    ...(clip && voice.clipWords?.trim() ? { videoVoiceClipWords: voice.clipWords.trim() } : {}),
+  };
+}
+
+/**
+ * A longer clip's voice fields (/api/clip/extend): talking H3 parts speak in the Cast's kept
+ * voice clip, told never to say its own words; a recorded voice (no clip), its sample alone.
+ */
+export function castVoiceExtendFields(castId: string | null | undefined): {
+  voiceClip?: string;
+  voiceClipWords?: string;
+  voiceSample?: string;
+} {
+  const voice = castVoiceOf(castId);
+  if (!voice) return {};
+  const clip = voice.clip?.trim();
+  if (!clip) return { voiceSample: voice.sample };
+  return {
+    voiceClip: clip,
+    ...(voice.clipWords?.trim() ? { voiceClipWords: voice.clipWords.trim() } : {}),
   };
 }
 
 /**
  * A voice kept before voice clips were cut (or whose clip is gone): cut it now from the clip the
- * voice came from and keep it. The clip, or null (a recorded voice has no clip to cut).
+ * voice came from and keep it. A clip kept before its words were: what it says, kept with it (H3
+ * is told never to say them). The clip, or null (a recorded voice has no clip to cut).
  */
 export async function ensureCastVoiceClip(
   castId: string | null | undefined,
@@ -44,22 +67,45 @@ export async function ensureCastVoiceClip(
 ): Promise<string | null> {
   const voice = castVoiceOf(castId);
   if (!voice) return null;
-  if (voice.clip?.trim()) return voice.clip.trim();
+  const kept = voice.clip?.trim();
+  if (kept) {
+    if (voice.clipWords === undefined) {
+      const words = await castVoiceRequest<{ clipWords?: string }>({
+        clip: kept,
+        wordsOnly: true,
+        ...(comfyUrl ? { comfyUrl } : {}),
+      });
+      if (typeof words?.clipWords === 'string') {
+        saveCastVoice(castId!.trim(), { ...voice, clipWords: words.clipWords });
+      }
+    }
+    return kept;
+  }
   if (!voice.fromClipUrl?.trim()) return null;
+  const data = await castVoiceRequest<{ clip?: string; clipWords?: string }>({
+    clipUrl: voice.fromClipUrl,
+    clipOnly: true,
+    ...(comfyUrl ? { comfyUrl } : {}),
+  });
+  if (!data?.clip) return null;
+  saveCastVoice(castId!.trim(), {
+    ...voice,
+    clip: data.clip,
+    ...(typeof data.clipWords === 'string' ? { clipWords: data.clipWords } : {}),
+  });
+  return data.clip;
+}
+
+/** A JSON POST to /api/cast-voice; null when it fails. */
+async function castVoiceRequest<T>(body: Record<string, unknown>): Promise<T | null> {
   const response = await fetch('/api/cast-voice', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({
-      clipUrl: voice.fromClipUrl,
-      clipOnly: true,
-      ...(comfyUrl ? { comfyUrl } : {}),
-    }),
+    body: JSON.stringify(body),
   }).catch(() => null);
-  const data = (await response?.json().catch(() => ({}))) as { clip?: string } | undefined;
-  if (!response?.ok || !data?.clip) return null;
-  saveCastVoice(castId!.trim(), { ...voice, clip: data.clip });
-  return data.clip;
+  if (!response?.ok) return null;
+  return ((await response.json().catch(() => null)) as T | null) ?? null;
 }
 
 export function saveCastVoice(castId: string, voice: CastVoice | null): boolean {
@@ -100,12 +146,14 @@ export async function takeCastVoiceFromClip(input: {
   const data = (await response.json().catch(() => ({}))) as {
     sample?: string;
     clip?: string;
+    clipWords?: string;
     error?: string;
   };
   if (!response.ok || !data.sample) return data.error || 'Could not take a voice from that clip.';
   const saved = saveCastVoice(input.castId, {
     sample: data.sample,
     ...(data.clip ? { clip: data.clip } : {}),
+    ...(data.clip && typeof data.clipWords === 'string' ? { clipWords: data.clipWords } : {}),
     fromClipUrl: input.clipUrl,
     at: Date.now(),
   });
@@ -217,11 +265,12 @@ export async function shiftCastVoice(
   };
   if (!response.ok || !data.sample) return data.error || 'Could not change the voice.';
   // The clip follows the sample's pitch; one that could not be shifted is dropped, not kept off-key.
-  const { clip: _old, ...rest } = voice;
+  // Its words stay with a shifted clip (the same words, pitched) and go with a dropped one.
+  const { clip: _old, clipWords, ...rest } = voice;
   saveCastVoice(castId, {
     ...rest,
     sample: data.sample,
-    ...(data.clip ? { clip: data.clip } : {}),
+    ...(data.clip ? { clip: data.clip, ...(clipWords !== undefined ? { clipWords } : {}) } : {}),
     at: Date.now(),
   });
   return null;

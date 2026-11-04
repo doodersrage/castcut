@@ -43,7 +43,7 @@ describe('a new talking clip speaks in the Cast’s kept voice (M11 T16)', () =>
     const nodes = talkingClip({ videoVoiceClip: 'castcut-voice-anchor.mp4' });
     const ref = nodes.find(node => node.class_type === H3_REF_NODE);
     assert.ok(ref, 'on the reference model');
-    assert.match(String(ref.inputs.prompt), /<Video 1> with its sound <Audio 1> is her, speaking/);
+    assert.match(String(ref.inputs.prompt), /<Video 1> with its sound <Audio 1> is \(S1\), speaking: \(S1\) speaks/);
     assert.ok(nodes.some(node => node.class_type === 'LoadVideo' && node.inputs.file === 'castcut-voice-anchor.mp4'));
     const pins = nodes.filter(node => node.class_type === H3_GUIDE_NODE);
     assert.deepEqual(pins.map(pin => pin.inputs.frame_idx), [0]);
@@ -90,11 +90,24 @@ describe('a recorded voice (sound only) on MiniMax-H3', () => {
     const nodes = talkingClip({ videoVoiceSample: 'castcut-voice.wav' });
     const ref = nodes.find(node => node.class_type === H3_REF_NODE);
     assert.ok(ref);
-    assert.match(String(ref.inputs.prompt), /^<Audio 1> is her voice: she speaks in exactly that voice/);
+    assert.match(String(ref.inputs.prompt), /^<Audio 1> is her voice: \(S1\) speaks in exactly that voice/);
     assert.ok(nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
     assert.ok(!nodes.some(node => node.class_type === 'LoadVideo'));
     const both = talkingClip({ videoVoiceSample: 'castcut-voice.wav', videoVoiceClip: 'clip.mp4' });
     assert.ok(both.some(node => node.class_type === 'LoadVideo' && node.inputs.file === 'clip.mp4'));
     assert.ok(!both.some(node => node.class_type === 'LoadAudio'));
+  });
+});
+
+describe('the voice clip’s own words are never said', () => {
+  it('names what the kept clip says as words she never says; without them, as before', () => {
+    const ref = (params: Record<string, unknown>) =>
+      String(talkingClip(params).find(node => node.class_type === H3_REF_NODE)!.inputs.prompt);
+    const told = ref({ videoVoiceClip: 'clip.mp4', videoVoiceClipWords: 'This is what I sound like.' });
+    assert.match(
+      told,
+      /<Audio 1> is only how her voice sounds: its words \("This is what I sound like\."\) are not hers to say — she never says them\./
+    );
+    assert.match(ref({ videoVoiceClip: 'clip.mp4' }), /<Audio 1> is only how her voice sounds, not what she says\./);
   });
 });

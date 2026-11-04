@@ -335,6 +335,9 @@ export function resolveQueueParams(
   if (base?.videoVoiceClip?.trim()) {
     merged.videoVoiceClip = base.videoVoiceClip.trim();
   }
+  if (base?.videoVoiceClipWords?.trim()) {
+    merged.videoVoiceClipWords = base.videoVoiceClipWords.trim();
+  }
   if (base?.videoVoiceSteer === 'on') {
     merged.videoVoiceSteer = 'on';
   }

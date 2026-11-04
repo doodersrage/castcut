@@ -1,6 +1,6 @@
 'use client';
 
-import { castVoiceOf, ensureCastVoiceClip } from '@/lib/cast/voice';
+import { castVoiceExtendFields, ensureCastVoiceClip } from '@/lib/cast/voice';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
@@ -62,11 +62,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         ),
         // Talking H3 parts speak in the Cast's kept voice (M11 T16), the same from clip to clip.
         // A recorded voice (no clip): its sample alone.
-        ...(castVoiceOf(ctx.character?.id)?.clip
-          ? { voiceClip: castVoiceOf(ctx.character?.id)!.clip }
-          : castVoiceOf(ctx.character?.id)
-            ? { voiceSample: castVoiceOf(ctx.character?.id)!.sample }
-            : {}),
+        ...castVoiceExtendFields(ctx.character?.id),
       };
     },
     [ctx.character, dayMood, stillsRef]
