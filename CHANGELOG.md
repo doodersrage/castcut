@@ -9,6 +9,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.4.8] - 2026-11-04
+
+- Two people talking: a wrong-voice check, Animate's longer dialogue, and a line with its answer in one part
+- Make it 30 s: two people talking, each line in its speaker's voice; reference-model clips stay on H3
+- Day and Scene: a photo of the place beside the Setting; Continue scene from a clip's last frame
+- Two people talking: the line in the lead's kept voice, the reply in the partner's (MiniMax-H3)
+- Build: esbuild is a declared dev dependency; the NLE export's music path is not traced
+- Longer clips: two people hold their look longer; H3 talking clips stop after the line
+
 ## [v3.4.7] - 2026-11-01
 
 - Longer clips: beats that would make a prop pop in are swapped for safe ones
