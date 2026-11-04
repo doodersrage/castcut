@@ -968,18 +968,62 @@ export function withDaylightLine(prompt: string): string {
   return prompt.replace(/(\bOUTFIT \(mandatory\))/, `${QWEN_IMAGE_21_DAYLIGHT_LINE}\n$1`);
 }
 
+const SCENE_NIGHT_RE = /\b(?:night|midnight|after dark|late evening|\d{1,2}\s?a\.m\.)/i;
+/** Lamps and candles say night only when nothing says evening ("golden hour … lamp light"). */
+const SCENE_LAMP_RE = /\b(?:lamps?|candle\w*|neon)\b/i;
+const SCENE_EVENING_RE =
+  /\b(?:late-afternoon|afternoon light|golden hour|golden light|sunset|dusk|evening)\b/i;
+const SCENE_OUTDOORS_RE =
+  /\b(?:beach|sand|sea|park|street|garden|pool(?:side)?|balcony|terrace|rooftop|forest|woods|lake|river|outdoors?|outside|festival|road|car park|parking|field|patio|market|meadow|trail|camp\w*)\b/i;
+
+/** The scene's own words: its Moment, Place and LIGHT lines (not the face or body notes). */
+function sceneWords(prompt: string): string {
+  const parts = prompt.match(/\b(?:Moment|Place|SCENE|LIGHT):[^\n]*?(?:\.(?=\s)|\n|$)/g) ?? [];
+  return parts.join(' ');
+}
+
+/**
+ * The candid light for a still, from its own time and place. "Photorealistic photograph" under a
+ * flat studio light read as too clean (the user, 2026-11-04); a candid phone photo with the
+ * scene's real light — a warm lamp glow and a lived-in room at night — turned the lifted duo from
+ * a grey wall into a hotel room, the pose and faces kept. Without the light and room words it
+ * barely changed. An uploaded place photo keeps its own room (no room words).
+ */
+export function candidLightWords(prompt: string): string {
+  const scene = sceneWords(prompt);
+  const outdoors = SCENE_OUTDOORS_RE.test(scene);
+  const photoPlace = /\bPlace: the (?:room|place) shown in\b/.test(prompt);
+  const evening = SCENE_EVENING_RE.test(scene);
+  const night = SCENE_NIGHT_RE.test(scene) || (!evening && SCENE_LAMP_RE.test(scene));
+  const light = night
+    ? outdoors
+      ? "the place's own lights at night with deep real shadows"
+      : 'a warm lamp glow with deep real shadows'
+    : evening
+      ? 'warm low evening sun with long real shadows'
+      : outdoors
+        ? 'hard natural sunlight with real shadows'
+        : 'window light falling across the room with real shadows';
+  const place = photoPlace
+    ? ''
+    : outdoors
+      ? ', the real place around them with its everyday things'
+      : ', a lived-in room around them with its everyday things';
+  return `Candid photo taken on a phone, not a studio shoot: ${light}${place}; natural uneven skin tone, visible pores, slight grain.`;
+}
+
 /**
  * A Day photo recipe ends "Photorealistic photograph, natural skin."; Edit 2511's queue adds
  * "natural photograph, lifelike skin pores, camera realism" — 2.1 (on Rapid's graph) didn't get
  * it. With it and the slot's Camera line, Turbo's stills were sharper and less front-on, likeness
- * the same (24 Everyday stills, 2026-10-17).
+ * the same (24 Everyday stills, 2026-10-17). Then the candid light for the scene (above).
  */
 export function withPhotoRealismTail(prompt: string): string {
   const lit = withDaylightLine(prompt);
   if (/lifelike skin pores/i.test(lit)) return lit;
   return lit.replace(
     /\bPhotorealistic photograph, natural skin\./,
-    'Photorealistic photograph, natural skin, natural photograph, lifelike skin pores, camera realism.'
+    `Photorealistic photograph, natural skin, natural photograph, lifelike skin pores, camera realism. ${candidLightWords(lit)}`
   );
 }
 

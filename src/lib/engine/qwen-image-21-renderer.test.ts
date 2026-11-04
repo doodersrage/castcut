@@ -35,6 +35,7 @@ import {
   qwenImage21TurboCheckpointFor,
   withDaylightLine,
   withPhotoRealismTail,
+  candidLightWords,
   isQwenImage21NoctFastModel,
   isQwenImage21NoctModel,
   QWEN_IMAGE_21_NOCT_FAST_PASS,
@@ -649,8 +650,27 @@ describe('Qwen-Image 2.1: look', () => {
 
   it('adds the photo-realism tail once', () => {
     const out = withPhotoRealismTail('Day photo: x. Photorealistic photograph, natural skin. More.');
-    assert.match(out, /natural skin, natural photograph, lifelike skin pores, camera realism\. More/);
+    assert.match(out, /natural skin, natural photograph, lifelike skin pores, camera realism\. Candid photo taken on a phone/);
+    assert.match(out, /slight grain\. More/);
     assert.equal(withPhotoRealismTail(out), out);
+  });
+
+  it("lights a candid still by the scene's own time and place", () => {
+    const light = (scene: string) => candidLightWords(`${scene} The woman: freckles, a lamp-lit face.`);
+    assert.match(light('Moment: kneeling on the bed in the middle of the night.'), /warm lamp glow[^;]*lived-in room/);
+    assert.match(light('Moment: on the bed. LIGHT: a bedside lamp low.'), /warm lamp glow/);
+    assert.match(light('Moment: walking along the street at night.'), /place's own lights at night/);
+    // "golden hour … indoors, warm window and lamp light": evening, not night.
+    assert.match(
+      light('SCENE: the beach at sunset. LIGHT: golden hour — low warm sun; indoors, warm window and lamp light.'),
+      /warm low evening sun[^;]*the real place around them/
+    );
+    assert.match(light('Moment: walking along the waterline. SCENE: the quiet beach at morning.'), /hard natural sunlight/);
+    assert.match(light('Moment: lifted onto a partner in the hotel room.'), /window light falling across the room[^;]*lived-in room/);
+    // An uploaded place photo keeps its own room.
+    const photo = light('Moment: sitting in the chair. Place: the room shown in <image2>.');
+    assert.match(photo, /window light falling across the room with real shadows;/);
+    assert.doesNotMatch(photo, /lived-in room/);
   });
 
   it('drops Rapid AIO moiré polish before the save', () => {
