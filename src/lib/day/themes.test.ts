@@ -162,3 +162,42 @@ describe('Day outfit arc', () => {
     assert.equal(pick('evening', [options[0]!]), 'casual');
   });
 });
+
+describe('the new themes (Beach day, Festival, Road trip, Holiday season)', () => {
+  it('Beach day swim beats bring their own swimwear; its other beats wear the kit', async () => {
+    const { dayStillSceneDressesItself } = await import('./still-plan');
+    const swim = DAY_THEMES['beach-day'].scenes.afternoon[0]![0];
+    const bar = DAY_THEMES['beach-day'].scenes.afternoon[2]![0];
+    const dressed = (sceneHints: string, dayMood: string) =>
+      dayStillSceneDressesItself({ dayMood, intimateEnabled: false, sceneHints });
+    assert.equal(dressed(swim, 'beach-day'), true);
+    assert.equal(dressed(bar, 'beach-day'), false);
+    // Other themes keep their kit.
+    assert.equal(dressed(swim, 'lazy-sunday'), false);
+  });
+
+  it('Holiday season wears knits by day and party clothes in the evening', () => {
+    const options = [
+      { value: 'knit', label: 'boxy forest green sweater dress', group: 'Full outfits' },
+      { value: 'party', label: 'tailored emerald cocktail dress', group: 'Full outfits' },
+      { value: 'jeans', label: 'tapered denim jacket casual', group: 'Full outfits' },
+    ];
+    const pick = (slotId: string) =>
+      pickDayAutoKit({ options, dayMood: 'holiday-season', slotId, hasPackshot: () => true });
+    assert.equal(pick('morning'), 'knit');
+    assert.ok(['party', 'knit'].includes(pick('evening')!));
+    assert.notEqual(pick('evening'), 'jeans');
+  });
+
+  it('Festival and Road trip dress from their own outfits', () => {
+    const options = [
+      { value: 'rave', label: 'boxy ivory festival rave outfit', group: 'Full outfits' },
+      { value: 'gorp', label: 'relaxed-fit olive gorpcore outfit', group: 'Full outfits' },
+      { value: 'gown', label: 'relaxed-fit sage evening gown', group: 'Full outfits' },
+    ];
+    const pick = (dayMood: string) =>
+      pickDayAutoKit({ options, dayMood, slotId: 'afternoon', hasPackshot: () => true });
+    assert.equal(pick('festival'), 'rave');
+    assert.equal(pick('road-trip'), 'gorp');
+  });
+});

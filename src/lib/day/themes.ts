@@ -15,7 +15,16 @@
 import { dayPartOf } from '@/lib/day/parts';
 
 export type DayTheme =
-  'date-night' | 'night-out' | 'lazy-sunday' | 'photoshoot' | 'cosplay' | 'workday';
+  | 'date-night'
+  | 'night-out'
+  | 'lazy-sunday'
+  | 'photoshoot'
+  | 'cosplay'
+  | 'workday'
+  | 'beach-day'
+  | 'festival'
+  | 'road-trip'
+  | 'holiday-season';
 
 export type DayThemePart = 'morning' | 'afternoon' | 'evening' | 'night';
 
@@ -34,6 +43,13 @@ export type DayThemeDefinition = {
   kitRe: RegExp;
   /** Casual (Everyday) kit by day; the theme kit only for the evening outfit. */
   eveningKitOnly?: boolean;
+  /** With eveningKitOnly: the day outfit's own pool instead of Everyday's (winter knits). */
+  dayKitRe?: RegExp;
+  /**
+   * Beats that name swimwear (in the sea, on a towel) dress themselves, as Vacation's pool beats
+   * do: the outfit kit would ride along and win (2/3 Vacation swim stills came out in the dress).
+   */
+  swimBeatsDressThemselves?: boolean;
   scenes: ThemePools;
   /** Scenes with a partner / friend — used when companions are on. */
   duoScenes: ThemePools;
@@ -579,6 +595,353 @@ const WORKDAY: DayThemeDefinition = {
   },
 };
 
+const BEACH_DAY: DayThemeDefinition = {
+  id: 'beach-day',
+  label: 'Beach day',
+  hint: 'Sunscreen on the towel, a swim, the beach bar, a sunset walk on the sand',
+  companions: false,
+  swimBeatsDressThemselves: true,
+  kitRe:
+    /\b(surfer outfit|nautical stripe outfit|coastal grandmother look|romper|shirt dress|slip dress)\b/i,
+  scenes: {
+    morning: [
+      [
+        'kneeling on a beach towel rubbing sunscreen onto one arm, in a swimsuit, squinting into the sun',
+        'wide sandy beach in the morning with a striped towel',
+      ],
+      [
+        'walking along the waterline with sandals in one hand, waves around her ankles',
+        'quiet beach at morning with gentle waves',
+      ],
+    ],
+    afternoon: [
+      [
+        'wading barefoot waist-deep into the sea in a swimsuit, arms raised from the cold water, laughing',
+        'turquoise sea off a sandy beach on a bright afternoon',
+      ],
+      [
+        'lying on her back on a beach towel in a swimsuit, sunglasses on, one knee raised',
+        'sunny beach with an umbrella and a striped towel',
+      ],
+      [
+        'sitting on the beach bar stool with an iced drink, legs crossed, looking out to sea',
+        'beach bar with a thatched roof and stools in the sand',
+      ],
+    ],
+    evening: [
+      [
+        'walking barefoot along the sand at sunset, mid-stride, hair blowing',
+        'beach at sunset with a pink and orange sky',
+      ],
+      [
+        'sitting on a driftwood log at sunset, knees drawn up, looking at the horizon',
+        'beach at sunset with driftwood on the sand',
+      ],
+    ],
+    night: [
+      [
+        'sitting cross-legged by a small beach bonfire, holding a cup, face lit by the flames',
+        'beach at night with a small bonfire in the sand',
+      ],
+      [
+        'leaning on the boardwalk railing at night, the dark sea and a few lights behind her',
+        'boardwalk by the beach at night with string lights',
+      ],
+    ],
+  },
+  duoScenes: {
+    morning: [
+      [
+        'spreading a beach towel together with a friend, both kneeling on the sand, different faces',
+        'wide sandy beach in the morning with a striped towel',
+      ],
+    ],
+    afternoon: [
+      [
+        'standing barefoot in the shallow water splashing a friend, both in swimsuits, laughing, different faces',
+        'turquoise sea off a sandy beach on a bright afternoon',
+      ],
+      [
+        'clinking iced drinks with a friend at the beach bar, seated side by side, different faces',
+        'beach bar with a thatched roof and stools in the sand',
+      ],
+    ],
+    evening: [
+      [
+        'walking hand in hand with her partner along the sand at sunset, different faces',
+        'beach at sunset with a pink and orange sky',
+      ],
+    ],
+    night: [
+      [
+        'seated side by side with a friend by the beach bonfire, sharing a blanket, different faces',
+        'beach at night with a small bonfire in the sand',
+      ],
+    ],
+  },
+};
+
+const FESTIVAL: DayThemeDefinition = {
+  id: 'festival',
+  label: 'Festival',
+  hint: 'Waking up at the campsite, the crowd at the stage, food trucks, dancing into the night',
+  companions: true,
+  kitRe:
+    /\b(festival rave outfit|country western outfit|y2k outfit|grunge layered look|romper|denim overall dress|cottagecore dress ensemble)\b/i,
+  scenes: {
+    morning: [
+      [
+        'kneeling in the tent doorway in the morning, one hand on the tent flap, squinting at the sun',
+        'festival campsite at morning with rows of tents',
+      ],
+      [
+        'sitting on a camping chair outside the tent with a coffee in both hands',
+        'festival campsite at morning with rows of tents',
+      ],
+    ],
+    afternoon: [
+      [
+        'walking through the festival grounds holding a drink, mid-stride, wristband on',
+        'festival grounds in the afternoon with flags and stalls',
+      ],
+      [
+        'standing at a food truck window ordering, leaning on the counter, looking up at the menu',
+        'row of food trucks at a festival on a sunny afternoon',
+      ],
+      [
+        'lying on the grass on her back with sunglasses on, arms behind her head',
+        'grassy festival field in the afternoon sun',
+      ],
+    ],
+    evening: [
+      [
+        'dancing in front of the main stage with both arms raised, eyes closed',
+        'festival main stage at dusk with lights and confetti',
+      ],
+      [
+        'sitting on a hay bale with a drink, watching the stage lights come on',
+        'festival field at dusk with hay bales and stage lights',
+      ],
+    ],
+    night: [
+      [
+        'dancing under colored stage lights at night, hair flying, mid-spin',
+        'festival stage at night with lasers and colored lights',
+      ],
+      [
+        'walking back to the campsite at night with a glowing bracelet, looking back over a shoulder',
+        'festival campsite at night lit by lanterns',
+      ],
+    ],
+  },
+  duoScenes: {
+    morning: [
+      [
+        'sitting side by side with a friend outside the tent sharing breakfast, different faces',
+        'festival campsite at morning with rows of tents',
+      ],
+    ],
+    afternoon: [
+      [
+        'selfie together with a friend in front of the festival sign, heads close, different faces',
+        'festival entrance with a big colorful sign',
+      ],
+      [
+        'walking arm in arm with a friend through the festival grounds, laughing, different faces',
+        'festival grounds in the afternoon with flags and stalls',
+      ],
+    ],
+    evening: [
+      [
+        'dancing with a friend in front of the main stage, both arms up, different faces',
+        'festival main stage at dusk with lights and confetti',
+      ],
+    ],
+    night: [
+      [
+        'sitting side by side with a friend by a campfire at the campsite, laughing, different faces',
+        'festival campsite at night lit by lanterns',
+      ],
+      [
+        'hugging a friend in front of the stage lights at night, cheeks pressed together, different faces',
+        'festival stage at night with lasers and colored lights',
+      ],
+    ],
+  },
+};
+
+const ROAD_TRIP: DayThemeDefinition = {
+  id: 'road-trip',
+  label: 'Road trip',
+  hint: 'Packing the car, the open road, a diner stop, a scenic lookout, a motel at night',
+  companions: true,
+  kitRe:
+    /\b(streetwear fit|gorpcore outfit|denim overall dress|grunge layered look|jumpsuit|romper|shirt dress)\b/i,
+  scenes: {
+    morning: [
+      [
+        'leaning into the open car trunk loading a duffel bag, looking back over a shoulder',
+        'driveway at morning with a packed car and its trunk open',
+      ],
+      [
+        'sitting on the car hood with a coffee cup and a paper map spread beside her',
+        'gas station at morning with the car parked by the pumps',
+      ],
+    ],
+    afternoon: [
+      [
+        'seated in the passenger seat with her bare feet up on the dashboard, sunglasses on',
+        'inside a car driving down an open desert highway',
+      ],
+      [
+        'sitting in a diner booth with a milkshake, chin on one hand, looking out the window',
+        'roadside diner with red vinyl booths and a big window',
+      ],
+      [
+        'standing at a scenic lookout railing with arms spread wide, wind in her hair',
+        'scenic mountain lookout over a winding road',
+      ],
+    ],
+    evening: [
+      [
+        'leaning against the side of the car at golden hour, arms folded, looking down the road',
+        'empty two-lane highway at golden hour with the car on the shoulder',
+      ],
+      [
+        'walking along the road shoulder at sunset, mid-stride, looking at the open landscape',
+        'empty two-lane highway at golden hour with the car on the shoulder',
+      ],
+    ],
+    night: [
+      [
+        'sitting on the motel bed with the road map open on her knees, lamp on',
+        'retro motel room at night with a bedside lamp',
+      ],
+      [
+        'leaning on the motel balcony railing at night under the neon vacancy sign',
+        'retro motel exterior at night with a neon sign',
+      ],
+    ],
+  },
+  duoScenes: {
+    morning: [
+      [
+        'standing side by side with a friend at the open car trunk, loading bags, both laughing, different faces',
+        'driveway at morning with a packed car and its trunk open',
+      ],
+    ],
+    afternoon: [
+      [
+        'seated side by side with her partner in the front seats of the car, singing along, different faces',
+        'inside a car driving down an open desert highway',
+      ],
+      [
+        'sharing fries with a friend across a diner booth, leaning in, different faces',
+        'roadside diner with red vinyl booths and a big window',
+      ],
+    ],
+    evening: [
+      [
+        'sitting side by side with her partner on the car hood watching the sunset, different faces',
+        'empty two-lane highway at golden hour with the car on the shoulder',
+      ],
+    ],
+    night: [
+      [
+        'walking with her partner from the car to the motel door at night, bags in hand, different faces',
+        'retro motel exterior at night with a neon sign',
+      ],
+    ],
+  },
+};
+
+const HOLIDAY_SEASON: DayThemeDefinition = {
+  id: 'holiday-season',
+  label: 'Holiday season',
+  hint: 'Decorating the tree, a winter market, gifts by the fire, a holiday party',
+  companions: false,
+  eveningKitOnly: true,
+  dayKitRe:
+    /\b(sweater dress|winter layered outfit|cottagecore dress ensemble|dark academia outfit|light academia outfit)\b/i,
+  kitRe: /\b(cocktail dress|slip dress|prom dress|evening gown|sweater dress|jumpsuit)\b/i,
+  scenes: {
+    morning: [
+      [
+        'standing on tiptoe hanging an ornament on the tree, one arm reaching up',
+        'living room with a decorated tree and fairy lights',
+      ],
+      [
+        'sitting cross-legged on the rug untangling a string of lights, smiling',
+        'living room with a decorated tree and fairy lights',
+      ],
+    ],
+    afternoon: [
+      [
+        'walking through a winter market holding a hot drink in both hands, scarf on',
+        'outdoor winter market with wooden stalls and lights',
+      ],
+      [
+        'leaning over a market stall looking at handmade ornaments',
+        'outdoor winter market with wooden stalls and lights',
+      ],
+      [
+        'kneeling by the tree wrapping a gift on the floor, ribbon in one hand',
+        'living room with a decorated tree and wrapped gifts',
+      ],
+    ],
+    evening: [
+      [
+        'sitting by the fireplace with a mug of cocoa, legs tucked under her',
+        'cozy living room with a crackling fireplace and stockings',
+      ],
+      [
+        'standing at the holiday party with a glass of champagne, looking back over a shoulder',
+        'holiday party in a warm room with garlands and candles',
+      ],
+    ],
+    night: [
+      [
+        'dancing at the holiday party under strings of lights, one arm raised',
+        'holiday party in a warm room with garlands and candles',
+      ],
+      [
+        'walking home through the snow at night, mid-stride, snowflakes in her hair',
+        'snowy street at night under warm streetlights',
+      ],
+    ],
+  },
+  duoScenes: {
+    morning: [
+      [
+        'decorating the tree with a friend, both reaching for the top, different faces',
+        'living room with a decorated tree and fairy lights',
+      ],
+    ],
+    afternoon: [
+      [
+        'walking arm in arm with her partner through the winter market, different faces',
+        'outdoor winter market with wooden stalls and lights',
+      ],
+    ],
+    evening: [
+      [
+        'exchanging gifts with her partner by the fireplace, both seated, different faces',
+        'cozy living room with a crackling fireplace and stockings',
+      ],
+    ],
+    night: [
+      [
+        'standing face to face with a friend at the holiday party, clinking champagne glasses, different faces',
+        'holiday party in a warm room with garlands and candles',
+      ],
+      [
+        'hugging her partner under the mistletoe at the party, cheek on his shoulder',
+        'holiday party in a warm room with garlands and candles',
+      ],
+    ],
+  },
+};
+
 export const DAY_THEMES: Record<DayTheme, DayThemeDefinition> = {
   'date-night': DATE_NIGHT,
   'night-out': NIGHT_OUT,
@@ -586,6 +949,10 @@ export const DAY_THEMES: Record<DayTheme, DayThemeDefinition> = {
   photoshoot: PHOTOSHOOT,
   cosplay: COSPLAY,
   workday: WORKDAY,
+  'beach-day': BEACH_DAY,
+  festival: FESTIVAL,
+  'road-trip': ROAD_TRIP,
+  'holiday-season': HOLIDAY_SEASON,
 };
 
 export const DAY_THEME_OPTIONS = Object.values(DAY_THEMES).map(({ id, label, hint }) => ({

@@ -84,6 +84,26 @@ const STYLES: Record<string, Style> = {
     bpm: 140,
     key: 'E major',
   },
+  'beach-day': {
+    tags: 'sunny tropical house, steel drums, light guitar, ocean breeze, carefree',
+    bpm: 110,
+    key: 'D major',
+  },
+  festival: {
+    tags: 'euphoric festival indie-dance, big drums, anthemic synths, crowd energy',
+    bpm: 124,
+    key: 'G major',
+  },
+  'road-trip': {
+    tags: 'open-road indie rock, driving acoustic guitar, steady drums, wide open skies',
+    bpm: 112,
+    key: 'A major',
+  },
+  'holiday-season': {
+    tags: 'warm festive orchestral pop, sleigh bells, celesta, soft strings, cozy winter',
+    bpm: 96,
+    key: 'F major',
+  },
   // Story tones.
   silly: {
     tags: 'quirky playful pizzicato strings, bouncy tuba, whistles, comedic',

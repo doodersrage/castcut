@@ -100,6 +100,10 @@ const MOOD_TO_STORY: Record<string, { tone: RoleplayTone; content: RoleplayConte
   'lazy-sunday': { tone: 'cozy', content: 'pg13' },
   photoshoot: { tone: 'cinematic', content: 'pg13' },
   cosplay: { tone: 'silly', content: 'pg13' },
+  'beach-day': { tone: 'dreamy', content: 'pg13' },
+  festival: { tone: 'cinematic', content: 'pg13' },
+  'road-trip': { tone: 'cinematic', content: 'pg13' },
+  'holiday-season': { tone: 'cozy', content: 'pg13' },
 };
 
 export type DayStorySeed = Pick<

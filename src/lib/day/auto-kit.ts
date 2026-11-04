@@ -62,6 +62,8 @@ export function pickDayAutoKit(input: {
       : themeKit;
   const moodRe =
     theme?.kitRe ??
+    // Its own day outfits (Holiday season's knits), else Everyday's.
+    themeKit?.dayKitRe ??
     (normalizeDayMood(input.dayMood) === 'vacation' ? VACATION_KIT_RE : EVERYDAY_KIT_RE);
   const outfits = categoryLabel('outfit');
   const kits = (re: RegExp, costumesOk: boolean) =>
@@ -75,7 +77,7 @@ export function pickDayAutoKit(input: {
     );
   // The catalog list is filtered to the lead's gender: a theme pool of dresses is empty for a
   // man — dress him from everyday wear rather than leave the plate's underwear on.
-  let pool = kits(moodRe, Boolean(theme));
+  let pool = kits(moodRe, Boolean(theme ?? themeKit?.dayKitRe));
   if (pool.length === 0 && theme) {
     pool = kits(EVERYDAY_KIT_RE, false);
   }

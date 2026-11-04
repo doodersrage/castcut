@@ -17,6 +17,7 @@ import { PLAY_FACE_CROP_CANVAS } from '../plate/render-size';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
 import { beatLiesDown, vacationBeatDressesItself } from '../play/rapid-duo-recipe';
 import { suggestiveBeatIsImpliedNudity } from '../wardrobe/clothed-coverage';
+import { dayThemeOf } from './themes';
 
 /** The mood a still plays as: an adult mood with Intimate off is Everyday. */
 function playedMood(dayMood: string | null | undefined, intimateEnabled: boolean) {
@@ -32,6 +33,9 @@ function sceneDressesItself(dayMood: string | null | undefined, sceneHints: stri
   const mood = normalizeDayMood(dayMood);
   return (
     (mood === 'vacation' && vacationBeatDressesItself(sceneHints)) ||
+    // Beach day's swim beats, as Vacation's (a theme is stored as its own mood).
+    (dayThemeOf(dayMood)?.swimBeatsDressThemselves === true &&
+      vacationBeatDressesItself(sceneHints)) ||
     (mood === 'suggestive' && suggestiveBeatIsImpliedNudity(sceneHints))
   );
 }
