@@ -125,6 +125,18 @@ export async function POST(request: Request) {
       ? body.tones.slice(0, 8).map(tone => normalizeSpokenLineTone(tone) ?? '')
       : undefined,
     lead: body.lead === 'man' ? 'man' : 'woman',
+    speakers: Array.isArray(body.speakers)
+      ? body.speakers
+          .slice(0, 8)
+          .map(who =>
+            who === 'partner' ? ('partner' as const) : who === 'lead' ? ('lead' as const) : ''
+          )
+      : undefined,
+    partner: body.partner === 'man' || body.partner === 'woman' ? body.partner : undefined,
+    partnerVoiceClip: /^[\w.-]{1,200}$/.test(text(body.partnerVoiceClip, 200))
+      ? text(body.partnerVoiceClip, 200)
+      : undefined,
+    partnerVoiceClipWords: text(body.partnerVoiceClipWords, 300) || undefined,
     llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),
   };
   if (body.plan === true) {

@@ -8,16 +8,25 @@ import {
 } from '../comfyui/config';
 import { buildWorkflowScaffoldForModel } from '../workflow/scaffold';
 import { conversationClipPrompt, conversationSpeakers } from '../video/ltx25-renderer';
-import { H3_GUIDE_NODE, H3_REF_NODE, H3_REQUIRED_NODE } from './h3-renderer';
+import {
+  H3_GUIDE_NODE,
+  H3_REF_NODE,
+  H3_REQUIRED_NODE,
+  h3OneSpeaks,
+  h3ReplaySource,
+  H3_FILES,
+  isH3ClipGraph,
+  withH3PartSpeaker,
+} from './h3-renderer';
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
 
-/** A Day talking clip on MiniMax-H3, as the queue builds it. */
-function talkingClip(
+/** A Day talking clip on MiniMax-H3, as the queue builds it (its graph, by node id). */
+function talkingGraph(
   params: Record<string, unknown>,
   nodeTypes?: string[],
   positive = 'She says, "Hi there."'
-) {
+): Record<string, Node> {
   const resolved = resolveQueueParams(undefined, {
     seed: '7',
     width: '960',
@@ -28,19 +37,26 @@ function talkingClip(
     videoSpeech: 'on',
     ...params,
   });
-  return Object.values(
-    injectPromptsWithFallbacks(
-      JSON.parse(buildWorkflowScaffoldForModel('minimax-h3').json) as Record<string, unknown>,
-      { positive, negative: '', params: resolved },
-      resolvePlaceholderTokens(),
-      {
-        model: 'minimax-h3',
-        directWorkflowPatching: true,
-        videoRenderer: 'minimax-h3',
-        ...(nodeTypes ? { availableNodeTypes: nodeTypes } : {}),
-      }
-    ).workflow as Record<string, Node>
-  );
+  return injectPromptsWithFallbacks(
+    JSON.parse(buildWorkflowScaffoldForModel('minimax-h3').json) as Record<string, unknown>,
+    { positive, negative: '', params: resolved },
+    resolvePlaceholderTokens(),
+    {
+      model: 'minimax-h3',
+      directWorkflowPatching: true,
+      videoRenderer: 'minimax-h3',
+      ...(nodeTypes ? { availableNodeTypes: nodeTypes } : {}),
+    }
+  ).workflow as Record<string, Node>;
+}
+
+/** Its nodes. */
+function talkingClip(
+  params: Record<string, unknown>,
+  nodeTypes?: string[],
+  positive = 'She says, "Hi there."'
+) {
+  return Object.values(talkingGraph(params, nodeTypes, positive));
 }
 
 describe('a new talking clip speaks in the Cast’s kept voice (M11 T16)', () => {
@@ -184,5 +200,85 @@ describe('two people talking, each in their own voice (M11 T21)', () => {
   it('names two women as conversationClipPrompt does', () => {
     assert.deepEqual(conversationSpeakers('woman', 'woman'), ['woman', 'other woman']);
     assert.deepEqual(conversationSpeakers('man', 'woman'), ['man', 'woman']);
+  });
+});
+
+describe('a part of a two-person talking clip (M11 T21)', () => {
+  const her = { noun: 'woman', who: 'She' as const, voiceClip: 'her.mp4', clipWords: 'Hi, I am Lana.' };
+  const him = { noun: 'man', who: 'He' as const, voiceClip: 'his.mp4' };
+  const part =
+    '5s clip, one continuous shot. He leans back. He says, "We could, if you brought the blankets." — his lips move with every word. Sound: the natural sound of the rooftop.';
+
+  it('has the speaker say the line and the other listen', () => {
+    const said = h3OneSpeaks(part, him, '(S2)', her, '(S1)')!;
+    assert.match(
+      said,
+      /\(S2\), the man, on-screen, says <d>\[English\] We could, if you brought the blankets\.<\/d>/
+    );
+    assert.match(said, /\(S1\), the woman, listens and says nothing — her mouth closed/);
+    assert.match(said, /Only \(S2\) speaks, in his own voice/);
+    assert.doesNotMatch(said, /lips move with every word/);
+    assert.match(said, /The camera never cuts or moves to either speaker/);
+    assert.equal(h3OneSpeaks('No line here.', him, '(S2)', her, '(S1)'), null);
+  });
+
+  it('gives the part both voices, hers first, and the start frame as Picture 1', () => {
+    const graph = talkingGraph({}, undefined, part);
+    const out = withH3PartSpeaker(graph as never, {
+      first: her,
+      second: him,
+      speaking: 'second',
+      pictures: [{ image: 'face-left.png', shows: 'the face of the person on the left' }],
+    })!;
+    const ref = Object.values(out).find(node => node?.class_type === H3_REF_NODE)!;
+    const prompt = String(ref.inputs!.prompt);
+    assert.match(prompt, /^<Picture 1> is the first frame/);
+    assert.match(prompt, /<Picture 2> is the face of the person on the left/);
+    assert.match(prompt, /<Video 1> with its sound <Audio 1> is \(S1\), the woman/);
+    assert.match(prompt, /<Video 2> with its sound <Audio 2> is \(S2\), the man/);
+    assert.match(prompt, /\(S2\), the man, on-screen, says/);
+  });
+});
+
+describe('a clip on the reference model is made longer on H3', () => {
+  it('is replayed as the first/last-frame graph it was made from, without its voices or dialogue', () => {
+    // Read as LTX before: its parts lost H3, the kept voices and the dialogue fixes.
+    const conversation = conversationClipPrompt({
+      setting: 'rooftop ledge at night',
+      line: 'The city is so bright tonight.',
+      reply: 'It never sleeps.',
+      lead: 'woman',
+      partner: 'man',
+    });
+    const graph = talkingGraph(
+      { videoConversation: 'woman|man', videoVoiceClip: 'her.mp4', videoPartnerVoiceClip: 'his.mp4' },
+      undefined,
+      conversation
+    );
+    const nodes = Object.values(graph);
+    const pinnedStart = nodes.find(node => node.class_type === H3_GUIDE_NODE)!.inputs.image;
+    const replay = h3ReplaySource(graph)!;
+    assert.ok(isH3ClipGraph(replay));
+    const h3 = Object.values(replay).find(node => node?.class_type === H3_REQUIRED_NODE)!;
+    assert.deepEqual(h3.inputs!.first_frame, pinnedStart);
+    assert.ok(!Object.values(replay).some(node => node?.class_type === H3_GUIDE_NODE));
+    assert.ok(!Object.values(replay).some(node => node?.class_type === 'LoadVideo'));
+    assert.ok(
+      Object.values(replay).some(
+        node => node?.class_type === 'UNETLoader' && node.inputs?.unet_name === H3_FILES.transformer
+      )
+    );
+    const prompt = String(h3.inputs!.prompt);
+    assert.doesNotMatch(prompt, /<Video|<Picture|<d>|\(S1\)|overall_soundscape/);
+    assert.match(prompt, /rooftop ledge at night/);
+    // Every node it reads is still there.
+    for (const node of Object.values(replay)) {
+      for (const value of Object.values(node?.inputs ?? {})) {
+        if (Array.isArray(value) && typeof value[0] === 'string') assert.ok(replay[value[0]], String(value[0]));
+      }
+    }
+    // A first/last-frame graph is replayed as it is.
+    const plain = talkingGraph({});
+    assert.equal(h3ReplaySource(plain), plain);
   });
 });

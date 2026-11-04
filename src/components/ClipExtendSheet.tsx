@@ -22,6 +22,8 @@ export type ClipExtendChoice = {
   tones?: string[];
   /** Each part's length in seconds (0 = the engine's own; the Animate sheet's H3 parts). */
   partSeconds?: number[];
+  /** Two people on H3 (M11 T21): who says each line (same order as lines). */
+  speakers?: Array<'lead' | 'partner'>;
 };
 
 /**
@@ -49,6 +51,8 @@ export default function ClipExtendSheet({
   // A line per part (LTX clips lip-sync; WAN clips cannot).
   const [lines, setLines] = useState<string[]>([]);
   const [tones, setTones] = useState<string[]>([]);
+  // Two people on H3: who says each line (the Cast unless picked).
+  const [speakers, setSpeakers] = useState<Array<'lead' | 'partner'>>([]);
   // Each H3 part's length (0 = H3's own ~5 s), as on Animate.
   const [partSeconds, setPartSeconds] = useState<number[]>([]);
   const [engine, setEngine] = useState<'ltx' | 'wan' | 'h3' | null>(null);
@@ -68,6 +72,7 @@ export default function ClipExtendSheet({
       setBeats(plan.beats);
       setLines(plan.beats.map(() => ''));
       setTones(plan.beats.map(() => ''));
+      setSpeakers(plan.beats.map(() => 'lead'));
       setPartSeconds(plan.beats.map(() => 0));
       setPartSec(plan.partSec);
       setEngine(plan.engine);
@@ -83,6 +88,8 @@ export default function ClipExtendSheet({
   const kept = keptIndexes.map(index => beats[index]!.trim());
   const keptLines = keptIndexes.map(index => (lines[index] ?? '').trim());
   const keptTones = keptIndexes.map(index => tones[index] ?? '');
+  const keptSpeakers = keptIndexes.map(index => speakers[index] ?? 'lead');
+  const twoTalk = engine === 'h3' && people >= 2;
   const keptSeconds = keptIndexes.map(index => partSeconds[index] ?? 0);
   const start = () => {
     onStart({
@@ -93,6 +100,10 @@ export default function ClipExtendSheet({
       tones:
         (engine === 'ltx' || engine === 'h3') && keptTones.some(Boolean) ? keptTones : undefined,
       partSeconds: engine === 'h3' && keptSeconds.some(Boolean) ? keptSeconds : undefined,
+      speakers:
+        twoTalk && keptLines.some(Boolean) && keptSpeakers.includes('partner')
+          ? keptSpeakers
+          : undefined,
     });
     onClose();
   };
@@ -231,6 +242,25 @@ export default function ClipExtendSheet({
                           </option>
                         ))}
                       </SelectInput>
+                      {twoTalk ? (
+                        <SelectInput
+                          value={speakers[index] ?? 'lead'}
+                          aria-label={`Who says part ${index + 1}'s line`}
+                          disabled={!(lines[index] ?? '').trim()}
+                          className="w-auto"
+                          onChange={event =>
+                            setSpeakers(list => {
+                              const next = [...list];
+                              next[index] = event.target.value === 'partner' ? 'partner' : 'lead';
+                              return next;
+                            })
+                          }
+                          data-testid={`${testId}-speaker-${index}`}
+                        >
+                          <option value="lead">Your Cast says it</option>
+                          <option value="partner">The other person says it</option>
+                        </SelectInput>
+                      ) : null}
                     </div>
                   ) : null}
                   {engine === 'h3' ? (
@@ -261,6 +291,7 @@ export default function ClipExtendSheet({
                     setLines(list => list.filter((_, at) => at !== index));
                     setTones(list => list.filter((_, at) => at !== index));
                     setPartSeconds(list => list.filter((_, at) => at !== index));
+                    setSpeakers(list => list.filter((_, at) => at !== index));
                   }}
                 >
                   ✕
@@ -277,6 +308,7 @@ export default function ClipExtendSheet({
                     setLines(list => [...list, '']);
                     setTones(list => [...list, '']);
                     setPartSeconds(list => [...list, 0]);
+                    setSpeakers(list => [...list, 'lead']);
                   }}
                   data-testid={`${testId}-add`}
                 >

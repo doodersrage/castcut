@@ -2774,8 +2774,20 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   clip gets one from H3, and with no voice clips at all the clip stays on the plain model. On
   the app's own graph H3 cut to a close-up of the man for his reply on 2 of 4 seeds until the
   start frame was also given as <Picture 1> (then 4/4 both in frame, words 4/4). Also fixed: a
-  man's kept voice was told "not hiss to say". Next: Make it 30 s for conversations (a speaker
-  per part, both voices on every part).
+  man's kept voice was told "not hiss to say".
+- Make it 30 s for two people talking (step 2): the sheet asks who says each line (on H3, two
+  people in the plan); each talking part gets both voices (`withH3PartSpeaker`: the speaker says
+  it, the other listens), the partner's kept clip or, without one, a voice cut from the first part
+  they speak in; the lead's voice is not cut from a conversation's first clip (both voices are in
+  it). Found on the way: every first clip on H3's reference model (a kept voice, a conversation)
+  was made longer on LTX — `isH3ClipGraph` only knew the first/last-frame node — so its parts
+  lost H3, the voices and the dialogue fixes. Now replayed as the graph it was made from
+  (`h3ReplaySource`: start frame from the guide, the voice tags and dialogue taken out). Live
+  (the rooftop conversation, five lines her / him in turn, 31 s): every part on H3, each line its
+  speaker's voice and words; his first part opened with her voice clip's own words in her voice,
+  the line check re-rendered it and the retry was right; both stayed in frame throughout. Not yet:
+  Animate's own longer dialogue for a conversation (still one clip there), a per-speaker voice
+  check (step 4).
 - Seen while testing: "Sharpen & smooth" (`finishClip`) on a 30 s clip loaded the whole clip
   into RAM (~40 GB) and took ComfyUI down; it needs to run in time chunks. Not fixed yet.
 - 5 s single-person talking clips (the user's six, kept voice on H3's reference model): the voice

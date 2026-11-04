@@ -1,6 +1,10 @@
 'use client';
 
-import { castVoiceExtendFields, ensureCastVoiceClip } from '@/lib/cast/voice';
+import {
+  castPartnerExtendFields,
+  castVoiceExtendFields,
+  ensureCastVoiceClip,
+} from '@/lib/cast/voice';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import type { ClipExtendChoice } from '@/components/ClipExtendSheet';
@@ -147,6 +151,13 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
             lines: choice?.lines,
             tones: choice?.tones,
             lead: leadIsMan ? 'man' : 'woman',
+            // Two people talking (M11 T21): who says each line, and the partner's voice.
+            ...(choice?.speakers?.some(who => who === 'partner')
+              ? {
+                  speakers: choice.speakers,
+                  ...castPartnerExtendFields(toolSettings.partnerCharacterId),
+                }
+              : {}),
             targetSec: length?.targetSec,
             extendBySec: length?.extendBySec,
           },
@@ -164,7 +175,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         return error instanceof Error ? error.message : 'Could not make the clip longer.';
       }
     },
-    [extendRequestFor, finishJob, leadIsMan, patchStill, stillsRef]
+    [extendRequestFor, finishJob, leadIsMan, patchStill, stillsRef, toolSettings.partnerCharacterId]
   );
 
   // A job that was running when the page was left: wait for it again.

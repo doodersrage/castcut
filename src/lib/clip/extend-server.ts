@@ -65,6 +65,7 @@ import {
   LTX25_EXTEND_SAVE_NODE,
   LTX25_FACE_RESTORE_NODE,
   LTX25_FPS,
+  conversationSpeakers,
   normalizeSpokenLineTone,
 } from '../video/ltx25-renderer';
 import {
@@ -73,6 +74,8 @@ import {
   h3GridFrames,
   H3_REF_FILES,
   H3_REF_NODE,
+  h3ReplaySource,
+  withH3PartSpeaker,
   withH3References,
   withH3Dialogue,
   H3_VOICE_CLIP_FRAMES,
@@ -1252,6 +1255,13 @@ export type ClipExtendInput = {
   tones?: string[];
   /** Who speaks the lines. */
   lead?: 'woman' | 'man';
+  /** Two people (M11 T21): who says each line (same order as lines; '' = the lead). */
+  speakers?: Array<'lead' | 'partner' | ''>;
+  /** The other person: 'woman' or 'man' (default: not the lead). */
+  partner?: 'woman' | 'man';
+  /** The partner's kept voice clip (a Cast member's; ComfyUI input) and what it says. */
+  partnerVoiceClip?: string;
+  partnerVoiceClipWords?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
@@ -1356,7 +1366,8 @@ export async function planClipExtend(input: ClipExtendInput): Promise<{
       width: original.width & ~1,
       height: original.height & ~1,
     });
-    const history = await readHistoryGraph(comfyBaseUrl(input.comfyUrl), input.clipPromptId);
+    const raw = await readHistoryGraph(comfyBaseUrl(input.comfyUrl), input.clipPromptId);
+    const history = raw ? ((h3ReplaySource(raw) as Graph | null) ?? raw) : null;
     const engine = partEngine(history);
     const { total, partSec } = partCount(input, clip.frames / 24, engine, clip.frames / 24);
     if (!total) throw new Error('This clip is already that long.');
@@ -1419,7 +1430,10 @@ export async function extendClip(
     // keep (each part's colours are matched at its seam instead).
     await grabFrame(ffmpeg, at('piece0.mp4'), 0, at('reference.png'));
     const referenceDetail = await detailTarget(at('reference.png'));
-    const history = await readHistoryGraph(baseUrl, input.clipPromptId);
+    // A clip on H3's reference model (a kept voice, two people talking) is replayed as the
+    // first/last-frame graph it was made from (h3ReplaySource).
+    const raw = await readHistoryGraph(baseUrl, input.clipPromptId);
+    const history = raw ? ((h3ReplaySource(raw) as Graph | null) ?? raw) : null;
     const engine = partEngine(history);
     const wan = engine === 'wan' ? history : null;
     const h3 = engine === 'h3' ? history : null;
@@ -1451,6 +1465,17 @@ export async function extendClip(
           )
         )
       : false;
+    // A first clip where two people talk ((S2) in its dialogue) has both voices in it: the lead's
+    // is not cut from it (the loudest stretch may be the partner's).
+    const firstConversation = Boolean(
+      h3 &&
+      raw &&
+      /\(S2\)/.test(
+        String(
+          Object.values(raw).find(node => node?.class_type === H3_REF_NODE)?.inputs?.prompt ?? ''
+        )
+      )
+    );
     let voiceAnchor: VoiceAnchor | null =
       h3 && input.lines?.some(line => line?.trim())
         ? (input.voiceClip?.trim()
@@ -1459,7 +1484,7 @@ export async function extendClip(
                 ...(input.voiceClipWords !== undefined ? { words: input.voiceClipWords } : {}),
               }
             : null) ||
-          (firstSpeaks && !input.voiceSample?.trim()
+          (firstSpeaks && !firstConversation && !input.voiceSample?.trim()
             ? await voiceAnchorClip({
                 ffmpeg,
                 baseUrl,
@@ -1474,6 +1499,20 @@ export async function extendClip(
     // Keyframes first (M11 T14): each part runs between two clean stills, the next edited from
     // the last, so no part starts from a generated frame. Long parts when there is no edit model.
     // CASTCUT_EXTEND_KEYFRAMES=off: chained parts (an operator's switch, and the long-part test).
+    // Two people talking (M11 T21): the partner's kept voice, else the first part they speak in
+    // sets it for the parts after.
+    let partnerAnchor: VoiceAnchor | null = input.partnerVoiceClip?.trim()
+      ? {
+          clip: input.partnerVoiceClip.trim(),
+          ...(input.partnerVoiceClipWords ? { words: input.partnerVoiceClipWords } : {}),
+        }
+      : null;
+    const [leadNoun, partnerNoun] = conversationSpeakers(
+      input.lead === 'man' ? 'man' : 'woman',
+      input.partner ?? (input.lead === 'man' ? 'woman' : 'man')
+    );
+    const leadWho = input.lead === 'man' ? ('He' as const) : ('She' as const);
+    const partnerWho = /\bman\b/.test(partnerNoun) ? ('He' as const) : ('She' as const);
     // Two people: each part on H3's reference model given both faces, no keyframes (duoFacePictures).
     const duoFaces =
       h3 && (shot.people ?? 1) >= 2
@@ -1529,6 +1568,8 @@ export async function extendClip(
     const faces: Array<number | null> = [];
     for (let k = 0; k < renders; k += 1) {
       const group = groups?.[k];
+      // Who says this part's line (two people, M11 T21): the partner, else the lead.
+      const partnerSpeaks = Boolean(duoFaces) && input.speakers?.[k] === 'partner';
       // The part's frames: its blocks and the start frame it drops (H3's own shot otherwise).
       const partFrames = group ? h3GridFrames(Math.round(group.seconds * 24) + 1) : H3_PART_FRAMES;
       // A generated part (never the player's own clip) cut at its best face frame.
@@ -1654,7 +1695,7 @@ export async function extendClip(
               wordless: Boolean(
                 !group && !input.lines?.[k]?.trim() && input.lines?.some(line => line?.trim())
               ),
-              speaker: input.lead === 'man' ? 'He' : 'She',
+              speaker: partnerSpeaks ? partnerWho : leadWho,
               held,
               people: shot.people,
               ...(group ? { blocks: group.blocks } : {}),
@@ -1668,22 +1709,49 @@ export async function extendClip(
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
         const voiceAudio = voiceAnchor ? undefined : input.voiceSample?.trim();
         const speaks = Boolean((voiceAnchor || voiceAudio) && !group && input.lines?.[k]?.trim());
-        const anchored = speaks
-          ? withH3VoiceAnchor(patched.graph, {
-              ...(voiceAnchor
-                ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words }
-                : { voiceAudio }),
-              pictures: duoFaces?.pictures ?? h3Pictures,
-              look: duoFaces?.look ?? h3Look,
-              who: input.lead === 'man' ? 'He' : 'She',
-            })
-          : null;
+        // Two people talking (M11 T21): both voices on the part, the line said by its speaker and
+        // the other listening — one voice alone made both speak in it.
+        const duoTalk = Boolean(duoFaces && !group && input.lines?.[k]?.trim());
+        const twoVoices =
+          duoTalk && (voiceAnchor || partnerAnchor)
+            ? withH3PartSpeaker(patched.graph, {
+                first: {
+                  noun: leadNoun,
+                  who: leadWho,
+                  ...(voiceAnchor
+                    ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words }
+                    : {}),
+                },
+                second: {
+                  noun: partnerNoun,
+                  who: partnerWho,
+                  ...(partnerAnchor
+                    ? { voiceClip: partnerAnchor.clip, clipWords: partnerAnchor.words }
+                    : {}),
+                },
+                speaking: partnerSpeaks ? 'second' : 'first',
+                pictures: duoFaces?.pictures,
+                look: duoFaces?.look,
+              })
+            : null;
+        const anchored = twoVoices
+          ? twoVoices
+          : speaks && !duoTalk
+            ? withH3VoiceAnchor(patched.graph, {
+                ...(voiceAnchor
+                  ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words }
+                  : { voiceAudio }),
+                pictures: duoFaces?.pictures ?? h3Pictures,
+                look: duoFaces?.look ?? h3Look,
+                who: input.lead === 'man' ? 'He' : 'She',
+              })
+            : null;
         // The reference model has no end frame of its own: without a voice to keep, keyframed
         // parts keep the first/last-frame one (a talking part pins its frames with guides).
         // A talking part with no voice to keep (the plain model): its line timed all the same.
         const timed = (graph: typeof patched.graph) =>
           !group && input.lines?.[k]?.trim()
-            ? withH3Dialogue(graph, input.lead === 'man' ? 'He' : 'She')
+            ? withH3Dialogue(graph, partnerSpeaks ? partnerWho : leadWho)
             : graph;
         // Two people: the moment before the part and the first clip's opening as videos, beside
         // their faces (a talking part's <Video 1> is its voice: none there).
@@ -1893,6 +1961,7 @@ export async function extendClip(
       if (
         h3 &&
         !voiceAnchor &&
+        !partnerSpeaks &&
         !lineWrong &&
         !input.voiceSample?.trim() &&
         !group &&
@@ -1903,6 +1972,22 @@ export async function extendClip(
           baseUrl,
           clip: at(`piece${k + 1}.mp4`),
           out: at(`voice${k + 1}.mp4`),
+        }).catch(() => null);
+      }
+      // The partner's, likewise, from the first part they speak in.
+      if (
+        h3 &&
+        !partnerAnchor &&
+        partnerSpeaks &&
+        !lineWrong &&
+        !group &&
+        input.lines?.[k]?.trim()
+      ) {
+        partnerAnchor = await voiceAnchorClip({
+          ffmpeg,
+          baseUrl,
+          clip: at(`piece${k + 1}.mp4`),
+          out: at(`partner-voice${k + 1}.mp4`),
         }).catch(() => null);
       }
       pieces.push(at(`piece${k + 1}.mp4`));

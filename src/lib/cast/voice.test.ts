@@ -4,6 +4,7 @@ import { resetBrowserStorageCache } from '../storage/browser-storage';
 import { createBlankCharacter, getCharacter, upsertCharacter, type CastVoice } from '../character/os';
 import {
   castConversationVoiceFields,
+  castPartnerExtendFields,
   castVoiceExtendFields,
   castVoiceSampleFor,
   ensureCastVoiceClip,
@@ -98,6 +99,7 @@ describe('a kept voice clip’s words', () => {
     await withCast({ ...kept, clipWords: 'Hi, I am Lisa.' }, () => ({}), async () => {
       upsertCharacter({
         ...createBlankCharacter('Marco'),
+        traits: { ...createBlankCharacter('Marco').traits, sex: 'man' },
         id: 'cast-marco',
         voice: { sample: 'm.wav', clip: 'marco-clip.mp4', clipWords: 'Hi, I am Marco.', at: 1 },
       });
@@ -108,6 +110,13 @@ describe('a kept voice clip’s words', () => {
         videoPartnerVoiceClip: 'marco-clip.mp4',
         videoPartnerVoiceClipWords: 'Hi, I am Marco.',
       });
+      // A longer clip's partner fields: who they are and their voice.
+      assert.deepEqual(castPartnerExtendFields('cast-marco'), {
+        partner: 'man',
+        partnerVoiceClip: 'marco-clip.mp4',
+        partnerVoiceClipWords: 'Hi, I am Marco.',
+      });
+      assert.deepEqual(castPartnerExtendFields('stranger'), {});
       // An invented partner (no Cast record) or the lead again: no second voice.
       assert.deepEqual(castConversationVoiceFields('cast-lisa', 'stranger', ['woman', 'man']), {
         videoConversation: 'woman|man',

@@ -38,6 +38,28 @@ export function castVoiceSampleFor(castId: string | null | undefined): {
 }
 
 /**
+ * A longer two-person clip's partner (M11 T21, /api/clip/extend): a woman or a man, and their kept
+ * voice clip, so the lines given to them are said in it. Nothing for an invented partner (no Cast
+ * record) — the server then takes them as not the lead, with a voice from their first line.
+ */
+export function castPartnerExtendFields(partnerId: string | null | undefined): {
+  partner?: 'woman' | 'man';
+  partnerVoiceClip?: string;
+  partnerVoiceClipWords?: string;
+} {
+  const partner = partnerId?.trim() ? getCharacter(partnerId.trim()) : undefined;
+  if (!partner) return {};
+  const voice = partner.voice;
+  const clip = voice?.clip?.trim();
+  const sex = partner.traits?.sex;
+  return {
+    ...(sex === 'man' || sex === 'woman' ? { partner: sex } : {}),
+    ...(clip ? { partnerVoiceClip: clip } : {}),
+    ...(clip && voice?.clipWords?.trim() ? { partnerVoiceClipWords: voice.clipWords.trim() } : {}),
+  };
+}
+
+/**
  * A two-person conversation's voices on MiniMax-H3 (M11 T21): the line in the lead's kept voice
  * clip, the reply in the partner's (a Cast member's) — each told never to say its clip's own
  * words. Only voice clips: a recorded voice (a sample alone) can't be told apart from the other

@@ -300,6 +300,71 @@ export function isH3ClipGraph(graph: Record<string, WorkflowNode | undefined>): 
   return Object.values(graph).some(node => node?.class_type === H3_REQUIRED_NODE);
 }
 
+/** What a reference-model prompt adds that a part must not carry on: its tags, dialogue, sound. */
+const H3_REFERENCE_SENTENCE =
+  /<(?:Picture|Video|Audio) \d+>|<d>|\(S[12]\)|overall_soundscape:|non_diegetic_music:|silently keeps? looking|The camera never cuts or moves/;
+
+/**
+ * A clip rendered on H3's reference model (a kept voice, two people talking: withH3VoiceAnchor,
+ * withH3Conversation) as the first/last-frame graph it was made from, for Make longer to replay —
+ * read as LTX before, its parts lost H3, the voices and the dialogue fixes. The start (and end)
+ * frame come back from the guides that pinned them; the prompt keeps its action and place, not
+ * the voice tags, the dialogue or the sound lines (each part says its own). The graph as it is
+ * when it is already a first/last-frame graph; null when it is neither.
+ */
+export function h3ReplaySource(
+  source: Record<string, WorkflowNode | undefined>
+): Record<string, WorkflowNode | undefined> | null {
+  if (isH3ClipGraph(source)) return source;
+  const graph = JSON.parse(JSON.stringify(source)) as Workflow;
+  const entries = Object.entries(graph);
+  const ref = entries.find(([, node]) => node?.class_type === H3_REF_NODE);
+  if (!ref?.[1]?.inputs) return null;
+  const [id, node] = ref;
+  const old = node.inputs!;
+  const guides = entries.filter(([, other]) => other?.class_type === H3_GUIDE_NODE);
+  const pinned = (frame: number) =>
+    guides.find(([, guide]) => Number(guide?.inputs?.frame_idx) === frame)?.[1]?.inputs?.image;
+  const first = pinned(0) ?? old['ref_images.ref_image_1'];
+  if (!isRef(first)) return null;
+  const last = pinned(-1);
+  const prompt = String(old.prompt ?? '')
+    .split(/(?<=[.!?])\s+/)
+    .filter(sentence => !H3_REFERENCE_SENTENCE.test(sentence))
+    .join(' ')
+    .trim();
+  graph[id] = {
+    class_type: H3_REQUIRED_NODE,
+    inputs: {
+      clip: old.clip,
+      vae: old.vae,
+      prompt,
+      width: old.width,
+      height: old.height,
+      length: old.length,
+      first_frame: first,
+      ...(isRef(last) ? { last_frame: last } : {}),
+    },
+  };
+  // The reference model's own nodes go; whatever read a guide reads the H3 node again.
+  const gone = new Set(Object.keys(graph).filter(key => /^h3(?:pin|voice|ref|vref)/.test(key)));
+  for (const key of gone) delete graph[key];
+  for (const other of Object.values(graph)) {
+    if (!other?.inputs) continue;
+    for (const [name, value] of Object.entries(other.inputs)) {
+      if (isRef(value) && gone.has(value[0])) other.inputs[name] = [id, 0];
+    }
+  }
+  for (const other of Object.values(graph)) {
+    if (other?.class_type === 'UNETLoader' && other.inputs)
+      other.inputs.unet_name = H3_FILES.transformer;
+    if (other?.class_type === 'LoraLoaderModelOnly' && other.inputs)
+      other.inputs.lora_name = H3_FILES.turboLora;
+    if (other?.class_type === 'BasicScheduler' && other.inputs) other.inputs.steps = H3_STEPS;
+  }
+  return graph;
+}
+
 /**
  * A part's prompt from the clip's own: the part's beat first, the clip's spoken line taken out
  * (only the first clip says it — a part says its own `line`, if any), the "Ns clip" length set
@@ -715,6 +780,77 @@ export function withH3Conversation(
     look?: string;
   }
 ): Workflow | null {
+  return withH3Speakers(source, input, prompt => h3Conversation(prompt, input.first, input.second));
+}
+
+/**
+ * A part of a two-person talking clip (M11 T21): one of the two says the part's line in their
+ * own voice while the other listens, both voices given ({@link withH3Conversation}'s graph) — so
+ * each keeps their voice from part to part. Null as withH3Conversation.
+ */
+export function withH3PartSpeaker(
+  source: Workflow,
+  input: {
+    first: H3Speaker;
+    second: H3Speaker;
+    /** Who says this part's line. */
+    speaking: 'first' | 'second';
+    pictures?: ReadonlyArray<{ image: string; shows: string }>;
+    look?: string;
+  }
+): Workflow | null {
+  return withH3Speakers(source, input, prompt =>
+    input.speaking === 'first'
+      ? h3OneSpeaks(prompt, input.first, '(S1)', input.second, '(S2)')
+      : h3OneSpeaks(prompt, input.second, '(S2)', input.first, '(S1)')
+  );
+}
+
+/**
+ * A part's line (`… says, "X" …`) in H3's dialogue syntax, said by one of two speakers while the
+ * other listens. Null when the prompt has no line.
+ */
+export function h3OneSpeaks(
+  source: string,
+  speaker: H3Speaker,
+  tag: string,
+  listener: H3Speaker,
+  listenerTag: string
+): string | null {
+  const prompt = source.replace(H3_LONG_TALK_TAIL, '').replace(/\s{2,}/g, ' ');
+  const said = prompt.match(/\bsays\b([^"]{0,32})"([^"]+)"/);
+  if (!said || said.index === undefined) return null;
+  const how = said[1]!.replace(/[,\s]+$/, '').trimEnd();
+  const language = how.match(DIALOGUE_LANGUAGE)?.[1] ?? 'English';
+  const words = said[2]!.trim();
+  const line = /[.?!…]$/.test(words) ? words : `${words}.`;
+  const place = prompt.match(/\bfirst frame \(([^)]+)\)/)?.[1]?.trim();
+  const head = prompt.slice(0, said.index);
+  const before = head.slice(0, Math.max(0, head.search(/[^.!?]*$/)));
+  // The rest of the sentence that quoted the line ("— her lips move with every word.").
+  const after = prompt.slice(said.index + said[0].length).replace(/^[^.!?]*[.!?]?/, '');
+  const them = listener.who === 'He' ? 'his' : 'her';
+  return [
+    `${before.trimEnd()} ${H3_CONVERSATION_CAMERA} ${tag}, the ${speaker.noun}, on-screen, says${how} <d>[${language}] ${line}</d>${after}`.trim(),
+    `${speaker.who} says it once; after it ${speaker.who === 'He' ? 'he' : 'she'} silently keeps looking, lips closed, until the shot ends.`,
+    `${listenerTag}, the ${listener.noun}, listens and says nothing — ${them} mouth closed or smiling.`,
+    `Only ${tag} speaks, in ${speaker.who === 'He' ? 'his' : 'her'} own voice. No other voices, no voiceover, no singing.`,
+    `overall_soundscape: the quiet natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and gentle ambience, no voices.`,
+    'non_diegetic_music: N/A',
+  ].join(' ');
+}
+
+/** {@link withH3Conversation}'s graph, its dialogue written by `dialogue` from the part's prompt. */
+function withH3Speakers(
+  source: Workflow,
+  input: {
+    first: H3Speaker;
+    second: H3Speaker;
+    pictures?: ReadonlyArray<{ image: string; shows: string }>;
+    look?: string;
+  },
+  dialogue: (prompt: string) => string | null
+): Workflow | null {
   const graph = JSON.parse(JSON.stringify(source)) as Workflow;
   const entries = Object.entries(graph);
   const h3 = entries.find(([, node]) => node?.class_type === H3_REQUIRED_NODE);
@@ -732,7 +868,7 @@ export function withH3Conversation(
   if (!voiced.length) return null;
   const [id, node] = h3;
   const old = node.inputs!;
-  const said = h3Conversation(String(old.prompt ?? ''), input.first, input.second);
+  const said = dialogue(String(old.prompt ?? ''));
   if (!said) return null;
   unet.inputs.unet_name = H3_REF_FILES.transformer;
   if (lora?.inputs) lora.inputs.lora_name = H3_REF_FILES.turboLora;

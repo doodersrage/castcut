@@ -727,6 +727,13 @@ export type ClipExtendRequest = {
   tones?: string[];
   /** Who says the lines. */
   lead?: 'woman' | 'man';
+  /** Two people (M11 T21): who says each line (same order as lines; '' = the lead). */
+  speakers?: Array<'lead' | 'partner' | ''>;
+  /** The other person: 'woman' or 'man' (default: not the lead). */
+  partner?: 'woman' | 'man';
+  /** The partner's kept voice clip (a Cast member's; ComfyUI input) and what it says. */
+  partnerVoiceClip?: string;
+  partnerVoiceClipWords?: string;
 };
 
 /** The parts a clip needs and the beats written for them (Make longer's plan). */
