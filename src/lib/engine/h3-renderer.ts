@@ -385,6 +385,9 @@ export function h3PartPrompt(
     wordless?: boolean;
     /** People in the shot (M11 T21): two keep both in view, and the motion is theirs. */
     people?: number;
+    /** The other person's answer in the same part, and who gives it (two people talking). */
+    reply?: string;
+    replier?: 'She' | 'He';
   }
 ): string {
   const two = (part.people ?? 1) >= 2;
@@ -427,12 +430,14 @@ export function h3PartPrompt(
           ? 'The movement is unhurried and keeps going through the whole part — still moving at the last frame, never freezing or holding a pose. Each wears exactly what they wear in the first frame the whole time, nothing put on or taken off.'
           : `The movement is unhurried and keeps going through the whole part — still moving at the last frame, never freezing or holding a pose. ${who} wears exactly what ${who === 'He' ? 'he' : 'she'} wears in the first frame the whole time, nothing put on or taken off.`,
       own,
-      line
-        ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
-        : part.wordless
-          ? // Live: a wordless part of a talking clip made up a line of its own.
-            `Nobody speaks in this part — no words, ${who === 'He' ? 'his' : 'her'} mouth closed or smiling; only the sound of the place.`
-          : '',
+      line && part.reply?.trim()
+        ? `${who} says, "${line}" Then ${part.replier === 'He' ? 'he' : 'she'} answers, "${part.reply.trim().replace(/["“”]/g, '')}"`
+        : line
+          ? `${who} says, "${line}" — ${who === 'He' ? 'his' : 'her'} lips move with every word.`
+          : part.wordless
+            ? // Live: a wordless part of a talking clip made up a line of its own.
+              `Nobody speaks in this part — no words, ${who === 'He' ? 'his' : 'her'} mouth closed or smiling; only the sound of the place.`
+            : '',
       part.blocks?.length
         ? 'Camera: one locked-off shot, no cuts, no new shot, no camera move.'
         : `Sound: the natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and the small sounds of what is happening${line ? ', under the voice' : ''}.`,

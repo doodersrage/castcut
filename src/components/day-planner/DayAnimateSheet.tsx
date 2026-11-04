@@ -22,6 +22,7 @@ import {
   normalizeDayTalkTotalSeconds,
   type DayAnimateChoice,
   type DayClipExtraSeconds,
+  type DaySpeaker,
   type DayTalkTotalSeconds,
 } from '@/lib/day/clip-length';
 import type { DaySlot } from '@/lib/day/planner';
@@ -58,6 +59,8 @@ export type DayClipPreview = {
    * ~5 s, then H3 parts that carry it on (past ~5 s H3 cuts to a new shot).
    */
   chainLength?: { firstSec: number };
+  /** Two people in the still (MiniMax-H3): each extra line can be the other person's (M11 T21). */
+  twoPeople?: boolean;
 };
 
 /**
@@ -95,6 +98,8 @@ export default function DayAnimateSheet({
     normalizeDayTalkTotalSeconds(initialTalkTotalSeconds)
   );
   const [lines, setLines] = useState<string[]>([]);
+  // Two people (M11 T21): who says each part's line ('' = the Cast).
+  const [speakers, setSpeakers] = useState<DaySpeaker[]>([]);
   // How each part's line is said ('' = the slot's own tone).
   const [tones, setTones] = useState<string[]>([]);
   const toneFor = (index: number) => (
@@ -218,6 +223,9 @@ export default function DayAnimateSheet({
               // (a bare "carry on" pushed the camera in part after part, M11).
               beats: Array.from({ length: parts }, (_, index) => partBeats[index]?.trim() ?? ''),
               partSeconds: Array.from({ length: parts }, (_, index) => partSeconds[index] ?? 0),
+              ...(current.twoPeople
+                ? { speakers: Array.from({ length: parts }, (_, index) => speakers[index] ?? '') }
+                : {}),
             }
           : {
               direction: edited && !current.talking ? direction : undefined,
@@ -433,6 +441,25 @@ export default function DayAnimateSheet({
                         data-testid={`day-animate-part-line-${index}`}
                       />
                       {toneFor(index)}
+                      {current.twoPeople ? (
+                        <SelectInput
+                          value={speakers[index] === 'partner' ? 'partner' : 'lead'}
+                          aria-label={`Who says part ${index + 2}'s line`}
+                          disabled={writing || !(lines[index] ?? '').trim()}
+                          className="w-auto"
+                          onChange={event =>
+                            setSpeakers(list => {
+                              const next = [...list];
+                              next[index] = event.target.value === 'partner' ? 'partner' : '';
+                              return next;
+                            })
+                          }
+                          data-testid={`day-animate-part-speaker-${index}`}
+                        >
+                          <option value="lead">Your Cast says it</option>
+                          <option value="partner">The other person says it</option>
+                        </SelectInput>
+                      ) : null}
                     </div>
                     <SegmentedControl
                       aria-label={`Length of part ${index + 2}`}

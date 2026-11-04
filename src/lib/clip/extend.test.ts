@@ -26,6 +26,10 @@ import {
   extendFacesNote,
   pickAnchorFrame,
   withPartAction,
+  median,
+  spokeInOtherVoice,
+  voicedPitches,
+  pairDuoLines,
 } from './extend';
 import { buildLtx25ExtendGraph, extendSegmentPrompt, LTX25_EXTEND_SAVE_NODE } from '../video/ltx25-renderer';
 import { h3PartPrompt } from '../engine/h3-renderer';
@@ -449,5 +453,64 @@ describe('written beats that would make a prop pop in or out', () => {
     const plain = 'She stretches her arms and smiles toward the pool.';
     assert.equal(screenExtendBeat(plain, { shows }), plain);
     assert.match(screenExtendBeat('They grab their bags.', { shows, people: 2 }), /^They /);
+  });
+});
+
+describe('whose voice a two-person part spoke in (M11 T21)', () => {
+  const tone = (hz: number, seconds: number, rate = 16000) =>
+    Int16Array.from({ length: Math.round(seconds * rate) }, (_, i) =>
+      Math.round(8000 * Math.sin((2 * Math.PI * hz * i) / rate))
+    );
+
+  it('reads a voice\'s pitch', () => {
+    assert.ok(Math.abs(median(voicedPitches(tone(220, 1), 16000)) - 220) < 6);
+    assert.ok(Math.abs(median(voicedPitches(tone(130, 1), 16000)) - 130) < 4);
+    // Silence: nothing voiced.
+    assert.deepEqual(voicedPitches(new Int16Array(16000), 16000), []);
+  });
+
+  it('flags a part with enough of it in the other voice\'s band', () => {
+    const his = Array.from({ length: 40 }, (_, i) => 120 + (i % 10));
+    // His line alone: right. Opened with her voice for a while: wrong.
+    assert.equal(spokeInOtherVoice(his, 143, 246), false);
+    const mixed = [...his, ...Array.from({ length: 16 }, (_, i) => 230 + i)];
+    assert.equal(spokeInOtherVoice(mixed, 143, 246), true);
+    // Her voice rendered lower than her clip (~200 against 246): still hers.
+    const hers = Array.from({ length: 40 }, (_, i) => 180 + i * 1.5);
+    assert.equal(spokeInOtherVoice(hers, 246, 143), false);
+    // Voices too close to tell, or too little heard: never flagged.
+    assert.equal(spokeInOtherVoice(mixed, 200, 215), false);
+    assert.equal(spokeInOtherVoice([240, 241], 143, 246), false);
+  });
+});
+
+describe('a back-and-forth shares parts (M11 T21)', () => {
+  it('pairs a line with the other person\'s answer straight after it', () => {
+    const parts = pairDuoLines({
+      beats: ['She turns to him.', 'He leans back.', 'She nudges him.', 'He laughs.', 'She looks out.'],
+      lines: ['Stay up here?', 'If you bring blankets.', 'Deal.', 'You are on.', 'My favourite place.'],
+      speakers: ['lead', 'partner', 'lead', 'partner', 'lead'],
+      tones: ['playful', '', '', '', ''],
+    });
+    assert.deepEqual(
+      parts.map(part => [part.line, part.reply ?? '', part.speaker]),
+      [
+        ['Stay up here?', 'If you bring blankets.', 'lead'],
+        ['Deal.', 'You are on.', 'lead'],
+        ['My favourite place.', '', 'lead'],
+      ]
+    );
+    assert.equal(parts[0]!.beat, 'She turns to him. Then He leans back.');
+    assert.equal(parts[0]!.tone, 'playful');
+  });
+
+  it('leaves the same speaker twice, and wordless parts, on their own', () => {
+    const parts = pairDuoLines({
+      beats: ['a', 'b', 'c', 'd'],
+      lines: ['One.', 'Two.', '', 'Four.'],
+      speakers: ['partner', 'partner', 'lead', 'lead'],
+    });
+    assert.equal(parts.length, 4);
+    assert.ok(parts.every(part => !part.reply));
   });
 });

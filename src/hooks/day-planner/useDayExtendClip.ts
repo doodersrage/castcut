@@ -218,7 +218,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const slot = slots.find(entry => entry.id === still.slotId);
         if (step !== 'start' || !still.pendingDialogue || !slot) continue;
         const { slotId } = still;
-        const { lines, tones, beats, partSeconds, targetSec } = still.pendingDialogue;
+        const { lines, tones, beats, partSeconds, speakers, targetSec } = still.pendingDialogue;
         // Wordless parts: a MiniMax-H3 clip grown past its own ~5 s shot.
         const spoken = lines.some(line => line.trim());
         // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
@@ -230,7 +230,13 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
           .then(() =>
             extendSlotClip(
               slot,
-              { lines, tones, beats, partSeconds },
+              {
+                lines,
+                tones,
+                beats,
+                partSeconds,
+                ...(speakers ? { speakers: speakers.map(who => who || 'lead') } : {}),
+              },
               {
                 // Exactly one part per line, whatever the server measures the first clip at.
                 extendBySec: dayTalkExtendBySec(lines.length),

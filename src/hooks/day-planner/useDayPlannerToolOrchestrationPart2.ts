@@ -428,7 +428,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
          */
         dialogue?: Pick<
           DayPendingDialogue,
-          'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones'
+          'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones' | 'speakers'
         >;
       }
     ) => {
@@ -707,8 +707,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // Longer: a one-person talking clip on LTX-2.5 lip-syncs its extension parts; a
         // MiniMax-H3 clip not pinned to a last frame grows in H3 parts. Kept on the still for this
         // clip job; a new Animate replaces or clears it.
+        // Two people talking grow on MiniMax-H3 only (each part in its speaker's voice, M11 T21).
         const growsInParts =
-          !conversation &&
+          (!conversation || isH3Model(videoModel)) &&
           ((speaking && isLtx25Model(videoModel)) || (isH3Model(videoModel) && !endImageFilename));
         const dialogue =
           options?.dialogue?.lines.length && growsInParts && typeof promptId === 'string'
@@ -732,6 +733,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 ...(options.dialogue.beats?.length ? { beats: options.dialogue.beats } : {}),
                 ...(options.dialogue.partSeconds?.length
                   ? { partSeconds: options.dialogue.partSeconds }
+                  : {}),
+                ...(options.dialogue.speakers?.length
+                  ? { speakers: options.dialogue.speakers }
                   : {}),
                 forClip: promptId,
               }
@@ -1218,7 +1222,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const longDialogue = talking && !conversation && !pinned;
       // MiniMax-H3 past its own ~5 s cuts to a new shot: a longer H3 clip is the first clip
       // then H3 parts (not when pinned to a last frame — the parts would run on past it).
-      const h3Chain = isH3Model(engine) && !conversation && !pinned;
+      // Two people talking too (M11 T21): each part says a line in its speaker's voice.
+      const h3Chain = isH3Model(engine) && !pinned;
       const manLead = dayPartnerNoun(character ?? {}) === 'man';
       const prompt = talking
         ? inSpokenLanguage(
@@ -1248,6 +1253,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // still offered when pinned to a last frame; otherwise H3 grows in parts with sound.
         silentWhenLong: isH3Model(engine) && !spokenLine && !h3Chain,
         ...(h3Chain ? { chainLength: { firstSec: lengthSeconds[0] ?? 5 } } : {}),
+        // Two people in the still: each extra line can be the other person's.
+        ...(h3Chain && stillPromptPeople(parentEntry?.prompt) >= 2 ? { twoPeople: true } : {}),
         prompt,
         defaultDirection: defaultDayClipDirection(slot, character?.name),
         lengthSeconds,

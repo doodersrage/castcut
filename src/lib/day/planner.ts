@@ -1,4 +1,4 @@
-import { normalizeDayPartSeconds } from './clip-length';
+import { normalizeDayPartSeconds, normalizeDaySpeakers } from './clip-length';
 import { danceMoveWords } from '@/lib/pose/dance-move';
 import { normalizeStoryState, type ShotStoryState } from './story-state';
 import { normalizeDubLanguage } from './dub';
@@ -4656,6 +4656,7 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
     tones?: unknown;
     beats?: unknown;
     partSeconds?: unknown;
+    speakers?: unknown;
     forClip?: unknown;
   } | null;
   const targetSec = Number(record?.targetSec);
@@ -4677,6 +4678,9 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
       ...(tones.some(Boolean) ? { tones } : {}),
       ...(beats.some(Boolean) ? { beats } : {}),
       ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
+      ...(normalizeDaySpeakers(record.speakers, lines.length)
+        ? { speakers: normalizeDaySpeakers(record.speakers, lines.length) }
+        : {}),
       forClip,
     },
   };

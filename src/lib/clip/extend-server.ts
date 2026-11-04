@@ -32,6 +32,10 @@ import {
   colorMatchFilter,
   colorMatchGains,
   laplacianVariance,
+  median,
+  pairDuoLines,
+  spokeInOtherVoice,
+  voicedPitches,
   pickStartSharpenIndex,
   WAN_START_SHARPEN_STEPS,
   extendSegmentCount,
@@ -75,6 +79,7 @@ import {
   H3_REF_FILES,
   H3_REF_NODE,
   h3ReplaySource,
+  withH3Conversation,
   withH3PartSpeaker,
   withH3References,
   withH3Dialogue,
@@ -1018,6 +1023,52 @@ async function partHeardWrong(
   return heard !== null && wordlessSpeaks(heard, loudest);
 }
 
+/** A part where one says a line and the other answers (~6 s, as a conversation's first clip). */
+const H3_CONVERSATION_PART_FRAMES = h3GridFrames(6 * 24 + 1);
+
+/** The pitches of a file's voice (voicedPitches); empty when it can't be read. */
+async function filePitches(ffmpeg: string, file: string): Promise<number[]> {
+  const rate = 16000;
+  const pcm = await new Promise<Buffer>(resolve => {
+    const child = spawn(
+      ffmpeg,
+      ['-v', 'error', '-i', file, '-vn', '-ac', '1', '-ar', String(rate), '-f', 's16le', '-'],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
+    child.on('error', () => resolve(Buffer.alloc(0)));
+    child.on('close', () => resolve(Buffer.concat(chunks)));
+  });
+  if (pcm.length < rate / 10) return [];
+  return voicedPitches(
+    new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2)),
+    rate
+  );
+}
+
+/** A voice clip's pitch (a ComfyUI input, fetched once); 0 when it can't be read. */
+async function voiceClipPitch(
+  ffmpeg: string,
+  baseUrl: string,
+  clip: string,
+  at: (name: string) => string
+): Promise<number> {
+  try {
+    const params = new URLSearchParams({ filename: clip, type: 'input' });
+    const response = await fetch(`${baseUrl}/view?${params.toString()}`);
+    if (!response.ok) return 0;
+    const file = at(`pitch-${clip.replace(/[^\w.-]/g, '_')}`);
+    await fs.writeFile(
+      /* turbopackIgnore: true */ file,
+      new Uint8Array(await response.arrayBuffer())
+    );
+    return median(await filePitches(ffmpeg, file));
+  } catch {
+    return 0;
+  }
+}
+
 /** How far a wordless part that still speaks after its retries is turned down (dB). */
 const WORDLESS_DUCK_DB = -24;
 
@@ -1518,6 +1569,30 @@ export async function extendClip(
       h3 && (shot.people ?? 1) >= 2
         ? await duoFacePictures(baseUrl, at('reference.png')).catch(() => null)
         : null;
+    // Two people talking (M11 T21): a line and the other person's answer straight after it
+    // share one part (pairDuoLines) — half the joins in a back-and-forth.
+    let replies: string[] = [];
+    if (h3 && duoFaces && input.speakers?.includes('partner')) {
+      const paired = pairDuoLines({
+        beats,
+        lines: input.lines,
+        speakers: input.speakers,
+        tones: input.tones,
+        partSeconds: input.partSeconds,
+      });
+      if (paired.length < beats.length) {
+        beats.splice(0, beats.length, ...paired.map(part => part.beat));
+        input = {
+          ...input,
+          lines: paired.map(part => part.line),
+          speakers: paired.map(part => part.speaker),
+          tones: paired.map(part => part.tone),
+          partSeconds: paired.map(part => part.partSeconds),
+        };
+        replies = paired.map(part => part.reply ?? '');
+        onProgress({ total: paired.length, done: 0 });
+      }
+    }
     const keyframes =
       h3 && !duoFaces && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
         ? await keyframeEditor(baseUrl, input.llm)
@@ -1526,7 +1601,7 @@ export async function extendClip(
       h3 && !keyframes && !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
         : null;
-    const renders = groups?.length ?? total;
+    const renders = groups?.length ?? beats.length;
     if (groups) onProgress({ total: renders, done: 0 });
     let restoreFace: string | undefined;
     if (engine === 'ltx') {
@@ -1566,12 +1641,22 @@ export async function extendClip(
       faceReference = null;
     }
     const faces: Array<number | null> = [];
+    // Each voice clip's pitch, read once (two people talking: whose voice a part spoke in).
+    const voicePitch: Record<string, number> = {};
     for (let k = 0; k < renders; k += 1) {
       const group = groups?.[k];
       // Who says this part's line (two people, M11 T21): the partner, else the lead.
       const partnerSpeaks = Boolean(duoFaces) && input.speakers?.[k] === 'partner';
+      // The other person's answer in the same part (pairDuoLines).
+      const reply = replies[k] ?? '';
+      // A talking part with two people in it.
+      const duoTalk = Boolean(h3 && duoFaces && !group && input.lines?.[k]?.trim());
       // The part's frames: its blocks and the start frame it drops (H3's own shot otherwise).
-      const partFrames = group ? h3GridFrames(Math.round(group.seconds * 24) + 1) : H3_PART_FRAMES;
+      const partFrames = group
+        ? h3GridFrames(Math.round(group.seconds * 24) + 1)
+        : reply
+          ? H3_CONVERSATION_PART_FRAMES
+          : H3_PART_FRAMES;
       // A generated part (never the player's own clip) cut at its best face frame.
       // Two people: not by face match — the Cast's face picked the frames where the partner looked
       // most like her.
@@ -1696,6 +1781,7 @@ export async function extendClip(
                 !group && !input.lines?.[k]?.trim() && input.lines?.some(line => line?.trim())
               ),
               speaker: partnerSpeaks ? partnerWho : leadWho,
+              ...(reply ? { reply, replier: partnerSpeaks ? leadWho : partnerWho } : {}),
               held,
               people: shot.people,
               ...(group ? { blocks: group.blocks } : {}),
@@ -1703,7 +1789,7 @@ export async function extendClip(
           ),
           seed: seed + k * 7,
           prefix,
-          ...(group ? { frames: partFrames, silent: true } : {}),
+          ...(group ? { frames: partFrames, silent: true } : reply ? { frames: partFrames } : {}),
           ...(endFrame ? { endFrame } : {}),
         });
         if (!patched) throw new Error('Could not replay this clip’s MiniMax-H3 graph.');
@@ -1711,28 +1797,35 @@ export async function extendClip(
         const speaks = Boolean((voiceAnchor || voiceAudio) && !group && input.lines?.[k]?.trim());
         // Two people talking (M11 T21): both voices on the part, the line said by its speaker and
         // the other listening — one voice alone made both speak in it.
-        const duoTalk = Boolean(duoFaces && !group && input.lines?.[k]?.trim());
+        const leadSpeaker = {
+          noun: leadNoun,
+          who: leadWho,
+          ...(voiceAnchor ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words } : {}),
+        };
+        const partnerSpeaker = {
+          noun: partnerNoun,
+          who: partnerWho,
+          ...(partnerAnchor
+            ? { voiceClip: partnerAnchor.clip, clipWords: partnerAnchor.words }
+            : {}),
+        };
         const twoVoices =
           duoTalk && (voiceAnchor || partnerAnchor)
-            ? withH3PartSpeaker(patched.graph, {
-                first: {
-                  noun: leadNoun,
-                  who: leadWho,
-                  ...(voiceAnchor
-                    ? { voiceClip: voiceAnchor.clip, clipWords: voiceAnchor.words }
-                    : {}),
-                },
-                second: {
-                  noun: partnerNoun,
-                  who: partnerWho,
-                  ...(partnerAnchor
-                    ? { voiceClip: partnerAnchor.clip, clipWords: partnerAnchor.words }
-                    : {}),
-                },
-                speaking: partnerSpeaks ? 'second' : 'first',
-                pictures: duoFaces?.pictures,
-                look: duoFaces?.look,
-              })
+            ? reply
+              ? // A line and its answer: as a conversation's first clip, (S1) the one who starts.
+                withH3Conversation(patched.graph, {
+                  first: partnerSpeaks ? partnerSpeaker : leadSpeaker,
+                  second: partnerSpeaks ? leadSpeaker : partnerSpeaker,
+                  pictures: duoFaces?.pictures,
+                  look: duoFaces?.look,
+                })
+              : withH3PartSpeaker(patched.graph, {
+                  first: leadSpeaker,
+                  second: partnerSpeaker,
+                  speaking: partnerSpeaks ? 'second' : 'first',
+                  pictures: duoFaces?.pictures,
+                  look: duoFaces?.look,
+                })
             : null;
         const anchored = twoVoices
           ? twoVoices
@@ -1854,7 +1947,8 @@ export async function extendClip(
       // H3 can cut to a new shot mid-part (a wide of the sea between two close keyframes, live), or
       // say more than its line (about 1 in 10 voice-anchored parts, M11 T19 — heard by Castcut's
       // transcribe node when ComfyUI has it): rendered again on another seed, up to CUT_RETRIES.
-      const partLine = h3 && !group ? (input.lines?.[k]?.trim() ?? '') : '';
+      const partLine =
+        h3 && !group ? [input.lines?.[k]?.trim() ?? '', reply].filter(Boolean).join(' ') : '';
       // A wordless part of a talking clip: H3's plain model made up garbled speech in 2 of 3 live
       // ("Nobody speaks" in the prompt notwithstanding) — heard like a talking part.
       const wordlessPart = Boolean(
@@ -1862,11 +1956,33 @@ export async function extendClip(
       );
       // Heard still saying something other than its line after the retries: not a voice to keep.
       let lineWrong = false;
+      // Two people talking (M11 T21): said in the other person's voice — re-rendered like a wrong
+      // line (live: a part of his opened with her voice clip's words in her voice).
+      // (A line and its answer hold both voices: not checked by pitch.)
+      const speakerClip =
+        duoTalk && !reply ? (partnerSpeaks ? partnerAnchor : voiceAnchor)?.clip : undefined;
+      const otherClip =
+        duoTalk && !reply ? (partnerSpeaks ? voiceAnchor : partnerAnchor)?.clip : undefined;
+      const speakerHz = speakerClip
+        ? (voicePitch[speakerClip] ??= await voiceClipPitch(ffmpeg, baseUrl, speakerClip, at))
+        : 0;
+      const otherHz = otherClip
+        ? (voicePitch[otherClip] ??= await voiceClipPitch(ffmpeg, baseUrl, otherClip, at))
+        : 0;
       for (let retry = 1; h3 && retry <= CUT_RETRIES + 1; retry += 1) {
         const cut = await hasHardCut(ffmpeg, at(`seg${k}.bin`));
         const wrong =
           !cut && (partLine || wordlessPart)
-            ? await partHeardWrong(ffmpeg, baseUrl, at(`seg${k}.bin`), partLine).catch(() => false)
+            ? (await partHeardWrong(ffmpeg, baseUrl, at(`seg${k}.bin`), partLine).catch(
+                () => false
+              )) ||
+              (speakerHz > 0 &&
+                otherHz > 0 &&
+                spokeInOtherVoice(
+                  await filePitches(ffmpeg, at(`seg${k}.bin`)).catch(() => []),
+                  speakerHz,
+                  otherHz
+                ))
             : false;
         if (!cut && !wrong) break;
         if (retry > CUT_RETRIES) {
@@ -1962,6 +2078,7 @@ export async function extendClip(
         h3 &&
         !voiceAnchor &&
         !partnerSpeaks &&
+        !reply &&
         !lineWrong &&
         !input.voiceSample?.trim() &&
         !group &&
@@ -1979,6 +2096,7 @@ export async function extendClip(
         h3 &&
         !partnerAnchor &&
         partnerSpeaks &&
+        !reply &&
         !lineWrong &&
         !group &&
         input.lines?.[k]?.trim()

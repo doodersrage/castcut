@@ -442,3 +442,17 @@ describe('a talking H3 part with no voice to keep says its line in the dialogue 
     assert.equal(withH3Dialogue(wordless), wordless);
   });
 });
+
+describe('a part where one speaks and the other answers (M11 T21)', () => {
+  it('says the line and the answer, each by its speaker', () => {
+    const prompt = h3PartPrompt('5s clip. On a rooftop.', {
+      beat: 'She turns to him.',
+      line: 'Stay up here?',
+      speaker: 'She',
+      reply: 'If you bring "blankets".',
+      replier: 'He',
+      people: 2,
+    });
+    assert.match(prompt, /She says, "Stay up here\?" Then he answers, "If you bring blankets\."/);
+  });
+});

@@ -118,6 +118,8 @@ export type DayPendingDialogue = {
   beats?: string[];
   /** Each part's length in seconds (0 = the engine's own; M11 T2). */
   partSeconds?: number[];
+  /** Two people (M11 T21): who says each line ('' = the Cast). */
+  speakers?: DaySpeaker[];
   /** The clip job it waits for. */
   forClip?: string;
 };
@@ -159,7 +161,20 @@ export type DayAnimateChoice = {
   partSeconds?: number[];
   /** How each extra part's line is said (same order; '' = the slot's own tone). */
   tones?: string[];
+  /** Two people (M11 T21): who says each extra part's line (same order). */
+  speakers?: DaySpeaker[];
 };
+
+/** Who says a line when two people are in the shot: the Cast, or the other person. */
+export type DaySpeaker = 'lead' | 'partner' | '';
+
+/** Speakers kept only when someone other than the Cast says a line ('' = the Cast). */
+export function normalizeDaySpeakers(value: unknown, count: number): DaySpeaker[] | undefined {
+  const speakers = Array.from({ length: count }, (_, index): DaySpeaker =>
+    Array.isArray(value) && value[index] === 'partner' ? 'partner' : ''
+  );
+  return speakers.includes('partner') ? speakers : undefined;
+}
 
 /** The Length pick to remember for the next Animate, or null when it has not changed. */
 export function dayAnimateSettingsPatch(
@@ -189,6 +204,7 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
     beats?: string[];
     partSeconds?: number[];
     tones?: string[];
+    speakers?: DaySpeaker[];
   };
 } {
   if (choice.talkTotalSeconds === undefined) {
@@ -212,6 +228,9 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
           ...(beats?.length ? { beats } : {}),
           ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
           ...(tones.some(Boolean) ? { tones } : {}),
+          ...(normalizeDaySpeakers(choice.speakers, lines.length)
+            ? { speakers: normalizeDaySpeakers(choice.speakers, lines.length) }
+            : {}),
         },
       }
     : { ...direction, extraSeconds: 0 };

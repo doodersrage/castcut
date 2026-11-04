@@ -272,3 +272,41 @@ describe('Animate: how each part’s line is said', () => {
     assert.equal(plain.dialogue?.tones, undefined);
   });
 });
+
+describe('two people talking in a longer clip (M11 T21)', () => {
+  it('keeps who says each extra line when it is not only the Cast', () => {
+    const options = dayAnimateOptions({
+      extraSeconds: 0,
+      talkTotalSeconds: 15,
+      lines: ['We could stay.', 'Bring blankets then.'],
+      speakers: ['partner', ''],
+    });
+    assert.deepEqual(options.dialogue?.speakers, ['partner', '']);
+    // All the Cast's: nothing to keep.
+    const own = dayAnimateOptions({
+      extraSeconds: 0,
+      talkTotalSeconds: 15,
+      lines: ['Hi.', 'Bye.'],
+      speakers: ['', 'lead'],
+    });
+    assert.equal(own.dialogue?.speakers, undefined);
+  });
+
+  it('keeps them on the still while its first clip renders', () => {
+    const still = normalizeDaySlotStills([
+      {
+        slotId: 'evening',
+        status: 'completed',
+        imageUrl: '/s.png',
+        pendingDialogue: {
+          targetSec: 15,
+          lines: ['We could stay.', 'Bring blankets then.'],
+          // A stored value that isn't a speaker reads as the Cast.
+          speakers: ['partner', 'nobody' as never],
+          forClip: 'clip-1',
+        },
+      },
+    ]).find(entry => entry.slotId === 'evening');
+    assert.deepEqual(still?.pendingDialogue?.speakers, ['partner', '']);
+  });
+});

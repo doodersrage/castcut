@@ -910,3 +910,138 @@ export function pickStartSharpenIndex(target: number, detailAfter: ReadonlyArray
   }
   return chosen;
 }
+
+/**
+ * The pitch (Hz) of each voiced stretch of `samples`: 64 ms frames, half overlapping, louder than
+ * `floorDb` under the loudest, their autocorrelation peak between 60 and 400 Hz when it is clear.
+ * A voice's own pitch and which of two voices speaks (M11 T21).
+ */
+export function voicedPitches(samples: Int16Array, sampleRate: number, floorDb = 30): number[] {
+  const size = Math.round(sampleRate * 0.064);
+  const step = Math.round(size / 2);
+  const minLag = Math.floor(sampleRate / 400);
+  const maxLag = Math.ceil(sampleRate / 60);
+  const frames: Array<{ from: number; db: number }> = [];
+  for (let from = 0; from + size + maxLag <= samples.length; from += step) {
+    let sum = 0;
+    for (let i = from; i < from + size; i += 1) sum += (samples[i]! / 32768) ** 2;
+    frames.push({ from, db: 10 * Math.log10(sum / size + 1e-12) });
+  }
+  if (!frames.length) return [];
+  const loudest = Math.max(...frames.map(frame => frame.db));
+  const pitches: number[] = [];
+  for (const { from, db } of frames) {
+    if (db < loudest - floorDb) continue;
+    let mean = 0;
+    for (let i = from; i < from + size; i += 1) mean += samples[i]!;
+    mean /= size;
+    const at = (i: number) => samples[i]! - mean;
+    let zero = 0;
+    for (let i = from; i < from + size; i += 1) zero += at(i) * at(i);
+    if (zero <= 0) continue;
+    const sums: number[] = [];
+    let best = 0;
+    for (let lag = minLag; lag <= maxLag; lag += 1) {
+      let sum = 0;
+      for (let i = from; i < from + size; i += 1) sum += at(i) * at(i + lag);
+      sums.push(sum);
+      best = Math.max(best, sum);
+    }
+    if (!(best > 0.3 * zero)) continue;
+    // The shortest period that is nearly as strong: two or three periods match as well, and the
+    // strongest of them read a voice an octave or more low.
+    const index = sums.findIndex(
+      (sum, k) =>
+        sum >= 0.9 * best && sum >= (sums[k - 1] ?? -Infinity) && sum >= (sums[k + 1] ?? -Infinity)
+    );
+    if (index >= 0) pitches.push(sampleRate / (minLag + index));
+  }
+  return pitches;
+}
+
+/** The middle value (0 for none). */
+export function median(values: readonly number[]): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+/** Two voices this far apart in pitch (a ratio) can be told apart by it. */
+export const VOICE_PITCH_APART = 1.25;
+/**
+ * A part with this share of its voiced frames in the other speaker's band said its line in their
+ * voice; the band is within OTHER_VOICE_BAND of their pitch. Set on six live parts (the rooftop
+ * conversation): the wrong one 0.27, the five right ones 0.02–0.09.
+ */
+export const WRONG_VOICE_SHARE = 0.18;
+export const OTHER_VOICE_BAND = 1.15;
+
+/**
+ * Whether a two-person talking part spoke in the other person's voice (M11 T21): enough of its
+ * voiced frames (`pitches`) nearer the other speaker's pitch than its speaker's. False when the two
+ * voices are too close in pitch to tell, or too little was voiced. Live (the rooftop conversation,
+ * his part): the render that opened with her voice clip's words in her voice, then his line —
+ * against his re-render, his line alone.
+ */
+export function spokeInOtherVoice(
+  pitches: readonly number[],
+  speakerHz: number,
+  otherHz: number
+): boolean {
+  if (!(speakerHz > 0 && otherHz > 0) || pitches.length < 6) return false;
+  if (Math.max(speakerHz, otherHz) / Math.min(speakerHz, otherHz) < VOICE_PITCH_APART) return false;
+  // Within the other voice's own band and nearer it — not merely past the midpoint: a voice
+  // renders lower than its clip (hers ~200 Hz against her clip's 246), and half her frames
+  // fell nearer his 143.
+  const theirs = (hz: number) =>
+    Math.abs(Math.log(hz / otherHz)) < Math.log(OTHER_VOICE_BAND) &&
+    Math.abs(Math.log(hz / otherHz)) < Math.abs(Math.log(hz / speakerHz));
+  return pitches.filter(theirs).length / pitches.length > WRONG_VOICE_SHARE;
+}
+
+/** A longer clip's part after pairing (pairDuoLines). */
+export type PairedPart = {
+  beat: string;
+  line: string;
+  /** The other person's answer, said in the same part. */
+  reply?: string;
+  speaker: 'lead' | 'partner';
+  tone: string;
+  partSeconds: number;
+};
+
+/**
+ * Two people talking (M11 T21): a line followed at once by the other person's becomes one part —
+ * the line and its reply, as the first clip of a conversation says them — so a back-and-forth
+ * has half the joins (each join is where the look drifts). Other parts stay as they are.
+ */
+export function pairDuoLines(input: {
+  beats: readonly string[];
+  lines?: readonly (string | undefined)[];
+  speakers?: readonly (string | undefined)[];
+  tones?: readonly (string | undefined)[];
+  partSeconds?: readonly (number | undefined)[];
+}): PairedPart[] {
+  const out: PairedPart[] = [];
+  const who = (k: number) => (input.speakers?.[k] === 'partner' ? 'partner' : 'lead');
+  for (let k = 0; k < input.beats.length; k += 1) {
+    const line = input.lines?.[k]?.trim() ?? '';
+    const next = input.lines?.[k + 1]?.trim() ?? '';
+    const part: PairedPart = {
+      beat: input.beats[k] ?? '',
+      line,
+      speaker: who(k),
+      tone: input.tones?.[k] ?? '',
+      partSeconds: input.partSeconds?.[k] ?? 0,
+    };
+    if (line && next && k + 1 < input.beats.length && who(k + 1) !== who(k)) {
+      const beats = [input.beats[k], input.beats[k + 1]].map(beat => beat?.trim()).filter(Boolean);
+      out.push({ ...part, beat: beats.join(' Then '), reply: next, partSeconds: 0 });
+      k += 1;
+    } else {
+      out.push(part);
+    }
+  }
+  return out;
+}

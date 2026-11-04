@@ -2785,9 +2785,19 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   (`h3ReplaySource`: start frame from the guide, the voice tags and dialogue taken out). Live
   (the rooftop conversation, five lines her / him in turn, 31 s): every part on H3, each line its
   speaker's voice and words; his first part opened with her voice clip's own words in her voice,
-  the line check re-rendered it and the retry was right; both stayed in frame throughout. Not yet:
-  Animate's own longer dialogue for a conversation (still one clip there), a per-speaker voice
-  check (step 4).
+  the line check re-rendered it and the retry was right; both stayed in frame throughout.
+- Step 4, a per-speaker voice check: a two-person talking part is re-rendered when enough of its
+  speech sits in the other voice's pitch band (`spokeInOtherVoice`: ±15 % of that voice clip's
+  pitch, over 18 % of voiced frames; never when the two voices are within 25 % of each other).
+  Set on the six rooftop parts: the wrong render 0.27, the five right ones 0.02–0.09 — a voice
+  renders lower than its clip (hers ~205 Hz against 246), so the midpoint alone flagged a right
+  part of hers. The pitch reader takes the shortest strong period (two periods matched as well
+  and read a voice an octave low).
+- Animate's longer dialogue works for a conversation on H3 (a "who says it" per extra line; the
+  pending dialogue keeps it). A line followed straight away by the other person's now shares one
+  ~6 s part (`pairDuoLines`, rendered as a conversation): half the joins. Live (the same five
+  lines): three parts instead of five, every line right first time, both in frame; the clip
+  comes out shorter (~24 s against ~31) since two lines take ~6 s, not ~10.
 - Seen while testing: "Sharpen & smooth" (`finishClip`) on a 30 s clip loaded the whole clip
   into RAM (~40 GB) and took ComfyUI down; it needs to run in time chunks. Not fixed yet.
 - 5 s single-person talking clips (the user's six, kept voice on H3's reference model): the voice
