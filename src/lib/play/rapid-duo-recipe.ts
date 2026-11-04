@@ -117,6 +117,16 @@ function isCouchSurface(surface: string | null): boolean {
   return /\b(?:couch|sofa|settee|loveseat)\b/i.test(surface ?? '');
 }
 
+/**
+ * How a woman-and-man position says the act (the user: Intimate "needs to be more explicit and
+ * mention full penetration with duos"; their own wording, which worked for them on Qwen-Image
+ * 2.1 Turbo). Live (2026-11-04, the user's stills replayed): on 2.1 Turbo lifted 3/3 joined
+ * (0/1 before), on his lap 2/3 straddling and joined (was not); face-down from behind still
+ * 0/3 (2.1 does not draw it). On Rapid AIO NSFW from behind, lifted and the lap held 2/2 each —
+ * where "his erect penis fully inside her vagina" broke the lap 2/2.
+ */
+export const FULL_PENETRATION = 'his penis penetrating her vaginal opening';
+
 function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
@@ -130,13 +140,13 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // "Both faces in frame" alone laid him head to head with her, his body running the other
       // way (an upside-down kiss) — the user's missionary stills 0/3 right on replay. Placing
       // both heads at the same end and his legs behind him: 4/4 (live A/B 2026-10-04).
-      return `Side view, missionary position, both faces in frame. The woman lies face up along ${on('bed')}, her head on ${headRest(surface)} at one end; the man lies face down on top of her, his head beside her head at the same end, his chest over her chest, his hips between her thighs and his legs stretched out behind him; he props himself on his elbows; she wraps her legs around his waist; his penis inside her; their faces close.`;
+      return `Side view, missionary position, both faces in frame. The woman lies face up along ${on('bed')}, her head on ${headRest(surface)} at one end; the man lies face down on top of her, his head beside her head at the same end, his chest over her chest, his hips between her thighs and his legs stretched out behind him; he props himself on his elbows; she wraps her legs around his waist; ${FULL_PENETRATION}; their faces close.`;
     case 'mating_press':
       // "Side view" first: without a camera anchor 1/3 flipped overhead and upside down (user's
       // Raunchy still); with it, side-on 3/3 (2026-10-01).
       // Her legs placed (calves on his shoulders) and her head on the pillow: the user's mating
       // press still replayed 0/4 (no legs up, two head to head), placed 2/4 (live A/B 2026-10-04).
-      return `Side view, both faces in frame. The woman lies on her back along ${on('bed')}, her head on ${headRest(surface)}, her knees pulled up toward her shoulders and her calves resting on his shoulders; the man kneels upright between her legs, facing her, leaning forward over her with his hands on ${on('bed')} beside her shoulders, his penis inside her.`;
+      return `Side view, both faces in frame. The woman lies on her back along ${on('bed')}, her head on ${headRest(surface)}, her knees pulled up toward her shoulders and her calves resting on his shoulders; the man kneels upright between her legs, facing her, leaning forward over her with his hands on ${on('bed')} beside her shoulders, ${FULL_PENETRATION}.`;
     case 'straddle':
       // "Wide shot" with no camera side shot from his head: his face upside down at the bottom
       // and her squatting over his chest, 4/4 on the user's cowgirl still. "Side view" alone put
@@ -146,22 +156,22 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // grabbed it, arm and leg melding (the user's couch ride, 8/8 replays across four arms).
       // Near leg down to the floor and his hands given her waist: no melding 4/4 (one seed laid
       // her forward onto him; 2026-10-16).
-      return `Side view, wide shot, both faces in frame. The man lies flat on his back along ${on('bed')}, his head on ${headRest(surface)} and his legs stretched out straight; the woman sits upright on top of him, straddling his hips: ${isCouchSurface(surface) ? `her near leg hanging down off the front of ${on('couch')}, that foot on the floor` : `her near knee on ${on('bed')} beside his hip`}, her other knee on the far side of his body, her thighs over his hips and her bottom resting on his pelvis, his penis inside her, riding him; her hands on his chest, his hands holding her waist, looking down at his face.`;
+      return `Side view, wide shot, both faces in frame. The man lies flat on his back along ${on('bed')}, his head on ${headRest(surface)} and his legs stretched out straight; the woman sits upright on top of him, straddling his hips: ${isCouchSurface(surface) ? `her near leg hanging down off the front of ${on('couch')}, that foot on the floor` : `her near knee on ${on('bed')} beside his hip`}, her other knee on the far side of his body, her thighs over his hips and her bottom resting on his pelvis, riding him, ${FULL_PENETRATION}; her hands on his chest, his hands holding her waist, looking down at his face.`;
     case 'reverse_straddle':
-      return `Reverse cowgirl, camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of the man who sits back on ${on('couch')} behind her; her back rests against his chest, legs spread, riding his penis; his face is behind her shoulder and his hands on her hips.`;
+      return `Reverse cowgirl, camera in front of the woman. The woman is closest to the camera, facing the lens, sitting on the lap of the man who sits back on ${on('couch')} behind her; her back rests against his chest, legs spread, riding him, ${FULL_PENETRATION}; his face is behind her shoulder and his hands on her hips.`;
     case 'bent':
       // A rug or floor is no edge to bend over ("stands bent forward over the rug"): on all fours
       // there, as the bent map draws an unsupported bend (hands down, rear partner kneeling).
       return isFloorSurface(surface)
-        ? `The woman is on all fours on ${on('floor')}, hips raised, back arched; the man kneels close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.`
-        : `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind. She looks back over her shoulder.`;
+        ? `The woman is on all fours on ${on('floor')}, hips raised, back arched; the man kneels close behind her holding her hips, ${FULL_PENETRATION} from behind. She looks back over her shoulder.`
+        : `The woman stands bent forward over ${on('bed edge')}, hands braced on it, hips pushed back; the man stands close behind her holding her hips, ${FULL_PENETRATION} from behind. She looks back over her shoulder.`;
     case 'standing':
       // Story's standing guide is two upright bodies side by side — say how they join.
-      return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; the man stands close behind her holding her hips, penetrating her from behind; she looks back over her shoulder.`;
+      return `Both stand. The woman leans forward with her hands braced on ${on('wall')}, hips pushed back; the man stands close behind her holding her hips, ${FULL_PENETRATION} from behind; she looks back over her shoulder.`;
     case 'prone':
       // The side-view map can't say which way she faces: face-up 2/3 (03092). Back and buttocks
       // up, breasts in the sheets (as the solo prone line) → face-down 3/3 (2026-10-07).
-      return `The woman lies flat on her stomach on ${on('bed')}, seen from the side: her bare back and buttocks up, her breasts pressed into the sheets, her face turned toward the camera on the pillow; the man lies on top of her back, his chest over her back, propped up on his arms, penetrating her from behind.`;
+      return `The woman lies flat on her stomach on ${on('bed')}, seen from the side: her bare back and buttocks up, her breasts pressed into the sheets, her face turned toward the camera on the pillow; the man lies on top of her back, his chest over her back, propped up on his arms, ${FULL_PENETRATION} from behind.`;
     case 'spoon':
       // "Lifts her top leg … his hand holding it up" put the leg straight up at the ceiling 3/3
       // (03082); the knee drawn forward stayed natural 3/3, the act still in view (2026-10-07).
@@ -171,7 +181,7 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // user's spoon still (every arm of the 2026-10-16 replays). A low camera at the foot of the
       // bed, her legs together in front and his behind: no merging 4/4 (stacking her legs on his
       // threw them in the air; a sheet over both was ignored).
-      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; he penetrates her from behind; seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers; his hand on her hip. Both faces in frame.`;
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; ${FULL_PENETRATION} from behind; seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers; his hand on her hip. Both faces in frame.`;
     case 'scissors':
       // Drawn as missionary since 2026-10-05 (the seated wording + the scissors map merged legs
       // and once added a third person). Without the map, each leg placed: real scissoring 5-6/6
@@ -186,17 +196,17 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // 3/3 (live A/B on the user's hotel-window still, 2026-10-01).
       return /\b(?:partner\s+behind|from\s+behind)\b/i.test(beat) || isGlassSurface(surface)
         ? // Side view, no map (rapidAdultSkipsPoseGuide): front-on they posed side by side.
-          `Side view, both bodies in profile. The woman stands facing ${on('wall')}, her palms flat on it and her hips pushed back toward him; the man stands directly behind her, his chest against her back and his hips against her buttocks, penetrating her from behind, his hands on her hips; she turns her head to look back at him. No gap between their bodies.`
+          `Side view, both bodies in profile. The woman stands facing ${on('wall')}, her palms flat on it and her hips pushed back toward him; the man stands directly behind her, his chest against her back and his hips against her buttocks, ${FULL_PENETRATION} from behind, his hands on her hips; she turns her head to look back at him. No gap between their bodies.`
         : // "one leg lifted and hooked around his hip" drew the lifted foot sticking out behind
           // his back — a third leg on most seeds. Placing each leg: two clear legs 8/8, joined,
           // facing each other 6/8. Putting his hand on the wall stood him apart (live 2026-09-29).
-          `Side view, both bodies in profile, facing each other. The woman leans her back against ${on('wall')}; the man stands chest to chest against her, his hips between her thighs, penetrating her; her left leg is hooked around his hip and his hand holds it under the knee; their faces close, both in profile. No gap between their bodies.`;
+          `Side view, both bodies in profile, facing each other. The woman leans her back against ${on('wall')}; the man stands chest to chest against her, his hips between her thighs, ${FULL_PENETRATION}; her left leg is hooked around his hip and his hand holds it under the knee; their faces close, both in profile. No gap between their bodies.`;
     case 'lift':
       // "Holding her up by her thighs … legs wrapped around his waist": Rapid draws her legs
       // spread over his forearms anyway, and gave him a third hand at her waist (6/8 replays of
       // the user's still). Saying the hold it draws — arms hooked under her knees, hands on her
       // buttocks: two hands each 4/4 (2026-10-16).
-      return `Wide shot, both faces in frame. The man stands holding the woman up in front of him, chest to chest: his two arms hook under her knees and his hands grip her buttocks, her legs spread over his forearms; her two arms are around his neck, her face beside his, his penis inside her.`;
+      return `Wide shot, both faces in frame. The man stands holding the woman up in front of him, chest to chest: his two arms hook under her knees and his hands grip her buttocks, her legs spread over his forearms; her two arms are around his neck, her face beside his, ${FULL_PENETRATION}.`;
     case 'oral':
       // He goes down on her: "Full-body view, both faces in frame" laid him on his back on the
       // floor under her with his face upside down, to show it (the user's stills; replay 3/4
@@ -228,11 +238,11 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // pose lands every time, so the oral beat stays readable (guide: day-slot-pose.ts).
       return `Side view, exactly two people. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`;
     case 'kneeling':
-      return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, her arms around his neck and his hands on her hips; both faces in frame.`;
+      return `Both kneel upright on ${on('bed')} facing each other, bodies pressed together mid-sex, ${FULL_PENETRATION}, her arms around his neck and his hands on her hips; both faces in frame.`;
     case 'lap':
       // Front-on, Rapid turned her to the camera and buried him under her 3/3 (03085); side view
       // with both faces in profile kept them chest to chest 3/3 (2026-10-07).
-      return `Side view of ${on('chair')}. The man sits in it, his face in profile; the woman sits on his lap facing him, chest to chest, straddling him with her knees on either side of his hips, riding his penis, her arms around his neck — her face in profile too, his whole body visible under her.`;
+      return `Side view of ${on('chair')}. The man sits in it, his face in profile; the woman sits on his lap facing him, chest to chest, straddling him with her knees on either side of his hips, riding him, ${FULL_PENETRATION}, her arms around his neck — her face in profile too, his whole body visible under her.`;
     default:
       return null;
   }
@@ -460,8 +470,61 @@ export function twoMenBeat(beat: string): string {
 const NUDE_TWO_MEN =
   'Both men are completely nude — bare chests and bare penises; zero fabric on either body.';
 
+/**
+ * Two people mid-sex look it (the user: the stills looked "super clean"). Live (2026-11-04, the
+ * user's three stills on Qwen-Image 2.1 Turbo): a visible sheen and damp hair on all three, the
+ * pose unchanged; the user: "sweat looks good". A lighter wording still shone; "genitals wet
+ * and glistening" on top only made the skin oilier.
+ */
+/**
+ * Whose body is whose (the user: the model sometimes drew a penis on the woman, alone or with a
+ * partner). Said positively — a negated "no penis" summons one at CFG 1. Live (2026-11-04, five
+ * seeds of a lifted still): no change on the four that were right; the fifth, his penis seen
+ * from behind her, unchanged — a pose miss, not her body.
+ */
+export const HER_ANATOMY = "She has a woman's body and a woman's genitals: a vulva.";
+export const DUO_ANATOMY =
+  "She has a woman's body and a woman's genitals, a vulva; the only penis in the picture is his, entering her.";
+const TWO_WOMEN_ANATOMY = "Both have women's bodies and women's genitals: vulvas.";
+
+export const DUO_SWEAT =
+  'Both are flushed and glistening with sweat — a sheen on their skin, damp hair at the temples, beads of sweat on her chest and his back.';
+
 const NUDE =
   'Both are completely nude — her bare breasts with nipples visible and bare vulva, his bare chest and penis; zero fabric on either body.';
+
+/**
+ * What a duo beat keeps on (the user: Intimate duo beats name clothes — "dress pushed up",
+ * "heels still on" — and every still came out fully nude, the prompt saying both): 'pushed' when
+ * a garment stays on, pushed open or up (clothed sex); else the small things she keeps on a
+ * nude body (heels, stockings); null when the beat names nothing worn.
+ */
+export function duoBeatClothing(
+  beat: string | null | undefined
+): { kind: 'pushed' } | { kind: 'keeps'; items: string[] } | null {
+  const text = stripNegatedClauses(beat ?? '');
+  if (
+    /\b(?:dress|skirt|top|shirt|blouse|robe|slip|lingerie|clothes|trousers|jeans)\b[^,.;—]{0,24}\b(?:pushed\s+(?:up|aside|open)|hiked\s+up|around\s+(?:her|his)\s+(?:waist|hips|ankles|thighs)|half[- ]off|pulled\s+(?:up|down|aside|open)|still\s+on|unbuttoned|open)\b/i.test(
+      text
+    ) ||
+    /\b(?:still\s+dressed|clothes\s+(?:still\s+)?on|fully\s+clothed)\b/i.test(text)
+  ) {
+    return { kind: 'pushed' };
+  }
+  const items = [
+    ...new Set(
+      [...text.matchAll(/\b(high\s+heels|heels|stockings|thigh-highs|garter\s+belt)\b/gi)].map(
+        match => match[1]!.toLowerCase()
+      )
+    ),
+  ];
+  return items.length ? { kind: 'keeps', items } : null;
+}
+
+/** Nude but for what the beat keeps on her ("heels still on"). */
+function nudeKeeping(items: readonly string[]): string {
+  return `Both are nude except her ${items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items[0]} — her bare breasts with nipples visible and bare vulva, his bare chest and penis; nothing else on either body.`;
+}
 
 /** Clothed sex ("clothes open"): name the outfit image, or Image 1's underwear plate wins. */
 function clothedLine(outfitImage: RecipeImage | null | undefined): string {
@@ -568,6 +631,8 @@ export function buildRapidDuoRecipe(input: {
   poseGuide?: boolean | RecipeImage;
   /** Default true. False: clothed sex (Story "clothes open" beats keep their outfit). */
   nude?: boolean;
+  /** Nude, but for these on her (the beat's "heels still on"; duoBeatClothing). */
+  keeps?: readonly string[];
   /** Clothed only: the encoder image holding the outfit packshot. */
   outfitImage?: RecipeImage | null;
   /** A Cast member as the man (Day "Partner"), with the encoder image holding his face. */
@@ -657,7 +722,15 @@ export function buildRapidDuoRecipe(input: {
         ? NUDE_TWO_WOMEN
         : twoMen
           ? NUDE_TWO_MEN
-          : NUDE,
+          : input.keeps?.length
+            ? nudeKeeping(input.keeps)
+            : NUDE,
+    // Whose genitals are whose (DUO_ANATOMY); two men need no line.
+    twoMen ? null : twoWomen ? TWO_WOMEN_ANATOMY : DUO_ANATOMY,
+    // Sweat (DUO_SWEAT): her chest and his back; two men or two women, their bodies.
+    twoMen || twoWomen
+      ? 'Both are flushed and glistening with sweat — a sheen on their skin, damp hair at the temples.'
+      : DUO_SWEAT,
     leadMan
       ? descriptorLine(input.descriptor)?.replace(/^The woman:/, 'The man:')
       : descriptorLine(input.descriptor),
@@ -1041,6 +1114,7 @@ export function buildRapidSoloRecipe(input: {
     input.clothedOutfit !== undefined
       ? `She wears ${withArticle(input.clothedOutfit) ?? 'her outfit'}, pulled down off her breasts and pushed up around her waist — bare breasts with nipples visible and bare vulva.`
       : 'She is completely nude — bare breasts with nipples visible and bare vulva; zero fabric on her body.',
+    HER_ANATOMY,
     descriptorLine(input.descriptor),
     'Keep her face from the first image.',
     input.poseGuide

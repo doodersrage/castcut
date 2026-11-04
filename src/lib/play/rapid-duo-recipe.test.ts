@@ -20,6 +20,7 @@ import { parseIntimateLayout } from '../day/pose-guide';
 import { reinforceIntimateStillPrompt } from '../adult/intimate-prompt-clarify';
 import { applyQueuePromptSteering } from '../queue/prompt-prep';
 import {
+  duoBeatClothing,
   rapidAdultSkipsPoseGuide,
   beatLiesDown,
   buildCompactDayRecipe,
@@ -63,7 +64,9 @@ describe('Rapid duo recipe', () => {
     for (const beat of DUO_BEATS) {
       const recipe = buildRapidDuoRecipe({ beat, timeOfDay: 'night', poseGuide: true });
       assert.ok(recipe, beat);
-      assert.ok(recipe.length < 1200, `${recipe.length} chars: ${beat}`);
+      // Compact, not the ~9k brief that drowned the beat; the anatomy and sweat lines (2026-11-04)
+      // added ~260 chars and the poses held on the user's stills.
+      assert.ok(recipe.length < 1500, `${recipe.length} chars: ${beat}`);
       assert.doesNotMatch(recipe, /\bdoggy/i, beat);
     }
   });
@@ -190,7 +193,7 @@ describe('Rapid duo recipe', () => {
       hasGarmentImage: true,
       hasPoseGuide: true,
     })!;
-    assert.match(clothed, /penetrating her from behind/);
+    assert.match(clothed, /his penis penetrating her vaginal opening from behind/);
     assert.match(clothed, /outfit from the second image, pushed open/);
     assert.match(clothed, /third image \(pose map\)/);
     assert.doesNotMatch(clothed, /completely nude/);
@@ -1017,5 +1020,37 @@ describe('vanity stance', () => {
     } as Parameters<typeof buildCompactDayRecipe>[0]);
     assert.match(recipe ?? '', /She sits on a stool at the vanity table, facing its large lit mirror/);
     assert.doesNotMatch(recipe ?? '', /She sits on the vanity/);
+  });
+});
+
+describe('Intimate duos say the act, keep what the beat keeps on, and sweat (2026-11-04)', () => {
+  it('names penetration in the position, in the user\'s words', () => {
+    const missionary = buildRapidDuoRecipe({ beat: 'missionary on the rumpled bed' })!;
+    assert.match(missionary, /his penis penetrating her vaginal opening/);
+    const lap = buildRapidDuoRecipe({ beat: 'sitting on his lap facing him on a kitchen chair mid-sex' })!;
+    assert.match(lap, /riding him, his penis penetrating her vaginal opening/);
+    assert.match(missionary, /flushed and glistening with sweat/);
+  });
+
+  it('keeps clothes the beat keeps on: pushed open, or her heels on a nude body', () => {
+    assert.deepEqual(duoBeatClothing('bent over the hotel desk mid-sex with a partner behind, cocktail dress around her waist'), {
+      kind: 'pushed',
+    });
+    assert.deepEqual(duoBeatClothing('straddling a partner on the couch after dinner, dress pushed up'), { kind: 'pushed' });
+    assert.deepEqual(duoBeatClothing('missionary on the hotel bed after a night out, heels still on'), {
+      kind: 'keeps',
+      items: ['heels'],
+    });
+    assert.equal(duoBeatClothing('missionary on the rumpled bed with morning light'), null);
+    const heels = buildRapidDuoRecipe({ beat: 'missionary on the hotel bed, heels still on', keeps: ['heels'] })!;
+    assert.match(heels, /Both are nude except her heels/);
+    assert.doesNotMatch(heels, /zero fabric/);
+    const pushed = buildRapidDuoRecipe({
+      beat: 'bent over the hotel desk mid-sex with a partner behind, cocktail dress around her waist',
+      nude: false,
+    })!;
+    assert.match(pushed, /cocktail dress around her waist/);
+    assert.match(pushed, /Clothes pushed open/);
+    assert.doesNotMatch(pushed, /completely nude/);
   });
 });

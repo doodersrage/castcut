@@ -13,6 +13,7 @@ import { beatOwnsFootwear } from '../wardrobe/footwear';
 import { intimateBeatIsOffBed } from '../adult/intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
+  duoBeatClothing,
   buildRapidSoloRecipe,
   buildRapidSuggestiveDuoRecipe,
   buildRapidSuggestiveRecipe,
@@ -4109,6 +4110,7 @@ export function buildDaySlotPrompt(input: {
     // Rapid AIO duo nude beats: the full lock brief (~9k chars) drowned the beat and every
     // duo still became the same reclining couple on a bed. Send where each body goes instead.
     if ((rapidAio || compactDay) && omitGarment && !soloSubject && isDayAdultMood(dayMood)) {
+      const duoClothing = duoBeatClothing(hints);
       const recipe = buildRapidDuoRecipe({
         beat: hints,
         setting,
@@ -4117,6 +4119,10 @@ export function buildDaySlotPrompt(input: {
         poseGuide: poseGuide && partnerImage ? 'third' : poseGuide,
         ...(duoPartner ? { partner: { partner: duoPartner, image: 'second' as const } } : {}),
         lead: input.leadNoun === 'man' ? 'man' : 'woman',
+        // What the beat keeps on ("dress pushed up", "heels still on"): every duo still was
+        // fully nude while the beat named it (the user, 2026-11-04).
+        ...(duoClothing?.kind === 'pushed' ? { nude: false } : {}),
+        ...(duoClothing?.kind === 'keeps' ? { keeps: duoClothing.items } : {}),
       });
       if (recipe) {
         return recipe;
