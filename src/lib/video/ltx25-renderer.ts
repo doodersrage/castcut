@@ -1444,6 +1444,17 @@ export function conversationClipPrompt(input: {
   ].join(' ');
 }
 
+/**
+ * How a conversation's two speakers are named, as conversationClipPrompt names them: "woman" and
+ * "man", or "woman" and "other woman" (MiniMax-H3's (S1) / (S2), M11 T21).
+ */
+export function conversationSpeakers(
+  lead: 'woman' | 'man',
+  partner: 'woman' | 'man'
+): [string, string] {
+  return lead === partner ? [lead, `other ${partner}`] : [lead, partner];
+}
+
 /** The other person in a two-person still, read from its prompt (default: the opposite of the lead). */
 export function conversationPartnerNoun(
   stillPrompt: string | null | undefined,

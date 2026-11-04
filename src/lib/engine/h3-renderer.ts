@@ -519,12 +519,13 @@ export function withH3Dialogue<T extends Record<string, WorkflowNode | undefined
 }
 
 /** What the voice reference is for: its sound only, and — when known — the words it says, never said. */
-function voiceWordsLine(words: string | undefined, who: 'She' | 'He'): string {
+function voiceWordsLine(words: string | undefined, who: 'She' | 'He', audio = 1): string {
   const her = who === 'He' ? 'his' : 'her';
+  const hers = who === 'He' ? 'his' : 'hers';
   const said = words?.replace(/["“”]/g, '').trim();
   return said
-    ? `<Audio 1> is only how ${her} voice sounds: its words ("${said}") are not ${her}s to say — ${who === 'He' ? 'he' : 'she'} never says them.`
-    : `<Audio 1> is only how ${her} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`;
+    ? `<Audio ${audio}> is only how ${her} voice sounds: its words ("${said}") are not ${hers} to say — ${who === 'He' ? 'he' : 'she'} never says them.`
+    : `<Audio ${audio}> is only how ${her} voice sounds, not what ${who === 'He' ? 'he' : 'she'} says.`;
 }
 
 /** The guide node that pins a picture (or a clip with its sound) at a frame of an H3 video. */
@@ -622,6 +623,12 @@ export function withH3VoiceAnchor(
       ...refs,
     },
   };
+  pinH3Frames(graph, id, old);
+  return graph;
+}
+
+/** The reference model's node at `id` pinned to the old graph's first / last frames. */
+function pinH3Frames(graph: Workflow, id: string, old: Record<string, unknown>): void {
   // Its first and last frames pinned as the first/last-frame model pinned them.
   let positive: [string, number] = [id, 0];
   const pins: Array<[unknown, number]> = [
@@ -643,6 +650,140 @@ export function withH3VoiceAnchor(
       if (isRef(value) && value[0] === id && value[1] === 0) other.inputs[name] = positive;
     }
   }
+}
+
+/** One person in a two-person conversation (M11 T21): who they are and their kept voice. */
+export type H3Speaker = {
+  /** How the prompt names them: "woman", "man", "other woman". */
+  noun: string;
+  who: 'She' | 'He';
+  /** Their kept voice clip (ComfyUI input video with sound); none: H3 gives them a voice. */
+  voiceClip?: string;
+  /** What that clip says (Whisper): named as words they never say. */
+  clipWords?: string;
+};
+
+/** Said before the lines (M11 T21): one shot, both people in it (with the start frame as Picture 1). */
+const H3_CONVERSATION_CAMERA =
+  'The camera never cuts or moves to either speaker: one fixed camera on a tripod, both people in frame the whole time, framed exactly as in the first frame.';
+
+/**
+ * A conversation prompt's line and reply (conversationClipPrompt: `… says, "X" … answers, "Y"`)
+ * in H3's dialogue syntax, two speakers: (S1) says the line, (S2) replies, one at a time. Null
+ * when the prompt has no line and reply.
+ */
+export function h3Conversation(source: string, first: H3Speaker, second: H3Speaker): string | null {
+  // One speaker's "the person stays quiet" tail (H3_LONG_TALK_TAIL) is not for two.
+  const prompt = source.replace(H3_LONG_TALK_TAIL, '').replace(/\s{2,}/g, ' ');
+  const said = prompt.match(/\bsays\b([^"]{0,32})"([^"]+)"/);
+  if (!said || said.index === undefined) return null;
+  const rest = prompt.slice(said.index + said[0].length);
+  const answered = rest.match(/\b(?:answers|replies)\b([^"]{0,32})"([^"]+)"/);
+  if (!answered || answered.index === undefined) return null;
+  const how = said[1]!.replace(/[,\s]+$/, '').trimEnd();
+  const language = how.match(DIALOGUE_LANGUAGE)?.[1] ?? 'English';
+  const line = (words: string) =>
+    /[.?!…]$/.test(words.trim()) ? words.trim() : `${words.trim()}.`;
+  const place = prompt.match(/\bfirst frame \(([^)]+)\)/)?.[1]?.trim();
+  // The sentence that says the line ("The woman turns to the man and says, …") becomes (S1)'s.
+  const head = prompt.slice(0, said.index);
+  const before = head.slice(0, Math.max(0, head.search(/[^.!?]*$/)));
+  const after = rest.slice(answered.index + answered[0].length);
+  return [
+    `${before.trimEnd()} ${H3_CONVERSATION_CAMERA} (S1), the ${first.noun}, on-screen, says${how} <d>[${language}] ${line(said[2]!)}</d> Then (S2), the ${second.noun}, on-screen, replies <d>[${language}] ${line(answered[2]!)}</d>${after}`.trim(),
+    'Each says their line once; after it they silently keep looking, lips closed, until the shot ends.',
+    'Only (S1) and (S2) speak, one at a time, each in their own voice, each mouth moving only for their own line. No other voices, no voiceover, no singing.',
+    `overall_soundscape: the quiet natural sound of ${place ? `the ${place}` : 'the place'} — soft room tone and gentle ambience, no voices.`,
+    'non_diegetic_music: N/A',
+  ].join(' ');
+}
+
+/**
+ * A two-person conversation on the reference model (M11 T21): each speaker's kept voice clip as
+ * a video with its sound — the first speaker's first — and the line and reply in H3's
+ * two-speaker dialogue ({@link h3Conversation}). Live (2026-11-04, a woman and a man on a
+ * rooftop ledge, three seeds): both lines word for word in order, hers ~205 Hz then his
+ * 130–150 Hz, her mouth moving on hers and his on his, no made-up speech; the user: "sounds good
+ * enough". Null when the graph is not H3, the prompt has no line and reply, or neither has a voice.
+ */
+export function withH3Conversation(
+  source: Workflow,
+  input: {
+    first: H3Speaker;
+    second: H3Speaker;
+    pictures?: ReadonlyArray<{ image: string; shows: string }>;
+    look?: string;
+  }
+): Workflow | null {
+  const graph = JSON.parse(JSON.stringify(source)) as Workflow;
+  const entries = Object.entries(graph);
+  const h3 = entries.find(([, node]) => node?.class_type === H3_REQUIRED_NODE);
+  const unet = entries.find(([, node]) => node?.class_type === 'UNETLoader')?.[1];
+  const lora = entries.find(([, node]) => node?.class_type === 'LoraLoaderModelOnly')?.[1];
+  const scheduler = entries.find(([, node]) => node?.class_type === 'BasicScheduler')?.[1];
+  const audioVae = entries.find(
+    ([, node]) => node?.class_type === 'VAELoader' && node.inputs?.vae_name === H3_FILES.audioVae
+  )?.[0];
+  if (!h3?.[1]?.inputs || !unet?.inputs || !audioVae) return null;
+  const voiced = [
+    { speaker: input.first, tag: '(S1)' },
+    { speaker: input.second, tag: '(S2)' },
+  ].filter(entry => entry.speaker.voiceClip?.trim());
+  if (!voiced.length) return null;
+  const [id, node] = h3;
+  const old = node.inputs!;
+  const said = h3Conversation(String(old.prompt ?? ''), input.first, input.second);
+  if (!said) return null;
+  unet.inputs.unet_name = H3_REF_FILES.transformer;
+  if (lora?.inputs) lora.inputs.lora_name = H3_REF_FILES.turboLora;
+  if (scheduler?.inputs) scheduler.inputs.steps = H3_REF_STEPS;
+  const pictures = input.pictures ?? [];
+  const refs: Record<string, unknown> = {};
+  // The start frame as <Picture 1> too, not only pinned: pinned alone, H3 cut to a close-up of
+  // the man for his reply on 2 of 4 seeds even told the camera never cuts; as Picture 1 as well,
+  // both stayed in frame 4 of 4, those two seeds included (live, 2026-11-04).
+  const start = isRef(old.first_frame) ? old.first_frame : null;
+  if (start) refs['ref_images.ref_image_1'] = start;
+  const offset = start ? 1 : 0;
+  pictures.forEach((picture, k) => {
+    graph[`h3ref${k + 1 + offset}`] = { class_type: 'LoadImage', inputs: { image: picture.image } };
+    refs[`ref_images.ref_image_${k + 1 + offset}`] = [`h3ref${k + 1 + offset}`, 0];
+  });
+  const voiceTags = voiced.map(({ speaker, tag }, k) => {
+    const n = k + 1;
+    graph[`h3voice${n}`] = { class_type: 'LoadVideo', inputs: { file: speaker.voiceClip!.trim() } };
+    graph[`h3voice${n}parts`] = {
+      class_type: 'GetVideoComponents',
+      inputs: { video: [`h3voice${n}`, 0] },
+    };
+    refs[`ref_videos.ref_video_${n}`] = [`h3voice${n}parts`, 0];
+    refs[`ref_video_audios.ref_video_audio_${n}`] = [`h3voice${n}parts`, 1];
+    return `<Video ${n}> with its sound <Audio ${n}> is ${tag}, the ${speaker.noun}, speaking: ${tag} speaks in exactly that voice — the same person, pitch, tone, accent and pace. ${voiceWordsLine(speaker.clipWords, speaker.who, n)}`;
+  });
+  const tags = [
+    ...(start
+      ? [
+          '<Picture 1> is the first frame: the shot as it is now, which the video starts from exactly — both people stay in it, framed just so.',
+        ]
+      : []),
+    ...pictures.map((picture, k) => `<Picture ${k + 1 + offset}> is ${picture.shows}.`),
+    ...voiceTags,
+  ].join(' ');
+  graph[id] = {
+    class_type: H3_REF_NODE,
+    inputs: {
+      clip: old.clip,
+      prompt: [tags, input.look?.trim(), said].filter(Boolean).join(' '),
+      width: old.width,
+      height: old.height,
+      length: old.length,
+      ref_image_size: 'match',
+      vae: old.vae,
+      audio_vae: [audioVae, 0],
+      ...refs,
+    },
+  };
+  pinH3Frames(graph, id, old);
   return graph;
 }
 

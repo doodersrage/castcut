@@ -38,6 +38,38 @@ export function castVoiceSampleFor(castId: string | null | undefined): {
 }
 
 /**
+ * A two-person conversation's voices on MiniMax-H3 (M11 T21): the line in the lead's kept voice
+ * clip, the reply in the partner's (a Cast member's) — each told never to say its clip's own
+ * words. Only voice clips: a recorded voice (a sample alone) can't be told apart from the other
+ * person's, so that speaker gets a voice from H3. `speakers`: how the prompt names them.
+ */
+export function castConversationVoiceFields(
+  leadId: string | null | undefined,
+  partnerId: string | null | undefined,
+  speakers: readonly [string, string]
+): {
+  videoConversation: string;
+  videoVoiceClip?: string;
+  videoVoiceClipWords?: string;
+  videoPartnerVoiceClip?: string;
+  videoPartnerVoiceClipWords?: string;
+} {
+  const lead = castVoiceOf(leadId);
+  const partner = partnerId?.trim() && partnerId !== leadId ? castVoiceOf(partnerId) : undefined;
+  const leadClip = lead?.clip?.trim();
+  const partnerClip = partner?.clip?.trim();
+  return {
+    videoConversation: speakers.join('|'),
+    ...(leadClip ? { videoVoiceClip: leadClip } : {}),
+    ...(leadClip && lead?.clipWords?.trim() ? { videoVoiceClipWords: lead.clipWords.trim() } : {}),
+    ...(partnerClip ? { videoPartnerVoiceClip: partnerClip } : {}),
+    ...(partnerClip && partner?.clipWords?.trim()
+      ? { videoPartnerVoiceClipWords: partner.clipWords.trim() }
+      : {}),
+  };
+}
+
+/**
  * A longer clip's voice fields (/api/clip/extend): talking H3 parts speak in the Cast's kept
  * voice clip, told never to say its own words; a recorded voice (no clip), its sample alone.
  */

@@ -2763,6 +2763,19 @@ person, and Day's two-person talk is a single LTX clip with Make it 30 s off. In
   a copy. Not solved, only slowed: fewer joins help most, so the Make longer sheet tells the user
   two-person clips hold best from a longer first clip. Untried: keyframes all drawn from the first
   frame and colour-matched to it (see the RGB tone anchor).
+- Step 3's listening test (2026-11-04, a woman and a man on a rooftop ledge; his voice an LTX
+  audition of his face, hers a kept voice): H3's reference model with each speaker's voice clip
+  as <Video/Audio 1> and <Video/Audio 2> and the line and reply in its two-speaker dialogue
+  (`(S1) … says <d>…</d> Then (S2) … replies <d>…</d>`) said both lines word for word, in order,
+  hers ~200 Hz then his 126–150 Hz, each mouth moving on its own line — 3/3 with face pictures
+  and left/right, 2/2 named only "the woman" / "the man". The user: "sounds good enough". Built
+  for the first clip (Animate a line + reply on a two-person still, H3): `withH3Conversation`,
+  the partner Cast's kept voice clip (`castConversationVoiceFields`); a partner with no voice
+  clip gets one from H3, and with no voice clips at all the clip stays on the plain model. On
+  the app's own graph H3 cut to a close-up of the man for his reply on 2 of 4 seeds until the
+  start frame was also given as <Picture 1> (then 4/4 both in frame, words 4/4). Also fixed: a
+  man's kept voice was told "not hiss to say". Next: Make it 30 s for conversations (a speaker
+  per part, both voices on every part).
 - Seen while testing: "Sharpen & smooth" (`finishClip`) on a 30 s clip loaded the whole clip
   into RAM (~40 GB) and took ComfyUI down; it needs to run in time chunks. Not fixed yet.
 - 5 s single-person talking clips (the user's six, kept voice on H3's reference model): the voice

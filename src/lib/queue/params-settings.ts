@@ -338,6 +338,13 @@ export function resolveQueueParams(
   if (base?.videoVoiceClipWords?.trim()) {
     merged.videoVoiceClipWords = base.videoVoiceClipWords.trim();
   }
+  for (const key of [
+    'videoConversation',
+    'videoPartnerVoiceClip',
+    'videoPartnerVoiceClipWords',
+  ] as const) {
+    if (base?.[key]?.trim()) merged[key] = base[key].trim();
+  }
   if (base?.videoVoiceSteer === 'on') {
     merged.videoVoiceSteer = 'on';
   }

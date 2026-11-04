@@ -25,11 +25,16 @@ import {
   withAdultLtxLines,
   conversationClipPrompt,
   conversationPartnerNoun,
+  conversationSpeakers,
   LTX25_TALKING_FULL_FRAME_LONG_SIDE,
   normalizeSpokenLine,
   talkingClipPrompt,
 } from '@/lib/video/ltx25-renderer';
-import { castVoiceSampleFor, ensureCastVoiceClip } from '@/lib/cast/voice';
+import {
+  castConversationVoiceFields,
+  castVoiceSampleFor,
+  ensureCastVoiceClip,
+} from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
 import { swapSceneForCast, type SceneToolCache } from '@/lib/day/scenes';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
@@ -626,6 +631,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         if (speaking && !conversation) {
           await ensureCastVoiceClip(shared.activeCharacterId).catch(() => null);
         }
+        // Both people's, in a conversation on MiniMax-H3 (their clips' words, heard once).
+        if (conversation && isH3Model(videoModel)) {
+          await ensureCastVoiceClip(shared.activeCharacterId).catch(() => null);
+          if (toolSettings.partnerCharacterId?.trim()) {
+            await ensureCastVoiceClip(toolSettings.partnerCharacterId).catch(() => null);
+          }
+        }
         const promptId = await actions.sendComfyUi(prompt, undefined, undefined, {
           queueTool: 'video',
           queueModel: videoModel,
@@ -655,8 +667,24 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
               ...(speaking
                 ? {
                     videoSpeech: 'on',
-                    // A kept voice would pull both speakers toward hers — not in a conversation.
-                    ...(conversation ? {} : castVoiceSampleFor(shared.activeCharacterId)),
+                    // A kept voice would pull both speakers toward hers — not in a conversation;
+                    // on MiniMax-H3 each speaks in their own (M11 T21): the line in hers, the
+                    // reply in the partner Cast member's.
+                    ...(conversation
+                      ? isH3Model(videoModel)
+                        ? castConversationVoiceFields(
+                            shared.activeCharacterId,
+                            toolSettings.partnerCharacterId,
+                            conversationSpeakers(
+                              manLead ? 'man' : 'woman',
+                              conversationPartnerNoun(
+                                parentEntry?.prompt,
+                                manLead ? 'man' : 'woman'
+                              )
+                            )
+                          )
+                        : {}
+                      : castVoiceSampleFor(shared.activeCharacterId)),
                     // Not cropped chest-up: render larger so the small face holds.
                     ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                     // The place's room sound under the voice (ROOM_SOUND_UNDER_TALKING; the
@@ -755,6 +783,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       stillsRef,
       toolSettings.dayEvent,
       toolSettings.dayMood,
+      toolSettings.partnerCharacterId,
       updateToolSettings,
       setActiveSlotId,
       setBusy,

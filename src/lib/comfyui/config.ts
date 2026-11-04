@@ -18,6 +18,7 @@ import {
   H3_GUIDE_NODE,
   H3_REF_NODE,
   H3_REQUIRED_NODE,
+  withH3Conversation,
   withH3VoiceAnchor,
 } from '../engine/h3-renderer';
 import {
@@ -279,6 +280,15 @@ export type WorkflowParamValues = {
   videoVoiceClip?: string;
   /** What that voice clip says (CastVoice.clipWords): H3 is told never to say it. */
   videoVoiceClipWords?: string;
+  /**
+   * A two-person conversation on MiniMax-H3 (M11 T21): who says the line and who replies, as the
+   * prompt names them ("woman|man"). The line is the lead's, in videoVoiceClip; the reply the
+   * partner's, in videoPartnerVoiceClip.
+   */
+  videoConversation?: string;
+  /** The partner's kept voice clip (a Cast member's), for the reply. */
+  videoPartnerVoiceClip?: string;
+  videoPartnerVoiceClipWords?: string;
   /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -619,6 +629,13 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceClipWords?.trim()) {
     result.videoVoiceClipWords = merged.videoVoiceClipWords.trim();
+  }
+  for (const key of [
+    'videoConversation',
+    'videoPartnerVoiceClip',
+    'videoPartnerVoiceClipWords',
+  ] as const) {
+    if (merged[key]?.trim()) result[key] = merged[key].trim();
   }
   if (merged.videoVoiceSteer === 'on') {
     result.videoVoiceSteer = 'on';
@@ -2114,17 +2131,44 @@ export function injectPromptsWithFallbacks(
         // The kept voice's clip, else its sample alone (a voice from the player's recording).
         const voiceClip = input.params?.videoVoiceClip?.trim();
         const voiceAudio = voiceClip ? undefined : input.params?.videoVoiceSample?.trim();
+        const refModel = !nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE));
+        // Two people talking (M11 T21): the line in the lead's voice, the reply in the partner's.
+        const speakers = input.params?.videoConversation?.split('|').map(noun => noun.trim());
+        const conversation =
+          speakers?.length === 2 && input.params?.videoSpeech === 'on' && refModel
+            ? withH3Conversation(converted.workflow, {
+                first: {
+                  noun: speakers[0]!,
+                  who: /\bman\b/.test(speakers[0]!) ? 'He' : 'She',
+                  ...(voiceClip
+                    ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
+                    : {}),
+                },
+                second: {
+                  noun: speakers[1]!,
+                  who: /\bman\b/.test(speakers[1]!) ? 'He' : 'She',
+                  ...(input.params?.videoPartnerVoiceClip?.trim()
+                    ? {
+                        voiceClip: input.params.videoPartnerVoiceClip.trim(),
+                        clipWords: input.params?.videoPartnerVoiceClipWords?.trim(),
+                      }
+                    : {}),
+                },
+              })
+            : null;
         const anchored =
+          !conversation &&
+          !speakers &&
           (voiceClip || voiceAudio) &&
           input.params?.videoSpeech === 'on' &&
-          (!nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE)))
+          refModel
             ? withH3VoiceAnchor(converted.workflow, {
                 ...(voiceClip
                   ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
                   : { voiceAudio }),
               })
             : null;
-        injected = { ...injected, workflow: anchored ?? converted.workflow };
+        injected = { ...injected, workflow: conversation ?? anchored ?? converted.workflow };
         onLtx25 = true;
       }
     }
