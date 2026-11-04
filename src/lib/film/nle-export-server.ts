@@ -223,7 +223,12 @@ export async function buildFilmNleExport(input: {
       diskPath: path.join(dir, shot.file),
     })),
     ...(music
-      ? [{ archivePath: `${folder}/${music.file}`, diskPath: path.join(dir, music.file) }]
+      ? [
+          {
+            archivePath: `${folder}/${music.file}`,
+            diskPath: path.join(/* turbopackIgnore: true */ dir, music.file),
+          },
+        ]
       : []),
   ];
   const zipPath = path.join(dir, `${folder}.zip`);
