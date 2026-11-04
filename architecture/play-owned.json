@@ -37,6 +37,7 @@
   "src/components/ui/ShotCardMenu.tsx",
   "src/components/ui/SideSheet.tsx",
   "src/components/ui/UploadButton.tsx",
+  "src/components/wardrobe/ClothingEditorSheet.tsx",
   "src/components/wardrobe/ClothingPicker.tsx",
   "src/components/wardrobe/ClothingPickerLazy.tsx",
   "src/components/wardrobe/ClothingSheet.tsx",

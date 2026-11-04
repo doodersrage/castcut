@@ -134,3 +134,17 @@ export function humanizeClothingId(id: string): string {
       '$1-$2'
     );
 }
+
+/** One catalog item with its description and gender (the clothing editor's copy); null when gone. */
+export async function fetchClothingCatalogItem(id: string): Promise<CatalogClothingEntry | null> {
+  const target = id.trim();
+  if (!target) return null;
+  try {
+    const response = await fetch(`/api/catalog?type=clothing&ids=${encodeURIComponent(target)}`);
+    if (!response.ok) return null;
+    const data = (await response.json()) as { clothing?: CatalogClothingEntry[] };
+    return data.clothing?.find(entry => entry.id === target) ?? null;
+  } catch {
+    return null;
+  }
+}

@@ -11,6 +11,8 @@ import {
   replaceSavedFittingGarments,
   saveFittingGarment,
   updateSavedFittingGarmentDescription,
+  editSavedFittingGarment,
+  saveEditedCatalogGarment,
 } from './saved-garments';
 
 describe('fitting-saved-garments', () => {
@@ -158,5 +160,50 @@ describe('fitting-saved-garments', () => {
     // cache must still serve the list (writeBrowserValue path).
     window.localStorage.removeItem(FITTING_SAVED_GARMENTS_STORAGE_KEY);
     assert.equal(loadSavedFittingGarments()[0]?.imageFilename, 'packshot.png');
+  });
+
+  it('the clothing editor changes a saved piece in place: picture, words and tags', () => {
+    const first = saveFittingGarment({ imageFilename: 'a.png', description: 'a blue dress' });
+    saveFittingGarment({ imageFilename: 'b.png', description: 'a grey coat' });
+    const edited = editSavedFittingGarment(first.id, {
+      label: 'Red dress',
+      description: 'a deep red knit sweater dress',
+      imageFilename: 'a-red.png',
+      category: 'outfit',
+      gender: 'women',
+      contexts: ['casual', 'cold', 'not-a-context'],
+    })!;
+    assert.equal(edited.id, first.id);
+    assert.equal(edited.label, 'Red dress');
+    assert.equal(edited.imageFilename, 'a-red.png');
+    // A new picture: the old view URL is not kept.
+    assert.equal(edited.imageUrl, undefined);
+    assert.deepEqual(edited.contexts, ['casual', 'cold']);
+    const all = loadSavedFittingGarments();
+    assert.equal(all.length, 2);
+    assert.deepEqual(
+      all.map(entry => entry.imageFilename).sort(),
+      ['a-red.png', 'b.png']
+    );
+    assert.equal(findSavedFittingGarmentByFilename('a-red.png')?.gender, 'women');
+    assert.equal(editSavedFittingGarment('gone', { label: 'x' }), null);
+  });
+
+  it('a catalog item edited is saved as a copy, with where it came from', () => {
+    const copy = saveEditedCatalogGarment({
+      fromWardrobeId: 'outfit-boxy-aqua-sweater-dress',
+      imageFilename: 'copy.png',
+      label: 'Red sweater dress',
+      description: 'a deep red oversized sweater dress',
+      category: 'outfit',
+      gender: 'women',
+      contexts: ['casual'],
+    });
+    const stored = findSavedFittingGarmentByFilename('copy.png')!;
+    assert.equal(stored.id, copy.id);
+    assert.equal(stored.fromWardrobeId, 'outfit-boxy-aqua-sweater-dress');
+    assert.equal(stored.label, 'Red sweater dress');
+    assert.equal(stored.category, 'outfit');
+    assert.deepEqual(stored.contexts, ['casual']);
   });
 });

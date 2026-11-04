@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
 const ALL_CLOTHING_CATALOG_ENTRIES = [
-  { id: "red-dress", label: "Red Dress", category: "outfit", contexts: ["formal"] },
+  { id: "red-dress", label: "Red Dress", category: "outfit", contexts: ["formal"], script: "a red silk dress", gender: "women" },
   { id: "black-boots", label: "Black Boots", category: "footwear", contexts: [] },
   { id: "silver-necklace", label: "Silver Necklace", category: "accessory", contexts: ["formal"] },
 ];
@@ -82,5 +82,16 @@ describe("catalog-index", async () => {
       assert.ok(Array.isArray(result.clothing));
       assert.ok(Array.isArray(result.locations));
     });
+  });
+});
+
+describe("catalog clothing by id (the clothing editor's copy)", () => {
+  it("carries the description and gender only when asked for by id", async () => {
+    const { listCatalogClothing } = await import("./catalog-index");
+    const [byId] = listCatalogClothing({ ids: ["red-dress"] });
+    assert.equal(byId?.script, "a red silk dress");
+    assert.equal(byId?.gender, "women");
+    const listed = listCatalogClothing({ query: "red" }).find(entry => entry.id === "red-dress");
+    assert.equal(listed?.script, undefined);
   });
 });

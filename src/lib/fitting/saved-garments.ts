@@ -26,7 +26,64 @@ export type SavedFittingGarment = {
   savedAt: number;
   /** Last edit (record-list-sync: the newest copy wins across devices). */
   updatedAt?: number;
+  /** The clothing editor's tags (2026-11-04): its kind, who it's for, where it fits. */
+  category?: string;
+  gender?: SavedGarmentGender;
+  contexts?: string[];
+  /** A catalog item this was edited from (the clothing editor saves a copy). */
+  fromWardrobeId?: string;
 };
+
+export type SavedGarmentGender = 'women' | 'men' | 'neutral';
+
+/** Where a piece fits — the catalog's own context words (clothing-catalog-*.ts). */
+export const SAVED_GARMENT_CONTEXTS = [
+  'casual',
+  'formal',
+  'evening',
+  'beach',
+  'swimwear',
+  'athletic',
+  'outdoor',
+  'cold',
+  'warm',
+  'work',
+  'urban',
+  'sleepwear',
+  'intimate',
+  'costume',
+  'traditional',
+] as const;
+
+function tagFields(
+  entry: Record<string, unknown>
+): Pick<SavedFittingGarment, 'category' | 'gender' | 'contexts' | 'fromWardrobeId'> {
+  const text = (value: unknown, max: number) =>
+    typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : undefined;
+  const category = text(entry.category, 40);
+  const gender =
+    entry.gender === 'women' || entry.gender === 'men' || entry.gender === 'neutral'
+      ? entry.gender
+      : undefined;
+  const contexts = Array.isArray(entry.contexts)
+    ? [
+        ...new Set(
+          entry.contexts.filter(
+            (context): context is string =>
+              typeof context === 'string' &&
+              (SAVED_GARMENT_CONTEXTS as readonly string[]).includes(context)
+          )
+        ),
+      ]
+    : [];
+  const fromWardrobeId = text(entry.fromWardrobeId, 160);
+  return {
+    ...(category ? { category } : {}),
+    ...(gender ? { gender } : {}),
+    ...(contexts.length ? { contexts } : {}),
+    ...(fromWardrobeId ? { fromWardrobeId } : {}),
+  };
+}
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -85,6 +142,7 @@ function normalizeEntry(raw: unknown): SavedFittingGarment | null {
     description,
     savedAt,
     ...(updatedAt ? { updatedAt } : {}),
+    ...tagFields(entry),
   };
 }
 
@@ -228,6 +286,80 @@ export function updateSavedFittingGarmentDescription(
   };
   writeAll(next);
   return true;
+}
+
+/**
+ * The clothing editor's save (2026-11-04): a saved piece changed in place — its picture (a new
+ * ComfyUI input file), name, description and tags — keeping its place in the list. Null when it is
+ * not saved. A picture that another saved piece already uses takes that one's place.
+ */
+export function editSavedFittingGarment(
+  id: string,
+  patch: Partial<
+    Pick<
+      SavedFittingGarment,
+      | 'label'
+      | 'description'
+      | 'imageFilename'
+      | 'imageUrl'
+      | 'category'
+      | 'gender'
+      | 'contexts'
+      | 'fromWardrobeId'
+    >
+  >
+): SavedFittingGarment | null {
+  const existing = readAll();
+  const index = existing.findIndex(entry => entry.id === id);
+  if (index < 0) return null;
+  const prior = existing[index]!;
+  const imageFilename = patch.imageFilename?.trim() || prior.imageFilename;
+  const merged = normalizeEntry({
+    ...prior,
+    ...patch,
+    imageFilename,
+    // A new picture: its old view URL no longer shows it.
+    imageUrl:
+      imageFilename !== prior.imageFilename
+        ? patch.imageUrl?.trim() || undefined
+        : (patch.imageUrl ?? prior.imageUrl),
+  });
+  if (!merged) return null;
+  const next = existing
+    .map((entry, at) => (at === index ? merged : entry))
+    .filter((entry, at) => at === index || entry.imageFilename !== imageFilename);
+  writeAll(next);
+  return merged;
+}
+
+/**
+ * A catalog item edited in the clothing editor, saved as the player's own copy (the catalog
+ * item stays as it ships): first in the list.
+ */
+export function saveEditedCatalogGarment(input: {
+  fromWardrobeId: string;
+  imageFilename: string;
+  imageUrl?: string | null;
+  label: string;
+  description?: string | null;
+  category?: string;
+  gender?: SavedGarmentGender;
+  contexts?: string[];
+}): SavedFittingGarment {
+  const saved = saveFittingGarment({
+    imageFilename: input.imageFilename,
+    imageUrl: input.imageUrl,
+    description: input.description,
+    label: input.label,
+  });
+  return (
+    editSavedFittingGarment(saved.id, {
+      fromWardrobeId: input.fromWardrobeId,
+      ...(input.category ? { category: input.category } : {}),
+      ...(input.gender ? { gender: input.gender } : {}),
+      ...(input.contexts?.length ? { contexts: input.contexts } : {}),
+    }) ?? saved
+  );
 }
 
 /** Replace the whole list from a synced copy (studio-extras); returns what was kept. */

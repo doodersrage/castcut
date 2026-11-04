@@ -14,6 +14,10 @@ import WardrobeKitPicker, {
   type WardrobeKitThumbState,
 } from '@/components/wardrobe/WardrobeKitPicker';
 import WearingCard from '@/components/wardrobe/WearingCard';
+import ClothingEditorSheet, {
+  type ClothingEditorTarget,
+} from '@/components/wardrobe/ClothingEditorSheet';
+import { resolveWardrobeGarmentThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 import WardrobeKitBrowser from '@/components/wardrobe/WardrobeKitBrowser';
 import type { ToolAccent } from '@/lib/app/tool-theme';
 import {
@@ -121,7 +125,11 @@ export default function ClothingPicker({
   const [browseSavedOpen, setBrowseSavedOpen] = useState(false);
   const mode: ClothingMode = pickedMode ?? (hasPhoto ? 'photo' : 'kit');
   const photoBusy = busy || garment.uploading;
-  const alreadySaved = Boolean(findSavedFittingGarmentByFilename(garment.imageFilename)?.id);
+  const savedActive = findSavedFittingGarmentByFilename(garment.imageFilename);
+  const alreadySaved = Boolean(savedActive?.id);
+  // The clothing editor: a saved piece in place, or a catalog kit as a copy.
+  const [editing, setEditing] = useState<ClothingEditorTarget | null>(null);
+  const selectedKit = selectedKitId ? kits.find(kit => kit.id === selectedKitId) : undefined;
 
   const applyFile = (file: File, asPackshot: boolean) => {
     void garment.onApply({ file, asPackshot }).catch(err => {
@@ -174,19 +182,41 @@ export default function ClothingPicker({
               onSwipe={onSwipeKit}
               resolveThumb={resolveKitThumb}
               cardAction={
-                onClearKit && selectedKitId && !hasPhoto ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    aria-label={clearKitLabel ?? 'Clear kit — let the planner pick'}
-                    title={clearKitLabel ?? 'Clear kit — let the planner pick'}
-                    className="shrink-0 px-1.5"
-                    onClick={onClearKit}
-                  >
-                    <UiIcon name="close" size={14} />
-                  </Button>
-                ) : null
+                <>
+                  {selectedKit && !hasPhoto ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      title="Change its picture, name, description or tags — saved as your own copy"
+                      className="shrink-0"
+                      data-testid={`${testIdPrefix}-edit-kit`}
+                      onClick={() =>
+                        setEditing({
+                          kind: 'catalog',
+                          id: selectedKit.id,
+                          label: selectedKit.label,
+                          thumbUrl: resolveWardrobeGarmentThumbUrl(selectedKit.id),
+                        })
+                      }
+                    >
+                      Edit a copy
+                    </Button>
+                  ) : null}
+                  {onClearKit && selectedKitId && !hasPhoto ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      aria-label={clearKitLabel ?? 'Clear kit — let the planner pick'}
+                      title={clearKitLabel ?? 'Clear kit — let the planner pick'}
+                      className="shrink-0 px-1.5"
+                      onClick={onClearKit}
+                    >
+                      <UiIcon name="close" size={14} />
+                    </Button>
+                  ) : null}
+                </>
               }
               toolbarExtra={
                 category ? (
@@ -250,6 +280,18 @@ export default function ClothingPicker({
                 >
                   {alreadySaved ? 'Saved' : 'Save for later'}
                 </Button>
+                {savedActive ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={photoBusy}
+                    title="Change its picture, name, description or tags"
+                    data-testid={`${testIdPrefix}-edit-garment`}
+                    onClick={() => setEditing({ kind: 'saved', garment: savedActive })}
+                  >
+                    Edit
+                  </Button>
+                ) : null}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -413,6 +455,20 @@ export default function ClothingPicker({
           ) : null}
         </div>
       )}
+      <ClothingEditorSheet
+        target={editing}
+        onClose={() => setEditing(null)}
+        testId={`${testIdPrefix}-clothing-editor`}
+        onSaved={saved => {
+          // Worn at once: the edited piece (a catalog copy turns the photo mode on).
+          setPickedMode('photo');
+          try {
+            garment.onApplySaved(saved.id);
+          } catch (err) {
+            onError(err instanceof Error ? err.message : 'Could not wear the edited clothing.');
+          }
+        }}
+      />
       {footwear ? (
         <FootwearField
           {...footwear}

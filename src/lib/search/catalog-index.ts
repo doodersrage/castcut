@@ -6,6 +6,9 @@ export type CatalogClothingEntry = {
   label: string;
   category: string;
   contexts: readonly string[];
+  /** Asked for by id only (the clothing editor's copy): what prompts say, and who it's for. */
+  script?: string;
+  gender?: string;
 };
 
 export type CatalogLocationEntry = {
@@ -89,6 +92,7 @@ export function listCatalogClothing(options?: {
       label: entry.label,
       category: entry.category,
       contexts: entry.contexts ?? [],
+      ...(idSet ? { script: entry.script, ...(entry.gender ? { gender: entry.gender } : {}) } : {}),
     }));
 }
 
