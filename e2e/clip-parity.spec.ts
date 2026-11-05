@@ -83,7 +83,8 @@ test('Motion brush: a drawn path and a pin go up with the still', async ({ page 
     status: 'completed',
     queuedAt: Date.now(),
     completedAt: Date.now(),
-    images: [{ filename: 'e2e-motion.webp', subfolder: '', type: 'output' }],
+    // .png: a .webp in the Gallery reads as a clip (WAN saves animated WebP), with no still menu.
+    images: [{ filename: 'e2e-motion.png', subfolder: '', type: 'output' }],
   });
   await panel.locator('summary', { hasText: 'Make it move' }).click();
   await panel.getByTestId('gallery-still-tool-motion-brush').click();
