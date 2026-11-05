@@ -12,6 +12,7 @@ are in the [Gallery](#gallery) too.
 | [Remove or replace](#remove)           | A clip   | 6 min for 5 s     | What goes, painted           |
 | [Copy moves from a video](#copy-moves) | A still  | 5 min for 5 s     | A video of one person        |
 | [Direct a move](#director)             | A still  | 3 min for 5 s     | A few beats, posed or picked |
+| [Motion brush](#motion-brush)          | A still  | A few min for 5 s | Paths drawn on it            |
 | [Dance to music](#dance)               | A still  | 10 min for 6 s    | A song                       |
 | [Lip-sync to a recording](#lip-sync)   | A still  | 7 min for 5 s     | Your voice or an audio file  |
 | [Relight](#relight)                    | A still  | 1 min             | A light                      |
@@ -212,6 +213,16 @@ still, the Director only gives the moves. A full-body still suits walks and turn
 still suits waves, shrugs and nods.
 
 ---
+
+## Motion brush { #motion-brush }
+
+Gallery ⋯ on a still → **Make it move** → **Motion brush…**. Drag from something to where it
+goes — a hand up to the face, a car down the road — and click to pin what should stay put; the
+still moves along your strokes for about 5 s (WAN-Move). **What happens** adds a few words.
+
+- Each path is walked at an even pace over the whole clip; draw it as far as it should go.
+- Needs WAN-Move (16.4 GB) with the LightX2V I2V LoRA and CLIP vision H — **Install** offers the
+  missing ones.
 
 ## Dance to music { #dance }
 

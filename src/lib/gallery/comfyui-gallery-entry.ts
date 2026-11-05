@@ -74,6 +74,8 @@ export type ComfyGalleryEntry = {
     | 'restyle'
     /** Remove from clip (clip/vace.ts): a painted area filled from the scene. */
     | 'remove'
+    /** Motion brush (clip/motion-brush.ts): a still moved along drawn paths on WAN-Move. */
+    | 'motion'
     /** Copy moves (motion-transfer.ts): the still's person doing a driving video's moves. */
     | 'moves'
     /** Dance to music (music-dance.ts): the still's person dancing to a song. */

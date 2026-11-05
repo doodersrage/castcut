@@ -190,5 +190,10 @@
   "src/app/api/clip/remove/route.ts",
   "src/lib/clip/remove-open.ts",
   "src/components/play/ClipRestyleHost.tsx",
-  "src/lib/clip/restyle-open.ts"
+  "src/lib/clip/restyle-open.ts",
+  "src/lib/clip/motion-brush.ts",
+  "src/lib/clip/motion-brush-server.ts",
+  "src/app/api/clip/motion/route.ts",
+  "src/components/play/MotionBrushHost.tsx",
+  "src/lib/clip/motion-open.ts"
 ]

@@ -1053,6 +1053,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
       'Remove or replace: follows what was painted on the first frame through the clip. Without it the painted area is the same on every frame.',
   },
   {
+    id: 'wan-move-14b-fp8',
+    label: 'WAN-Move 14B (fp8, WAN 2.1 I2V with trajectories)',
+    kind: 'unet',
+    filename: 'Wan21-WanMove_fp8_scaled_e4m3fn_KJ.safetensors',
+    url: 'https://huggingface.co/Kijai/WanVideo_comfy_fp8_scaled/resolve/main/WanMove/Wan21-WanMove_fp8_scaled_e4m3fn_KJ.safetensors',
+    bytes: 16402832658,
+    modelIds: ['motion-brush'],
+    notes:
+      'Motion brush: a still moved along drawn paths. Also needs the LightX2V I2V 480p step-distill LoRA, CLIP vision H, the UMT5 text encoder and the WAN 2.1 VAE.',
+  },
+  {
     id: 'seedvr2-3b-int8',
     label: 'SeedVR2 3B video restore / upscale (int8)',
     kind: 'unet',

@@ -15,6 +15,7 @@ export type ClipJobTool =
   | 'upscale'
   | 'restyle'
   | 'remove'
+  | 'motion'
   | 'sound-effect';
 
 /** A job whose result is kept in the Gallery (a clip or a still) — all but Make a sound. */
@@ -50,6 +51,7 @@ export const CLIP_JOB_LABEL: Record<ClipJobTool, string> = {
   upscale: 'Upscale to 4K',
   restyle: 'Restyle',
   remove: 'Remove from clip',
+  motion: 'Motion brush',
   'sound-effect': 'Make a sound',
 };
 
@@ -62,6 +64,7 @@ export const CLIP_JOB_ENDPOINT: Record<ClipJobTool, string> = {
   upscale: '/api/still/upscale',
   restyle: '/api/clip/restyle',
   remove: '/api/clip/remove',
+  motion: '/api/clip/motion',
   'sound-effect': '/api/clip/sound-effect',
 };
 

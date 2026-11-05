@@ -5,6 +5,7 @@
  */
 
 import { openClipRestyle } from '../clip/restyle-open';
+import { openMotionBrush } from '../clip/motion-open';
 import { openClipRemove } from '../clip/remove-open';
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
 import { registerCastChangeScrubber, loadSettingsCache } from '../settings/cache';
@@ -208,6 +209,14 @@ registerGalleryClipTool({
   keepKind: 'remove',
   job: 'remove',
   open: openClipRemove,
+});
+
+// Gallery ⋯ → Make it move → Motion brush…: draw where things go (clip/motion-brush.ts).
+registerGalleryStillTool({
+  id: 'motion-brush',
+  label: 'Motion brush…',
+  title: 'Drag where something goes and pin what stays: the still moves along your strokes.',
+  run: ({ entry, stillUrl }) => openMotionBrush({ entry, stillUrl }),
 });
 
 // Gallery ⋯ → Make it move → Direct a move…: the Director on any finished still.
