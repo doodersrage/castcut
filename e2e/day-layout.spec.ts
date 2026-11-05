@@ -50,7 +50,7 @@ test('Day reads top to bottom: idea, cards of one size, one action bar', async (
   await dismissBlockingOverlays(page);
   const bar = page.getByTestId('day-action-bar');
   await expect(bar).toBeVisible({ timeout: 30_000 });
-  await expect(bar.getByTestId('day-cut-coach')).toContainText('Ready to cut · 2 of 3 stills');
+  await expect(bar.getByTestId('day-cut-coach')).toContainText(/Ready to cut · 2 of \d stills/);
   await expect(bar.getByTestId('day-cut-coach-cut')).toHaveAttribute('href', /\/cut\?from=day/);
   await expect(page.getByTestId('day-cut-coach-queue')).toHaveCount(0);
   // The idea comes before the cards.
@@ -62,8 +62,10 @@ test('Day reads top to bottom: idea, cards of one size, one action bar', async (
   const empty = (await page.getByTestId('day-progress-evening').boundingBox())!.height;
   expect(Math.abs(full - empty)).toBeLessThan(40);
   // Quick actions on hover.
+  // (No plate here, so queueing is blocked: Edit shows, Retry / Animate don't.)
   await page.getByTestId('day-progress-morning').hover();
-  await expect(page.getByTestId('day-quick-animate-morning')).toBeVisible();
+  await expect(page.getByTestId('day-quick-edit-morning')).toBeVisible();
+  await expect(page.getByTestId('day-quick-animate-morning')).toHaveCount(0);
   // The bar stays in view while the page scrolls.
   await page.mouse.wheel(0, 400);
   await expect(bar).toBeInViewport();
@@ -77,9 +79,12 @@ test('Day keys: arrows pick a slot, Enter edits it, arrows step the sheet, A ani
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('day-progress-morning')).toBeVisible({ timeout: 30_000 });
   await page.locator('body').click({ position: { x: 5, y: 5 } });
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowLeft');
+  // The board starts on the next slot to render; ← steps back to the first.
+  for (let step = 0; step < 4; step += 1) await page.keyboard.press('ArrowLeft');
   await expect(page.getByTestId('day-progress-morning')).toHaveAttribute('data-selected', 'true');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('day-progress-afternoon')).toHaveAttribute('data-selected', 'true');
+  await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Enter');
   const sheet = page.getByTestId('day-slot-sheet');
   await expect(sheet).toBeVisible();

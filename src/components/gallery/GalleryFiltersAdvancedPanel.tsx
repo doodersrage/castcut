@@ -100,9 +100,11 @@ export function GalleryFiltersAdvancedPanel({
     <CollapsibleSection
       title="Filters"
       summary={
-        activeToggleCount > 0
-          ? `${activeToggleCount} on · status, group, model, tags, views and more`
-          : 'Status, group, model, tags, saved views, review and slideshow'
+        lean
+          ? 'Status, group and model'
+          : activeToggleCount > 0
+            ? `${activeToggleCount} on · status, group, model, tags, views and more`
+            : 'Status, group, model, tags, saved views, review and slideshow'
       }
       defaultOpen={false}
       persistKey="gallery-advanced-filters"

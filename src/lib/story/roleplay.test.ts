@@ -301,6 +301,23 @@ describe('roleplay parsers', () => {
       }),
       /Locked kit: linen set/i
     );
+    // A locked outfit: scenes don't name clothes (the bible's cargo pants fought the kit).
+    assert.match(
+      formatRoleplayWardrobeCue({
+        hasReferenceImage: true,
+        phase: 'scenes',
+        wardrobeLabel: 'linen set',
+      }),
+      /do not name, add, swap, hike up or remove clothes/i
+    );
+    assert.doesNotMatch(
+      formatRoleplayWardrobeCue({
+        hasReferenceImage: true,
+        phase: 'scenes',
+        wardrobeLabel: 'linen set',
+      }),
+      /name the garments in the blurb/i
+    );
     assert.match(
       formatRoleplayWardrobeCue({
         hasReferenceImage: true,

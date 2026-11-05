@@ -1,6 +1,8 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import Dialog from '@/components/ui/Dialog';
+import { pageShortcuts } from '@/lib/app/page-shortcuts';
 import {
   keyboardShortcutActionLabel,
   loadKeyboardShortcuts,
@@ -19,6 +21,8 @@ export default function KeyboardShortcutsHelp({
   onClose: () => void;
 }) {
   const bindings = open ? loadKeyboardShortcuts() : [];
+  // This page's own keys first (2026-11-05: they were only in tooltips and the guides).
+  const page = pageShortcuts(usePathname());
   const hasPaletteBinding = bindings.some(binding => binding.action === 'command-palette');
 
   return (
@@ -33,11 +37,27 @@ export default function KeyboardShortcutsHelp({
       bodyClassName="min-h-0 flex-1 overflow-y-auto border-t border-[var(--border-subtle)] px-5 py-3"
       footer={
         <p className="type-caption mr-auto text-[var(--text-muted)]">
-          Tip: the command palette (⌘/Ctrl+K) also runs the open page’s actions and finds any
-          setting. Change these combos under Profile → Keyboard shortcuts.
+          Press ? on any page to see this. The command palette (⌘/Ctrl+K) also runs the open page’s
+          actions and finds any setting. Change these combos under Profile → Keyboard shortcuts.
         </p>
       }
     >
+      {page ? (
+        <section className="mb-4 space-y-2" data-testid="keyboard-shortcuts-page">
+          <h3 className="type-overline text-[var(--text-muted)]">On {page.page}</h3>
+          <ul className="space-y-2">
+            {page.keys.map(entry => (
+              <li key={entry.keys} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-[var(--text-secondary)]">{entry.does}</span>
+                <kbd className="shrink-0 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] px-2 py-1 type-caption text-[var(--text-primary)]">
+                  {entry.keys}
+                </kbd>
+              </li>
+            ))}
+          </ul>
+          <h3 className="type-overline pt-2 text-[var(--text-muted)]">Everywhere</h3>
+        </section>
+      ) : null}
       <ul className="max-h-[50vh] space-y-2">
         {bindings.map(binding => (
           <li key={binding.id} className="flex items-center justify-between gap-3 text-sm">

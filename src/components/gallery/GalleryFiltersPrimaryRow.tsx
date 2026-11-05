@@ -59,6 +59,7 @@ export default function GalleryFiltersPrimaryRow({
   filter,
   setFilter,
   castIds,
+  hasPlayChecks,
   customGroups = [],
   onRenameCustomGroup,
   onDeleteCustomGroup,
@@ -130,7 +131,7 @@ export default function GalleryFiltersPrimaryRow({
                 data-testid="gallery-filters-phone-toggle"
                 onClick={() => setPhoneFiltersOpen(open => !open)}
               >
-                {phoneFiltersOpen ? 'Hide filters' : 'Filters'}
+                {phoneFiltersOpen ? 'Hide options' : 'Options'}
                 {activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
               </button>
             </span>
@@ -172,6 +173,29 @@ export default function GalleryFiltersPrimaryRow({
         <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
         <GalleryLookFilter filter={filter} setFilter={setFilter} />
       </div>
+
+      {/* In the bar: the pose / face checks' misses are a first-look filter, not a buried one. */}
+      {hasPlayChecks ? (
+        <div
+          className={`flex flex-wrap items-center gap-1.5 ${phoneHidden}`}
+          role="group"
+          aria-label="Filter by checks"
+        >
+          <span className="type-caption text-[var(--text-muted)]">Checks</span>
+          <FilterChip
+            active={Boolean(filter.playCheckMissOnly)}
+            label="Needs a look"
+            testId="gallery-filter-play-miss"
+            onClick={() =>
+              setFilter(previous => ({
+                ...previous,
+                playCheckMissOnly: previous.playCheckMissOnly ? undefined : true,
+              }))
+            }
+          />
+          {filter.playCheckMissOnly ? <GalleryRedoNeedsLook castId={filter.characterId} /> : null}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -181,7 +205,6 @@ export function GalleryFiltersMoreRow({
   filter,
   setFilter,
   models,
-  hasPlayChecks,
   customGroups = [],
   onRenameCustomGroup,
   onDeleteCustomGroup,
@@ -197,7 +220,6 @@ export function GalleryFiltersMoreRow({
   | 'filter'
   | 'setFilter'
   | 'models'
-  | 'hasPlayChecks'
   | 'customGroups'
   | 'onRenameCustomGroup'
   | 'onDeleteCustomGroup'
@@ -247,28 +269,6 @@ export function GalleryFiltersMoreRow({
           </label>
         ) : null}
       </div>
-
-      {hasPlayChecks ? (
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="Filter by checks"
-        >
-          <span className="type-caption text-[var(--text-muted)]">Checks</span>
-          <FilterChip
-            active={Boolean(filter.playCheckMissOnly)}
-            label="Needs a look"
-            testId="gallery-filter-play-miss"
-            onClick={() =>
-              setFilter(previous => ({
-                ...previous,
-                playCheckMissOnly: previous.playCheckMissOnly ? undefined : true,
-              }))
-            }
-          />
-          {filter.playCheckMissOnly ? <GalleryRedoNeedsLook castId={filter.characterId} /> : null}
-        </div>
-      ) : null}
 
       {lean && manage ? (
         <GalleryFiltersLeanRow

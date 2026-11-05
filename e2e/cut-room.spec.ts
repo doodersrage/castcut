@@ -15,8 +15,15 @@ test.beforeEach(async ({ page }) => {
 const CAST = 'e2e-cut-room';
 const thumb = '/wardrobe-thumbs/outfit-cropped-sage-slip-dress.webp';
 
-async function seed(page: import('@playwright/test').Page, withStory = true) {
-  await seedSettingsCacheOnNextLoad(page, {
+async function seed(
+  page: import('@playwright/test').Page,
+  withStory = true,
+  /** A reload keeps what the test saved (the seed would put it back otherwise). */
+  once = false
+) {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
     shared: { activeCharacterId: CAST },
     characters: {
       version: 1,
@@ -54,7 +61,9 @@ async function seed(page: import('@playwright/test').Page, withStory = true) {
           }
         : {}),
     },
-  });
+  },
+    once ? { once: true } : undefined
+  );
 }
 
 test('Cut is its own step: a tab, both reels in one shot list, and a source can be left out', async ({
@@ -1298,6 +1307,8 @@ test('subtitle look: picked in the options and shown on the monitor', async ({ p
   await page.getByTestId('cut-subtitle-text-day:morning').fill('I never said that to anyone');
   await page.getByTestId('cut-subtitle-text-day:morning').blur();
   await page.getByTestId('cut-tab-options').click();
+  // The look is in "Text & logo" (folded by default).
+  await page.locator('details.cut-opt-group summary').filter({ hasText: 'Text & logo' }).click();
   const look = page.locator('[data-testid$="-subtitle-style"]').first();
   await look.scrollIntoViewIfNeeded();
   await look.selectOption('words');
@@ -1374,15 +1385,17 @@ test('notes: review comments on this cut’s film, a jump to the moment, ticked 
   await expect(notes.first()).toContainText('The park looks too dark');
   await expect(notes.nth(1)).toContainText('Love it overall');
   await page.getByTestId('cut-review-note-jump').click();
-  await expect(page.getByTestId('cut-shot-day:afternoon')).toHaveAttribute('data-active', 'true');
   await page.getByTestId('cut-review-note-resolve').first().check();
   await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 1');
   expect(patched[0]).toMatchObject({ commentId: 'c1', resolved: true });
+  // The jump put the playhead on the commented shot (the shot list is on its own tab).
+  await page.getByTestId('cut-tab-shots').click();
+  await expect(page.getByTestId('cut-shot-day:afternoon')).toHaveAttribute('data-active', 'true');
 });
 
 // 2026-11-05: your own markers — M at the playhead, a note, on the ruler, kept after a reload.
 test('markers: M drops one at the playhead, a note, kept after a reload', async ({ page }) => {
-  await seed(page, false);
+  await seed(page, false, true);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
   await page.getByTestId('cut-timeline-shot-day:afternoon').click();

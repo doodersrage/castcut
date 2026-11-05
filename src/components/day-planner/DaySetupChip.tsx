@@ -1,6 +1,8 @@
 'use client';
 
 import type { CharacterRecord } from '@/lib/character/os';
+import CastChip from '@/components/ui/CastChip';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
 
 /**
  * Setup as a status chip — "Nora · plate ready" — that opens the Setup sheet (Cast lead, look,
@@ -11,48 +13,26 @@ export default function DaySetupChip({
   hasPlate,
   onClick,
   className = '',
+  plateUrl = null,
 }: {
   character: CharacterRecord | null | undefined;
   hasPlate: boolean;
   onClick: () => void;
   className?: string;
+  /** The plate, when there is one, as the chip's picture. */
+  plateUrl?: string | null;
 }) {
   const name = character?.name?.trim() || '';
-  const text = !character
-    ? 'No Cast lead'
-    : hasPlate
-      ? `${name || 'Cast'} · plate ready`
-      : `${name || 'Cast'} · no plate yet`;
-  const tone = !character || !hasPlate ? 'warn' : 'ok';
   return (
-    <button
-      type="button"
-      className={[
-        'ui-chip inline-flex max-w-full items-center gap-1.5',
-        tone === 'warn' ? 'border-[var(--tint-warning-border,var(--accent-border))]' : '',
-        className,
-      ]
-        .join(' ')
-        .trim()}
+    <CastChip
+      name={character ? name || 'Cast' : 'No Cast lead'}
+      detail={character ? (hasPlate ? 'plate ready' : 'no plate yet') : undefined}
+      plateUrl={plateUrl ?? (character && hasPlate ? castPlateThumbUrl(character) : null)}
+      status={!character || !hasPlate ? 'warn' : 'ok'}
       title="Setup — Cast lead, look and plate"
-      aria-haspopup="dialog"
-      data-testid="day-setup-chip"
-      data-state={tone}
-      onClick={onClick}
-    >
-      <span
-        aria-hidden
-        className={[
-          'h-1.5 w-1.5 shrink-0 rounded-full',
-          tone === 'ok'
-            ? 'bg-[var(--tint-success-text)]'
-            : 'bg-[var(--tint-warning-text,var(--accent-text))]',
-        ].join(' ')}
-      />
-      <span className="truncate">{text}</span>
-      <span aria-hidden className="text-[var(--text-muted)]">
-        ▾
-      </span>
-    </button>
+      testId="day-setup-chip"
+      className={className}
+      onOpen={onClick}
+    />
   );
 }

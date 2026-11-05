@@ -61,8 +61,11 @@ test('creating a Cast keeps the form on the page', async ({ page }) => {
       removedIds: [],
     },
   });
-  await gotoStable(page, '/play?new=1');
+  // New character from the roster puts the current Cast down, then opens Film's create form.
+  await gotoStable(page, '/characters');
   await dismissBlockingOverlays(page);
+  await page.getByTestId('cast-roster-new-character').click();
+  await page.waitForURL(/\/play\?new=1/, { waitUntil: 'commit' });
   await expect(page.getByTestId('play-campaign-create-name')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('play-cast-chip')).toHaveCount(0);
 });

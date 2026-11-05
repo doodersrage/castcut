@@ -626,7 +626,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
               seed under the form, Animate further down, Send to Day under the takes), kept in view.
             */}
             <div
-              className="sticky bottom-2 z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/95 px-3 py-2 shadow-lg backdrop-blur"
+              className="ui-sticky-surface sticky bottom-[calc(var(--bottom-dock-height,0px)+0.5rem)] z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] px-3 py-2 shadow-lg"
+              data-sticky-bottom
               data-testid="scene-action-bar"
             >
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -637,7 +638,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                   {active.name} · {takeCount} take{takeCount === 1 ? '' : 's'}
                   {kept ? ' · one kept' : takeCount ? ' · none kept yet (K)' : ''}
                 </p>
-                <ToolActionRow className="shrink-0">
+                <ToolActionRow className="w-full sm:w-auto sm:shrink-0">
                   <Button
                     size="sm"
                     variant="primary"
@@ -720,9 +721,11 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
             </div>
           </>
         ) : null}
-        {/* Set up once, not every shot: under More (open when there is a script or a place). */}
+        {/* Set up once, not every shot: under More (open with a script, a place or a run). */}
         <SceneMore
+          // Open with a prepared or running run too: its controls hid under a folded More.
           open={Boolean(
+            page.run ||
             locations.length ||
             ((toolSettings as { scripts?: unknown[] }).scripts?.length ?? 0) > 0 ||
             page.scenes.some(entry => entry.fromScript)

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import FilmWatchPlayer from '@/components/FilmWatchPlayer';
+import CastChip from '@/components/ui/CastChip';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
 import type { ComfyGalleryEntry } from '@/lib/gallery/comfyui-gallery-entry';
@@ -91,7 +92,7 @@ export function PlayFilmHero({
   );
 }
 
-/** The Cast and look as one chip — the picker opens in a sheet. */
+/** The Cast and look as one chip — the picker opens in a sheet (the shared CastChip). */
 export function PlayCastChip({
   name,
   look,
@@ -106,31 +107,7 @@ export function PlayCastChip({
   onOpen: () => void;
   testId?: string;
 }) {
-  return (
-    <Button
-      variant="plain"
-      className="flex w-fit max-w-full items-center gap-2 rounded-full border border-[var(--border-default)] py-1 pl-1 pr-3 hover:bg-[var(--bg-hover)]"
-      aria-label={`${name}${look ? ` · ${look}` : ''} — change who or which look`}
-      data-testid={testId}
-      onClick={onOpen}
-    >
-      {plate ? (
-        // eslint-disable-next-line @next/next/no-img-element -- the Cast's plate
-        <img src={plate} alt="" className="h-8 w-8 rounded-full object-cover object-top" />
-      ) : (
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-muted)] text-sm font-semibold">
-          {name.slice(0, 1).toUpperCase()}
-        </span>
-      )}
-      <span className="type-label truncate">
-        {name}
-        {look ? <span className="text-[var(--text-muted)]"> · {look}</span> : null}
-      </span>
-      <span aria-hidden className="shrink-0 text-xs text-[var(--text-muted)]">
-        ▾
-      </span>
-    </Button>
-  );
+  return <CastChip name={name} detail={look} plateUrl={plate} onOpen={onOpen} testId={testId} />;
 }
 
 /** Long jobs still running and review comments not yet ticked off — one small panel. */

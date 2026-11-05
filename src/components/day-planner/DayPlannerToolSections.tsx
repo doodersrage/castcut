@@ -1094,7 +1094,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             under them and the phase strip), kept in view while the cards are worked on.
           */}
           <div
-            className="sticky bottom-2 z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/95 px-3 py-2 shadow-lg backdrop-blur"
+            className="ui-sticky-surface sticky bottom-[calc(var(--bottom-dock-height,0px)+0.5rem)] z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] px-3 py-2 shadow-lg"
+            data-sticky-bottom
             data-testid="day-action-bar"
           >
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -1188,7 +1189,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   </p>
                 ) : null}
               </div>
-              <ToolActionRow className="shrink-0">
+              <ToolActionRow className="w-full sm:w-auto sm:shrink-0">
                 <Button
                   size="sm"
                   variant="secondary"

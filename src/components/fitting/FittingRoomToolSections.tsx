@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import OutfitKitShelf from '@/components/fitting/OutfitKitShelf';
+import CastChip from '@/components/ui/CastChip';
 import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
 import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe/garment-thumbs';
 import {
@@ -9,7 +10,6 @@ import {
   normalizeWardrobeCategoryFilter,
 } from '@/lib/wardrobe/catalog-ui';
 import SideSheet from '@/components/ui/SideSheet';
-import { Button } from '@/components/ui/Button';
 
 import OutfitPoseShoesNote from '@/components/fitting/OutfitPoseShoesNote';
 import { TOOL_SETUP_LABELS } from '@/lib/app/tool-page-chrome';
@@ -306,18 +306,17 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         <div className="ui-section-stack min-w-0" data-testid="fitting-who">
           <div className="ui-card space-y-2 p-3">
             <p className="type-overline text-[var(--text-muted)]">Trying on</p>
-            <p className="type-heading truncate" data-testid="fitting-who-name">
-              {character?.name ?? 'No Cast lead yet'}
-            </p>
-            <Button
-              size="sm"
-              variant="secondary"
+            {/* The shared Cast chip (it was a name and a "Change person or look" button). */}
+            <CastChip
+              name={character?.name ?? 'No Cast lead yet'}
+              detail={lockedWardrobeLabel || undefined}
+              plateUrl={platePicture || null}
+              status={character ? (hasReference ? 'ok' : 'warn') : 'warn'}
               disabled={busy}
-              data-testid="fitting-change-cast"
-              onClick={() => setCastSheetOpen(true)}
-            >
-              {character ? 'Change person or look' : 'Pick a Cast lead'}
-            </Button>
+              testId="fitting-change-cast"
+              nameTestId="fitting-who-name"
+              onOpen={() => setCastSheetOpen(true)}
+            />
           </div>
           {/* With no plate yet it's the first step, in the stage (below); after, it sits here. */}
           {hasReference ? plateSection : null}
@@ -523,7 +522,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
         lines twice under it), kept in view at the bottom while the clothes are picked.
       */}
       <div
-        className="ui-sticky-surface sticky bottom-2 z-20 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/95 px-3 py-2 shadow-lg backdrop-blur"
+        className="ui-sticky-surface sticky bottom-[calc(var(--bottom-dock-height,0px)+0.5rem)] z-20 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] px-3 py-2 shadow-lg"
+        data-sticky-bottom
         data-testid="fitting-try-panel"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -533,7 +533,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
             // A missing plate is said once (the stage and the card at the top).
             queueBlockReason={queueBlocked && character && hasReference ? queueBlockReason : null}
           />
-          <div className="shrink-0 space-y-1">
+          <div className="w-full min-w-0 space-y-1 sm:w-auto sm:shrink-0">
             <FittingActionRow
               variant="panel"
               continueDayHref={softAdvance ? null : continueDayHref}

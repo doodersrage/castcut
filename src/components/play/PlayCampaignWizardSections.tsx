@@ -173,6 +173,60 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
     />
   );
 
+  // Mid-film: why, and the step itself on the button (in the hero, or above the steps when the
+  // Cast record isn't loaded).
+  const resumeCard = midFilm ? (
+    <div
+      className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-3"
+      data-testid="play-campaign-resume-card"
+    >
+      <div className="min-w-0">
+        <p className="type-overline text-[var(--accent-text)]">Continue</p>
+        <p className="type-caption text-[var(--text-secondary)]">
+          {props.nextAction?.reason ?? props.resumeStep!.description}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {/* The film's next step, the same one the header and the step strip name. */}
+        {props.nextAction ? (
+          <ButtonLink
+            href={props.mapHref(props.nextAction.href)}
+            size="sm"
+            variant="primary"
+            data-testid="play-campaign-continue"
+          >
+            {props.nextAction.label}
+          </ButtonLink>
+        ) : (
+          <Button
+            size="sm"
+            variant="primary"
+            data-testid="play-campaign-continue"
+            onClick={() => props.goToStep(props.resumeStep!.id, props.activeLookPack)}
+          >
+            Continue to {props.resumeStep!.label}
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          data-testid="play-campaign-start-day"
+          onClick={() => props.goToStep('day', props.activeLookPack)}
+        >
+          Restart at Day
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          data-testid="play-campaign-jump-starter"
+          onClick={() => runStarter(props.characterId || undefined)}
+        >
+          Starter Day
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
   const lookPacksBlock =
     firstFilmDone || props.savedLookPacks.length > 0 || props.activeLookPack ? (
       <details
@@ -281,58 +335,14 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
               })}
               actions={
                 <div className="space-y-3">
-                  {midFilm ? (
-                    <div
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-3"
-                      data-testid="play-campaign-resume-card"
+                  {resumeCard}
+                  {props.activeLookPack ? (
+                    <p
+                      className="type-caption text-[var(--text-muted)]"
+                      data-testid="play-film-look-pack"
                     >
-                      <div className="min-w-0">
-                        <p className="type-overline text-[var(--accent-text)]">Continue</p>
-                        <p className="type-caption text-[var(--text-secondary)]">
-                          {props.nextAction?.reason ?? props.resumeStep!.description}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {/* The film's next step, the same one the header and the step strip name. */}
-                        {props.nextAction ? (
-                          <ButtonLink
-                            href={props.mapHref(props.nextAction.href)}
-                            size="sm"
-                            variant="primary"
-                            data-testid="play-campaign-continue"
-                          >
-                            {props.nextAction.label}
-                          </ButtonLink>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            data-testid="play-campaign-continue"
-                            onClick={() =>
-                              props.goToStep(props.resumeStep!.id, props.activeLookPack)
-                            }
-                          >
-                            Continue to {props.resumeStep!.label}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          data-testid="play-campaign-start-day"
-                          onClick={() => props.goToStep('day', props.activeLookPack)}
-                        >
-                          Restart at Day
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          data-testid="play-campaign-jump-starter"
-                          onClick={() => runStarter(props.characterId || undefined)}
-                        >
-                          Starter Day
-                        </Button>
-                      </div>
-                    </div>
+                      Look pack staged — Outfit and Day use its style notes.
+                    </p>
                   ) : null}
                   <PlayCampaignActionsSection
                     status={props.status}
@@ -374,7 +384,9 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           </>
         ) : (
           <>
+            {resumeCard}
             <PlayCampaignActionsSection
+              compact={midFilm}
               status={props.status}
               durableCampaign={props.durableCampaign}
               campaignCharacterMismatch={props.campaignCharacterMismatch}

@@ -3243,3 +3243,20 @@ first", then "close the gaps").**
   the scene's still (it took the preview url — the clip — and rejected it as motion), or a clip's
   first frame. Checked on the running app with the user's real saved clip (read-only probe: plays
   40 s steady, thumb shows the still).
+- **Polish round after the UI rounds** (the user: "do all"): committed + pushed d09311ec first. CI
+  then failed: the unit job's `npm ci` timed out on nuget (network), and 3 play-campaign e2e were
+  mine — the resume card ("Restart at Day") only rendered with a loaded Cast record, "look pack
+  staged" lived only in the Cast sheet, and the Gallery "Needs a look" chip had moved into the
+  Filters panel. Fixed (resume card in both branches, a staged-look-pack line in the Film hero, the
+  checks chip back in the bar). Note: CI's e2e job runs only play-campaign.spec.ts — the layout
+  specs run locally against an isolated copy (scratchpad wt, :47923, `next dev --webpack`, own
+  data dir, ComfyUI pointed at a dead port). Phone pass: Day / Scene / Outfit sticky bars
+  overflowed sideways (shrink-0 action groups) → wrap on phones; bottom bars sit above the phone
+  dock (`--bottom-dock-height`) and are solid (`ui-sticky-surface`); `data-sticky-bottom` +
+  `html:has(...)` scroll-padding so focus isn't hidden under them. Dark theme: looked over, fine.
+  Shared `CastChip` (Film, Story, Outfit, Day/Scene's DaySetupChip). "?" opens the shortcuts
+  dialog with the page's keys first (`lib/app/page-shortcuts.ts`). Gallery: the bar's wrapper let
+  it scroll away after Filters (removed); headings pin under the bar (`--gallery-bar-height`); a
+  floating day label on long (virtualised) lists; headings span the grid row; phone toggle renamed
+  "Options"; lean Filters summary. Story: with a locked outfit the scene writer no longer names
+  clothes. Removed the unused GalleryFiltersRatingModelRow.

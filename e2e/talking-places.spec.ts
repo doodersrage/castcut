@@ -196,10 +196,15 @@ test('Day slot: Suggest a narration fills the voice-over', async ({ page }) => {
 
 // 2026-11-05: an accent on the Cast's voice — kept with the Cast, said in auditions and clips.
 test('Cast → Voice: an accent is picked and kept', async ({ page }) => {
-  await seedSettingsCacheOnNextLoad(page, {
-    shared: { activeCharacterId: 'e2e-accent' },
-    characters: cast('e2e-accent'),
-  });
+  // Once: the reload below must keep the accent it saved, not seed the Cast again.
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: 'e2e-accent' },
+      characters: cast('e2e-accent'),
+    },
+    { once: true }
+  );
   await gotoStable(page, '/characters/e2e-accent');
   await dismissBlockingOverlays(page);
   await page.getByText('Bible', { exact: true }).first().click();

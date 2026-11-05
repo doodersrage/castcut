@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+
 import type { PromptProject } from '@/lib/prompt/projects';
 import type {
   ComfyGalleryFilter,
@@ -97,6 +99,28 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
   } = props;
 
   const savedViewsState = useGallerySavedViewsState();
+  // The bar's height while it sticks (desk), so the day headings pin just under it.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = barRef.current;
+    if (!node) return;
+    const root = document.documentElement;
+    const desk = window.matchMedia('(min-width: 768px)');
+    const update = () =>
+      root.style.setProperty(
+        '--gallery-bar-height',
+        desk.matches ? `${node.offsetHeight}px` : '0px'
+      );
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    desk.addEventListener('change', update);
+    return () => {
+      observer.disconnect();
+      desk.removeEventListener('change', update);
+      root.style.removeProperty('--gallery-bar-height');
+    };
+  }, []);
   const activeChips = useGalleryActiveFilterChips({
     filter,
     projectFilterId,
@@ -108,9 +132,12 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
   });
 
   return (
-    <div className="space-y-2">
+    // No wrapper: a sticky bar only sticks inside its parent, and a wrapper ending after Filters
+    // let it scroll away with them.
+    <>
       {/* The bar stays in reach while you scroll (desk); the rest folds into Filters. */}
       <div
+        ref={barRef}
         className="ui-sticky-surface space-y-2 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] p-3 md:sticky md:top-[calc(var(--header-offset,0px)+0.25rem)] md:z-20"
         data-testid="gallery-filter-bar"
       >
@@ -158,7 +185,6 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
             filter={filter}
             setFilter={setFilter}
             models={models}
-            hasPlayChecks={hasPlayChecks}
             customGroups={customGroups}
             onRenameCustomGroup={onRenameCustomGroup}
             onDeleteCustomGroup={onDeleteCustomGroup}
@@ -217,6 +243,6 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
         onStartFullscreenSlideshow={onStartFullscreenSlideshow}
         slideshowAvailable={slideshowAvailable}
       />
-    </div>
+    </>
   );
 }

@@ -24,7 +24,9 @@ photo, the bible links and **Outfit for stills** in a sheet. In the strip under 
 marks one still rendering and ▶ one with a clip; hover a scene for **Redo** (the still again) and
 **Clip**.
 
-Keys (not while typing): **1–4** pick a beat · **R** rolls new beats · **U** takes back the last
+With an **Outfit for stills** picked, new scenes don't describe her clothes — she wears that outfit in every scene.
+
+Keys (not while typing): **1–4** pick a beat (**?** lists them) · **R** rolls new beats · **U** takes back the last
 scene · **← →** step through the scenes.
 
 | Control | What it does |

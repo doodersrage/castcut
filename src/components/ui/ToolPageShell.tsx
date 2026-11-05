@@ -130,6 +130,7 @@ export const ToolSection = memo(function ToolSection({
   id,
   'data-testid': testId,
   'aria-label': ariaLabel,
+  'data-sticky-bottom': stickyBottom,
 }: {
   children: ReactNode;
   className?: string;
@@ -141,12 +142,15 @@ export const ToolSection = memo(function ToolSection({
   'data-testid'?: string;
   /** Names a section shown without a title. */
   'aria-label'?: string;
+  /** Kept at the bottom of the screen: the page leaves room for it when scrolling to focus. */
+  'data-sticky-bottom'?: string | boolean;
 }) {
   return (
     <section
       id={id}
       data-testid={testId}
       aria-label={ariaLabel}
+      data-sticky-bottom={stickyBottom}
       className={`${id ? 'scroll-mt-28 ' : ''}${sectionSurfaceClasses[variant]} ${padded ? 'p-[var(--card-padding)] sm:p-[var(--card-padding-lg)]' : ''} ${className}`.trim()}
     >
       {title ? (

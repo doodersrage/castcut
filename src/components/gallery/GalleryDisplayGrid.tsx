@@ -156,7 +156,7 @@ function DisplayRowView({
     // Kept in view while its day scrolls by (sticky works where the rows aren't virtualised).
     return (
       <h3
-        className="ui-sticky-surface type-label sticky top-[calc(var(--header-offset,0px)+0.25rem)] z-[5] -mx-1 rounded-[var(--radius-md)] px-2 py-1.5 text-[var(--text-secondary)]"
+        className="ui-sticky-surface type-label sticky top-[calc(var(--header-offset,0px)+var(--gallery-bar-height,0px)+0.5rem)] z-[5] col-span-full -mx-1 rounded-[var(--radius-md)] px-2 py-1.5 text-[var(--text-secondary)]"
         data-testid="gallery-day-heading"
       >
         {row.label}
@@ -380,8 +380,42 @@ function VirtualizedDisplayRows({
     scrollGalleryEntryIntoView(scrollToEntryId);
   }, [rows, scrollToEntryId, virtualizer]);
 
+  // Long lists draw only what's on screen, so a day heading can't stick: a floating label names
+  // the day being scrolled through once its own heading has gone off the top (2026-11-05).
+  const visibleItems = virtualizer.getVirtualItems();
+  // The first row below the app header and the sticky filter bar.
+  const rootStyle =
+    typeof window === 'undefined' ? null : getComputedStyle(document.documentElement);
+  const coveredPx =
+    (parseFloat(rootStyle?.getPropertyValue('--header-offset') ?? '') || 64) +
+    (parseFloat(rootStyle?.getPropertyValue('--gallery-bar-height') ?? '') || 0) +
+    8;
+  const firstShown = visibleItems.find(
+    item => item.end > (virtualizer.scrollOffset ?? 0) + coveredPx
+  );
+  let currentDay: string | null = null;
+  if (firstShown && rows[firstShown.index]?.kind !== 'day') {
+    for (let index = firstShown.index; index >= 0; index -= 1) {
+      const row = rows[index];
+      if (row?.kind === 'day') {
+        currentDay = row.label;
+        break;
+      }
+    }
+  }
+
   return (
     <div ref={listRef} className="relative w-full">
+      {currentDay ? (
+        <div className="pointer-events-none sticky top-[calc(var(--header-offset,0px)+var(--gallery-bar-height,0px)+0.5rem)] z-[6] h-0">
+          <span
+            className="ui-sticky-surface type-label inline-block rounded-[var(--radius-md)] px-2 py-1.5 text-[var(--text-secondary)] shadow-sm"
+            data-testid="gallery-day-float"
+          >
+            {currentDay}
+          </span>
+        </div>
+      ) : null}
       <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map(virtualRow => {
           const row = rows[virtualRow.index];

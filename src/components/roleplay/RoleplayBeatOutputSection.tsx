@@ -197,6 +197,7 @@ export default function RoleplayBeatOutputSection({
       aria-label={composer ? storyProgress.heading : undefined}
       padded={!composer}
       data-testid="story-beat-picker"
+      data-sticky-bottom={composer ? 'tall' : undefined}
       className={
         composer
           ? 'ui-sticky-surface px-4 py-3 lg:sticky lg:bottom-2 lg:z-20 lg:max-h-[72vh] lg:overflow-y-auto lg:shadow-lg'

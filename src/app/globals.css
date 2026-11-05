@@ -677,6 +677,17 @@ section:has(details[open] > .ui-menu-panel),
   background: var(--bg-base);
 }
 
+/* A bar kept at the bottom of the screen (Day, Scene, Outfit, Story's composer): keyboard focus
+   and scrollIntoView stop above it instead of under it (2026-11-05). */
+html:has([data-sticky-bottom]) {
+  scroll-padding-bottom: calc(var(--bottom-dock-height, 0px) + 7rem);
+}
+@media (min-width: 1024px) {
+  html:has([data-sticky-bottom='tall']) {
+    scroll-padding-bottom: 19rem;
+  }
+}
+
 /* A card kept in view (Story's composer): the light theme's card mix is translucent, and beat
    the plain rule above — the scenes showed through it. */
 html[data-theme] .ui-card.ui-sticky-surface,

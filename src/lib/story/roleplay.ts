@@ -839,10 +839,12 @@ export function formatRoleplayWardrobeCue(input: {
   }
   if (input.phase === 'scenes') {
     if (hasPackshot || kit || garment) {
+      // A locked outfit is worn in every scene: a blurb naming the bible's clothes fought it
+      // ("her outfit hiked up to reveal cargo pants" over a mini dress — 2026-11-05).
       return [
-        "When a beat's outfit matters, name the garments in the blurb so the still can replace the photo's clothes.",
         kit ? `Locked kit: ${kit}.` : null,
         garment ? `Clothing packshot shows: ${garment}.` : null,
+        'She wears that outfit in every scene: do not name, add, swap, hike up or remove clothes in a blurb — describe the action, the place and the props.',
       ]
         .filter(Boolean)
         .join(' ');
