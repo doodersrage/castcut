@@ -264,6 +264,9 @@ cross). Above it:
   has changed, then the open findings and a **prop list** (each thing and the shots it is in): a
   page to print or save as PDF.
 
+**Dialogue list** (under **Cut film**) lists every line said on screen and every voice-over, shot by
+shot, with who says it and whether its sound is there yet.
+
 **Shot report** (under **Cut film**) lists what made each shot — tool, model, seed, size and steps,
 LoRAs, prompt — from its Gallery record, to remake or credit it.
 

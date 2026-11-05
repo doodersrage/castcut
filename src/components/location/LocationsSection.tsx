@@ -1,5 +1,7 @@
 'use client';
 
+import { storyboardHtml } from '@/lib/print/print-sheets';
+import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
@@ -173,6 +175,43 @@ export default function LocationsSection({
       data-testid="locations-section"
     >
       <div className="space-y-4">
+        {locations.length > 0 ? (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="locations-sheet"
+              title="Every location's photo, setting, look and the Scenes set there — print or save as PDF"
+              onClick={() =>
+                openPrintSheet(
+                  storyboardHtml({
+                    title: 'Locations',
+                    subtitle: `${locations.length} place${locations.length === 1 ? '' : 's'}`,
+                    origin: window.location.origin,
+                    frames: locations.map((location, index) => ({
+                      number: String(index + 1),
+                      image: location.photo,
+                      heading: `${location.setting}. ${location.name}`,
+                      notes: [
+                        ['Looks like', location.look],
+                        ['Also called', location.aliases.join(', ')],
+                        [
+                          'Scenes here',
+                          scenes
+                            .filter(scene => scene.slot?.locationId === location.id)
+                            .map(scene => scene.name)
+                            .join(', '),
+                        ],
+                      ],
+                    })),
+                  })
+                )
+              }
+            >
+              Locations sheet
+            </Button>
+          </div>
+        ) : null}
         {locations.length === 0 ? (
           <p className="type-caption text-[var(--text-muted)]" data-testid="locations-empty">
             No locations yet. A place more than one shot goes to is worth one: without it, each shot

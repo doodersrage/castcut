@@ -74,6 +74,9 @@ note beside it.
 
 ## Locations
 
+**Locations sheet** (above the list) opens every location's photo, setting, look and the Scenes set
+there on one page to print or save as PDF.
+
 A place the film goes back to — the corner café, her sister's flat — described once, so every
 Scene set there shows the same room instead of a new one each time. The **Locations** section
 lists them for the whole film (not one Cast):

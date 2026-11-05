@@ -12,6 +12,7 @@ import CutPartRender from '@/components/cut/CutPartRender';
 import CutColourScript from '@/components/cut/CutColourScript';
 import { CONTINUITY_RULE_LABELS } from '@/lib/checks/check-quality';
 import { continuityReportSections } from '@/lib/film/continuity-report';
+import { DIALOGUE_LIST_COLUMNS, dialogueListRows } from '@/lib/film/dialogue-list';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { SHOT_PROVENANCE_COLUMNS, shotProvenanceRows } from '@/lib/film/provenance-report';
 import { tableSheetHtml } from '@/lib/print/print-sheets';
@@ -1289,6 +1290,42 @@ export default function CutRoom() {
                             }
                           >
                             Shot report
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="justify-self-start"
+                            data-testid="cut-dialogue-list"
+                            title="Every line and voice-over, shot by shot, with who says it and whether it is recorded — print or save as PDF"
+                            onClick={() =>
+                              openPrintSheet(
+                                tableSheetHtml({
+                                  title: 'Dialogue list',
+                                  subtitle: new Date().toLocaleDateString(),
+                                  sections: [
+                                    {
+                                      heading: 'Lines and voice-overs',
+                                      columns: [...DIALOGUE_LIST_COLUMNS],
+                                      rows: dialogueListRows(
+                                        ordered
+                                          .filter(
+                                            shot =>
+                                              vm.options.shotEdits?.shots?.[shot.key]?.include !==
+                                              false
+                                          )
+                                          .map(shot => ({
+                                            ...shot,
+                                            speaker: vm.shotStates[shot.key]?.castName,
+                                          }))
+                                      ),
+                                      empty: 'Nothing is said in this film.',
+                                    },
+                                  ],
+                                })
+                              )
+                            }
+                          >
+                            Dialogue list
                           </Button>
                           <CutRenderQueue
                             queue={vm.renderQueue}
