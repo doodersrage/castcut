@@ -36,10 +36,23 @@ First launch asks **What do you want to make?** (Character / Scene·Film / Image
 
 **Create or pick** a Cast character (name + optional **From photo** first; Part / look traits under **More traits**) → **Create & continue to Look**, or tap **Make a starter film** / **Make one like this** under the sample reel. Phone Film remaps every handoff onto `/m/...` so you stay in Mobile Studio.
 
-- **Resume** — one Continue card mid-film; Restart at Look stays secondary; Jump to starter Day is under More.
-- **Mission control** — funnel chips + Identity ready; full Steps under Edit when mid-film or complete.
-- **Film complete** — Watch on Cast · Same look, new Day · Continue in Story · Start new film.
-- Persistence triad is compact; habit nudge is desk-only on the hub (phone shell already owns it).
+Once a Cast is picked the page is the film's home:
+
+- **The film up top** — the latest cut plays there (or the one you pick under **Your films**);
+  before there's a cut, the Day's stills play as a reel. Beside it: the Cast as a chip
+  (**Rae · Default ▾** — the picker, the looks and **Look packs** open in a sheet), what's made
+  so far (*4 stills · 1 clip · 1 film*) and the next step (**Continue**, **Open Cut**, **Restart at
+  Day**, **One scene**; complete: **Watch film on Cast** · **Same look, new Day** · **Continue in
+  Story** · **Start new film**).
+- **Waiting for you** — long clip jobs still running, and review comments not yet ticked off on
+  the latest films (**Open in Cut** goes to Cut's Notes).
+- **Steps** — one row of cards (Cast, Outfit, Day, Cut film, Story), each with what it made: the
+  plate, the Day's stills, the film.
+- **Your films** — every saved film, newest first; click one to watch it up top, **Re-cut or share
+  on Cast** for the rest.
+
+With no Cast yet (or **New character**), the create form and the steps stay on the page. The habit
+nudge is desk-only on the hub (phone shell already owns it).
 
 Deep links: `/play?character=<id>` · `/m/film?character=<id>`.
 

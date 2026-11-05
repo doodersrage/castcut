@@ -537,6 +537,10 @@ describe('roleplay parsers', () => {
     const frozen = appendRoleplayStoryBeat(story, { id: 'extra', title: 'Too late', blurb: 'nope' });
     assert.equal(frozen, story);
     assert.equal(formatRoleplayStoryProgress(story).heading, 'The end');
+    // The progress bar's count: every plot scene, of the ten.
+    assert.equal(formatRoleplayStoryProgress(story).plot, MAX_ROLEPLAY_PLOT_BEATS);
+    assert.equal(formatRoleplayStoryProgress(story).plotTotal, MAX_ROLEPLAY_PLOT_BEATS);
+    assert.equal(formatRoleplayStoryProgress([]).plot, 0);
     assert.match(formatRoleplayStoryDigest(story), /already ended/i);
   });
 

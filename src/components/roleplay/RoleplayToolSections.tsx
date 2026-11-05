@@ -10,7 +10,9 @@ import SharedToolControls from '@/components/SharedToolControls';
 import RoleplayBeatOutputSection from '@/components/roleplay/RoleplayBeatOutputSection';
 import RoleplayCastSection from '@/components/roleplay/RoleplayCastSection';
 import { RoleplayCastToneSettingSection } from '@/components/roleplay/sections/RoleplayCastToneSettingSection';
-import RoleplayStorySection from '@/components/roleplay/RoleplayStorySection';
+import RoleplayStorySection, { StoryCutActions } from '@/components/roleplay/RoleplayStorySection';
+import SideSheet from '@/components/ui/SideSheet';
+import { PlayCastChip } from '@/components/play/PlayFilmHome';
 import { useDayStoryOpening } from '@/hooks/useDayStoryOpening';
 import RoleplayWardrobeSection from '@/components/roleplay/RoleplayWardrobeSection';
 import StoryStatusStrip from '@/components/roleplay/StoryStatusStrip';
@@ -25,14 +27,14 @@ import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import type { useRoleplayToolOrchestration } from '@/hooks/useRoleplayToolOrchestration';
 import { Button } from '@/components/ui/Button';
-import {
-  CollapsibleSection,
-  ToolActionRow,
-  ToolLayout,
-  ToolSection,
-} from '@/components/ui/ToolPageShell';
+import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { getCharacter } from '@/lib/character/os';
+import {
+  fetchClothingLabels,
+  getCachedClothingLabel,
+  humanizeClothingId,
+} from '@/lib/wardrobe/clothing-catalog-client';
 import { normalizeDayIntimateMix } from '@/lib/day/planner';
 import { playCampaignHref } from '@/lib/play/campaign';
 import {
@@ -45,7 +47,7 @@ import {
   type RoleplayStoryBeat,
 } from '@/lib/story/roleplay';
 import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ACCENT = 'amber' as const;
 const TOOL_ID = 'roleplay';
@@ -232,6 +234,91 @@ export default function RoleplayToolSections({
     hideMoodSection: true as const,
   };
 
+  // Who, the photo and the outfit fold into one chip (they filled a side column, said twice).
+  const [castSheetOpen, setCastSheetOpen] = useState(false);
+  const outfitLabel = wardrobe.hasCustomGarment
+    ? 'Your clothing photo'
+    : wardrobe.selectedWardrobeId
+      ? (wardrobe.filteredWardrobeOptions.find(
+          option => option.value === wardrobe.selectedWardrobeId
+        )?.label ??
+        getCachedClothingLabel(wardrobe.selectedWardrobeId) ??
+        humanizeClothingId(wardrobe.selectedWardrobeId))
+      : undefined;
+
+  // The kit's real name, once the catalog says (the cache re-renders nothing by itself).
+  const [, setLabelsLoaded] = useState(0);
+  const kitId = wardrobe.selectedWardrobeId || '';
+  useEffect(() => {
+    if (!kitId || getCachedClothingLabel(kitId)) return;
+    let cancelled = false;
+    void fetchClothingLabels([kitId]).then(() => {
+      if (!cancelled) setLabelsLoaded(count => count + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [kitId]);
+
+  // Keys (not while typing, nor over a dialog): 1–4 pick a beat, R rolls new beats, U undoes the
+  // last scene, ← → step through the scenes on the stage.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target &&
+          (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const usable = (button: HTMLButtonElement | null | undefined) =>
+        button && !button.disabled ? button : null;
+      const byId = (testId: string) =>
+        usable(document.querySelector<HTMLButtonElement>(`[data-testid="${testId}"]`));
+      let button: HTMLButtonElement | null = null;
+      const key = event.key.toLowerCase();
+      if (/^[1-4]$/.test(event.key)) {
+        button = usable(
+          document.querySelectorAll<HTMLButtonElement>('[data-testid="story-scene-card"]')[
+            Number(event.key) - 1
+          ]
+        );
+      } else if (key === 'r') {
+        button = byId('story-roll-scenes') ?? byId('story-start-roll');
+      } else if (key === 'u') {
+        button = byId('story-undo-scene');
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const thumbs = [
+          ...document.querySelectorAll<HTMLButtonElement>('[data-testid="story-stage-thumb"]'),
+        ];
+        const at = thumbs.findIndex(thumb => thumb.getAttribute('aria-pressed') === 'true');
+        button = usable(thumbs[at + (event.key === 'ArrowLeft' ? -1 : 1)]);
+      }
+      if (button) {
+        event.preventDefault();
+        button.click();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const downloadAction = (
+    <Button
+      variant="secondary"
+      loading={session.exporting}
+      loadingLabel="Packing story"
+      disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
+      onClick={() => void session.downloadStory()}
+    >
+      Download story + stills + clips
+    </Button>
+  );
+
   const engineControls = (
     <SharedToolControls
       shared={shared}
@@ -282,16 +369,28 @@ export default function RoleplayToolSections({
         <RoleplayCastSection {...castProps} />
       ) : (
         <>
-          {!film.firstCutCelebrate ? (
-            <StoryStatusStrip statusLine={storyStatusLine} queueBlockReason={queueBlockReason} />
-          ) : null}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {activeCharacterId ? (
+              <PlayCastChip
+                name={castCharacterName || 'Cast'}
+                look={outfitLabel}
+                plate={reference.displayReferenceUrl || null}
+                testId="story-cast-chip"
+                onOpen={() => setCastSheetOpen(true)}
+              />
+            ) : null}
+            {!film.firstCutCelebrate ? (
+              <StoryStatusStrip
+                className="min-w-0 flex-1"
+                statusLine={storyStatusLine}
+                queueBlockReason={queueBlockReason}
+              />
+            ) : null}
+          </div>
 
           {/* Reel first: the story so far (newest scene large), what happens next; who, photo
               and outfit in the side column. */}
-          <div
-            className="grid items-start gap-[var(--block-gap)] lg:grid-cols-[minmax(0,1fr)_22rem]"
-            data-testid="story-layout"
-          >
+          <div className="ui-section-stack min-w-0" data-testid="story-layout">
             <div className="ui-section-stack min-w-0">
               <StoryRetryFlagged story={story} busy={busy} onRetry={retryStill} />
               <CutProblemsDialog
@@ -301,6 +400,7 @@ export default function RoleplayToolSections({
               {story.length > 0 || dayOpening || film.firstCutCelebrate ? (
                 <RoleplayStorySection
                   stage
+                  cutInComposer
                   cutChecking={film.cutChecking}
                   beatOutput={beatOutput}
                   autoQueue={autoQueue}
@@ -319,17 +419,7 @@ export default function RoleplayToolSections({
                   onClearFirstCutCelebrate={() => {
                     film.clearFirstCutCelebrate();
                   }}
-                  downloadAction={
-                    <Button
-                      variant="secondary"
-                      loading={session.exporting}
-                      loadingLabel="Packing story"
-                      disabled={(!bio && story.length === 0) || (busy && !session.exporting)}
-                      onClick={() => void session.downloadStory()}
-                    >
-                      Download story + stills + clips
-                    </Button>
-                  }
+                  downloadAction={downloadAction}
                   onCutFilm={() => void film.cutRoleplayFilm()}
                   onSaveToCast={film.saveFilmToCast}
                   onShareCut={() => void film.shareLastCut()}
@@ -356,7 +446,56 @@ export default function RoleplayToolSections({
                   dayOpening={dayOpening}
                 />
               ) : null}
+              {showAnimateCoach ? (
+                <ToolSection
+                  title="Animate the stills"
+                  description="They're ready — turn them into clips, then cut the film."
+                  data-testid="story-animate"
+                >
+                  <ToolActionRow>
+                    <Button
+                      variant="primary"
+                      disabled={busy || film.assemblingFilm || renderOffline}
+                      data-testid="story-animate-all"
+                      onClick={() => void animateAllReady()}
+                    >
+                      Animate all ready stills
+                    </Button>
+                  </ToolActionRow>
+                  <ClipEngineNote twoPersonAdultPossible story />
+                </ToolSection>
+              ) : null}
               <RoleplayBeatOutputSection
+                composer
+                hideRoll={
+                  story.length === 0 && Boolean(dayOpening) && sceneFlow.scenes.length === 0
+                }
+                footer={
+                  story.length > 0 ? (
+                    <StoryCutActions
+                      story={story}
+                      filmCutOptions={film.filmCutOptions}
+                      onFilmCutOptionsChange={film.setFilmCutOptions}
+                      assemblingFilm={film.assemblingFilm}
+                      cutChecking={film.cutChecking}
+                      busy={busy}
+                      filmNeedsCast={film.filmNeedsCast}
+                      filmCharacterId={film.filmCharacterId}
+                      filmStatus={film.filmStatus}
+                      filmError={film.filmError}
+                      filmGuideHref={film.filmGuideHref}
+                      firstCutCelebrate={film.firstCutCelebrate}
+                      previouslyAvailable={film.storyPreviouslyAvailable}
+                      onCutFilm={() => void film.cutRoleplayFilm()}
+                      onSaveToCast={film.saveFilmToCast}
+                      onShareCut={() => void film.shareLastCut()}
+                      onSavePoster={() => void film.saveFilmPoster()}
+                      posterBusy={film.posterBusy}
+                      canShareCut={Boolean(film.filmStatus && !film.assemblingFilm)}
+                      downloadAction={downloadAction}
+                    />
+                  ) : null
+                }
                 storyProgress={storyProgress}
                 beatOutput={beatOutput}
                 autoQueue={autoQueue}
@@ -402,60 +541,33 @@ export default function RoleplayToolSections({
                 }
               />
             </div>
-
-            <div className="ui-section-stack min-w-0" data-testid="story-side">
-              {showAnimateCoach ? (
-                <ToolSection
-                  title="Animate the stills"
-                  description="They're ready — turn them into clips, then cut the film."
-                  data-testid="story-animate"
-                >
-                  <ToolActionRow>
-                    <Button
-                      variant="primary"
-                      disabled={busy || film.assemblingFilm || renderOffline}
-                      data-testid="story-animate-all"
-                      onClick={() => void animateAllReady()}
-                    >
-                      Animate all ready stills
-                    </Button>
-                  </ToolActionRow>
-                  <ClipEngineNote twoPersonAdultPossible story />
-                </ToolSection>
-              ) : null}
-              <CollapsibleSection
-                title={`Cast · ${castCharacterName || 'lead'}`}
-                summary={[
-                  playAsResolved === 'photo'
-                    ? reference.hasReferenceImage
-                      ? 'From photo ✓'
-                      : 'From photo — none yet'
-                    : 'From bio',
-                  bio ? 'bible set' : 'needs bible',
-                ].join(' · ')}
-                defaultOpen={!(reference.hasReferenceImage && bio) && story.length === 0}
-                persistKey="story-cast-side"
-              >
-                <RoleplayCastSection {...castProps} embedded />
-              </CollapsibleSection>
-              {activeCharacterId ? (
-                <>
-                  <RoleplayWardrobeSection
-                    busy={busy}
-                    toolSettings={toolSettings}
-                    onUpdateToolSettings={updateToolSettings}
-                    onError={message => setError(message)}
-                    wardrobe={wardrobe}
-                  />
-                  <TaskRequirementsCard
-                    task="This Story"
-                    testId="story-task-requirements"
-                    input={{ model: shared.model, adult: content === 'explicit' }}
-                  />
-                </>
-              ) : null}
-            </div>
           </div>
+          {activeCharacterId ? (
+            <SideSheet
+              open={castSheetOpen}
+              onClose={() => setCastSheetOpen(false)}
+              title={`Cast · ${castCharacterName || 'lead'}`}
+              description="Who the story follows, their photo and bible, and what they wear in stills."
+              testId="story-cast-sheet"
+              size="lg"
+            >
+              <div className="space-y-4">
+                <RoleplayCastSection {...castProps} embedded />
+                <RoleplayWardrobeSection
+                  busy={busy}
+                  toolSettings={toolSettings}
+                  onUpdateToolSettings={updateToolSettings}
+                  onError={message => setError(message)}
+                  wardrobe={wardrobe}
+                />
+                <TaskRequirementsCard
+                  task="This Story"
+                  testId="story-task-requirements"
+                  input={{ model: shared.model, adult: content === 'explicit' }}
+                />
+              </div>
+            </SideSheet>
+          ) : null}
         </>
       )}
     </ToolLayout>

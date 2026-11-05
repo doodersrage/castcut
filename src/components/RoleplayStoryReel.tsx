@@ -17,9 +17,10 @@ import {
   roleplayStillBasename,
   roleplayStoryPromptIds,
   type RoleplayStoryBeat,
+  lastCompletedRoleplayStillUrl,
 } from '@/lib/story/roleplay';
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
-import { beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
+import { beatMotionUrl, beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
@@ -214,56 +215,69 @@ export default function RoleplayStoryReel({
   }, [activeBeat, activeSlide, fixAreaFor, onCopy, onRetry]);
 
   if (story.length === 0) {
+    // One way in (2026-11-05): with today's Day ready, the two openings side by side — Roll sat
+    // here, again under "What happens next?", and the Day offer in a box of its own.
+    if (dayOpening) {
+      return (
+        <div
+          className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-4"
+          data-testid="roleplay-story-empty"
+        >
+          <p className="type-heading">How does it start?</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2" data-testid="roleplay-day-opening">
+            <div className="space-y-2">
+              <Button
+                variant="primary"
+                className="w-full"
+                disabled={busy}
+                data-testid="roleplay-day-opening-use"
+                onClick={dayOpening.use}
+              >
+                Start from today’s Day ({dayOpening.count}{' '}
+                {dayOpening.count === 1 ? 'still' : 'stills'})
+              </Button>
+              <p className="type-caption text-[var(--text-muted)]">
+                {dayOpening.count === 1
+                  ? 'Its still becomes the first scene'
+                  : 'Its stills become the first scenes'}
+                ; the story picks up from there.
+              </p>
+            </div>
+            {onRollScenes ? (
+              <div className="space-y-2">
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  loading={scenesLoading}
+                  loadingLabel="Rolling scenes"
+                  disabled={busy || !bioPresent}
+                  title={bioPresent ? undefined : 'Set the character bible on Cast first'}
+                  data-testid="story-start-roll"
+                  onClick={onRollScenes}
+                >
+                  Roll four scenes
+                </Button>
+                <p className="type-caption text-[var(--text-muted)]">
+                  Four ideas for a fresh first scene — or write your own below.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="space-y-3" data-testid="roleplay-story-empty">
         <EmptyState
           compact
           branded
-          title="Roll scenes to start the reel"
+          title="The story starts here"
           description={
             bioPresent
-              ? 'Pick a beat above — stills and clips land here as they render.'
-              : 'Set the character bible on Cast, then Roll four scenes above.'
-          }
-          action={
-            onRollScenes
-              ? {
-                  label: scenesLoading || busy ? 'Rolling…' : 'Roll four scenes',
-                  onClick: () => {
-                    if (busy || scenesLoading) {
-                      return;
-                    }
-                    onRollScenes();
-                  },
-                }
-              : undefined
+              ? 'Pick a beat below — stills and clips land here as they render.'
+              : 'Set the character bible on Cast, then roll four scenes.'
           }
         />
-        {dayOpening ? (
-          <div
-            className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 p-3"
-            data-testid="roleplay-day-opening"
-          >
-            <p className="type-caption text-[var(--text-muted)]">
-              Start from today’s Day: its {dayOpening.count}{' '}
-              {dayOpening.count === 1
-                ? 'still becomes the first scene'
-                : 'stills become the first scenes'}
-              , and the next scene picks up from there.
-            </p>
-            <ToolActionRow className="mt-2">
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={busy}
-                data-testid="roleplay-day-opening-use"
-                onClick={dayOpening.use}
-              >
-                Open with today’s Day ({dayOpening.count})
-              </Button>
-            </ToolActionRow>
-          </div>
-        ) : null}
         {!bioPresent && castBibleHref ? (
           <ToolActionRow>
             <ButtonLink
@@ -380,19 +394,35 @@ export default function RoleplayStoryReel({
               {story.length > 1 ? (
                 <ol className="flex gap-2 overflow-x-auto pb-1" data-testid="story-reel">
                   {story.map((entry, index) => {
-                    const thumb = beatPreviewUrl(
-                      entry,
-                      entry.promptId ? (liveUrls[entry.promptId] ?? null) : null
-                    );
+                    // The scene's still (a clip's preview url read as motion, so a scene with a
+                    // clip showed "…" — 2026-11-05); a clip with no still shows its first frame.
+                    const stillThumb =
+                      lastCompletedRoleplayStillUrl(entry) ||
+                      (entry.stillStatus === 'completed' ? entry.imageUrl?.trim() : '') ||
+                      (entry.promptId ? (liveUrls[entry.promptId] ?? null) : null);
+                    const clipThumb = stillThumb ? null : beatMotionUrl(entry);
                     const on = index === stageIndex;
                     // Off-stage scenes that need a look: a failed still or clip, or a prompt
                     // check that could not fix everything.
+                    const rendering =
+                      entry.stillStatus === 'queued' ||
+                      entry.stillStatus === 'running' ||
+                      entry.clipStatus === 'queued' ||
+                      entry.clipStatus === 'running';
+                    const canRedo =
+                      !rendering &&
+                      (entry.stillStatus === 'completed' || entry.stillStatus === 'error');
+                    const canClip =
+                      !rendering &&
+                      entry.stillStatus === 'completed' &&
+                      Boolean(entry.imageUrl?.trim()) &&
+                      entry.clipStatus !== 'completed';
                     const attention =
                       entry.stillStatus === 'error' ||
                       entry.clipStatus === 'error' ||
                       (entry.promptCheck?.remaining?.length ?? 0) > 0;
                     return (
-                      <li key={`${entry.id}-${entry.at}`} className="w-20 shrink-0">
+                      <li key={`${entry.id}-${entry.at}`} className="group relative w-20 shrink-0">
                         <Button
                           variant="plain"
                           type="button"
@@ -409,9 +439,21 @@ export default function RoleplayStoryReel({
                           }`}
                           onClick={() => setStagePick({ id: entry.id, newest: newestBeatId })}
                         >
-                          {thumb && !looksLikeMotionUrl(thumb) ? (
+                          {stillThumb && !looksLikeMotionUrl(stillThumb) ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={thumb} alt="" className="h-24 w-full rounded object-cover" />
+                            <img
+                              src={stillThumb}
+                              alt=""
+                              className="h-24 w-full rounded object-cover"
+                            />
+                          ) : clipThumb ? (
+                            <video
+                              src={`${clipThumb}#t=0.1`}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="h-24 w-full rounded bg-black object-cover"
+                            />
                           ) : (
                             <span className="flex h-24 w-full items-center justify-center rounded bg-[var(--bg-muted)] text-xs text-[var(--text-muted)]">
                               {entry.stillStatus === 'error' ? 'Failed' : '…'}
@@ -428,8 +470,55 @@ export default function RoleplayStoryReel({
                             >
                               !<span className="sr-only"> needs a look</span>
                             </span>
+                          ) : rendering ? (
+                            <span
+                              className="absolute right-1 top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--accent)]"
+                              title="Rendering"
+                              data-testid="story-stage-thumb-rendering"
+                            >
+                              <span className="sr-only">rendering</span>
+                            </span>
+                          ) : entry.clipStatus === 'completed' ? (
+                            <span
+                              className="absolute right-1 top-1 rounded bg-black/60 px-1 text-[10px] text-white"
+                              title="Has a clip"
+                              data-testid="story-stage-thumb-clip"
+                            >
+                              ▶<span className="sr-only"> has a clip</span>
+                            </span>
                           ) : null}
                         </Button>
+                        {/* On hover or focus: the quick fixes, without opening the scene. */}
+                        {(canRedo && onRetry) || (canClip && onAnimate) ? (
+                          <span className="pointer-events-none absolute inset-x-0.5 top-[4.6rem] flex justify-center gap-0.5 opacity-0 transition group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
+                            {canRedo && onRetry ? (
+                              <Button
+                                size="sm"
+                                variant="overlay"
+                                className="px-1.5 py-0.5 text-[10px]"
+                                disabled={busy}
+                                aria-label={`Redo scene ${index + 1}'s still`}
+                                data-testid="story-stage-thumb-redo"
+                                onClick={() => onRetry(entry)}
+                              >
+                                Redo
+                              </Button>
+                            ) : null}
+                            {canClip && onAnimate ? (
+                              <Button
+                                size="sm"
+                                variant="overlay"
+                                className="px-1.5 py-0.5 text-[10px]"
+                                disabled={busy}
+                                aria-label={`Make a clip of scene ${index + 1}`}
+                                data-testid="story-stage-thumb-clip-make"
+                                onClick={() => onAnimate(entry)}
+                              >
+                                Clip
+                              </Button>
+                            ) : null}
+                          </span>
+                        ) : null}
                       </li>
                     );
                   })}

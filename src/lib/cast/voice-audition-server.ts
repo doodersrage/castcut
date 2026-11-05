@@ -45,6 +45,8 @@ export async function renderVoiceAudition(input: {
   name: string;
   lead: 'woman' | 'man';
   index: number;
+  /** One of CAST_ACCENTS (cast/speech.ts); anything else is left out. */
+  accent?: string;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;

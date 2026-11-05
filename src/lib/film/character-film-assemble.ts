@@ -3,6 +3,7 @@
  * (video-assemble.ts, shared) and keep the cut on the Cast.
  */
 
+import type { SubtitleStyle } from '../video/subtitle-style';
 import type { FilmOutputProbe } from '../video/output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from './cut-media';
@@ -45,6 +46,8 @@ export async function assembleAndStampFilm(input: {
   /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
   smoothMotion?: boolean;
   sharpen?: boolean;
+  /** How the subtitles look (subtitle-style.ts). */
+  subtitleStyle?: SubtitleStyle;
   /** A logo / watermark over the whole film (cut-overlay.ts). */
   logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
@@ -99,6 +102,7 @@ export async function assembleAndStampFilm(input: {
     followFaces: input.followFaces,
     smoothMotion: input.smoothMotion,
     sharpen: input.sharpen,
+    subtitleStyle: input.subtitleStyle,
     logo: input.logo,
     sound: input.sound,
   });
@@ -145,6 +149,7 @@ export async function assembleAndStampFilm(input: {
       followFaces: input.followFaces,
       smoothMotion: input.smoothMotion,
       sharpen: input.sharpen,
+      subtitleStyle: input.subtitleStyle,
       logo: input.logo,
       sound: input.sound,
     }),

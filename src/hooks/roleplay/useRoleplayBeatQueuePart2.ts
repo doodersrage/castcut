@@ -1,6 +1,6 @@
 'use client';
 
-import { pronounceForCast } from '@/lib/cast/speech';
+import { castAccent, pronounceForCast, withAccent } from '@/lib/cast/speech';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import {
   framedTalkingStill,
@@ -46,7 +46,9 @@ import {
 import { resolvePreferredVideoModel } from '@/lib/queue/tool-model';
 import {
   beginRoleplayClipRetryPatch,
+  isRoleplayAdultContent,
   lastCompletedRoleplayStillUrl,
+  normalizeRoleplayContent,
   patchRoleplayStoryBeat,
   roleplayClipQueueResultPatch,
   roleplayClipTakes,
@@ -226,9 +228,12 @@ export function useRoleplayBeatQueuePart2(
         setError(null);
       }
       // The still prompt talks to the edit model (Image 1 / Image 3 pose map) — not the clip's.
-      let prompt = reinforceIntimateStillPrompt(
-        stripStillPromptForClip(latest.prompt) || latest.blurb || ''
-      );
+      // The intimate locks only on an adult-rated Story: on every clip they gave a solo beach walk
+      // "Two adults… show the sex act" (user report 2026-11-05: "the video was weird").
+      const adultStory = isRoleplayAdultContent(normalizeRoleplayContent(toolSettings.content));
+      const reinforce = (text: string) =>
+        adultStory ? reinforceIntimateStillPrompt(text) : text.trim();
+      let prompt = reinforce(stripStillPromptForClip(latest.prompt) || latest.blurb || '');
       try {
         const response = await fetch('/api/video-prompt', {
           method: 'POST',
@@ -242,7 +247,7 @@ export function useRoleplayBeatQueuePart2(
         });
         const data = (await response.json()) as { prompt?: string };
         if (data.prompt?.trim()) {
-          prompt = reinforceIntimateStillPrompt(data.prompt.trim());
+          prompt = reinforce(data.prompt.trim());
         }
       } catch {
         /* use beat prompt */
@@ -293,6 +298,12 @@ export function useRoleplayBeatQueuePart2(
               speaker: leadIsMan() ? 'He' : 'She',
               tone: latest.lineTone,
             });
+        // The Cast's accent (Cast → Voice).
+        prompt = withAccent(
+          prompt,
+          castAccent(castRef.current.activeCharacterId),
+          conversation ? (lead === 'man' ? 'The man' : 'The woman') : leadIsMan() ? 'He' : 'She'
+        );
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
       // Story clips: the same choices as Day — LTX-2.5 (default), WAN or MiniMax-H3 (Video
@@ -374,6 +385,11 @@ export function useRoleplayBeatQueuePart2(
           heldGesture: stillHeldGesture(stillText),
           ...(stillBody ? { limbs: stillBody.limbs } : {}),
         });
+        prompt = withAccent(
+          prompt,
+          castAccent(castRef.current.activeCharacterId),
+          leadIsMan() ? 'He' : 'She'
+        );
         if (stillAgeLine) prompt = withAdultAgeLine(prompt, stillAgeLine);
       }
 
@@ -464,6 +480,7 @@ export function useRoleplayBeatQueuePart2(
       setError,
       shared.model,
       storyRef,
+      toolSettings.content,
       toolSettings.setting,
       updateToolSettings,
       castRef,

@@ -22,7 +22,7 @@ export type GalleryClipTool = {
   /** Toast while it runs ("Sharpening…"). */
   busyText: string;
   /** How the new clip is filed (its derived kind and file name). */
-  keepKind: 'finish' | 'realism' | 'restyle' | 'remove';
+  keepKind: 'finish' | 'realism' | 'restyle' | 'remove' | 'background';
   /** The background clip job it runs (clip-jobs.ts). */
   job: KeptClipJobTool;
   /** Extra request fields (e.g. a strength, or the choice picked). */

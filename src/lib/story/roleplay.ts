@@ -2937,11 +2937,19 @@ export function formatRoleplayStoryProgress(story: RoleplayStoryBeat[] | undefin
   hint: string;
   rollLabel: string;
   rerollLabel: string;
+  /** Plot scenes so far, of `plotTotal` (then the ending) — the progress bar. */
+  plot: number;
+  plotTotal: number;
 } {
   const phase = roleplayStoryPhase(story);
   const plot = roleplayPlotBeatCount(story);
+  const counts = {
+    plot: Math.min(plot, MAX_ROLEPLAY_PLOT_BEATS),
+    plotTotal: MAX_ROLEPLAY_PLOT_BEATS,
+  };
   if (phase === 'complete') {
     return {
+      ...counts,
       phase,
       heading: 'The end',
       hint: 'This episode is over. Download the story, cut a film, or start another with this cast.',
@@ -2951,6 +2959,7 @@ export function formatRoleplayStoryProgress(story: RoleplayStoryBeat[] | undefin
   }
   if (phase === 'finale') {
     return {
+      ...counts,
       phase,
       heading: 'How does it end?',
       hint: 'Four closing stills. Pick one and the reel stops — earlier panels stay.',
@@ -2960,6 +2969,7 @@ export function formatRoleplayStoryProgress(story: RoleplayStoryBeat[] | undefin
   }
   if (phase === 'open') {
     return {
+      ...counts,
       phase,
       heading: 'What happens next?',
       hint: `Tap a beat to start the plot. ${MAX_ROLEPLAY_PLOT_BEATS} scenes, then an ending.`,
@@ -2968,6 +2978,7 @@ export function formatRoleplayStoryProgress(story: RoleplayStoryBeat[] | undefin
     };
   }
   return {
+    ...counts,
     phase,
     heading: 'What happens next?',
     hint: `Plot ${plot} of ${MAX_ROLEPLAY_PLOT_BEATS}. After that, four endings close the episode.`,

@@ -4,6 +4,7 @@
  * Shared: Gallery's stitch, Video continue, and Play's film cuts (character-film-assemble.ts).
  */
 
+import type { SubtitleStyle } from './subtitle-style';
 import type { FilmOutputProbe } from './output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { downloadFilmBlob } from './blob-download';
@@ -64,6 +65,8 @@ export type AssembleFilmOptions = {
   captions?: boolean;
   /** Burn in what is said (and the narration) as subtitles — server encode only. */
   subtitles?: boolean;
+  /** How the subtitles look (subtitle-style.ts). */
+  subtitleStyle?: SubtitleStyle;
   /** Opening title card. */
   titleCard?: FilmTitleCard | null;
   /** Music bed / lines gain (server encode only; audio-mix-levels.ts). */
@@ -393,6 +396,7 @@ async function assembleFilmBlobOnServer(
         followFaces: options?.followFaces !== false,
         smoothMotion: options?.smoothMotion === true,
         sharpen: options?.sharpen === true,
+        subtitleStyle: options?.subtitleStyle,
         logo: options?.logo ?? undefined,
         sound: options?.sound ?? undefined,
       }),

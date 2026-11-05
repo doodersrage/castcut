@@ -10,6 +10,7 @@ are in the [Gallery](#gallery) too.
 | [Make more realistic](#realism)        | A clip   | A few min per 5 s | —                            |
 | [Restyle](#restyle)                    | A clip   | 6 min for 5 s     | A look                       |
 | [Remove or replace](#remove)           | A clip   | 6 min for 5 s     | What goes, painted           |
+| [Change the background](#background)   | A clip   | 6 min for 5 s     | The new place, in words      |
 | [Copy moves from a video](#copy-moves) | A still  | 5 min for 5 s     | A video of one person        |
 | [Direct a move](#director)             | A still  | 3 min for 5 s     | A few beats, posed or picked |
 | [Motion brush](#motion-brush)          | A still  | A few min for 5 s | Paths drawn on it            |
@@ -44,7 +45,8 @@ Queue, Animate and Play another.
 ## In the Gallery { #gallery }
 
 Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth**,
-**Make more realistic**, [**Restyle…**](#restyle) and [**Remove or replace…**](#remove).
+**Make more realistic**, [**Restyle…**](#restyle), [**Remove or replace…**](#remove) and
+[**Change the background…**](#background).
 Day, Scene and Story's card menus have **Restyle…** too. A finished still's **⋯** → **Make it move** has
 [**Direct a move…**](#director). The new clip is kept next to the original. One clip job runs
 at a time.
@@ -124,6 +126,24 @@ every frame of a 5 s clip, in about 6 minutes.
   same on every frame — fine for something that stays put.
 - Same models as [Restyle](#restyle). ComfyUI's models are unloaded when it's done, so the memory
   comes back.
+
+## Change the background { #background }
+
+Say where they are now — pick one of the places offered (a beach, a rainy street at night, a café,
+a snowy forest, a rooftop at sunset) or write your own — and the place behind the people is
+redrawn as it, all through the clip. The people are found in every frame by SAM 3 and kept as
+they are: faces, clothes, movement and sound unchanged.
+
+- Needs someone in the shot: with nobody found it stops and says so, rather than guessing.
+- The light on the people stays as it was — a daylight shot on a night street can look pasted on;
+  a place in similar light sits best. On a longer clip the new place can shift a little where its
+  parts join.
+
+!!! example "Live"
+    The staircase clip as "a rainy city street at night, neon signs reflected on the wet
+    pavement": she, her dress and the mug untouched, a wet neon street behind her, about 6 minutes
+    for 5 s.
+- Same models as [Restyle](#restyle), plus SAM 3.1 (1.75 GB).
 
 ## Copy moves from a video { #copy-moves }
 

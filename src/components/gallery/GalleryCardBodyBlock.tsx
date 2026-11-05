@@ -69,6 +69,8 @@ export type GalleryCardBodyBlockProps = {
   promptExpanded: boolean;
   setPromptExpanded: (value: boolean | ((previous: boolean) => boolean)) => void;
   metaLine: string;
+  /** "render 41s", on the caption's hover. */
+  renderLabel?: string;
   derivedLabel: string | null | undefined;
   primaryMediaKind: ReturnType<
     typeof import('@/lib/gallery/comfyui-gallery').galleryEntryPrimaryMediaKind
@@ -137,6 +139,7 @@ export default function GalleryCardBodyBlock({
   promptExpanded,
   setPromptExpanded,
   metaLine,
+  renderLabel,
   derivedLabel,
   primaryMediaKind,
   stripMediaKinds,
@@ -171,14 +174,16 @@ export default function GalleryCardBodyBlock({
       ) : null}
       {layout === 'list' ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="ui-badge"
-            data-tone={statusTone(entry.status)}
-            data-size="xs"
-            data-upper="true"
-          >
-            {statusLabel(entry.status, entry)}
-          </span>
+          {entry.status === 'completed' ? null : (
+            <span
+              className="ui-badge"
+              data-tone={statusTone(entry.status)}
+              data-size="xs"
+              data-upper="true"
+            >
+              {statusLabel(entry.status, entry)}
+            </span>
+          )}
           {entry.reviewRating ? (
             <span className="text-3xs text-[var(--accent-text)]">{entry.reviewRating}★</span>
           ) : null}
@@ -243,6 +248,7 @@ export default function GalleryCardBodyBlock({
                   [entry.tool, entry.model].filter(Boolean).join(' · '),
                   entry.comfyUrl ? `ComfyUI ${entry.comfyUrl}` : '',
                   entry.queueParams?.seed != null ? `seed ${entry.queueParams.seed}` : '',
+                  renderLabel ?? '',
                 ]
                   .filter(Boolean)
                   .join(' · ') || undefined

@@ -1,8 +1,9 @@
 'use client';
 
+import { withCameraMove, type ClipCameraMove } from '@/lib/video/camera-move';
 import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/day/dub';
 import { holdJobCompletionEmail } from '@/lib/server/job-completion-email';
-import { pronounceForCast } from '@/lib/cast/speech';
+import { castAccent, pronounceForCast, withAccent } from '@/lib/cast/speech';
 import { previouslyOnShots } from '@/lib/play/series';
 import { widenStillForFilm } from '@/lib/film/widen-client';
 import { isH3Model } from '@/lib/engine/h3-renderer';
@@ -422,13 +423,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         manageBusy?: boolean;
         direction?: string;
         extraSeconds?: number;
+        /** The camera move picked in the Animate sheet (camera-move.ts). */
+        camera?: ClipCameraMove;
         /**
          * Longer (Animate sheet): continued in parts once this clip lands — LTX dialogue, or
          * MiniMax-H3 parts (H3 cuts to a new shot past its own ~5 s).
          */
         dialogue?: Pick<
           DayPendingDialogue,
-          'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones' | 'speakers'
+          'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones' | 'speakers' | 'scene'
         >;
       }
     ) => {
@@ -529,6 +532,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             speaker: manLead ? 'He' : 'She',
           });
         }
+        // The player's camera move (Animate sheet), in place of the locked-off camera.
+        if (!spokenLine && options?.camera) prompt = withCameraMove(prompt, options.camera);
         // An adult clip on LTX-2.5 — two-person (Video ltxAdultDuo) or a nude solo still: a calm
         // tempo line, a firmer hold on the still and 1024 (comfyui-config); two-person clips also
         // say the anatomy outright. Solo (2026-10-11): kept her anatomy where the plain clip lost
@@ -613,6 +618,14 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           ]
             .filter(Boolean)
             .join(' ');
+          // The Cast's accent (Cast → Voice); a dubbed line has the language's own.
+          if (!normalizeDubLanguage(slot.lineLanguage)) {
+            prompt = withAccent(
+              prompt,
+              castAccent(shared.activeCharacterId),
+              conversation ? (manLead ? 'The man' : 'The woman') : manLead ? 'He' : 'She'
+            );
+          }
           // Dub: the line (and reply) said in the slot's language (day-dub.ts).
           prompt = inSpokenLanguage(prompt, slot.lineLanguage);
         }
@@ -731,6 +744,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     ? { tones: options.dialogue.lines.map(() => slot.lineTone as string) }
                     : {}),
                 ...(options.dialogue.beats?.length ? { beats: options.dialogue.beats } : {}),
+                ...(options.dialogue.scene ? { scene: options.dialogue.scene } : {}),
                 ...(options.dialogue.partSeconds?.length
                   ? { partSeconds: options.dialogue.partSeconds }
                   : {}),
@@ -1256,6 +1270,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // Two people in the still: each extra line can be the other person's.
         ...(h3Chain && stillPromptPeople(parentEntry?.prompt) >= 2 ? { twoPeople: true } : {}),
         prompt,
+        ...(still?.status === 'completed' && still.imageUrl?.trim()
+          ? { stillUrl: still.imageUrl.trim() }
+          : {}),
         defaultDirection: defaultDayClipDirection(slot, character?.name),
         lengthSeconds,
         ...(longDialogue

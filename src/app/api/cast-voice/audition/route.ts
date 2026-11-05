@@ -1,6 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
+import { normalizeCastAccent } from '@/lib/cast/speech';
 import { CAST_VOICE_AUDITION_COUNT } from '@/lib/cast/voice';
 import { renderVoiceAudition } from '@/lib/cast/voice-audition-server';
 
@@ -11,7 +12,7 @@ export async function GET() {
   return apiMethodNotAllowed(['POST'], '/api/cast-voice/audition');
 }
 
-/** POST { plateUrl, name, lead, index, comfyUrl? } → { url }: one voice audition clip (MP4). */
+/** POST { plateUrl, name, lead, index, accent?, comfyUrl? } → { url }: one voice audition clip (MP4). */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
   if (isAuthEnabled() && !user?.enabled) return apiError('Authentication required.', 401);
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       name: typeof body.name === 'string' ? body.name.slice(0, 40) : '',
       lead: body.lead === 'man' ? 'man' : 'woman',
       index: Number.isInteger(index) ? Math.abs(index) % CAST_VOICE_AUDITION_COUNT : 0,
+      accent: normalizeCastAccent(body.accent),
       comfyUrl: typeof body.comfyUrl === 'string' ? body.comfyUrl : undefined,
       requestOrigin: new URL(request.url).origin,
       userId: user?.id ?? null,

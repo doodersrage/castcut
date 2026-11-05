@@ -912,8 +912,11 @@ test('day mid-flow: one Cut, folded cut options, honest render status', async ({
   await dismissBlockingOverlays(page);
   const coach = page.getByTestId('day-cut-coach');
   await expect(coach).toBeVisible({ timeout: 30_000 });
-  // Cut is its own step: the banner hands off to it (no options here).
-  await expect(coach.getByTestId('day-cut-coach-cut')).toHaveAttribute('href', /\/cut\?from=day/);
+  // Cut is its own step: the action bar hands off to it (no options here).
+  await expect(page.getByTestId('day-action-bar').getByTestId('day-cut-coach-cut')).toHaveAttribute(
+    'href',
+    /\/cut\?from=day/
+  );
   await expect(coach.getByTestId('day-cut-options-disclosure')).toHaveCount(0);
   // The banner owns Cut — the Animate card doesn't repeat it.
   await expect(page.getByTestId('day-animate-cut')).toHaveCount(0);
@@ -2399,7 +2402,8 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   );
   const coach = page.getByTestId('day-cut-coach');
   await expect(coach).toBeVisible({ timeout: 30_000 });
-  // What the cut will quietly do, and which checks ran.
+  // What the cut will quietly do, and which checks ran (under Details, in the action bar).
+  await coach.getByTestId('day-cut-details').locator('summary').click();
   const notes = coach.getByTestId('day-cut-readiness-notes');
   await expect(notes).toContainText("Afternoon: its line won't be heard (no talking clip)");
   await expect(notes).toContainText('Evening: the still failed — left out');
@@ -2987,6 +2991,8 @@ test('each Cast keeps its own Day across a Cast switch', async ({ page }) => {
   });
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
+  // The picker is in the Cast chip's sheet once a Cast is picked.
+  await page.getByTestId('play-cast-chip').click();
   await page.getByTestId('cast-picker-character-e2e-park-b').click();
   await expect(page.getByTestId('cast-picker-character-e2e-park-b')).toHaveAttribute(
     'aria-checked',
@@ -2999,6 +3005,8 @@ test('each Cast keeps its own Day across a Cast switch', async ({ page }) => {
     'true'
   );
   await page.waitForTimeout(1500);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('play-cast-sheet')).toHaveCount(0);
   // In-app navigation: a page load would re-apply this test's seed (it is an init script).
   await page.getByRole('link', { name: 'Day', exact: true }).first().click();
   await page.waitForURL(/\/day/);
@@ -3161,7 +3169,7 @@ test('Characters: Start a film opens Film with a named character', async ({ page
   await expect(startFilm).toHaveText('Start a film with Newer Lead', { timeout: 30_000 });
   await startFilm.click();
   await page.waitForURL(/\/play\?character=e2e-film-newer/, { waitUntil: 'commit' });
-  await expect(page.getByText('Active: Newer Lead')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-cast-chip')).toContainText('Newer Lead', { timeout: 30_000 });
   await expect(page.getByTestId('play-campaign-create-name')).toHaveCount(0);
 
   // A card's own Start a film opens that character.
@@ -3169,7 +3177,7 @@ test('Characters: Start a film opens Film with a named character', async ({ page
   await dismissBlockingOverlays(page);
   await page.getByTestId('cast-roster-start-film-e2e-film-older').click();
   await page.waitForURL(/\/play\?character=e2e-film-older/, { waitUntil: 'commit' });
-  await expect(page.getByText('Active: Older Lead')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('play-cast-chip')).toContainText('Older Lead', { timeout: 30_000 });
 });
 
 test('a Cast with a bible and a picture offers Picture this bible', async ({ page }) => {
@@ -4385,7 +4393,10 @@ test('play persistence triad is visible on Film hub', async ({ page }) => {
   });
   await gotoStable(page, '/play');
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('play-persistence-triad')).toBeVisible({ timeout: 30_000 });
+  // With a Cast picked, the Film page's chip names who and which look (it was this line).
+  await expect(page.getByTestId('play-cast-chip')).toContainText('Persist Hero', {
+    timeout: 30_000,
+  });
 });
 
 test('play habit nudge appears after a day-old cut', async ({ page }) => {

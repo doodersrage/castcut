@@ -26,7 +26,18 @@ function saveNotifications(entries: AppNotification[]): void {
   window.dispatchEvent(new Event(NOTIFICATIONS_UPDATED));
 }
 
-export function pushNotification(input: Omit<AppNotification, 'id' | 'at' | 'read'>): void {
+export function pushNotification(
+  notice: Omit<AppNotification, 'id' | 'at' | 'read'> & {
+    /** A long job: also a desktop notification when the tab is hidden (desktop-notify.ts). */
+    desktop?: boolean;
+  }
+): void {
+  const { desktop, ...input } = notice;
+  if (desktop) {
+    void import('./desktop-notify').then(({ notifyDesktop }) =>
+      notifyDesktop({ title: input.title, body: input.body, href: input.href })
+    );
+  }
   const entry: AppNotification = {
     ...input,
     id: crypto.randomUUID(),

@@ -72,6 +72,8 @@ export type RoleplayStorySectionProps = {
   cutChecking?: boolean;
   /** Desk Story: the newest scene large on a stage, earlier ones as a strip (RoleplayStoryReel). */
   stage?: boolean;
+  /** The cut row sits in the beat composer instead (StoryCutActions there). */
+  cutInComposer?: boolean;
   onFilmCutOptionsChange?: (
     next: import('@/components/FilmCutOptionsControls').FilmCutOptionsValue
   ) => void;
@@ -120,41 +122,32 @@ export default function RoleplayStorySection({
   previouslyAvailable,
   stage = false,
   cutChecking = false,
+  cutInComposer = false,
 }: RoleplayStorySectionProps) {
-  // Desk stage: Cut film under the story, not above its pictures.
-  const cutActions = (
-    <RoleplayFilmCutActions
-      cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
-      shotIdentity={storyShotIdentity(story)}
-      checksCoverage={storyCutCoverageLine(
-        story,
-        applyCutShotEdits(
-          roleplayWatchPlaylist(story) as KeyedShot[],
-          filmCutOptions?.shotEdits
-        ).map(shot => shot.key)
-      )}
+  // Desk stage: Cut film under the story, not above its pictures — or in the composer.
+  const cutActions = cutInComposer ? null : (
+    <StoryCutActions
+      story={story}
+      filmCutOptions={filmCutOptions}
+      onFilmCutOptionsChange={onFilmCutOptionsChange}
       assemblingFilm={assemblingFilm}
       cutChecking={cutChecking}
       busy={busy}
-      storyEmpty={story.length === 0}
       filmNeedsCast={filmNeedsCast}
       filmCharacterId={filmCharacterId}
       filmStatus={filmStatus}
       filmError={filmError}
       filmGuideHref={filmGuideHref}
-      hidePostCutLinks={firstCutCelebrate}
-      filmCutOptions={filmCutOptions}
-      onFilmCutOptionsChange={onFilmCutOptionsChange}
+      firstCutCelebrate={firstCutCelebrate}
       previouslyAvailable={previouslyAvailable}
       onCutFilm={onCutFilm}
       onSaveToCast={onSaveToCast}
       onShareCut={onShareCut}
       onSavePoster={onSavePoster}
       posterBusy={posterBusy}
-      canShareCut={canShareCut && !firstCutCelebrate}
-    >
-      {firstCutCelebrate ? null : downloadAction}
-    </RoleplayFilmCutActions>
+      canShareCut={canShareCut}
+      downloadAction={downloadAction}
+    />
   );
   return (
     <ToolSection
@@ -170,7 +163,7 @@ export default function RoleplayStorySection({
           : 'Stills land here as they render'}
         {autoQueue
           ? beatOutput === 'clip'
-            ? ' — T2V from the beat prompt. From photo uses that photo as I2V. Continuity uses Extend clip, Continue from last frame, or Stitch continue (by engine)'
+            ? ' — each scene’s still first, then its clip from that still'
             : ' — queued automatically from the bio and each pick'
           : ''}
         .
@@ -280,5 +273,88 @@ export default function RoleplayStorySection({
       </StoryBeatEditProvider>
       {stage ? cutActions : null}
     </ToolSection>
+  );
+}
+
+type StoryCutActionsProps = Pick<
+  RoleplayStorySectionProps,
+  | 'story'
+  | 'filmCutOptions'
+  | 'onFilmCutOptionsChange'
+  | 'assemblingFilm'
+  | 'cutChecking'
+  | 'busy'
+  | 'filmNeedsCast'
+  | 'filmCharacterId'
+  | 'filmStatus'
+  | 'filmError'
+  | 'filmGuideHref'
+  | 'firstCutCelebrate'
+  | 'previouslyAvailable'
+  | 'onCutFilm'
+  | 'onSaveToCast'
+  | 'onShareCut'
+  | 'onSavePoster'
+  | 'posterBusy'
+  | 'canShareCut'
+  | 'downloadAction'
+>;
+
+/** Cut film, Download, Share and Save poster for this Story (under the reel, or in the composer). */
+export function StoryCutActions({
+  story,
+  filmCutOptions,
+  onFilmCutOptionsChange,
+  assemblingFilm,
+  cutChecking = false,
+  busy,
+  filmNeedsCast,
+  filmCharacterId,
+  filmStatus,
+  filmError,
+  filmGuideHref,
+  firstCutCelebrate = false,
+  previouslyAvailable,
+  onCutFilm,
+  onSaveToCast,
+  onShareCut,
+  onSavePoster,
+  posterBusy = false,
+  canShareCut = false,
+  downloadAction,
+}: StoryCutActionsProps) {
+  return (
+    <RoleplayFilmCutActions
+      cutShots={roleplayWatchPlaylist(story) as KeyedShot[]}
+      shotIdentity={storyShotIdentity(story)}
+      checksCoverage={storyCutCoverageLine(
+        story,
+        applyCutShotEdits(
+          roleplayWatchPlaylist(story) as KeyedShot[],
+          filmCutOptions?.shotEdits
+        ).map(shot => shot.key)
+      )}
+      assemblingFilm={assemblingFilm}
+      cutChecking={cutChecking}
+      busy={busy}
+      storyEmpty={story.length === 0}
+      filmNeedsCast={filmNeedsCast}
+      filmCharacterId={filmCharacterId}
+      filmStatus={filmStatus}
+      filmError={filmError}
+      filmGuideHref={filmGuideHref}
+      hidePostCutLinks={firstCutCelebrate}
+      filmCutOptions={filmCutOptions}
+      onFilmCutOptionsChange={onFilmCutOptionsChange}
+      previouslyAvailable={previouslyAvailable}
+      onCutFilm={onCutFilm}
+      onSaveToCast={onSaveToCast}
+      onShareCut={onShareCut}
+      onSavePoster={onSavePoster}
+      posterBusy={posterBusy}
+      canShareCut={canShareCut && !firstCutCelebrate}
+    >
+      {firstCutCelebrate ? null : downloadAction}
+    </RoleplayFilmCutActions>
   );
 }

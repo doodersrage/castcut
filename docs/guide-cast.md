@@ -3,6 +3,20 @@
 A **Cast** member is a character that stays the same person in every picture.
 Open one from **Cast** (`/characters`) or the Film page.
 
+**Cast** shows everyone as portrait cards — the plate fills the card, with a ▶ badge for their
+films and **On Film** on the one your film follows. Click a card to open their page; **Start a
+film** and **⋯** (try on outfits, open Day, details, remove) are under it. **Start a film with…**,
+**New character** and **Import** sit in the header, and the last card is **+ New character**.
+Past four people, search by name and sort by name or recently changed.
+
+A Cast's page starts with their profile: the plate large (with none, the frame is **Add a plate**),
+a line of facts (*no plate · 1 look · 0 films*), their looks to switch between, their voice
+(**Add a voice** / **Change** opens Bible → Voice), what's next (*2 of 7 done · Next: Plate ready*,
+with that step's button; click the line for all seven), and **Start a film** · **or open in Outfit ·
+Day · Scene · Story** · **More**. The tabs stay in reach as you scroll; **Bible** has a row to jump to
+each of its sections; **Film & media** opens on the newest film, playing, with the others as
+posters to pick.
+
 ## What a Cast keeps
 
 | Part | What it does | Where |
@@ -26,6 +40,12 @@ Open one from **Cast** (`/characters`) or the Film page.
 3. Nudge it **Deeper** or **Higher**.
 
 Talking clips are then steered toward that voice.
+
+**Accent** sets how they speak — American, Southern American, New York, Canadian, British, London,
+Scottish, Irish, Welsh, Australian, New Zealand, South African, Indian, Jamaican, French, Spanish,
+Mexican, Italian, German, Russian or Brazilian. Auditions are asked for it ("…in a warm, low voice,
+with a Scottish accent"), so **Hear other voices** after picking one to keep a voice that has it;
+Day and Story talking clips are told it too. A dubbed line keeps the language's own accent.
 
 ## Places
 

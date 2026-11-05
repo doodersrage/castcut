@@ -1268,3 +1268,203 @@ test('Generate a shot with the Cast (Phantom): her pictures sent, the clip joins
   // Ready: the clip is in the film.
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
 });
+
+// 2026-11-05: the cut read as text — a line jumps there, Cut leaves its shot out.
+test('transcript: each shot’s words in order, and Cut leaves a shot out', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-subtitles').click();
+  await page.getByTestId('cut-subtitle-text-day:morning').fill('Coffee first.');
+  await page.getByTestId('cut-subtitle-text-day:morning').blur();
+  await page.getByTestId('cut-tab-transcript').click();
+  const transcript = page.getByTestId('cut-transcript');
+  await expect(transcript).toContainText('1 of 2 shots have words', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-transcript-line-day:morning')).toContainText('Coffee first.');
+  await expect(page.getByTestId('cut-transcript-line-day:afternoon')).toContainText('no words');
+  await page.getByTestId('cut-transcript-cut-day:afternoon').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('1 shot', { timeout: 10_000 });
+  await expect(page.getByTestId('cut-transcript-line-day:afternoon')).toHaveCount(0);
+  await page.getByTestId('cut-undo').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
+});
+
+// 2026-11-05: the subtitle look, shown on the monitor the way the film will draw it.
+test('subtitle look: picked in the options and shown on the monitor', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-subtitles').click();
+  await page.getByTestId('cut-subtitle-text-day:morning').fill('I never said that to anyone');
+  await page.getByTestId('cut-subtitle-text-day:morning').blur();
+  await page.getByTestId('cut-tab-options').click();
+  const look = page.locator('[data-testid$="-subtitle-style"]').first();
+  await look.scrollIntoViewIfNeeded();
+  await look.selectOption('words');
+  // Into the middle of the morning shot, where its subtitle shows.
+  const block = (await page.getByTestId('cut-timeline-shot-day:morning').boundingBox())!;
+  const ruler = (await page.getByTestId('cut-timeline-ruler').boundingBox())!;
+  await page.mouse.click(block.x + block.width * 0.45, ruler.y + ruler.height / 2);
+  const subtitle = page.getByTestId('cut-preview-subtitle');
+  await expect(subtitle).toHaveAttribute('data-style', 'words', { timeout: 15_000 });
+  // Word by word: a few words at a time, never the whole line.
+  await expect(subtitle).not.toHaveText('I never said that to anyone');
+});
+
+// 2026-11-05: a review link's comments in the Cut — on the timeline, a jump, ticked off.
+test('notes: review comments on this cut’s film, a jump to the moment, ticked off', async ({
+  page,
+}) => {
+  const patched: Array<Record<string, unknown>> = [];
+  await page.route('**/api/film/review**', route => {
+    if (route.request().method() === 'PATCH') {
+      patched.push(route.request().postDataJSON() as Record<string, unknown>);
+      return route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({
+      json: {
+        reviews: [
+          {
+            token: 'e2e-review-token-0000000000000000000',
+            entryId: 'e2e-cut-film-notes',
+            ownerId: null,
+            title: 'Rae — a film',
+            createdAt: 1,
+            expiresAt: Date.now() + 86_400_000,
+            comments: [
+              { id: 'c1', at: 2, name: 'Ana', text: 'The park looks too dark', timeSec: 3 },
+              { id: 'c2', at: 3, name: 'Ben', text: 'Love it overall' },
+            ],
+          },
+        ],
+      },
+    });
+  });
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  const now = Date.now();
+  await replaceGalleryIdb(page, [
+    {
+      id: 'e2e-cut-film-notes',
+      promptId: 'film-e2e-cut-film-notes',
+      prompt: 'Assembled film · Rae',
+      tool: 'day',
+      derivedKind: 'film',
+      characterId: CAST,
+      comfyUrl: 'http://127.0.0.1:8188',
+      status: 'completed',
+      queuedAt: now,
+      completedAt: now,
+      images: [{ filename: 'rae-notes.mp4', subfolder: '', type: 'output', format: 'video/mp4' }],
+      cutRecipe: {
+        version: 1,
+        shots: [
+          { title: 'Morning', url: thumb, kind: 'still' },
+          { title: 'Afternoon', url: thumb, kind: 'still' },
+        ],
+      },
+    },
+  ]);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 2', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-timeline-review-marker')).toHaveCount(1);
+  await page.getByTestId('cut-tab-notes').click();
+  const notes = page.getByTestId('cut-review-note');
+  await expect(notes.first()).toContainText('The park looks too dark');
+  await expect(notes.nth(1)).toContainText('Love it overall');
+  await page.getByTestId('cut-review-note-jump').click();
+  await expect(page.getByTestId('cut-shot-day:afternoon')).toHaveAttribute('data-active', 'true');
+  await page.getByTestId('cut-review-note-resolve').first().check();
+  await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 1');
+  expect(patched[0]).toMatchObject({ commentId: 'c1', resolved: true });
+});
+
+// 2026-11-05: your own markers — M at the playhead, a note, on the ruler, kept after a reload.
+test('markers: M drops one at the playhead, a note, kept after a reload', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-timeline-shot-day:afternoon').click();
+  await page.keyboard.press('m');
+  await expect(page.getByTestId('cut-timeline-marker')).toHaveCount(1, { timeout: 10_000 });
+  await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 1');
+  await page.getByTestId('cut-tab-notes').click();
+  await page.getByTestId('cut-marker-note').fill('music hits here');
+  await page.getByTestId('cut-marker-note').blur();
+  await page.waitForTimeout(800);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('cut-tab-notes').click();
+  await expect(page.getByTestId('cut-marker-note')).toHaveValue('music hits here', {
+    timeout: 30_000,
+  });
+  await page.getByTestId('cut-marker-remove').click();
+  await expect(page.getByTestId('cut-timeline-marker')).toHaveCount(0);
+});
+
+// 2026-11-05: a picture dropped on the timeline from the computer — into the Gallery and the cut.
+test('a picture dropped on the timeline is added to the end of the cut', async ({ page }) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots', { timeout: 30_000 });
+  await page.getByTestId('cut-timeline-drop').evaluate(async (zone, url) => {
+    const bytes = await (await fetch(url)).blob();
+    const data = new DataTransfer();
+    data.items.add(new File([bytes], 'dropped.webp', { type: 'image/webp' }));
+    zone.dispatchEvent(new DragEvent('dragover', { dataTransfer: data, bubbles: true, cancelable: true }));
+    zone.dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }));
+  }, thumb);
+  await expect(page.getByTestId('cut-drop-note')).toContainText('Added 1', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-film').first()).toContainText('3 shots');
+});
+
+// 2026-11-05: editor keys, monitor tools, picking several shots, skimming.
+test('editor round: keys, safe areas, loop, speed, several shots picked, skimming', async ({
+  page,
+}) => {
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const morning = page.getByTestId('cut-timeline-shot-day:morning');
+  const afternoon = page.getByTestId('cut-timeline-shot-day:afternoon');
+  await expect(morning).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cut-preview-building')).toHaveCount(0, { timeout: 15_000 });
+  const time = page.getByTestId('cut-preview-time');
+  // Home / End and Shift+→ (a second).
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('End');
+  await expect(time).not.toHaveText(/^0:00 \//);
+  await page.keyboard.press('Home');
+  await expect(time).toHaveText(/^0:00 \//);
+  await page.keyboard.press('Shift+ArrowRight');
+  await expect(time).toHaveText(/^0:01 \//);
+  // + zooms the timeline in (the block gets wider), \ fits it again.
+  const before = (await morning.boundingBox())!.width;
+  await page.keyboard.press('+');
+  await expect.poll(async () => (await morning.boundingBox())!.width).toBeGreaterThan(before * 1.3);
+  await page.keyboard.press('\\');
+  await expect.poll(async () => Math.round((await morning.boundingBox())!.width)).toBe(Math.round(before));
+  // Monitor: safe areas, loop, speed.
+  await page.getByTestId('cut-preview-safe').click();
+  await expect(page.getByTestId('cut-preview-safe-guides')).toBeVisible();
+  await page.getByTestId('cut-preview-loop').click();
+  await expect(page.getByTestId('cut-preview-loop')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('cut-preview-rate').selectOption('2');
+  await expect(page.getByTestId('cut-preview-rate')).toHaveValue('2');
+  // Skimming shows a moment without moving the playhead.
+  const at = await time.textContent();
+  const box = (await afternoon.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.move(box.x + box.width / 2 + 5, box.y + box.height / 2);
+  await expect(time).toHaveText(at!);
+  // Two shots picked with Shift-click, left out together.
+  await morning.click();
+  await afternoon.click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('cut-selection')).toContainText('2 shots picked');
+  await page.getByTestId('cut-selection-leave-out').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('0 shots', { timeout: 10_000 });
+  await page.getByTestId('cut-undo').click();
+  await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
+});

@@ -115,14 +115,14 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
   const rejected = active.takes.filter(take => take.review === 'rejected').length;
   const linkButton = strip
     ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center no-underline'
-    : 'ui-text-link type-caption whitespace-nowrap';
+    : 'ui-text-link type-caption whitespace-nowrap rounded px-1 py-0.5 hover:bg-[var(--bg-hover)]';
   return (
     <>
       <ol
         className={
           strip
             ? '-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-4 pb-1 [scrollbar-width:none]'
-            : 'mt-3 flex flex-wrap gap-2'
+            : 'mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4'
         }
         data-testid="scene-take-list"
         aria-label="Takes"
@@ -136,8 +136,8 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
           return (
             <li
               key={take.id}
-              className={`relative shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border-2 ${
-                strip ? 'w-28' : 'w-24'
+              className={`group/take relative shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border-2 ${
+                strip ? 'w-28' : 'w-full'
               } ${
                 onCard
                   ? 'border-[var(--accent-border)]'
@@ -184,6 +184,44 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                   On card
                 </span>
               ) : null}
+              {isKept ? (
+                <span
+                  className="type-caption pointer-events-none absolute right-1 top-1 rounded bg-[var(--accent)] px-1.5 font-medium text-[var(--on-accent)]"
+                  data-testid={`scene-take-kept-badge-${index}`}
+                >
+                  ★ Kept
+                </span>
+              ) : null}
+              {/* Quick actions on hover (or keyboard focus): keep it or reject it from the picture. */}
+              {!strip && !isRejected ? (
+                <div
+                  className="pointer-events-none absolute inset-x-1 top-[calc(100%-5.5rem)] z-10 flex justify-center gap-1 opacity-0 transition-opacity group-hover/take:pointer-events-auto group-hover/take:opacity-100 group-focus-within/take:pointer-events-auto group-focus-within/take:opacity-100"
+                  data-testid={`scene-take-quick-${index}`}
+                >
+                  {!isKept ? (
+                    <Button
+                      size="sm"
+                      variant="overlay"
+                      title="Keep this take (K)"
+                      data-testid={`scene-take-quick-keep-${index}`}
+                      onClick={() => keepTake(take.id)}
+                    >
+                      ★ Keep
+                    </Button>
+                  ) : null}
+                  {!isKept ? (
+                    <Button
+                      size="sm"
+                      variant="overlay"
+                      title="Reject — hide it from the takes (X)"
+                      data-testid={`scene-take-quick-reject-${index}`}
+                      onClick={() => reviewTake(take.id, 'rejected')}
+                    >
+                      Reject
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <div
                 className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 py-0.5'}`}
               >
@@ -192,7 +230,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                   className={
                     strip
                       ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center font-medium no-underline'
-                      : 'ui-text-link type-caption'
+                      : 'ui-text-link type-caption rounded px-1 py-0.5 hover:bg-[var(--bg-hover)]'
                   }
                   aria-pressed={isKept}
                   data-testid={`scene-take-keep-${index}`}
@@ -287,14 +325,15 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
       {rejected > 0 || active.takes.length - rejected >= 2 ? (
         <div className="mt-1 flex flex-wrap gap-3">
           {active.takes.length - rejected >= 2 ? (
-            <button
-              type="button"
-              className="ui-text-link type-caption"
+            <Button
+              size="sm"
+              variant="secondary"
               data-testid="scene-takes-compare"
+              title="Two takes side by side, to pick the better"
               onClick={() => setComparing(true)}
             >
               Compare takes
-            </button>
+            </Button>
           ) : null}
           {rejected > 0 ? (
             <button

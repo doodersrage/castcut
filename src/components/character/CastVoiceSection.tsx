@@ -16,6 +16,7 @@ import {
   takeCastVoiceFromClip,
   takeCastVoiceFromFile,
 } from '@/lib/cast/voice';
+import { CAST_ACCENTS, castAccent, normalizeCastSpeech, saveCastSpeech } from '@/lib/cast/speech';
 import { getCharacter, type CharacterRecord } from '@/lib/character/os';
 import { resolveFittingPlateFromCharacter } from '@/lib/character/plate';
 
@@ -34,6 +35,7 @@ export default function CastVoiceSection({
   onUpdated?: (character: CharacterRecord) => void;
 }) {
   const voice = castVoiceOf(character.id);
+  const accent = castAccent(character.id);
   const lead = character.traits?.sex === 'man' ? 'man' : 'woman';
   const plate = resolveFittingPlateFromCharacter(character);
   const plateUrl = plate?.originalUrl?.trim() || plate?.imageUrl?.trim() || '';
@@ -68,7 +70,13 @@ export default function CastVoiceSection({
     for (let index = 0; index < CAST_VOICE_AUDITION_COUNT; index += 1) {
       setAuditions(previous => [...previous, { index }]);
       try {
-        const url = await requestCastVoiceAudition({ plateUrl, name: character.name, lead, index });
+        const url = await requestCastVoiceAudition({
+          plateUrl,
+          name: character.name,
+          lead,
+          index,
+          accent,
+        });
         setAuditions(previous =>
           previous.map(item => (item.index === index ? { index, url } : item))
         );
@@ -201,6 +209,34 @@ export default function CastVoiceSection({
             No voice kept yet — each talking clip picks its own.
           </p>
         )}
+        <label className="type-caption flex flex-wrap items-center gap-2 text-[var(--text-secondary)]">
+          Accent
+          <select
+            className="ui-select h-8 text-sm"
+            value={accent ?? ''}
+            data-testid="cast-voice-accent"
+            onChange={event => {
+              const next = event.target.value || undefined;
+              saveCastSpeech(character.id, {
+                ...normalizeCastSpeech(getCharacter(character.id)?.speech),
+                accent: next,
+              });
+              setNote(
+                next
+                  ? `${next} accent — auditions use it, and Day and Story talking clips are told it.${voice ? ' Hear other voices to keep one that has it.' : ''}`
+                  : 'No accent — each voice speaks as it comes.'
+              );
+              refresh();
+            }}
+          >
+            <option value="">None</option>
+            {CAST_ACCENTS.map(name => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button
           size="sm"
           variant={voice ? 'secondary' : 'primary'}
@@ -261,6 +297,7 @@ export default function CastVoiceSection({
               <li key={item.index} className="space-y-1.5">
                 <p className="type-caption text-[var(--text-muted)]">
                   {CAST_VOICE_AUDITIONS[lead][item.index]}
+                  {accent ? `, ${accent}` : ''}
                 </p>
                 {item.url ? (
                   <>

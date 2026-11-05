@@ -1,18 +1,12 @@
 'use client';
 
-import type {
-  ComfyGalleryFilter,
-  ComfyGallerySort,
-  GalleryLayoutMode,
-} from '@/lib/gallery/comfyui-gallery';
+import type { ComfyGallerySort, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryDensity } from '@/lib/gallery/density';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { GALLERY_SORT_OPTIONS } from '@/components/gallery/gallery-filters-shared';
 
 type Props = {
   lean: boolean;
-  filter: ComfyGalleryFilter;
-  setFilter: React.Dispatch<React.SetStateAction<ComfyGalleryFilter>>;
   sort: ComfyGallerySort;
   setSort: (value: ComfyGallerySort) => void;
   paginationEnabled: boolean;
@@ -30,10 +24,27 @@ type Props = {
   similarSearchLoading: boolean;
 };
 
+const GALLERY_SIZES: Array<{
+  value: 'small' | 'medium' | 'large' | 'list';
+  label: string;
+  layout: GalleryLayoutMode;
+  density?: GalleryDensity;
+}> = [
+  { value: 'small', label: 'Small', layout: 'dense', density: 'compact' },
+  { value: 'medium', label: 'Medium', layout: 'grid', density: 'compact' },
+  { value: 'large', label: 'Large', layout: 'grid', density: 'comfortable' },
+  { value: 'list', label: 'List', layout: 'list' },
+];
+
+/** The size a layout and density amount to. */
+export function gallerySizeOf(layout: GalleryLayoutMode, density: GalleryDensity) {
+  if (layout === 'list') return 'list';
+  if (layout === 'dense') return 'small';
+  return density === 'compact' ? 'medium' : 'large';
+}
+
 export function GalleryFiltersLayoutGroup({
   lean,
-  filter,
-  setFilter,
   sort,
   setSort,
   paginationEnabled,
@@ -50,12 +61,12 @@ export function GalleryFiltersLayoutGroup({
   return (
     <>
       {paginationEnabled ? (
-        <label className="min-w-[8rem] space-y-1.5">
-          <span className="type-caption text-[var(--text-muted)]">Sort</span>
+        <label className="min-w-[8rem]">
+          <span className="sr-only">Sort</span>
           <select
             value={sort}
             onChange={event => setSort(event.target.value as ComfyGallerySort)}
-            className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
+            className="ui-select h-9 w-auto"
           >
             {(lean
               ? GALLERY_SORT_OPTIONS.filter(option =>
@@ -79,75 +90,23 @@ export function GalleryFiltersLayoutGroup({
         </label>
       ) : null}
 
-      <div className="grid w-full gap-3 md:hidden sm:grid-cols-2">
-        <label className="space-y-1.5">
-          <span className="type-caption text-[var(--text-muted)]">Layout</span>
-          <select
-            value={layout}
-            onChange={event => setLayout(event.target.value as GalleryLayoutMode)}
-            className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
-          >
-            <option value="grid">Grid</option>
-            <option value="dense">Dense</option>
-            <option value="list">List</option>
-          </select>
-        </label>
-        <label className="space-y-1.5">
-          <span className="type-caption text-[var(--text-muted)]">Density</span>
-          <select
-            value={density}
-            onChange={event => setDensity(event.target.value as GalleryDensity)}
-            className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
-          >
-            <option value="comfortable">Comfort</option>
-            <option value="compact">Compact</option>
-          </select>
-        </label>
-        <label className="space-y-1.5 sm:col-span-2">
-          <span className="type-caption text-[var(--text-muted)]">Min rating</span>
-          <select
-            value={filter.minRating ?? ''}
-            onChange={event =>
-              setFilter(previous => ({
-                ...previous,
-                minRating: event.target.value
-                  ? (Number(event.target.value) as 1 | 2 | 3 | 4 | 5)
-                  : undefined,
-              }))
-            }
-            className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
-          >
-            <option value="">Any ★</option>
-            <option value="5">5★ only</option>
-            <option value="4">≥4★</option>
-            <option value="3">≥3★</option>
-            <option value="1">≥1★</option>
-          </select>
-        </label>
-      </div>
-
-      {/* Segmented, like every other either/or picker (chips here read as filters). */}
-      <div className="hidden flex-wrap items-center gap-2 md:flex">
-        <SegmentedControl
-          aria-label="Layout"
-          value={layout}
-          onChange={setLayout}
-          options={[
-            { value: 'grid', label: 'Grid', testId: 'gallery-layout-grid' },
-            { value: 'dense', label: 'Dense', testId: 'gallery-layout-dense' },
-            { value: 'list', label: 'List', testId: 'gallery-layout-list' },
-          ]}
-        />
-        <SegmentedControl
-          aria-label="Density"
-          value={density}
-          onChange={setDensity}
-          options={[
-            { value: 'comfortable', label: 'Comfort', testId: 'gallery-density-comfortable' },
-            { value: 'compact', label: 'Compact', testId: 'gallery-density-compact' },
-          ]}
-        />
-      </div>
+      {/* One choice for how big the pictures are (2026-11-05): Grid / Dense / List and Comfort /
+          Compact were two controls for it. */}
+      <SegmentedControl
+        aria-label="Picture size"
+        value={gallerySizeOf(layout, density)}
+        onChange={value => {
+          const next = GALLERY_SIZES.find(size => size.value === value);
+          if (!next) return;
+          setLayout(next.layout);
+          if (next.density) setDensity(next.density);
+        }}
+        options={GALLERY_SIZES.map(size => ({
+          value: size.value,
+          label: size.label,
+          testId: `gallery-size-${size.value}`,
+        }))}
+      />
 
       <p className="shrink-0 type-caption text-[var(--text-muted)]">
         {/* The paginator says the range and page; here only how many match a filter. */}

@@ -11,15 +11,20 @@ keeper stand-in plate, the Camera row — applies to a scene too.
 
 ## The page
 
-| Part             | What's in it                                                                                                                                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scenes**       | The Cast's saved scenes; **New scene** starts one                                                                                                                                                                      |
-| **The shot**     | Name · Time of day · Mood, People, Weather, Quality · the slot editor (Setting, **Location**, Beat, **Story state**, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
-| **Takes**        | **Queue a take** / **Another take** · the take on the card (with its ⋯ tools) · every take, ★ to keep one · **Send to Day slot**                                                                                       |
-| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director) · **Cut →**                                                                                                                        |
-| **Script**       | A screenplay for the Cast: import it, see how it reads, who's who and where, each scene's shots, **Make it a Scene**, coverage, a new version (see [Script](#script))                                                  |
-| **Run**          | A prepared run of takes over a script's Scenes: its list and limits, **Start** / **Pause** / **Cancel** (see [Runs](#runs))                                                                                            |
-| **Locations**    | Places the film goes back to, each described once (see [Locations](#locations))                                                                                                                                        |
+On a desk the shot and its takes sit side by side — edit on the left, the takes (and Make it move)
+on the right, kept in view while the form scrolls.
+
+| Part             | What's in it |
+| ---------------- | ------------ |
+| **Scenes**       | The Cast's saved scenes, each with a dot: green when a take is kept, amber when it still needs one; **New scene** starts one |
+| **The shot**     | Name · Time of day · Mood, People, Weather, Quality, Advanced (the clip engine is in there) · the slot editor (Setting, **Location**, Beat, **Story state**, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
+| **Takes**        | The take on the card (with its ⋯ tools) · every take as a card — **★ Kept** on the one Cut uses; hover a take for **Keep** and **Reject**; **Compare takes** for two side by side |
+| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director), **Continue scene** · **Cut →** |
+| **Action bar**   | Kept at the bottom of the screen: **Another take** · **Redo · same seed** · **Animate** · **Send to Day slot** · **Cut →** |
+| **More**         | **Script**, its **Run** and **Locations** — set up once, folded away (open by themselves when there's a script or a place) |
+
+Keys (not while typing): **← →** the take before / after onto the card, **K** keeps it, **X**
+rejects it, **N** another take, **[ ]** the scene before / after.
 
 ## On a phone
 

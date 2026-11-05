@@ -149,6 +149,7 @@ const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
   realism: 'Done — the clip looks more real (the original is in the Gallery).',
   restyle: 'Done — the clip is in its new look (the original is in the Gallery).',
   remove: 'Done — it is gone from the clip (the original is in the Gallery).',
+  background: 'Done — the clip has its new background (the original is in the Gallery).',
   motion: 'Done — the still moves along your strokes (the original is in the Gallery).',
   moves: 'Done — the clip now has the copied moves.',
   dance: 'Done — the clip now dances to your song.',
@@ -760,7 +761,7 @@ export default function DaySlotBoard({
                     />
                   </div>
                 ) : thumb ? (
-                  <div className="relative overflow-hidden rounded-t-[var(--radius-md)]">
+                  <div className="group/media relative overflow-hidden rounded-t-[var(--radius-md)]">
                     {doneClip ? (
                       <MotionMedia
                         src={doneClip}
@@ -812,6 +813,53 @@ export default function DaySlotBoard({
                         testId={`day-fix-area-chip-${slot.id}`}
                       />
                     ) : null}
+                    {/* Quick actions on hover (or keyboard focus) — the ⋯ menu has the rest. */}
+                    {!compact && (canRequeue || canAnimate || openable) ? (
+                      <div
+                        className="pointer-events-none absolute inset-x-1.5 bottom-1.5 z-20 flex flex-wrap justify-end gap-1 opacity-0 transition-opacity group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
+                        data-testid={`day-quick-${slot.id}`}
+                      >
+                        {canRequeue ? (
+                          <Button
+                            size="sm"
+                            variant="overlay"
+                            disabled={busy}
+                            title="Render this still again with a new seed (Q)"
+                            data-testid={`day-quick-retry-${slot.id}`}
+                            onClick={() => {
+                              onSelectSlot(slot.id);
+                              onRetrySlot?.(slot);
+                            }}
+                          >
+                            Retry
+                          </Button>
+                        ) : null}
+                        {canAnimate ? (
+                          <Button
+                            size="sm"
+                            variant="overlay"
+                            disabled={busy}
+                            title="Animate this still (A)"
+                            data-testid={`day-quick-animate-${slot.id}`}
+                            onClick={() => {
+                              onSelectSlot(slot.id);
+                              onAnimateSlot?.(slot);
+                            }}
+                          >
+                            Animate
+                          </Button>
+                        ) : null}
+                        <Button
+                          size="sm"
+                          variant="overlay"
+                          title="Edit this slot (Enter)"
+                          data-testid={`day-quick-edit-${slot.id}`}
+                          onClick={edit}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    ) : null}
                     <Button
                       variant="plain"
                       type="button"
@@ -838,8 +886,8 @@ export default function DaySlotBoard({
                     type="button"
                     className={[
                       'flex w-full items-center justify-center rounded-t-[var(--radius-md)] bg-[var(--bg-muted)]/40 text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent-ring)]',
-                      // Nothing rendered yet: a short strip, not a full-size empty frame.
-                      state === 'idle' ? 'h-12' : compact ? 'aspect-video' : 'aspect-[4/3]',
+                      // The same size as a rendered card, so the row doesn't jump (it was a short strip).
+                      compact ? 'aspect-video' : 'aspect-[4/3]',
                     ].join(' ')}
                     aria-pressed={selected}
                     aria-label={

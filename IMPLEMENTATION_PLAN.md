@@ -3032,3 +3032,214 @@ machine to 3 GB free once; with less open, a run peaked fine.
 - Colour drift on a 30 s two-person chain: under ±2.5% per channel, saturation −6% at 24 s, partly
   the picture's own change — a correction was not worth its risk; not shipped. Keyframes from the
   first frame (two-person degradation) left for a session with the user (live 30 s chains).
+- Keyframes from the first frame, tried (2026-11-05, the user's "sure" / "yes"): one hop each,
+  the same 5 beats and seeds — face match (left / right) 0.86/0.48, 0.73/0.52, 0.86/–, 0.88/0.88
+  against the repaint chain's 0.64/0.49, 0.53/0.40, 0.48/0.34 (and oranger every step). The full
+  30 s chain on it (each keyframe from the first frame, the one before as Image 2 for the pose,
+  `CASTCUT_DUO_KEYFRAMES=first`): worse than shipped — 0.70/0.52 at 5 s down to 0.18/0.20 at 30 s,
+  skin orange and the background blotchy, against shipped's 0.69–0.89 / 0.48–0.79 through 27.5 s.
+  The pose picture carried its colours forward, and a keyframed part runs on H3's first/last-frame
+  model without the faces and reference videos that hold them. Reverted; shipped stays.
+
+# Part 18 — Parity: review notes, transcript, caption looks, camera moves, accents (2026-11-05)
+
+The user asked what similar apps' UI/UX has that Castcut lacks; an audit of the code (Cut already
+had J/K/L, split, trim, zoom, undo and versions; the app had live previews, a command palette,
+timecoded review comments, export presets and face-following vertical reframes) found six, and the
+user said "do all", adding accents for the Cast's voice.
+
+- **Review notes in the Cut.** A review link's comments were only a list on the Cast's film. Now
+  Cut → **Notes** (open count on the tab) lists the comments of this cut's films (a film is the
+  cut's when at least half its recipe's shots are the cut's, `filmsOfCut`), pinned ones as marks
+  on the timeline's ruler; a click jumps there, a tick resolves it (`resolved` on the comment,
+  `PATCH /api/film/review`, owner only).
+- **Notifications for long jobs.** The existing "Notify when ComfyUI jobs complete" (Settings →
+  ComfyUI) now also covers clip tools (done or failed) and Make it 30 s (`desktop-notify.ts`).
+- **Transcript.** Cut → **Transcript** reads the cut as text, a line per shot; click to jump,
+  **Cut** leaves the shot out. Line level only: CastcutTranscribe returns text without word times,
+  so cutting inside a line would need a castcut-nodes release.
+- **Caption looks.** Options → Text & logo → **Subtitle look**: Classic, Bold, Pop, Word by word
+  (`subtitle-style.ts`), drawn by the server encode (outlined lines each drawn centred — drawtext's
+  `text_align` needs ffmpeg 6.1+), shown the same on the monitor, kept in the recipe. Live: the four
+  looks rendered by `encodeFilmPlaylistServer` on a 720×1280 still.
+- **Camera moves by sight.** Day's Animate sheet → **Camera**: Still (default), Push in, Pull out,
+  Pan left / right, Orbit, Rise, Handheld — each tile plays the move on the slot's still (CSS); the
+  move's sentence replaces the templates' locked-off camera (`withCameraMove`), worded so H3's
+  camera rewrite keeps it (no "push-in" / "zoom"). Not yet seen live on an engine.
+- **Accents.** Cast → Voice → **Accent** (21, `CAST_ACCENTS`, on `CastSpeech`): auditions ask for
+  it, Day and Story talking clips get "She speaks with a Scottish accent." (not on a dubbed line).
+  Not yet heard live.
+- Vertical reframe already followed faces (`followFaces`, cut-reframe.ts) — nothing to add.
+- The Cut inspector's tabs wrap (`SegmentedControl wrap`): seven no longer fit in one row.
+
+Checked: unit (all pass), `tsc`, lint (one old warning), core, a read-only look at each screen on
+the running app (writes refused, storage isolated). e2e added (transcript, subtitle look, notes,
+Animate camera, accent); CI runs them.
+
+**Live checks and round 2 (2026-11-05, the user: "run the live camera move and scottish audition
+first", then "close the gaps").**
+- Accent: three LTX auditions (Scottish ×2, the same voice without one) — the user: "scottish
+  auditions sound good".
+- Camera moves, Day's own LTX-2.5 graph (the queue's stub converted, still held at 0.85), one
+  still and seed: Push in moved in but ended on a cropped close-up; Orbit came out as the same
+  move forward; Pan left panned off her and she walked out of frame. Reworded (stay in frame,
+  "circles sideways… the background swings past", "follows them while the background slides
+  past", end "only a little closer"): Orbit and Pan now move as named with her kept in frame;
+  Push in still ends close — on this still she walks toward the camera in every take, Still too.
+- Gaps: **markers** (M at the playhead or + Marker, a note each, amber on the ruler, kept with
+  the cut's options — `cut-markers.ts`); **pictures dropped on the Cut's timeline** go into the
+  Gallery and onto the end of the cut (images only: the Gallery's import takes no video; Day slots
+  left out — their stills are Cast renders with identity checks); **collections** already existed
+  (Gallery → Manage → named groups); **Change the background** (Gallery ⋯ → Clip): SAM 3 finds
+  "person" by text in every frame (`buildClipTrackGraph` `find`, grown then inverted), VACE
+  redraws the rest as your words (`changeClipBackground`, the remove mode with `background`).
+  Live: the track followed her on the staircase clip in 23 s.
+- Change the background live (5 s staircase clip, "a rainy city street at night…", 6 min): first
+  try redrew another staircase (the place words too weak at cfg 1, Lightning) with a light halo
+  (the tracker's 12 px grow plus the remove mode's own 8 px); the place first in the prompt
+  ("…: the whole setting around and behind the people is …, nothing of the old room left"), the
+  person grown ~1 % and the background mask not grown: a wet neon street, her untouched, a faint
+  rim. Left: the light on her stays the original's; the place shifts a little between chunks
+  (Restyle's chained reference isn't used with a mask).
+- **Animate sheet in parts** (the user: the top field seeded only the first clip, the parts
+  their own beats — "weird results"): with a longer H3 Length the top field is **The scene**,
+  every part (Part 1 = the first clip) has its own beat, Write the beats fills all of them from the
+  scene, and the scene goes with the pending parts (`DayPendingDialogue.scene`, the extend
+  request's `scene`) so the later parts are written from it too.
+- **Story poses off** (the user, 2026-11-05: "last time I ran it the poses in the rendered images
+  looked off"). Their last Story (Lena, 15 Oct, 10 beats): sit / lean / stand guides with arms
+  down came back standing with both arms thrown up, arms flung wide, a squat — and the check
+  passed them at 0.78–0.90. Cause: generic beat blurbs ("Light and weather flip. Lena is still
+  living with quiet victory pose…") stated no pose, so the guide fell back to the cycling
+  sit / lean / stand / walk, while the LLM's still prompt said "Lena stands … arms thrown skyward"
+  — the still followed the words. That run predates 5f79dc12 (same evening), which reads the pose
+  from the still's own sentence when it states a posture; with it the postures agree, but the arms
+  still didn't: "arms thrown skyward / flung wide / pressed flat against her chest" weren't read,
+  "dance-studio" read as a dance, and a man's "strides" made her walk. Fixed in
+  `parsePoseGuideIntent`: `statedArms` (up / out / crossed, the first named) sets both arms and
+  replaces an arm-only layout (dance, stretch, arms up, cross arms) that disagrees; a "dance"
+  followed by studio / school / class is a room; a scene that opens "X stands…" (and doesn't go on
+  to walk) is drawn standing. All ten of their beats now read as their words; Day's and Story's pose
+  suites unchanged. The checker is left as calibrated (arms-down guides are neutral by design; its
+  gesture miss fired on more right stills than wrong ones).
+  Live, on the isolated copy with the fix (the same six beats, a stand-in photo as Image 1): the
+  guides read arms up / arms up / arms up ×2 / arms wide, and every still followed its guide.
+- **Copy moves choppy** (the user, 2026-11-05: "choppy at best"). Their 29 Oct result: a jump every
+  4 frames (40 frames over 3× the median change), the driving video smooth (0). Our graph matched
+  ComfyUI's distilled template (lcm, 10 steps, shift 5) — the stepping is the sampler on Wan's
+  4-frame latents. Sampler A/B on their video and still (336×608 — LM Studio held 6.7 GB of VRAM;
+  4-frame-cycle motion ratio, the video 1.23): lcm 10 3.23, lcm 6 4.59, euler 10 2.27, euler 16 2.10,
+  dpmpp_2m 10 2.03, euler shift 8 2.10. Now dpmpp_2m (same time, picture as sharp); their whole
+  9.75 s video on it: 1.97 and no jumps over 3× (theirs: 40), the segment join even.
+- **Cut, the editor round** (the user: "do all" of the nine gaps listed): snapping of a still's
+  hold and a clip's end to the playhead, markers, the music's beats (from the tempo Fit to the
+  music reads) and earlier shots' edges, Alt to drag free (`nearestSnap`); monitor **Safe** guides
+  (vertical: top 10 %, bottom 25 %, right 15 %; square: feed bars; title / action safe), **Loop**
+  the shot, speed 0.5–2× (the preview clock and every medium's playbackRate), full screen; keys
+  Home / End, Shift+← → a second, [ ] markers, + − \ zoom; waveforms of each clip's sound and each
+  voice-over on their lanes; frames along clip blocks (`filmstrip-client.ts`) and skimming (the
+  monitor shows the moment under the pointer, the playhead stays); Shift / Ctrl-click to pick shots,
+  Delete or **Leave them out** for all. Ripple edits (the Cut is magnetic) and a proxy preview
+  (no slowness reported) left out. Looked at on the running app (read-only probe).
+- **Day, the layout round** (the user: "do all"): the page now reads idea → plan → cards → action;
+  the Ready-to-cut box, the button row and their status lines are one sticky action bar (readiness
+  under **Details**; the second "Queue rest" gone; the block reason only for offline / no Cast — a
+  missing plate is said by the card at the top); the clip engine settings under Advanced; an empty
+  slot as tall as a rendered one; hover quick actions (Retry / Animate / Edit, the menu's own
+  conditions); keys ← → Enter Q A on the board and ← → in the slot sheet; the reel shows its first
+  frame. Test ids kept (`day-cut-coach`, `day-cut-coach-cut`, `day-batch-plan`,
+  `day-queue-block-reason`). The phone's Day (MobileDayToolSections) is unchanged.
+- **Scene, the layout round** (the user: "do all"): on a desk the shot and its takes side by side
+  (the takes column sticky, scrolling on its own); one sticky action bar (Another take, Redo · same
+  seed, Animate, Send to Day, Cut — the old spots gone but Make it move's own buttons); takes as an
+  even grid of cards with a ★ Kept badge, readable buttons and hover Keep / Reject; Compare takes
+  a button; scene tiles bigger with a done / to-do dot (`PortraitTileStrip` `size`, `status`); the
+  clip engine under Advanced; Script, Run and Locations under **More** (open by itself with a script,
+  a place or a script scene); keys ← → K X N [ ]. Not done: folding the slot editor's long tail
+  into groups — it is Day's slot sheet editor too, so that is its own change. The phone's Scene
+  (MobileSceneToolSections) is unchanged.
+- **Outfit, the layout round** (the user: "do all"): with no plate the plate box is the stage's
+  first step ("Start with a plate") and pose / clothes wait, faded; Try it on and its status are one
+  sticky bar at the bottom (the missing plate said once); Quality moved beside the stage; clothing
+  types as chips, ☆ Star this kit and a starred / recently tried shelf above the picker
+  (`OutfitKitShelf`, `favoriteKitIds` / `recentKitIds`, the packshot list's load re-draws it);
+  **Before / after** on a finished try-on (`BeforeAfterSlider`); keys ← → Enter N K. The shared
+  ClothingPicker only gained an optional `kitsHeader` slot (Day / Story unchanged). Looked at on the
+  running app with and without a plate (read-only probe).
+- **Film, the home round** (the user: "do all"): with a Cast picked, `/play` leads with the film —
+  the latest cut (or one picked from **Your films**), else the Day's stills as a reel (the Gallery's,
+  falling back to the Day planner's) — beside the Cast as a chip (picker + look packs in a
+  `play-cast-sheet`), progress (`filmHomeProgress`) and the existing next-step actions; **Waiting
+  for you** (running tracked clip jobs, unresolved review comments on the latest films); Steps as one
+  row of cards with pictures (plate, Day stills, the film's frame); the floating actions and the
+  "Rae · Default" line fold into the hero; the funnel pills there dropped (the cards say it). No
+  Cast yet, or `?new=1`: the create form and steps stay inline as before. `usePlayFilmHome`,
+  `PlayFilmHome.tsx`, `lib/play/film-home.ts` (+ test). e2e: film-home.spec; play-campaign /
+  ui-audit updated for the chip and the always-shown steps. Looked at on the running app (read-only
+  probe, isolated Gallery: the stills reel and the sheet; the films shelf and Waiting panel not seen
+  live — no films or jobs in the isolated probe).
+- **Story, the layout round** (the user: "do all"): one start card when today's Day is ready
+  (**Start from today's Day** · **Roll four scenes**; the composer's Roll hides meanwhile); **What
+  happens next?** is a solid sticky composer on desk (`composer` prop: heading + `StoryProgressBar`
+  — `formatRoleplayStoryProgress` now returns `plot` / `plotTotal` —, Roll · Undo · Start over ·
+  write your own on one row, the four beats in one row, **Still / Still + clip** beside Story
+  settings, the cut row as its footer via the extracted `StoryCutActions`); the auto-queue box
+  became the inverse **Write each scene's prompt, don't queue it** inside Story settings; disabled
+  Cut film says *Needs a scene first*; the side column (Cast collapsible, outfit, requirements)
+  folded into a `story-cast-chip` → `story-cast-sheet`, the reel full width, Animate the stills
+  under it; filmstrip dots (rendering), ▶ (has a clip), hover **Redo** / **Clip**; keys 1–4 R U ← →.
+  Mobile Story unchanged (it doesn't pass `composer` / `cutInComposer`). `html[data-theme]
+  .ui-card.ui-sticky-surface` made a sticky card opaque (the light theme's card mix is 88 %).
+  e2e: story-layout.spec; roleplay-video-extend renamed Clip → Still + clip. Looked at on the
+  running app empty and mid-story (read-only probe; the thumbnails' pictures not seen — the probe
+  only had .webp stills, which read as clips).
+- **Cast, the layout round** (the user: "do all"): the roster is a portrait grid
+  (`cast-roster-card-*`: the plate fills the card, a ▶ film-count badge from the Gallery, **On
+  Film**, Open · Start a film · ⋯ under it, a **+ New character** card), its actions in the header
+  (Start a film with… · New character · Import — the "Film loop" and "Cast files" sections gone),
+  search + sort past four. A Cast's page leads with `CastProfileHeader` (plate or an **Add a plate**
+  frame that uploads, the facts line, look chips, voice line → Bible → Voice, `CastChecklist
+  compact` — one line + the next step's button, the seven on a click —, the action row); the status
+  strip keeps only plate progress / errors (the plate hint is the frame now); tabs sticky; Bible has
+  a jump row to its nine sections; Film & media opens with `CastFilmsShowcase` (newest film playing,
+  the rest as posters — `PlayFilmsShelf` with `allHref` optional); Looks tiles `size="lg"`, the
+  name field labelled. e2e: cast-layout.spec; cast-looks opens the checklist first. Looked at on
+  the running app (read-only probe: roster, Overview, Bible, Packs; no plate or films in the probe).
+- **Gallery, the layout round** (the user: "do all"): `GalleryFiltersBar` is a sticky (desk) slim
+  bar — search (`GalleryFiltersSearchGroup part="search"`), `GalleryTypeChips` (All · Stills ·
+  Clips · Films → `mediaKind` / `derivedKind: 'film'`), `GalleryRatingSelect`, sort, one **Size**
+  control (`gallerySizeOf`: Small = dense, Medium = grid compact, Large = grid comfortable — now 3
+  columns ≥1024 px —, List), Cast / look chips, active chips; everything else is in the one
+  **Filters** collapsible (now also in lean mode): `GalleryFiltersMoreRow` (match / status / group,
+  model in lean, the play-checks chip, lean paging), saved views, then the old advanced fields
+  (Stills / Videos / All media chips dropped there — the bar has them). Day headings: a `day` row
+  kind in `buildGalleryDisplayRows` (`dayOf`, date sorts only; sticky where not virtualised).
+  Cards: no "Done" badge on finished items, render time moved to the caption's hover, clips
+  hover-play (no autoplay grid) with ▶ length / **Film** badge. `queue-runs` counts a clip by its
+  file (Day clips read as stills). Grid keys (`useGalleryGridKeys`, outside review mode): arrows,
+  Enter, F, X. e2e: gallery-layout.spec; gallery-interaction uses the Size control. The
+  GalleryFiltersRatingModelRow component is now unused (left in place). Looked at on the running app
+  with real outputs seeded into an isolated Gallery (read-only probe).
+- **Story "Still + clip" started from the plate** (user report 2026-11-05: "seems to just pull the
+  identity image for the first frame rather than generate an image based on it"): clip output with
+  queue-on-pick skipped the scene still (`roleplaySceneWritePlan.skipStill`) and queued the clip
+  from the text — with no still, `queueBeatMotion` falls back to the From-photo plate as the I2V
+  first frame. Now the still is always written and queued, and `shouldAutoQueueRoleplayClip` waits
+  while a still is writing / queued / running / failed, so the clip starts from the scene's still
+  once it lands (text-only T2V stays for older beats with no still). Unit-tested; not run live.
+- **Story clips got the adult two-person locks** (user, after the still-first fix: "the video was
+  weird"): `queueBeatMotion` ran `reinforceIntimateStillPrompt` on every clip prompt whatever the
+  rating — on the user's PG-13 Story a solo beach walk ("barefoot", "grips" read as an act cue)
+  became "Exactly one person … Two adults … show the sex act … partner does the grabbing" (H3
+  graph 0acf7fe6, Castcut_07728). Now only adult-rated Stories reinforce clip prompts, and
+  `intimateTextIsSolo` takes our own "Exactly one person" headcount as solo. Seen also: the scene
+  writer said "her outfit hiked up to reveal cargo pants" over a mini dress — not fixed.
+- **Story clips went blank / small cards showed "…"** (user: "trouble displaying videos in the
+  small cards. Large card plays fine for a couple loops then disappears"): once a clip is saved to
+  the Gallery its url becomes `/api/gallery/media/<id>?variant=original` (no extension) —
+  `looksLikeMotionUrl` said no, so the card swapped the playing `<video>` for an `<img>` of the
+  MP4. RoleplayStillFrame now treats any finished clip as motion and tells MotionMedia `kind:
+  'video'` (new prop; a Gallery copy tries video first, WebP still falls back). The filmstrip shows
+  the scene's still (it took the preview url — the clip — and rejected it as motion), or a clip's
+  first frame. Checked on the running app with the user's real saved clip (read-only probe: plays
+  40 s steady, thumb shows the still).

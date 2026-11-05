@@ -151,6 +151,24 @@ describe('groupGalleryFilmRuns', () => {
     assert.match(runs[0]!.label, /^Loose Lana · .+ · 3 stills · 1 clip$/);
   });
 
+  it('counts a Day clip as a clip by its file, though its tool is the page', () => {
+    const at = (m: number) => m * minute;
+    const runs = groupGalleryFilmRuns(
+      [
+        entry('s1', { characterId: 'cast-a', queuedAt: at(0) }),
+        entry('s2', { characterId: 'cast-a', queuedAt: at(1) }),
+        entry('c1', {
+          characterId: 'cast-a',
+          queuedAt: at(2),
+          tool: 'day',
+          images: [{ filename: 'Castcut_00001_.mp4', subfolder: '', type: 'output' }],
+        }),
+      ],
+      { nameFor: () => 'Lana' }
+    );
+    assert.match(runs[0]!.label, / · 2 stills · 1 clip$/);
+  });
+
   it('flags low-rated and missed stills as misses, and finds the first unrated still', () => {
     const run = [
       entry('a', { reviewRating: 5 }),

@@ -45,16 +45,19 @@ export function GalleryCardTopChrome({
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        {/* data-on-media: solid backing — the translucent tint vanished over bright photos. */}
-        <span
-          className="ui-badge"
-          data-tone={statusTone(entry.status)}
-          data-size="xs"
-          data-on-media="true"
-          data-upper="true"
-        >
-          {statusLabel(entry.status, entry)}
-        </span>
+        {/* data-on-media: solid backing — the translucent tint vanished over bright photos.
+            Only a state worth a look: "Done" sat on every finished picture (2026-11-05). */}
+        {entry.status === 'completed' ? null : (
+          <span
+            className="ui-badge"
+            data-tone={statusTone(entry.status)}
+            data-size="xs"
+            data-on-media="true"
+            data-upper="true"
+          >
+            {statusLabel(entry.status, entry)}
+          </span>
+        )}
         {entry.reviewRating ? (
           <span className="ui-badge" data-tone="accent" data-size="xs" data-on-media="true">
             {entry.reviewRating}★
@@ -154,6 +157,7 @@ export function GalleryCardTopChrome({
                 });
               }}
               aria-label="Select entry"
+              data-gallery-select
               className="h-3.5 w-3.5 rounded border-[var(--border-default)] bg-[var(--bg-base)] accent-[var(--accent)]"
             />
           </label>
@@ -162,7 +166,8 @@ export function GalleryCardTopChrome({
           variant="plain"
           type="button"
           onClick={onToggleFavorite}
-          title={entry.favorite ? 'Remove favorite' : 'Add favorite'}
+          title={entry.favorite ? 'Remove favorite (F)' : 'Add favorite (F)'}
+          data-gallery-fav
           className={`flex h-8 w-8 items-center justify-center rounded-full border text-sm backdrop-blur transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${
             entry.favorite
               ? 'border-[var(--tint-warning-border)] bg-[var(--tint-warning-bg)] text-[var(--tint-warning-text)] hover:bg-[var(--tint-warning-bg)]'

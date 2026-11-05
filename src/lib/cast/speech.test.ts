@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { castCatchphrases, normalizeCastSpeech, pronounceLine } from './speech';
+import { castCatchphrases, normalizeCastAccent, normalizeCastSpeech, pronounceLine, withAccent } from './speech';
+import { castVoiceAuditionPrompt } from './voice';
 
 describe('cast speech', () => {
   it('swaps whole words only, any case, keeping a possessive', () => {
@@ -41,4 +42,25 @@ describe('cast speech', () => {
       ['Hear me out.', 'Coffee first.']
     );
   });
+});
+
+it('accents: kept only from the list, said once after a line', () => {
+  assert.equal(normalizeCastAccent('scottish'), 'Scottish');
+  assert.equal(normalizeCastAccent('Martian'), undefined);
+  assert.deepEqual(normalizeCastSpeech({ accent: 'irish' }), { accent: 'Irish' });
+  assert.equal(normalizeCastSpeech({ accent: 'Martian' }), undefined);
+  assert.equal(
+    withAccent('She says clearly, "Hi there."', 'Australian', 'She'),
+    'She says clearly, "Hi there." She speaks with an Australian accent.'
+  );
+  assert.equal(withAccent('She walks to the window.', 'Irish', 'She'), 'She walks to the window.');
+  assert.equal(withAccent('She says, "Hi."', undefined, 'She'), 'She says, "Hi."');
+});
+
+it('a voice audition says the accent', () => {
+  assert.match(
+    castVoiceAuditionPrompt({ name: 'Nora', lead: 'woman', index: 0, accent: 'Scottish' }),
+    /in a warm, low voice, with a Scottish accent, "Hi, I'm Nora/
+  );
+  assert.doesNotMatch(castVoiceAuditionPrompt({ name: 'Nora', lead: 'woman', index: 0 }), /accent/);
 });

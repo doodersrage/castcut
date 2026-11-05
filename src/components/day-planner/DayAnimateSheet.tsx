@@ -1,5 +1,7 @@
 'use client';
 
+import CameraMovePicker from '@/components/video/CameraMovePicker';
+import { withCameraMove, type ClipCameraMove } from '@/lib/video/camera-move';
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
@@ -34,6 +36,8 @@ import {
 
 export type DayClipPreview = {
   engineLabel: string;
+  /** The slot's still (the camera picker plays each move on it). */
+  stillUrl?: string;
   talking: boolean;
   /** A longer clip comes out silent on this engine (MiniMax-H3 with no spoken line). */
   silentWhenLong?: boolean;
@@ -91,6 +95,7 @@ export default function DayAnimateSheet({
   const titleId = useId();
   const initial = slot ? preview(slot) : null;
   const [direction, setDirection] = useState(initial?.defaultDirection ?? '');
+  const [camera, setCamera] = useState<ClipCameraMove>('still');
   const [extraSeconds, setExtraSeconds] = useState<DayClipExtraSeconds>(() =>
     normalizeDayClipExtraSeconds(initialExtraSeconds)
   );
@@ -126,6 +131,8 @@ export default function DayAnimateSheet({
   );
   // MiniMax-H3 parts (M11 T2): what happens in each, and how long each runs (0 = H3's own).
   const [partBeats, setPartBeats] = useState<string[]>([]);
+  // Longer clips: the first clip's own beat, beside the later parts' (the top field is the scene).
+  const [firstBeat, setFirstBeat] = useState('');
   const [partSeconds, setPartSeconds] = useState<number[]>([]);
   const [writing, setWriting] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
@@ -133,12 +140,21 @@ export default function DayAnimateSheet({
   const edited = direction.trim() && direction.trim() !== initial.defaultDirection.trim();
   const talk = initial.talkLength;
   const chain = talk ? undefined : initial.chainLength;
-  const current = preview(slot, edited ? direction : undefined, talk || chain ? 0 : extraSeconds);
   const parts = talk
     ? dayTalkExtraParts(talk.firstSec, talkTotal)
     : chain
       ? dayH3ExtraParts(chain.firstSec, talkTotal)
       : 0;
+  // A clip in parts: the top field is the whole clip's scene, and each part — the first clip
+  // too — has its own beat (the first clip ran the top field while the parts ran their own, and
+  // the two didn't line up).
+  const inParts = Boolean(chain) && parts > 0;
+  const firstDirection = inParts
+    ? firstBeat.trim() || (edited ? direction : undefined)
+    : edited
+      ? direction
+      : undefined;
+  const current = preview(slot, firstDirection, talk || chain ? 0 : extraSeconds);
   const pronoun = talk?.lead === 'man' ? 'he' : 'she';
 
   // Drafts the empty lines one after another, each following the slot's line and those before it.
@@ -182,17 +198,15 @@ export default function DayAnimateSheet({
     try {
       const written = await requestClipBeats(
         {
-          scene: [slot.sceneHints?.trim() || slot.label, edited ? direction.trim() : '']
-            .filter(Boolean)
-            .join(' Then: '),
+          scene: direction.trim() || slot.sceneHints?.trim() || slot.label,
           setting: slot.location,
-          direction: edited ? direction : undefined,
-          count: parts,
+          count: parts + 1,
         },
         sharedLlmRequestBody(loadSettingsCache().shared)
       );
+      setFirstBeat(beat => beat.trim() || written[0] || '');
       setPartBeats(list =>
-        Array.from({ length: parts }, (_, index) => list[index]?.trim() || written[index] || '')
+        Array.from({ length: parts }, (_, index) => list[index]?.trim() || written[index + 1] || '')
       );
     } catch (error) {
       setWriteError(error instanceof Error ? error.message : 'Could not write the beats.');
@@ -213,7 +227,8 @@ export default function DayAnimateSheet({
           }
         : chain
           ? {
-              direction: edited && !current.talking ? direction : undefined,
+              direction: current.talking ? undefined : firstDirection,
+              ...(inParts && edited ? { scene: direction.trim() } : {}),
               extraSeconds: 0,
               talkTotalSeconds: talkTotal,
               // A part may say a line (in the Cast's voice, M11 T16); empty runs without words.
@@ -230,6 +245,7 @@ export default function DayAnimateSheet({
           : {
               direction: edited && !current.talking ? direction : undefined,
               extraSeconds,
+              ...(!current.talking && camera !== 'still' ? { camera } : {}),
             }
     );
 
@@ -259,7 +275,9 @@ export default function DayAnimateSheet({
         </p>
       ) : (
         <label className="block space-y-1">
-          <span className="type-caption text-[var(--text-muted)]">What happens in the clip</span>
+          <span className="type-caption text-[var(--text-muted)]">
+            {inParts ? 'The scene — what the whole clip is about' : 'What happens in the clip'}
+          </span>
           <textarea
             rows={3}
             maxLength={300}
@@ -271,9 +289,11 @@ export default function DayAnimateSheet({
           />
           <span className="flex items-center justify-between type-caption text-[var(--text-muted)]">
             <span>
-              {edited
-                ? 'Your direction — formatted for the engine when you Animate.'
-                : 'The slot’s beat. Write what should happen instead, in plain words.'}
+              {inParts
+                ? 'Every part starts from this. Give each part its own beat below — or Write the beats.'
+                : edited
+                  ? 'Your direction — formatted for the engine when you Animate.'
+                  : 'The slot’s beat. Write what should happen instead, in plain words.'}
             </span>
             {edited ? (
               <Button
@@ -288,6 +308,15 @@ export default function DayAnimateSheet({
           </span>
         </label>
       )}
+      {!talk && !chain && !current.talking ? (
+        <CameraMovePicker
+          stillUrl={current.stillUrl}
+          value={camera}
+          disabled={busy}
+          onChange={setCamera}
+          testIdPrefix="day-animate-camera"
+        />
+      ) : null}
       {talk ? (
         <div className="space-y-2" data-testid="day-animate-length">
           <span className="type-caption block text-[var(--text-muted)]">Length</span>
@@ -390,7 +419,7 @@ export default function DayAnimateSheet({
               </p>
               <div className="space-y-2" data-testid="day-animate-parts">
                 <span className="flex items-center justify-between gap-2">
-                  <span className="type-caption text-[var(--text-muted)]">Then…</span>
+                  <span className="type-caption text-[var(--text-muted)]">Each part</span>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -402,6 +431,24 @@ export default function DayAnimateSheet({
                     {writing ? 'Writing…' : 'Write the beats'}
                   </Button>
                 </span>
+                <div
+                  className="space-y-1 rounded-[var(--radius-md)] border border-[var(--border-subtle)] p-2"
+                  data-testid="day-animate-part-first"
+                >
+                  <TextInput
+                    value={firstBeat}
+                    maxLength={240}
+                    placeholder="Part 1 — empty: the scene above"
+                    aria-label="What happens in part 1"
+                    disabled={writing}
+                    onChange={event => setFirstBeat(event.target.value)}
+                    data-testid="day-animate-part-beat-first"
+                  />
+                  <p className="type-caption text-[var(--text-muted)]">
+                    The first clip, about {formatSeconds(chain!.firstSec)}
+                    {slot.line?.trim() ? ` — it says the slot’s line, “${slot.line.trim()}”` : ''}.
+                  </p>
+                </div>
                 {Array.from({ length: parts }, (_, index) => (
                   <div
                     key={index}
@@ -515,7 +562,9 @@ export default function DayAnimateSheet({
           className="type-caption mt-1 whitespace-pre-wrap text-[var(--text-secondary)]"
           data-testid="day-animate-prompt"
         >
-          {current.prompt}
+          {!talk && !chain && !current.talking
+            ? withCameraMove(current.prompt, camera)
+            : current.prompt}
         </p>
       </details>
       <div className="flex flex-wrap gap-2">

@@ -81,6 +81,10 @@ export type FittingToolCache = {
   kitPreviews?: Record<string, import('../fitting/kit-previews').FittingKitPreview>;
   /** Auto-queue draft previews for the swipe deck when a plate is ready. */
   autoKitPreviews?: boolean;
+  /** Kits starred in Outfit (★), shown first above the picker. */
+  favoriteKitIds?: string[];
+  /** Kits last tried on, newest first (at most 8). */
+  recentKitIds?: string[];
   /** White cut-out plate used only for draft kit previews (sidecar; main ref unchanged). */
   previewPlateFilename?: string;
   previewPlateUrl?: string;

@@ -26,6 +26,7 @@ export type StoryMediaTool =
   | 'realism'
   | 'restyle'
   | 'remove'
+  | 'background'
   | 'motion'
   | 'moves'
   | 'dance'

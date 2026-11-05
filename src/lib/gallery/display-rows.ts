@@ -32,12 +32,25 @@ export type GalleryExperimentRow = {
   collapsed: boolean;
 };
 
-export type GalleryDisplayRow = GalleryCardsRow | GalleryLineageRow | GalleryExperimentRow;
+/** A date heading ("Today", "Yesterday", "3 Nov") before the first item of that day. */
+export type GalleryDayRow = {
+  kind: 'day';
+  key: string;
+  label: string;
+};
+
+export type GalleryDisplayRow =
+  GalleryCardsRow | GalleryLineageRow | GalleryExperimentRow | GalleryDayRow;
 
 export type BuildGalleryDisplayRowsOptions = {
   experimentGroups?: ExperimentGroup[] | null;
   collapsedExperimentGroups?: ReadonlySet<string>;
   winners?: Record<string, { entryId: string }>;
+  /**
+   * Date headings (2026-11-05): an entry's day as `{ key, label }`, or null for none. Given
+   * only for a date sort — a heading per change of day, before the block or cards it starts.
+   */
+  dayOf?: (entry: ComfyGalleryEntry) => { key: string; label: string } | null;
 };
 
 /**
@@ -135,6 +148,8 @@ export function buildGalleryDisplayRows(
 
   const rows: GalleryDisplayRow[] = [];
   const pending: ComfyGalleryEntry[] = [];
+  const dayOf = options?.dayOf;
+  let lastDay: string | null = null;
 
   const flushPending = () => {
     while (pending.length > 0) {
@@ -145,11 +160,20 @@ export function buildGalleryDisplayRows(
     }
   };
 
+  const headDay = (entry: ComfyGalleryEntry) => {
+    const day = dayOf?.(entry);
+    if (!day || day.key === lastDay) return;
+    flushPending();
+    rows.push({ kind: 'day', key: day.key, label: day.label });
+    lastDay = day.key;
+  };
+
   // Walk visibleEntries in order so experiment blocks stay at their anchors (matching
   // review N/P / lightbox focus order) instead of being yanked to the top of the page.
   for (const entry of visibleEntries) {
     const experimentRow = experimentByAnchorId.get(entry.id);
     if (experimentRow) {
+      headDay(entry);
       flushPending();
       rows.push(experimentRow);
       continue;
@@ -160,6 +184,7 @@ export function buildGalleryDisplayRows(
     if (claimedByLineage.has(entry.id)) {
       continue;
     }
+    headDay(entry);
 
     const lineageGroup = lineageByRootId.get(entry.id);
     if (lineageGroup && lineageGroup.derivatives.length > 0) {
@@ -358,6 +383,9 @@ export function countGalleryDisplayEntries(rows: readonly GalleryDisplayRow[]): 
     }
     if (row.kind === 'experiment') {
       count += row.collapsed ? 1 : row.entries.length;
+      continue;
+    }
+    if (row.kind === 'day') {
       continue;
     }
     count += 1 + (row.collapsed ? 0 : row.derivatives.length);

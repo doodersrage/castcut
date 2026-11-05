@@ -1,4 +1,5 @@
 import { h3FrameCount, H3_PART_FRAMES, isH3Model } from '../engine/h3-renderer';
+import type { ClipCameraMove } from '../video/camera-move';
 import {
   isLtx25Model,
   LTX25_FPS,
@@ -116,6 +117,8 @@ export type DayPendingDialogue = {
   tones?: string[];
   /** What happens in each part (unset: written from the scene). */
   beats?: string[];
+  /** The whole clip's scene from the Animate sheet (unset: the slot's beat). */
+  scene?: string;
   /** Each part's length in seconds (0 = the engine's own; M11 T2). */
   partSeconds?: number[];
   /** Two people (M11 T21): who says each line ('' = the Cast). */
@@ -150,6 +153,10 @@ export function pendingDialogueStep(
 /** What the Animate sheet hands back: a motion / short clip's extra seconds, or a talking total. */
 export type DayAnimateChoice = {
   direction?: string;
+  /** Longer clips: what the whole clip is about — every part's prompt starts from it. */
+  scene?: string;
+  /** The camera move picked in the sheet (camera-move.ts); the clip holds still without one. */
+  camera?: ClipCameraMove;
   extraSeconds: DayClipExtraSeconds;
   /** Set when the Length picked was a total: one-person LTX-2.5 talk, or MiniMax-H3. */
   talkTotalSeconds?: DayTalkTotalSeconds;
@@ -198,6 +205,7 @@ export function dayAnimateSettingsPatch(
 export function dayAnimateOptions(choice: DayAnimateChoice): {
   direction?: string;
   extraSeconds: number;
+  camera?: ClipCameraMove;
   dialogue?: {
     targetSec: number;
     lines: string[];
@@ -205,10 +213,15 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
     partSeconds?: number[];
     tones?: string[];
     speakers?: DaySpeaker[];
+    scene?: string;
   };
 } {
   if (choice.talkTotalSeconds === undefined) {
-    return { direction: choice.direction, extraSeconds: choice.extraSeconds };
+    return {
+      direction: choice.direction,
+      extraSeconds: choice.extraSeconds,
+      ...(choice.camera && choice.camera !== 'still' ? { camera: choice.camera } : {}),
+    };
   }
   const lines = (choice.lines ?? []).slice(0, CLIP_EXTEND_MAX_SEGMENTS).map(normalizeSpokenLine);
   const beats = choice.beats?.slice(0, lines.length);
@@ -225,6 +238,7 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
         dialogue: {
           targetSec: choice.talkTotalSeconds,
           lines,
+          ...(choice.scene?.trim() ? { scene: choice.scene.trim().slice(0, 300) } : {}),
           ...(beats?.length ? { beats } : {}),
           ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
           ...(tones.some(Boolean) ? { tones } : {}),

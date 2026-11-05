@@ -315,6 +315,8 @@ export default function CharacterLookPlateSection({
             onChange={onSelectPlate}
             disabled={uploading}
             testIdPrefix="cast-plate-tile"
+            // Looks as cards: a plate you can read at a glance (the tiles were thumbnails).
+            size="lg"
             className="w-full sm:w-auto sm:flex-1"
             tiles={plates.map(tile => castLookPortraitTile(tile))}
           />
@@ -333,11 +335,15 @@ export default function CharacterLookPlateSection({
         </div>
       ) : null}
       {activePlate && onRenamePlate ? (
-        <PlateNameField
-          key={`${activePlate.id}:${activePlate.label}`}
-          name={activePlate.label}
-          onRename={onRenamePlate}
-        />
+        // Named as what it is: a bare field reading "Default" under the tiles said nothing.
+        <label className="flex flex-wrap items-center gap-2">
+          <span className="type-caption text-[var(--text-muted)]">This look&apos;s name</span>
+          <PlateNameField
+            key={`${activePlate.id}:${activePlate.label}`}
+            name={activePlate.label}
+            onRename={onRenamePlate}
+          />
+        </label>
       ) : null}
       {activePlate?.outfit ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="cast-look-outfit">

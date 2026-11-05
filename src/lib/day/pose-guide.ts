@@ -1397,7 +1397,7 @@ export function parseSocialLayout(text: string | null | undefined): SocialLayout
   if (
     // Twirling a thing is not a dance: "twirling pasta" and "twirling a glass of white wine" at a
     // dinner table were drawn (and cued) as dancing. "twirling her around" still is one.
-    /\b(danc(?:e|es|ing)|waltz(?:es|ing)?|twirl(?:s|ing)?(?!\s+(?:pasta|spaghetti|noodles|linguine|(?:a|an|the|some|her|his|their)\s+(?!around\b|partner\b|date\b|friend\b)\w))|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance)\b/i.test(
+    /\b(danc(?:e|es|ing)(?!\s*-?\s*(?:studios?|schools?|academy|classes|class|instructors?|teachers?)\b)|waltz(?:es|ing)?|twirl(?:s|ing)?(?!\s+(?:pasta|spaghetti|noodles|linguine|(?:a|an|the|some|her|his|their)\s+(?!around\b|partner\b|date\b|friend\b)\w))|spin(?:s|ning)?\s+(?:together|with)|slow\s+dance)\b/i.test(
       haystack
     ) ||
     (/\bballroom\b/i.test(haystack) &&
@@ -2395,6 +2395,47 @@ export function parsePoseGuideIntent(
       people = 2;
     }
   }
+  // She stands, and the walk or reach was someone else's ("Lena stands mid-celebration … a man
+  // strides through the doorway"): drawn standing, as the still's words have her. The scene opening
+  // on her standing settles it unless she goes on to walk ("stands and walks to the door").
+  const opensStanding =
+    /^\s*(?:[A-Z][\w'’-]*|[Ss]he|[Hh]e|[Tt]hey)\s+(?:(?:\w+ly|still|now|just)\s+)?(?:stands?|stood|is\s+standing)\b/.test(
+      haystack
+    ) &&
+    !/\b(?:stands?|stood|standing)\b[^.—;:]{0,60}\b(?:and|then)\s+(?:walks?|strides?|strolls?|runs?|jogs?|reaches?)\b/i.test(
+      haystack
+    );
+  if (
+    !intimate &&
+    (base === 'walk' || base === 'run' || base === 'reach') &&
+    (opensStanding ||
+      (textLeadPosture(haystack) === 'stand' &&
+        !leadDoes(
+          haystack,
+          /\b(?:walks?|walked|strides?|strode|strolls?|runs?|ran|jogs?|reaches?|reached)\b/gi,
+          'finite'
+        ) &&
+        !leadDoes(
+          haystack,
+          /\b(?:walking|striding|strolling|running|jogging|reaching)\b/gi,
+          'participle'
+        )))
+  ) {
+    base = 'stand';
+  }
+  // The words' own arms win (Story, 2026-10-15): "arms thrown skyward", "arms flung wide" and
+  // "arms pressed flat against her chest" were drawn arms-down (or as a dance, a stretch) while
+  // the still's prompt said otherwise — and the still followed the words, not the map.
+  const arms = intimate ? null : statedArms(haystack);
+  if (arms) {
+    armLeft = arms;
+    armRight = arms;
+    // Only the layouts that are about the arms give way (a wave, a lean on the wall or a yoga
+    // pose draws its own arms and stays).
+    if (social && people < 2 && ARM_LAYOUTS.has(social) && !SOCIAL_FITS_ARMS[arms].has(social)) {
+      social = null;
+    }
+  }
   // Caller force wins last (Day Intimate Duo chip → always two Image 3 figures).
   if (forcedPeople != null) {
     people = forcedPeople;
@@ -2435,6 +2476,47 @@ export function parsePoseGuideIntent(
         ? `${social}-${seed.toString(16).slice(0, 6)}`
         : `${base}-${armLeft}-${armRight}-${seed.toString(16).slice(0, 6)}`,
   };
+}
+
+/** Layouts that are mostly what the arms do: stated arms that disagree replace them. */
+const ARM_LAYOUTS: ReadonlySet<string> = new Set(['dance', 'stretch', 'arms_up', 'cross_arms']);
+
+/** One-person layouts that already draw the stated arms (else the base and arms are drawn). */
+const SOCIAL_FITS_ARMS: Record<'up' | 'out' | 'crossed', ReadonlySet<string>> = {
+  up: new Set(['arms_up', 'stretch', 'cheer']),
+  out: new Set(['balance']),
+  crossed: new Set(['cross_arms']),
+};
+
+/**
+ * What the scene says the lead's arms are doing, in so many words: up ("arms thrown skyward",
+ * "raises her arms overhead"), out ("arms flung wide", "outstretched arms") or crossed ("arms
+ * folded", "arms pressed flat against her chest"). Null when it doesn't say.
+ */
+export function statedArms(text: string): 'up' | 'out' | 'crossed' | null {
+  const lead = '(?:still\\s+|now\\s+|both\\s+)?';
+  const up = new RegExp(
+    `\\barms?\\s+${lead}(?:(?:thrown|flung|raised|stretched|held|shot|pumped|lifted|reaching)\\s+)?(?:up(?:ward|wards)?|skyward|overhead|high|aloft|in\\s+the\\s+air|above\\s+(?:her|his|their)\\s+heads?)\\b|\\barms?\\s+${lead}raised\\b|\\b(?:raises?|raising|throws?|throwing|flings?|flinging|lifts?|lifting|pumps?|pumping)\\s+(?:both\\s+)?(?:her|his|their)\\s+arms?\\s+(?:up|skyward|overhead|high|in\\s+the\\s+air|above)`,
+    'i'
+  );
+  const out = new RegExp(
+    `\\barms?\\s+${lead}(?:(?:flung|spread|stretched|thrown|held|opened)\\s+)?(?:wide|out(?:\\s+to\\s+(?:the|her|his|their)\\s+sides?)?|outstretched)\\b|\\boutstretched\\s+arms\\b|\\bspread(?:s|ing)?\\s+(?:her|his|their)\\s+arms\\b`,
+    'i'
+  );
+  const crossed = new RegExp(
+    `\\barms?\\s+${lead}(?:crossed|folded|pressed\\s+(?:flat\\s+)?(?:against|to)\\s+(?:her|his|their)\\s+chest|wrapped\\s+around\\s+(?:herself|himself|themselves))\\b|\\b(?:cross(?:es|ing)?|fold(?:s|ing)?)\\s+(?:her|his|their)\\s+arms\\b`,
+    'i'
+  );
+  // The first one the text names (a later "a man with arms crossed" is someone else's).
+  const found = (
+    [
+      ['up', text.search(up)],
+      ['out', text.search(out)],
+      ['crossed', text.search(crossed)],
+    ] as const
+  ).filter(([, at]) => at >= 0);
+  if (!found.length) return null;
+  return [...found].sort((a, b) => a[1] - b[1])[0]![0];
 }
 
 /** Build a unique stick skeleton from pose intent (procedural, not a canned slot). */

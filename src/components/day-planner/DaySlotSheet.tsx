@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import DaySlotEditor, { type DaySlotEditorProps } from '@/components/day-planner/DaySlotEditor';
 import { Button } from '@/components/ui/Button';
 import SideSheet from '@/components/ui/SideSheet';
@@ -45,6 +45,27 @@ export default function DaySlotSheet({
   const previous = index > 0 ? slots[index - 1] : null;
   const next = index >= 0 && index < slots.length - 1 ? slots[index + 1] : null;
   const label = slot.label.toLowerCase();
+  // ← → step to the slot before / after (not while typing in a field).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)))
+      ) {
+        return;
+      }
+      const to = event.key === 'ArrowLeft' ? previous : event.key === 'ArrowRight' ? next : null;
+      if (!to) return;
+      event.preventDefault();
+      onSelectSlot(to.id);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [next, onSelectSlot, open, previous]);
 
   return (
     <SideSheet

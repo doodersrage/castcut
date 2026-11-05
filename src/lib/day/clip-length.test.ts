@@ -310,3 +310,27 @@ describe('two people talking in a longer clip (M11 T21)', () => {
     assert.deepEqual(still?.pendingDialogue?.speakers, ['partner', '']);
   });
 });
+
+describe('a clip in parts: one scene for every part', () => {
+  it('sends the scene with the parts and keeps it with the pending clip', () => {
+    const options = dayAnimateOptions({
+      direction: 'She looks out at the street.',
+      scene: ' A quiet morning by the window ',
+      extraSeconds: 0,
+      talkTotalSeconds: 15,
+      lines: ['', ''],
+      beats: ['She walks to the window.', ''],
+    });
+    assert.equal(options.direction, 'She looks out at the street.');
+    assert.equal(options.dialogue?.scene, 'A quiet morning by the window');
+    const [still] = normalizeDaySlotStills([
+      {
+        slotId: 'morning',
+        status: 'completed',
+        imageUrl: '/a.png',
+        pendingDialogue: { targetSec: 15, lines: ['', ''], scene: 'A quiet morning', forClip: 'p1' },
+      },
+    ]);
+    assert.equal(still?.pendingDialogue?.scene, 'A quiet morning');
+  });
+});

@@ -8,6 +8,7 @@ import {
   intimateLeadPrefersSecondRole,
   parseIntimateLayout,
   parsePoseGuideIntent,
+  statedArms,
   parseSocialLayout,
   resolvePoseGuideKeyFromScene,
   resolvePoseGuideVisualStyle,
@@ -1669,5 +1670,32 @@ describe('"chin up" as a posture', () => {
     assert.equal(parseSocialLayout('posing against a studio backdrop, hands on hips, chin up'), 'hands_hips');
     assert.equal(parseSocialLayout('doing chin ups at the park bars'), 'sport_pullup');
     assert.equal(parseSocialLayout('strict chin-ups at the gym'), 'sport_pullup');
+  });
+});
+
+describe('the arms the words state (Story, 2026-10-15)', () => {
+  it('reads arms up, out and crossed, the first one named', () => {
+    assert.equal(statedArms('Lena stands frozen, arms thrown skyward like she won'), 'up');
+    assert.equal(statedArms('she raises her arms overhead'), 'up');
+    assert.equal(statedArms('Lena stands mid-lunge, arms still flung wide'), 'out');
+    assert.equal(statedArms('arms now pressed flat against her chest'), 'crossed');
+    assert.equal(statedArms('arms full of laundry'), null);
+    assert.equal(statedArms('arms flung wide — a man nearby with arms crossed'), 'out');
+  });
+
+  it('draws the user’s beats as their words say', () => {
+    const read = (text: string) => parsePoseGuideIntent(text, 1, { allowIntimate: false });
+    const guest = read(
+      'Lena stands mid-celebration in a cluttered thrift-store-turned-dance-studio, arms still thrown skyward — but now a hulking man strides through the doorway behind her.'
+    );
+    assert.equal(guest.base, 'stand');
+    assert.equal(guest.armLeft, 'up');
+    assert.notEqual(guest.social, 'dance');
+    const stunt = read('Lena stands mid-lunge in a cluttered laundromat at dusk, arms still flung wide like she just won something.');
+    assert.deepEqual([stunt.base, stunt.armLeft, stunt.armRight], ['stand', 'out', 'out']);
+    const statue = read(
+      'Lena stands rigid as a statue in the same subway car, arms now pressed flat against her chest like she’s bracing for impact — but instead of triumph, she’s mid-stumble from stepping off a lopsided stack of newspapers that’s now tilting under her weight, one heel lifted off the floor and socks dangling near a man’s knee as he yawns beside her.'
+    );
+    assert.deepEqual([statue.base, statue.armLeft], ['stand', 'crossed']);
   });
 });

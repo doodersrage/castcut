@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import ClipRemoveHost from '@/components/play/ClipRemoveHost';
 import ClipRestyleHost from '@/components/play/ClipRestyleHost';
+import ClipBackgroundHost from '@/components/play/ClipBackgroundHost';
 import MotionBrushHost from '@/components/play/MotionBrushHost';
 import { registerAppSlot } from '@/components/AppSlot';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
@@ -53,6 +54,8 @@ registerAppSlot('shell.welcome', 'play-welcome', WorkspaceWelcome, 0);
 registerAppSlot('shell.overlays', 'play-clip-remove', ClipRemoveHost, 0);
 // Restyle's look picker (opened by clip/restyle-open.ts from the Gallery, Day and Story).
 registerAppSlot('shell.overlays', 'play-clip-restyle', ClipRestyleHost, 1);
+// Change the background (opened by clip/background-open.ts from the Gallery).
+registerAppSlot('shell.overlays', 'play-clip-background', ClipBackgroundHost, 1);
 // Motion brush (opened by clip/motion-open.ts from a Gallery still's Make it move).
 registerAppSlot('shell.overlays', 'play-motion-brush', MotionBrushHost, 2);
 

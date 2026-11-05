@@ -142,14 +142,9 @@ test('Film steps: Cast, Day and Cut film are counted; the optional steps are nam
   });
   await gotoStable(page, '/play?character=e2e-audit');
   await dismissBlockingOverlays(page);
-  // Mid-film the Steps list folds under "Edit cast & steps"; the strip shows Cut film as 3.
-  await expect(page.getByTestId('play-funnel-step-cut').first()).toContainText('3. Cut film', {
-    timeout: 30_000,
-  });
-  await expect(page.getByTestId('play-funnel-step-fitting').first()).toHaveText('Outfit');
-  await page.getByText('Edit cast & steps').click();
+  // The steps are one row of cards under the film (2026-11-05); Cut film is 3, Outfit optional.
   const steps = page.getByTestId('play-campaign-steps');
-  await expect(steps).toBeVisible();
+  await expect(steps).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('play-campaign-step-cut')).toContainText('Step 3');
   await expect(page.getByTestId('play-campaign-step-cut')).toContainText('Cut film');
   await expect(page.getByTestId('play-campaign-step-fitting')).toContainText('Optional');

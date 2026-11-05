@@ -369,3 +369,31 @@ describe("paginateGalleryEntriesWithGroups", () => {
     assert.deepEqual(page3.items.map(e => e.id), group.slice(24).map(e => e.id));
   });
 });
+
+describe("buildGalleryDisplayRows day headings", () => {
+  const day = (item: ComfyGalleryEntry) => {
+    const key = item.id.startsWith("a") ? "d1" : "d2";
+    return { key, label: key === "d1" ? "Today" : "Yesterday" };
+  };
+
+  it("puts a heading before the first item of each day, splitting the card rows", () => {
+    const rows = buildGalleryDisplayRows(
+      null,
+      [entry("a1"), entry("a2"), entry("a3"), entry("b1"), entry("b2")],
+      new Set(),
+      4,
+      { dayOf: day }
+    );
+    assert.deepEqual(
+      rows.map(row => (row.kind === "day" ? `#${row.label}` : row.kind === "cards" ? row.entries.map(e => e.id).join(",") : row.kind)),
+      ["#Today", "a1,a2,a3", "#Yesterday", "b1,b2"]
+    );
+    // Headings are not entries.
+    assert.equal(countGalleryDisplayEntries(rows), 5);
+  });
+
+  it("adds no headings without dayOf", () => {
+    const rows = buildGalleryDisplayRows(null, [entry("a1"), entry("b1")], new Set(), 4);
+    assert.equal(rows.filter(row => row.kind === "day").length, 0);
+  });
+});

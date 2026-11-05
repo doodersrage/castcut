@@ -1,7 +1,7 @@
 'use client';
 
 import WardrobePackButtons from '@/components/wardrobe/WardrobePackButtons';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
 import { SegmentedControl, accentFocusClass } from '@/components/ui/ToolPageShell';
@@ -73,6 +73,8 @@ export type ClothingPickerProps = {
   selectedKitId?: string;
   kitSize?: 'sm' | 'md';
   kitPickerTestId?: string;
+  /** Above the kits (Outfit: clothing-type chips, favourites and recently tried). */
+  kitsHeader?: ReactNode;
   onSelectKit: (wardrobeId: string) => void;
   onSwipeKit?: (delta: -1 | 1) => void;
   /** Clear the kit so the planner picks one (the old list picker's "Default" row). */
@@ -108,6 +110,7 @@ export default function ClothingPicker({
   selectedKitId,
   kitSize = 'md',
   kitPickerTestId,
+  kitsHeader,
   onSelectKit,
   onSwipeKit,
   onClearKit,
@@ -170,6 +173,7 @@ export default function ClothingPicker({
               </Button>
             </div>
           ) : null}
+          {hasPhoto ? null : kitsHeader}
           {hasPhoto ? null : kits.length > 0 ? (
             <WardrobeKitPicker
               kits={kits}

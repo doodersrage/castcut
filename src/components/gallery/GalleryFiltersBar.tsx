@@ -9,7 +9,9 @@ import type {
 } from '@/lib/gallery/comfyui-gallery';
 import type { GalleryDensity } from '@/lib/gallery/density';
 import { GalleryFiltersAdvancedPanel } from '@/components/gallery/GalleryFiltersAdvancedPanel';
-import GalleryFiltersPrimaryRow from '@/components/gallery/GalleryFiltersPrimaryRow';
+import GalleryFiltersPrimaryRow, {
+  GalleryFiltersMoreRow,
+} from '@/components/gallery/GalleryFiltersPrimaryRow';
 import GalleryFiltersSavedViews, {
   useGallerySavedViewsState,
 } from '@/components/gallery/GalleryFiltersSavedViews';
@@ -106,92 +108,115 @@ export default function GalleryFiltersBar(props: GalleryFiltersBarProps) {
   });
 
   return (
-    <div className="space-y-4 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 shadow-[inset_0_1px_0_rgb(255_255_255_/0.03)]">
-      <GalleryFiltersPrimaryRow
-        filter={filter}
-        setFilter={setFilter}
-        models={models}
-        castIds={castIds}
-        hasPlayChecks={hasPlayChecks}
-        customGroups={customGroups}
-        onRenameCustomGroup={onRenameCustomGroup}
-        onDeleteCustomGroup={onDeleteCustomGroup}
-        sort={sort}
-        setSort={setSort}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        paginationEnabled={paginationEnabled}
-        embeddingSearchActive={embeddingSearchActive}
-        embeddingSearchLoading={embeddingSearchLoading}
-        similarSearchLoading={similarSearchLoading}
-        embeddingSearchUnavailable={embeddingSearchUnavailable}
-        layout={layout}
-        setLayout={setLayout}
-        density={density}
-        setDensity={setDensity}
-        totalFiltered={totalFiltered}
-        totalEntries={totalEntries}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        showPagination={showPagination}
-        lean={lean}
-      />
-
-      {savedViewsState.savedViews.length > 0 || !lean ? (
-        <GalleryFiltersSavedViews
-          savedViews={savedViewsState.savedViews}
-          viewNameDraft={savedViewsState.viewNameDraft}
-          setViewNameDraft={savedViewsState.setViewNameDraft}
-          onSaveView={() =>
-            savedViewsState.saveCurrentView({
-              filter,
-              sort,
-              projectFilterId,
-              layout,
-              pageSize,
-              density,
-            })
-          }
-          onApplyView={view => {
-            setFilter(view.filter);
-            if (view.sort) setSort(view.sort);
-            if (view.projectFilterId !== undefined) setProjectFilterId(view.projectFilterId);
-            if (view.layout) setLayout(view.layout);
-            if (view.pageSize) setPageSize(view.pageSize);
-            if (view.density) setDensity(view.density);
-          }}
-          onDeleteView={savedViewsState.deleteView}
-          lean={lean}
-        />
-      ) : null}
-
-      <GalleryFiltersActiveChips
-        chips={activeChips}
-        setFilter={setFilter}
-        setProjectFilterId={setProjectFilterId}
-        setSort={setSort}
-      />
-
-      {!lean ? (
-        <GalleryFiltersAdvancedPanel
+    <div className="space-y-2">
+      {/* The bar stays in reach while you scroll (desk); the rest folds into Filters. */}
+      <div
+        className="ui-sticky-surface space-y-2 rounded-[var(--radius-xl)] border border-[var(--border-subtle)] p-3 md:sticky md:top-[calc(var(--header-offset,0px)+0.25rem)] md:z-20"
+        data-testid="gallery-filter-bar"
+      >
+        <GalleryFiltersPrimaryRow
           filter={filter}
           setFilter={setFilter}
-          tools={tools}
           models={models}
-          userTags={userTags}
-          projects={projects}
-          projectFilterId={projectFilterId}
-          setProjectFilterId={setProjectFilterId}
+          castIds={castIds}
+          hasPlayChecks={hasPlayChecks}
+          customGroups={customGroups}
+          onRenameCustomGroup={onRenameCustomGroup}
+          onDeleteCustomGroup={onDeleteCustomGroup}
+          sort={sort}
+          setSort={setSort}
           pageSize={pageSize}
           setPageSize={setPageSize}
           paginationEnabled={paginationEnabled}
           embeddingSearchActive={embeddingSearchActive}
+          embeddingSearchLoading={embeddingSearchLoading}
+          similarSearchLoading={similarSearchLoading}
           embeddingSearchUnavailable={embeddingSearchUnavailable}
-          onStartSlideshow={onStartSlideshow}
-          onStartFullscreenSlideshow={onStartFullscreenSlideshow}
-          slideshowAvailable={slideshowAvailable}
+          layout={layout}
+          setLayout={setLayout}
+          density={density}
+          setDensity={setDensity}
+          totalFiltered={totalFiltered}
+          totalEntries={totalEntries}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          showPagination={showPagination}
+          lean={lean}
         />
-      ) : null}
+        <GalleryFiltersActiveChips
+          chips={activeChips}
+          setFilter={setFilter}
+          setProjectFilterId={setProjectFilterId}
+          setSort={setSort}
+        />
+      </div>
+
+      <GalleryFiltersAdvancedPanel
+        lean={lean}
+        moreRow={
+          <GalleryFiltersMoreRow
+            filter={filter}
+            setFilter={setFilter}
+            models={models}
+            hasPlayChecks={hasPlayChecks}
+            customGroups={customGroups}
+            onRenameCustomGroup={onRenameCustomGroup}
+            onDeleteCustomGroup={onDeleteCustomGroup}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            paginationEnabled={paginationEnabled}
+            embeddingSearchActive={embeddingSearchActive}
+            embeddingSearchLoading={embeddingSearchLoading}
+            embeddingSearchUnavailable={embeddingSearchUnavailable}
+            lean={lean}
+          />
+        }
+        savedViews={
+          savedViewsState.savedViews.length > 0 || !lean ? (
+            <GalleryFiltersSavedViews
+              savedViews={savedViewsState.savedViews}
+              viewNameDraft={savedViewsState.viewNameDraft}
+              setViewNameDraft={savedViewsState.setViewNameDraft}
+              onSaveView={() =>
+                savedViewsState.saveCurrentView({
+                  filter,
+                  sort,
+                  projectFilterId,
+                  layout,
+                  pageSize,
+                  density,
+                })
+              }
+              onApplyView={view => {
+                setFilter(view.filter);
+                if (view.sort) setSort(view.sort);
+                if (view.projectFilterId !== undefined) setProjectFilterId(view.projectFilterId);
+                if (view.layout) setLayout(view.layout);
+                if (view.pageSize) setPageSize(view.pageSize);
+                if (view.density) setDensity(view.density);
+              }}
+              onDeleteView={savedViewsState.deleteView}
+              lean={lean}
+            />
+          ) : null
+        }
+        filter={filter}
+        setFilter={setFilter}
+        tools={tools}
+        models={models}
+        userTags={userTags}
+        projects={projects}
+        projectFilterId={projectFilterId}
+        setProjectFilterId={setProjectFilterId}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        paginationEnabled={paginationEnabled}
+        embeddingSearchActive={embeddingSearchActive}
+        embeddingSearchUnavailable={embeddingSearchUnavailable}
+        onStartSlideshow={onStartSlideshow}
+        onStartFullscreenSlideshow={onStartFullscreenSlideshow}
+        slideshowAvailable={slideshowAvailable}
+      />
     </div>
   );
 }

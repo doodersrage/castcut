@@ -112,7 +112,17 @@ export function normalizeClipStyle(value: unknown): ClipStyleId | null {
 export type ClipVaceMode =
   | { kind: 'restyle'; style: ClipStyleId }
   | { kind: 'restyle'; look: string }
-  | { kind: 'remove'; mask: string; maskIsVideo?: boolean; words?: string };
+  | {
+      kind: 'remove';
+      mask: string;
+      maskIsVideo?: boolean;
+      words?: string;
+      /**
+       * Change the background: the mask is everything but the people (tracked by SAM 3 from the
+       * word "person"), and `words` is the new place behind them.
+       */
+      background?: boolean;
+    };
 
 /** Your own look's words, tidied (Restyle · your own look). */
 export const CLIP_LOOK_MAX = 200;
@@ -185,12 +195,15 @@ export function buildClipVaceGraph(input: {
       : input.scene?.trim().replace(/[.\s]+$/, '');
   const words = mode.kind === 'remove' ? cleanClipLook(mode.words) : '';
   const whole = look && 'whole' in look ? look.whole : '';
+  const background = mode.kind === 'remove' && mode.background === true && words;
   const positive = look
     ? `${look.prompt}${scene ? ` The scene, its colours as they are: ${scene}.` : ''}${whole ? ` The whole frame — people, clothes and place — is ${whole}, not a photograph.` : ''}`
-    : words
-      ? `In the masked area: ${words} — part of the same scene, in the same light and camera, sitting naturally where it is.`
-      : CLIP_REMOVE_PROMPT;
-  const negative = `${look ? look.negative : words ? 'blur, smear, artefacts, distorted, different scene' : CLIP_REMOVE_NEGATIVE}, ${QUALITY_NEGATIVE}`;
+    : background
+      ? `${words.charAt(0).toUpperCase()}${words.slice(1)}: the whole setting around and behind the people is ${words}, nothing of the old room left — a real place, photographed, its light falling on them. The people, their clothes and their movement stay exactly as they are.`
+      : words
+        ? `In the masked area: ${words} — part of the same scene, in the same light and camera, sitting naturally where it is.`
+        : CLIP_REMOVE_PROMPT;
+  const negative = `${look ? look.negative : background ? 'the old room, extra people, blur, smear, artefacts, distorted, cartoon' : words ? 'blur, smear, artefacts, distorted, different scene' : CLIP_REMOVE_NEGATIVE}, ${QUALITY_NEGATIVE}`;
   const graph: Record<string, unknown> = {
     '1': { class_type: 'LoadVideo', inputs: { file: input.video } },
     '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
@@ -284,7 +297,8 @@ export function buildClipVaceGraph(input: {
     graph['34'] = { class_type: 'ImageToMask', inputs: { image: ['33', 0], channel: 'red' } };
     graph['35'] = {
       class_type: 'GrowMask',
-      inputs: { mask: ['34', 0], expand: 8, tapered_corners: true },
+      // Background: not grown — it would eat into the people the tracker already grew around.
+      inputs: { mask: ['34', 0], expand: background ? 0 : 8, tapered_corners: true },
     };
     graph['36'] = {
       class_type: 'EmptyImage',
@@ -395,18 +409,63 @@ export const CLIP_TRACK_MODEL = 'sam3.1_multiplex_fp16.safetensors';
  */
 export function buildClipTrackGraph(input: {
   video: string;
-  mask: string;
+  /** The first frame's painted area (white), followed through the clip… */
+  mask?: string;
+  /** …or what to find in every frame by name ("person"), no painting needed. */
+  find?: string;
+  /** Everything but what was found (Change the background), the found area grown a little first. */
+  invert?: boolean;
   width: number;
   height: number;
   fps: number;
   prefix: string;
 }): Record<string, unknown> {
   const { width, height } = input;
+  if (input.find) {
+    return {
+      '1': { class_type: 'LoadVideo', inputs: { file: input.video } },
+      '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
+      '3': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: CLIP_TRACK_MODEL } },
+      '4': { class_type: 'CLIPTextEncode', inputs: { text: input.find, clip: ['3', 1] } },
+      '11': {
+        class_type: 'ImageScale',
+        inputs: { image: ['2', 0], upscale_method: 'lanczos', width, height, crop: 'disabled' },
+      },
+      '6': {
+        class_type: 'SAM3_VideoTrack',
+        inputs: {
+          images: ['11', 0],
+          model: ['3', 0],
+          detection_threshold: 0.4,
+          max_objects: 4,
+          detect_interval: 1,
+          conditioning: ['4', 0],
+        },
+      },
+      '7': { class_type: 'SAM3_TrackToMask', inputs: { track_data: ['6', 0], object_indices: '' } },
+      // Grown before it is inverted: hair and a hand's edge stay theirs, not the new place's.
+      '12': {
+        class_type: 'GrowMask',
+        inputs: {
+          mask: ['7', 0],
+          expand: Math.max(4, Math.round(Math.min(width, height) / 100)),
+          tapered_corners: true,
+        },
+      },
+      ...(input.invert ? { '13': { class_type: 'InvertMask', inputs: { mask: ['12', 0] } } } : {}),
+      '8': { class_type: 'MaskToImage', inputs: { mask: [input.invert ? '13' : '12', 0] } },
+      '9': { class_type: 'CreateVideo', inputs: { images: ['8', 0], fps: input.fps } },
+      [CLIP_TRACK_SAVE_NODE]: {
+        class_type: 'SaveVideo',
+        inputs: { video: ['9', 0], filename_prefix: input.prefix, format: 'mp4', codec: 'h264' },
+      },
+    };
+  }
   return {
     '1': { class_type: 'LoadVideo', inputs: { file: input.video } },
     '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
     '3': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: CLIP_TRACK_MODEL } },
-    '4': { class_type: 'LoadImage', inputs: { image: input.mask } },
+    '4': { class_type: 'LoadImage', inputs: { image: input.mask ?? '' } },
     '11': {
       class_type: 'ImageScale',
       inputs: { image: ['2', 0], upscale_method: 'lanczos', width, height, crop: 'disabled' },

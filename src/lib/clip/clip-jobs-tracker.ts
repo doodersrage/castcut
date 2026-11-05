@@ -158,6 +158,9 @@ function failureText(entry: TrackedClipJob, error: string): string {
 }
 
 function announceFailure(entry: TrackedClipJob): void {
+  void import('../app/desktop-notify').then(({ notifyDesktop }) =>
+    notifyDesktop({ title: `${CLIP_JOB_LABEL[entry.tool]} failed`, body: entry.label })
+  );
   const retryEvent = `castcut-clip-job-retry:${entry.jobId}`;
   if (typeof window !== 'undefined') {
     window.addEventListener(
@@ -240,6 +243,7 @@ function drive(jobId: string): Promise<KeptClip> {
         title: `${CLIP_JOB_LABEL[entry.tool]} is done`,
         body: `${entry.label} — the new clip is in the Gallery next to the original.`,
         href: '/gallery',
+        desktop: true,
       });
       // Nobody to hand it to (a Gallery job), or the page that started it is still waiting.
       if (!entry.owner || entry.owner.feature === 'gallery' || awaited.has(jobId)) remove(jobId);

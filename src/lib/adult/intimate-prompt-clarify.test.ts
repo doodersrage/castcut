@@ -328,3 +328,14 @@ describe('nude intimate prompts', () => {
   });
 });
 
+
+describe('a one-person scene gets no two-person locks', () => {
+  it('a solo beach walk (the clip prompt from the user report) stays one person', () => {
+    // 2026-11-05: "barefoot" and "grips" read as an act; "Exactly one person" didn't read as solo.
+    const clip =
+      'Lana trudges barefoot through wet sand toward water’s edge under star-dusted sky. ' +
+      'One hand grips ‘Coffee for the Soul’ mug, other swings loose. Exactly one person.';
+    const out = reinforceIntimateStillPrompt(clip);
+    assert.doesNotMatch(out, /Two adults|partner|sex act|Cross-person/i);
+  });
+});

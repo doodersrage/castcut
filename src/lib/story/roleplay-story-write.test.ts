@@ -25,11 +25,11 @@ describe('roleplaySceneWritePlan — desk and phone write a picked scene the sam
     });
   });
 
-  it('Clip output queued on pick: no still — the clip is queued from the scene', () => {
+  it('Still + clip queued on pick: the still is written and queued — the clip starts from it', () => {
     assert.deepEqual(roleplaySceneWritePlan({ beatOutput: 'clip', autoQueue: true }), {
-      skipStill: true,
-      queueStill: false,
-      stillStatus: undefined,
+      skipStill: false,
+      queueStill: true,
+      stillStatus: 'writing',
     });
   });
 

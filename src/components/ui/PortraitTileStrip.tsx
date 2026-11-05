@@ -14,6 +14,8 @@ export type PortraitTile = {
   caption?: string;
   /** With no thumb: a dashed "missing picture" box with this text (a look with no plate). */
   placeholder?: string;
+  /** A corner mark: done (a scene with a kept take) or to do (one still needing a take). */
+  status?: 'done' | 'todo';
 };
 
 /**
@@ -29,6 +31,7 @@ export default function PortraitTileStrip({
   onChange,
   testIdPrefix,
   className = '',
+  size = 'md',
 }: {
   /** Accessible name of the group ("Partner", "Active character"). */
   label: string;
@@ -39,6 +42,8 @@ export default function PortraitTileStrip({
   /** Tiles get `${testIdPrefix}-${id || 'none'}`; the strip gets `${testIdPrefix}s`. */
   testIdPrefix: string;
   className?: string;
+  /** `lg`: bigger pictures (Scene's scenes, where the picture is the shot). */
+  size?: 'md' | 'lg';
 }) {
   // Keep the chosen tile in view: with a long Cast the strip scrolls and the pick was off-screen.
   // Scrolls the strip only, never the page.
@@ -81,7 +86,7 @@ export default function PortraitTileStrip({
             onClick={() => {
               if (!selected) onChange(tile.id);
             }}
-            className={`group relative flex w-[4.75rem] shrink-0 flex-col items-center gap-1 rounded-xl border p-1 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`group relative flex ${size === 'lg' ? 'w-[6.5rem]' : 'w-[4.75rem]'} shrink-0 flex-col items-center gap-1 rounded-xl border p-1 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50 ${
               // The pick has to read at a glance: tinted tile, heavy ring, a tick.
               selected
                 ? 'border-[var(--accent)] bg-[var(--accent-muted)]'
@@ -90,7 +95,7 @@ export default function PortraitTileStrip({
           >
             <span
               // 3:4 like the Cast roster: look plates are full-body, a circle showed a speck.
-              className={`flex h-16 w-12 items-center justify-center overflow-hidden rounded-lg border-2 bg-[var(--bg-subtle)] text-base font-medium text-[var(--text-muted)] ${
+              className={`flex ${size === 'lg' ? 'h-24 w-[4.5rem]' : 'h-16 w-12'} items-center justify-center overflow-hidden rounded-lg border-2 bg-[var(--bg-subtle)] text-base font-medium text-[var(--text-muted)] ${
                 !tile.thumb && tile.placeholder ? 'border-dashed' : ''
               } ${
                 selected
@@ -117,6 +122,17 @@ export default function PortraitTileStrip({
                 <span aria-hidden>{tile.glyph ?? tile.label.slice(0, 1).toUpperCase()}</span>
               )}
             </span>
+            {tile.status ? (
+              <span
+                className={`absolute left-1 top-1 h-2.5 w-2.5 rounded-full ring-2 ring-[var(--bg-elevated)] ${
+                  tile.status === 'done'
+                    ? 'bg-[var(--tint-success-text)]'
+                    : 'bg-[var(--tint-warning-text)]'
+                }`}
+                title={tile.status === 'done' ? 'Done — a take is kept' : 'Needs a take kept'}
+                data-status={tile.status}
+              />
+            ) : null}
             {selected ? (
               <span
                 aria-hidden

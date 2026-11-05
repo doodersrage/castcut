@@ -75,7 +75,9 @@ test('Cast page: What next checklist, and Film & media by look', async ({ page }
   await expect(page.getByTestId('cast-checklist-day')).toHaveAttribute('data-done', 'true');
   await expect(page.getByTestId('cast-checklist-day')).toContainText('4 stills');
   await expect(page.getByTestId('cast-checklist-story')).toHaveAttribute('data-done', 'false');
-  // A tab step opens that tab on this page.
+  // The header shows one line; the seven steps open on a click. A tab step opens that tab.
+  await expect(page.getByTestId('cast-checklist-compact')).toContainText('Next:');
+  await checklist.locator('summary').click();
   await page.getByTestId('cast-checklist-bible').click();
   await expect(page.getByRole('tab', { name: 'Bible' })).toHaveAttribute('aria-selected', 'true');
 

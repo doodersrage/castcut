@@ -41,4 +41,15 @@ describe('film review links', async () => {
     assert.equal(store.liveFilmReview(review.token), null);
     assert.equal(store.addFilmReviewComment(review.token, { text: 'late' }), 'gone');
   });
+  it('lets only the owner tick a comment off, and back on', () => {
+    const review = store.createFilmReview({ entryId: 'film-9', ownerId: 'u1', title: 'A film' });
+    const comment = store.addFilmReviewComment(review.token, { name: 'Ana', text: 'Too dark here', timeSec: 4 });
+    assert.ok(typeof comment === 'object');
+    assert.equal(store.setFilmReviewCommentResolved(review.token, comment.id, 'u2', true), false);
+    assert.equal(store.setFilmReviewCommentResolved(review.token, 'nope', 'u1', true), false);
+    assert.equal(store.setFilmReviewCommentResolved(review.token, comment.id, 'u1', true), true);
+    assert.equal(store.readFilmReview(review.token)?.comments[0]?.resolved, true);
+    store.setFilmReviewCommentResolved(review.token, comment.id, 'u1', false);
+    assert.equal('resolved' in store.readFilmReview(review.token)!.comments[0]!, false);
+  });
 });

@@ -129,6 +129,13 @@ function sceneWithTakes() {
   };
 }
 
+/** Script and Locations sit under "More" on the desk (2026-11-05): opened before they're used. */
+async function openSceneMore(page: Page): Promise<void> {
+  const more = page.getByTestId('scene-more');
+  await more.waitFor({ state: 'attached', timeout: 60_000 }).catch(() => undefined);
+  if (await more.count()) await more.evaluate(el => ((el as HTMLDetailsElement).open = true));
+}
+
 /** The prompt text of a queued job (the encoder's, wherever it sits in the body). */
 function promptOf(body: string): string {
   return body.replace(/\\n/g, '\n').replace(/\\"/g, '"');
@@ -440,6 +447,7 @@ test('a location is made, described, kept after a reload, and not deleted while 
   await seed(sceneWithTakes());
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section.getByTestId('locations-empty')).toBeVisible({ timeout: 60_000 });
 
@@ -500,6 +508,7 @@ test('a Scene set in a location queues its take with the location\'s look', asyn
   await page.getByTestId('scene-new').click();
   await expect(page.getByTestId('scene-shot')).toBeVisible();
 
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await section.getByTestId('location-new-name').fill('Corner café');
   await section.getByTestId('location-add').click();
@@ -532,6 +541,7 @@ test('a script place resolves to a location, and its shot\'s Scene is set there'
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
@@ -571,6 +581,7 @@ test('a location\'s picture is added, shown and removed', async ({ page }) => {
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
@@ -859,6 +870,7 @@ test('a location\'s picture is made from its words and kept', async ({ page }) =
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Harbour café');
@@ -915,6 +927,7 @@ test('a shot list is split, reordered and merged in place', async ({ page }) => 
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
   await page.getByTestId('script-import').click();
   await page
@@ -1100,6 +1113,7 @@ test('Scene with takes, a location and the storyboard, and Cut\'s animatic, pass
   await gotoStable(page, `/scene?character=${CAST}&script=script-axe`);
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
+  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await section.getByTestId('location-new-name').fill('Corner café');
   await section.getByTestId('location-add').click();
@@ -1124,6 +1138,7 @@ test('a script is imported, read scene by scene, kept after a reload, and delete
   });
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  await openSceneMore(page);
   await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
 
   await page.getByTestId('script-import').click();
@@ -2485,6 +2500,8 @@ test('Make it move: the clip engine choice (Day’s), its requirements, and Anim
   // Only once a take is kept (Make it move starts from it).
   await expect(page.getByTestId('scene-clip-engine')).toHaveCount(0);
   await page.getByTestId('scene-take-keep-1').click();
+  // The clip engine is with the advanced settings (2026-11-05).
+  await page.getByTestId('day-quality-advanced').click();
   const block = page.getByTestId('scene-clip-engine');
   await expect(block).toBeVisible();
   await expect(block).toContainText('Animate clips on');
@@ -2858,7 +2875,7 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
     if (!body.writeBeats) return route.continue();
     asked = body.writeBeats;
     await route.fulfill({
-      json: { beats: ['She walks to the window.', 'She turns back and smiles.'] },
+      json: { beats: ['She looks out at the street.', 'She walks to the window.', 'She turns back and smiles.'] },
     });
   });
   const seeded = sceneWithTakes();
@@ -2880,11 +2897,16 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
   const sheet = page.getByTestId('day-animate-sheet');
   await expect(sheet).toBeVisible({ timeout: 30_000 });
   await sheet.getByTestId('day-animate-chain-15').click();
+  // The top field is the whole clip's scene; every part, the first clip too, has its own beat.
   const parts = sheet.locator('[data-testid^="day-animate-part-beat-"]');
-  await expect(parts).toHaveCount(2);
+  await expect(parts).toHaveCount(3);
+  await sheet.getByTestId('day-animate-direction').fill('A quiet morning by the window');
   await sheet.getByTestId('day-animate-write-beats').click();
+  await expect(sheet.getByTestId('day-animate-part-beat-first')).toHaveValue(
+    'She looks out at the street.'
+  );
   await expect(sheet.getByTestId('day-animate-part-beat-0')).toHaveValue('She walks to the window.');
-  expect(asked).toBe(2);
+  expect(asked).toBe(3);
   await sheet.getByTestId('day-animate-part-beat-1').fill('She sits on the sill.');
   await sheet.getByTestId('day-animate-part-0-sec-3').click();
   await expect(sheet.getByTestId('day-animate-part-0-sec-3')).toHaveAttribute('aria-selected', 'true');
@@ -2903,9 +2925,21 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
         const pending = (tool.stills ?? []).find(
           (still: { pendingDialogue?: unknown }) => still.pendingDialogue
         )?.pendingDialogue as
-          | { beats?: string[]; partSeconds?: number[]; lines?: string[]; tones?: string[] }
+          | {
+              beats?: string[];
+              partSeconds?: number[];
+              lines?: string[];
+              tones?: string[];
+              scene?: string;
+            }
           | undefined;
-        return JSON.stringify([pending?.beats, pending?.partSeconds, pending?.lines, pending?.tones]);
+        return JSON.stringify([
+          pending?.beats,
+          pending?.partSeconds,
+          pending?.lines,
+          pending?.tones,
+          pending?.scene,
+        ]);
       },
       { timeout: 30_000 }
     )
@@ -2915,6 +2949,7 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
         [3, 0],
         ['', 'The view never gets old.'],
         ['', 'whisper'],
+        'A quiet morning by the window',
       ])
     );
 });

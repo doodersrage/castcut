@@ -3,6 +3,12 @@
 Dress the Cast once; every clothed still on Day and Story starts from that **dressed plate**.
 Open **Outfit** (`/fitting`).
 
+The page: who's trying on (and their plate) on the left, the try-on in the middle with
+**Quality** under it, the clothes on the right, and a bar kept at the bottom with what's on
+(**Plate ready · Cropped sage slip dress**) and **Try it on** · **Skip kit** · **Try it on, then
+next kit**. With no plate yet, the middle asks for one first — **Upload plate** or **From
+Gallery** — and the rest waits, faded.
+
 ## Pick the clothes
 
 **Choose…** opens the clothing sheet (the same one on Day and Story):
@@ -15,11 +21,21 @@ Open **Outfit** (`/fitting`).
 
 **Save for later** keeps your own clothes and shoes for any session.
 
+Above the kits: the clothing types as chips (**All**, **Full outfits**, **Tops**, **Bottoms**,
+**Outerwear**, **Swimwear**, **Formal & dressy**, **Sleepwear & robes**, **Traditional & cultural**
+— the others are in the type list), **☆ Star this kit** for the one you're on, and a row of the
+kits you starred or tried last, one click to put one on.
+
 ## Try it on
 
 1. Pick a **Quality**: **Fast** (front only), **Balanced** (front and back), **Best** (also checks each try-on).
 2. **Queue** a try-on.
 3. **Keep** the one you like — it becomes the dressed plate. **Pass** drops one.
+4. **Before / after** under a try-on puts the plate and the try-on under one handle — drag it to
+   see exactly what changed.
+
+Keys (not while typing): **← →** the kit before / after, **Enter** tries it on, **N** tries it on
+then moves to the next kit, **K** keeps the try-on on the stage.
 
 !!! tip "Best checks the try-on for you"
     Each try-on gets a face match against the plate and a read of the outfit and hands:

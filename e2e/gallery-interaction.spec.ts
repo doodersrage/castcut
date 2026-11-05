@@ -14,14 +14,15 @@ test("gallery layout toggles and review mode shows banner", async ({ page }) => 
   await expect(page.getByRole("heading", { name: /^Gallery$/i, level: 1 })).toBeVisible();
   await dismissBlockingOverlays(page);
 
-  const denseLayout = page.getByTestId("gallery-layout-dense");
-  await expect(denseLayout).toBeVisible({ timeout: 15_000 });
-  await denseLayout.click();
-  await expect(denseLayout).toHaveAttribute("data-active", "true");
+  // One Size control (Small · Medium · Large · List) for layout and density.
+  const small = page.getByTestId("gallery-size-small");
+  await expect(small).toBeVisible({ timeout: 15_000 });
+  await small.click();
+  await expect(small).toHaveAttribute("data-active", "true");
 
-  const listLayout = page.getByTestId("gallery-layout-list");
-  await listLayout.click();
-  await expect(listLayout).toHaveAttribute("data-active", "true");
+  const list = page.getByTestId("gallery-size-list");
+  await list.click();
+  await expect(list).toHaveAttribute("data-active", "true");
 
   // Unreviewed turns review mode on (the separate Review chip was folded into it).
   const reviewChip = page.getByTestId("gallery-stats-unreviewed");

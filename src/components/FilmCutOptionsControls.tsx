@@ -1,5 +1,11 @@
 'use client';
 
+import type { CutMarker } from '@/lib/film/cut-markers';
+import {
+  normalizeSubtitleStyle,
+  SUBTITLE_STYLES,
+  type SubtitleStyle,
+} from '@/lib/video/subtitle-style';
 import { CutLogoControl } from '@/components/cut/CutOverlayControls';
 import CutSoundControls from '@/components/cut/CutSoundControls';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
@@ -60,6 +66,10 @@ export type FilmCutOptionsValue = {
   titles?: boolean;
   /** What is said in each clip (else its narration) burned in at the bottom — default on. */
   subtitles?: boolean;
+  /** How the subtitles look (subtitle-style.ts); classic when unset. */
+  subtitleStyle?: SubtitleStyle;
+  /** Your own marks on the Cut's timeline (cut-markers.ts). */
+  markers?: CutMarker[];
   /** How long the cut runs: as the shots hold, fit to the music, or 15 / 30 / 60 s. */
   length?: FilmCutLength;
   /** Land still cuts on the music's beat (needs an audio bed). */
@@ -569,6 +579,31 @@ export default function FilmCutOptionsControls({
           onChange={next => onChange({ ...value, subtitles: next })}
           testId={`${testIdPrefix}-subtitles`}
         />
+        {value.subtitles !== false ? (
+          <OptionRow label="Subtitle look" htmlFor={`${testIdPrefix}-subtitle-style`}>
+            <select
+              id={`${testIdPrefix}-subtitle-style`}
+              disabled={disabled}
+              className={optionSelectClass}
+              value={normalizeSubtitleStyle(value.subtitleStyle)}
+              title={
+                SUBTITLE_STYLES.find(
+                  style => style.id === normalizeSubtitleStyle(value.subtitleStyle)
+                )?.hint
+              }
+              onChange={event =>
+                onChange({ ...value, subtitleStyle: normalizeSubtitleStyle(event.target.value) })
+              }
+              data-testid={`${testIdPrefix}-subtitle-style`}
+            >
+              {SUBTITLE_STYLES.map(style => (
+                <option key={style.id} value={style.id}>
+                  {style.label} — {style.hint.toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </OptionRow>
+        ) : null}
         <OptionSwitch
           label="Title & captions"
           note="A title card and a caption per shot"

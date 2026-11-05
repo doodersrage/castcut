@@ -129,7 +129,12 @@ export function buildMotionTransferGraph(input: {
       class_type: 'CLIPVisionEncode',
       inputs: { clip_vision: ['8', 0], image: ['16', 0], crop: 'none' },
     },
-    '18': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'lcm' } },
+    // Not the template's lcm: its motion came in steps — still for three frames, then a jump, on
+    // every 4-frame latent (the user: "choppy at best"). Measured on one driving video and seed
+    // (motion share of the busiest phase of each 4 frames over the quietest; the video itself
+    // 1.23): lcm 10 steps 3.23, lcm 6 steps 4.59, euler 10 steps 2.27, euler 16 steps 2.10,
+    // dpmpp_2m 10 steps 2.03 — the same time as lcm, the picture as sharp.
+    '18': { class_type: 'KSamplerSelect', inputs: { sampler_name: 'dpmpp_2m' } },
     '19': {
       class_type: 'BasicScheduler',
       inputs: { model: ['3', 0], scheduler: 'simple', steps: 10, denoise: 1 },

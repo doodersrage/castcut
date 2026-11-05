@@ -249,10 +249,13 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
   options,
+  wrap = false,
   'aria-label': ariaLabel,
 }: {
   value: T;
   onChange: (value: T) => void;
+  /** Wrap onto a second line instead of scrolling (a narrow panel with many tabs: Cut). */
+  wrap?: boolean;
   options: ReadonlyArray<{
     value: T;
     label: string;
@@ -262,7 +265,11 @@ export function SegmentedControl<T extends string>({
   'aria-label'?: string;
 }) {
   return (
-    <div className="ui-segmented" role="tablist" aria-label={ariaLabel}>
+    <div
+      className={wrap ? 'ui-segmented ui-segmented-wrap' : 'ui-segmented'}
+      role="tablist"
+      aria-label={ariaLabel}
+    >
       {options.map(option => (
         <button
           key={option.value}

@@ -6,6 +6,7 @@ import { TryOnReviewLine } from '@/components/fitting/TryOnReviewLine';
 import { StageFrame } from '@/components/fitting/FittingStagePending';
 import { Button } from '@/components/ui/Button';
 import FittingCompareCard from '@/components/fitting/FittingCompareCard';
+import BeforeAfterSlider from '@/components/ui/BeforeAfterSlider';
 import type { ImageLightboxState, ImageLightboxSlideChrome } from '@/components/ui/ImageLightbox';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { buildFittingCompareLightboxState, type FittingCompareTryOn } from '@/lib/fitting/room';
@@ -64,6 +65,8 @@ export type FittingCompareSectionProps = {
   } | null;
   /** Front and back is on: the back frame is kept from the start (no layout jump). */
   frontBack?: boolean;
+  /** The plate the try-ons start from: a finished try-on can be compared with it (Before / after). */
+  plateUrl?: string;
   /** What the stage shows before the first try-on (the plate). */
   empty?: ReactNode;
 };
@@ -88,7 +91,10 @@ export default function FittingCompareSection({
   pending = null,
   empty = null,
   frontBack = false,
+  plateUrl,
 }: FittingCompareSectionProps) {
+  // The stage's Before / after: the plate and the try-on under one handle.
+  const [beforeAfter, setBeforeAfter] = useState(false);
   const [pickedId, setPickedId] = useState<string | null>(null);
   /** The render in flight when the strip pick was made — a newer render takes the stage back. */
   const [pickedFor, setPickedFor] = useState<string | null>(null);
@@ -271,31 +277,42 @@ export default function FittingCompareSection({
               aria-busy={frontJob || backJob ? true : undefined}
               className="space-y-2"
             >
-              <div className={twoUp ? 'grid grid-cols-2 gap-2' : 'mx-auto max-w-[30rem]'}>
-                <StageFrame
-                  job={frontJob}
-                  imageUrl={frontJob ? null : (picked?.imageUrl ?? null)}
-                  alt={name}
-                  label={`View ${name} larger`}
-                  testId="fitting-compare-front"
-                  onOpen={picked && !frontJob ? () => openLightbox(picked) : undefined}
+              {beforeAfter && done && plateUrl && picked?.imageUrl ? (
+                <BeforeAfterSlider
+                  before={plateUrl}
+                  after={picked.imageUrl}
+                  beforeLabel="Plate"
+                  afterLabel="Try-on"
+                  className="mx-auto max-w-[30rem]"
+                  testId="fitting-before-after"
                 />
-                {twoUp ? (
+              ) : (
+                <div className={twoUp ? 'grid grid-cols-2 gap-2' : 'mx-auto max-w-[30rem]'}>
                   <StageFrame
-                    job={backJob}
-                    imageUrl={backJob ? null : (picked?.backImageUrl ?? null)}
-                    alt={`${name} — back`}
-                    label={`View the back of ${name} larger`}
-                    testId="fitting-compare-back"
-                    waitingLabel="Back view next"
-                    onOpen={
-                      picked?.backImageUrl && !backJob
-                        ? () => openLightbox(picked, { back: true })
-                        : undefined
-                    }
+                    job={frontJob}
+                    imageUrl={frontJob ? null : (picked?.imageUrl ?? null)}
+                    alt={name}
+                    label={`View ${name} larger`}
+                    testId="fitting-compare-front"
+                    onOpen={picked && !frontJob ? () => openLightbox(picked) : undefined}
                   />
-                ) : null}
-              </div>
+                  {twoUp ? (
+                    <StageFrame
+                      job={backJob}
+                      imageUrl={backJob ? null : (picked?.backImageUrl ?? null)}
+                      alt={`${name} — back`}
+                      label={`View the back of ${name} larger`}
+                      testId="fitting-compare-back"
+                      waitingLabel="Back view next"
+                      onOpen={
+                        picked?.backImageUrl && !backJob
+                          ? () => openLightbox(picked, { back: true })
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                </div>
+              )}
               <figcaption className="type-heading truncate">
                 {!picked && newRender ? `Trying on ${name}…` : name}
               </figcaption>
@@ -354,6 +371,19 @@ export default function FittingCompareSection({
                     label={picked.wardrobeLabel || picked.wardrobeId || 'Try-on'}
                     disabled={busy || !done}
                   />
+                ) : null}
+                {plateUrl ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={!done}
+                    aria-pressed={beforeAfter}
+                    title="The plate and the try-on under one handle — drag to see what changed"
+                    data-testid="fitting-before-after-toggle"
+                    onClick={() => setBeforeAfter(value => !value)}
+                  >
+                    Before / after
+                  </Button>
                 ) : null}
                 <Button
                   size="sm"

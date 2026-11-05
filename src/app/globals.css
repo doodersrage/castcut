@@ -677,6 +677,13 @@ section:has(details[open] > .ui-menu-panel),
   background: var(--bg-base);
 }
 
+/* A card kept in view (Story's composer): the light theme's card mix is translucent, and beat
+   the plain rule above — the scenes showed through it. */
+html[data-theme] .ui-card.ui-sticky-surface,
+html .ui-card.ui-sticky-surface {
+  background: var(--bg-base);
+}
+
 /* The phone studio's (/m/*) header, dock and pinned action bars: opaque in both themes — the
    muted tone laid over the page colour (--bg-muted alone is translucent, and scrolled text showed
    through the dock and header). */
@@ -1732,6 +1739,11 @@ html[data-theme='light'] .page-canvas::before {
   border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--bg-muted) 88%, var(--bg-base));
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.ui-segmented-wrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
 }
 
 .ui-segmented-item {
@@ -3692,5 +3704,87 @@ button.ui-badge:disabled {
   /* Sliders (the Director's scrubber, a beat's hold) and file pickers: a full-height hit area. */
   html[data-phone-targets] input:is([type='range'], [type='file'], [type='number']) {
     min-height: 2.75rem;
+  }
+}
+
+/* Camera moves shown on a still (CameraMovePicker): each loops the move it names. */
+@keyframes cam-push-in {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.18);
+  }
+}
+@keyframes cam-pull-out {
+  from {
+    transform: scale(1.18);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes cam-pan-left {
+  from {
+    transform: scale(1.2) translateX(7%);
+  }
+  to {
+    transform: scale(1.2) translateX(-7%);
+  }
+}
+@keyframes cam-pan-right {
+  from {
+    transform: scale(1.2) translateX(-7%);
+  }
+  to {
+    transform: scale(1.2) translateX(7%);
+  }
+}
+@keyframes cam-orbit {
+  from {
+    transform: scale(1.15) perspective(400px) rotateY(-9deg) translateX(-4%);
+  }
+  to {
+    transform: scale(1.15) perspective(400px) rotateY(9deg) translateX(4%);
+  }
+}
+@keyframes cam-crane-up {
+  from {
+    transform: scale(1.18) translateY(7%) perspective(400px) rotateX(0deg);
+  }
+  to {
+    transform: scale(1.18) translateY(-5%) perspective(400px) rotateX(6deg);
+  }
+}
+@keyframes cam-handheld {
+  0% {
+    transform: scale(1.1) translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) translate(1.2%, -0.8%) rotate(0.5deg);
+  }
+  50% {
+    transform: scale(1.1) translate(-0.6%, 0.9%) rotate(-0.4deg);
+  }
+  75% {
+    transform: scale(1.1) translate(-1.1%, -0.4%) rotate(0.3deg);
+  }
+  100% {
+    transform: scale(1.1) translate(0, 0) rotate(0deg);
+  }
+}
+.cam-move-preview {
+  animation-duration: 2.4s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+.cam-move-preview[data-move='handheld'] {
+  animation-direction: normal;
+  animation-timing-function: linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cam-move-preview {
+    animation: none !important;
   }
 }

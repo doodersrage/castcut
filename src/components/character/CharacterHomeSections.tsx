@@ -13,11 +13,16 @@ import CastWardrobeSection from '@/components/character/CastWardrobeSection';
 import CharacterFilmStudio from '@/components/CharacterFilmStudio';
 import CharacterLoraFlywheel from '@/components/CharacterLoraFlywheel';
 import PlaySoftAdvanceBanner from '@/components/PlaySoftAdvanceBanner';
-import { ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError } from '@/components/ui/Field';
 import { SegmentedControl, ToolLayout } from '@/components/ui/ToolPageShell';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import CastChecklist from '@/components/character/CastChecklist';
+import CastProfileHeader from '@/components/character/CastProfileHeader';
+import CastFilmsShowcase from '@/components/character/CastFilmsShowcase';
+import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
+import { castAccent } from '@/lib/cast/speech';
+import type { CharacterRecord } from '@/lib/character/os';
 import CastStatusStrip from '@/components/character/CastStatusStrip';
 import CharacterAppearanceSection from '@/components/character/CharacterAppearanceSection';
 import CharacterBibleSection from '@/components/character/CharacterBibleSection';
@@ -34,6 +39,19 @@ type CharacterHomeViewModel = ReturnType<typeof useCharacterHomeOrchestration>;
 
 export default function CharacterHomeSections(props: CharacterHomeViewModel) {
   const { character } = props;
+
+  const jumpTo = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Their voice, in the header: open the Bible tab at the Voice section.
+  const openVoice = () => {
+    props.setHomeTab('bible');
+    window.setTimeout(() => {
+      document
+        .querySelector('[data-testid="cast-voice-section"]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  };
 
   if (!props.hydrated) {
     return <ToolPageSkeleton label="Loading character" />;
@@ -63,45 +81,68 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
         'Looks, stills, clips, the film cut, and the LoRA flywheel for this character.'
       }
     >
-      <CastStatusStrip
-        statusLine={props.castStatus.statusLine}
-        plateHint={props.castStatus.plateHint}
-        plateStatus={props.plateStatus}
-        plateError={props.castStatus.plateError}
+      {/* Who they are, their looks, voice, what's next and where to take them — one header. The
+          facts line and the missing plate are said there (the frame is Add a plate). */}
+      <CastProfileHeader
+        name={character.name}
+        plateUrl={props.lookPlate?.imageUrl ? castPlateThumbUrl(character) : null}
+        facts={props.castStatus.statusLine}
+        looks={props.plateTiles}
+        activeLookId={character.activeLookId}
+        onSelectLook={props.selectPlate}
+        voice={castVoiceLine(character)}
+        onVoice={openVoice}
+        onAddPlate={file => {
+          void props.applyLookPlate({ file });
+        }}
+        busy={props.plateUploading}
+        checklist={
+          props.checklist ? (
+            <CastChecklist
+              compact
+              checklist={props.checklist}
+              onTab={props.setHomeTab}
+              go={props.go}
+            />
+          ) : null
+        }
+        actions={
+          <CharacterHomeActionRow
+            character={character}
+            go={props.go}
+            playCampaignHref={props.playCampaignHref}
+            removeFromCast={props.removeFromCast}
+            continueRoleplay={props.continueRoleplay}
+          />
+        }
       />
-      {props.checklist ? (
-        <CastChecklist checklist={props.checklist} onTab={props.setHomeTab} go={props.go} />
-      ) : null}
+      <CastStatusStrip plateStatus={props.plateStatus} plateError={props.castStatus.plateError} />
       <PlaySoftAdvanceBanner
         key={props.softAdvance?.nonce ?? 'idle'}
         target={props.softAdvance}
         onCancel={props.cancelSoftAdvance}
       />
-      <CharacterHomeActionRow
-        character={character}
-        go={props.go}
-        playCampaignHref={props.playCampaignHref}
-        removeFromCast={props.removeFromCast}
-        continueRoleplay={props.continueRoleplay}
-      />
       {props.continueError ? <FieldError>{props.continueError}</FieldError> : null}
-      <SegmentedControl
-        aria-label="Character sections"
-        value={props.homeTab}
-        onChange={props.setHomeTab}
-        options={[
-          { value: 'overview', label: 'Overview' },
-          { value: 'bible', label: 'Bible' },
-          {
-            value: 'film',
-            label:
-              props.filmEntries.length > 0
-                ? `Film & media · ${props.filmEntries.length}`
-                : 'Film & media',
-          },
-          { value: 'more', label: 'Packs & LoRA' },
-        ]}
-      />
+      {/* Kept in reach under the app header on a long tab. */}
+      <div className="ui-sticky-surface sticky top-16 z-10 w-fit max-w-full rounded-[var(--radius-md)]">
+        <SegmentedControl
+          aria-label="Character sections"
+          value={props.homeTab}
+          onChange={props.setHomeTab}
+          options={[
+            { value: 'overview', label: 'Overview' },
+            { value: 'bible', label: 'Bible' },
+            {
+              value: 'film',
+              label:
+                props.filmEntries.length > 0
+                  ? `Film & media · ${props.filmEntries.length}`
+                  : 'Film & media',
+            },
+            { value: 'more', label: 'Packs & LoRA' },
+          ]}
+        />
+      </div>
       {props.homeTab === 'overview' ? (
         <CharacterLookPlateSection
           characterId={character.id}
@@ -172,19 +213,117 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
       ) : null}
       {props.homeTab === 'bible' ? (
         <>
-          <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
-          <CastMarksSection character={character} onUpdated={props.persistApply} />
-          <CastPlacesSection character={character} onUpdated={props.persistApply} />
-          <CastPropsSection character={character} onUpdated={props.persistApply} />
-          <CastVoiceSection character={character} onUpdated={props.persistApply} />
-          <CastSpeechSection character={character} onUpdated={props.persistApply} />
-          <CastRelationshipsSection character={character} onUpdated={props.persistApply} />
-          <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
-          <CharacterBibleSection character={character} onUpdated={props.persistApply} />
+          {/* Nine sections on one tab: a row to jump to each (2026-11-05). */}
+          <nav
+            aria-label="Bible sections"
+            className="flex flex-wrap gap-1.5"
+            data-testid="cast-bible-jump"
+          >
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-appearance')}
+              data-testid="cast-bible-jump-appearance"
+            >
+              Appearance
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-marks')}
+              data-testid="cast-bible-jump-marks"
+            >
+              Marks
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-places')}
+              data-testid="cast-bible-jump-places"
+            >
+              Places
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-props')}
+              data-testid="cast-bible-jump-props"
+            >
+              Props
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-voice')}
+              data-testid="cast-bible-jump-voice"
+            >
+              Voice
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-speech')}
+              data-testid="cast-bible-jump-speech"
+            >
+              How they talk
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-relationships')}
+              data-testid="cast-bible-jump-relationships"
+            >
+              People
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-persona')}
+              data-testid="cast-bible-jump-persona"
+            >
+              Part
+            </Button>
+            <Button
+              size="sm"
+              variant="chip"
+              onClick={() => jumpTo('cast-bible-bible')}
+              data-testid="cast-bible-jump-bible"
+            >
+              Character bible
+            </Button>
+          </nav>
+          <div id="cast-bible-appearance" className="scroll-mt-32">
+            <CharacterAppearanceSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-marks" className="scroll-mt-32">
+            <CastMarksSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-places" className="scroll-mt-32">
+            <CastPlacesSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-props" className="scroll-mt-32">
+            <CastPropsSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-voice" className="scroll-mt-32">
+            <CastVoiceSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-speech" className="scroll-mt-32">
+            <CastSpeechSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-relationships" className="scroll-mt-32">
+            <CastRelationshipsSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-persona" className="scroll-mt-32">
+            <CharacterPersonaSection character={character} onUpdated={props.persistApply} />
+          </div>
+          <div id="cast-bible-bible" className="scroll-mt-32">
+            <CharacterBibleSection character={character} onUpdated={props.persistApply} />
+          </div>
         </>
       ) : null}
       {props.homeTab === 'film' ? (
         <>
+          <CastFilmsShowcase films={props.filmEntries} />
           <CharacterFilmStudio
             characterId={character.id}
             characterName={character.name}
@@ -247,4 +386,11 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
       ) : null}
     </ToolLayout>
   );
+}
+
+/** "Voice set · Scottish accent", or what there is of it; null with neither. */
+function castVoiceLine(character: CharacterRecord): string | null {
+  const accent = castAccent(character.id);
+  if (character.voice?.sample) return accent ? `Voice set · ${accent} accent` : 'Voice set';
+  return accent ? `${accent} accent · no voice sample yet` : null;
 }

@@ -26,6 +26,8 @@ export type FilmReviewComment = {
   text: string;
   /** Where in the film (seconds), when the reviewer pinned it. */
   timeSec?: number;
+  /** Ticked off by the film's owner in the Cut (review-notes.ts). */
+  resolved?: boolean;
 };
 
 export type FilmReview = {
@@ -141,4 +143,25 @@ export function addFilmReviewComment(
   if (!comment) return 'empty';
   writeKv(SCOPE, `link:${token}`, { ...review, comments: [...review.comments, comment] });
   return comment;
+}
+
+/** The owner ticks a comment off (or back on). False when the link or comment is not theirs. */
+export function setFilmReviewCommentResolved(
+  token: string,
+  commentId: string,
+  ownerId: string | null,
+  resolved: boolean
+): boolean {
+  const review = readFilmReview(token);
+  if (!review || review.ownerId !== ownerId) return false;
+  if (!review.comments.some(comment => comment.id === commentId)) return false;
+  writeKv(SCOPE, `link:${token}`, {
+    ...review,
+    comments: review.comments.map(comment => {
+      if (comment.id !== commentId) return comment;
+      const { resolved: _was, ...rest } = comment;
+      return resolved ? { ...rest, resolved: true } : rest;
+    }),
+  });
+  return true;
 }

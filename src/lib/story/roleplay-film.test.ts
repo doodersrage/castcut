@@ -94,6 +94,23 @@ describe('roleplay-film', () => {
     );
   });
 
+  it('waits for a scene still on the way, so the clip starts from it (not the plate)', () => {
+    for (const stillStatus of ['writing', 'queued', 'running', 'error'] as const) {
+      assert.equal(
+        shouldAutoQueueRoleplayClip({
+          id: 'd',
+          title: 'Dock',
+          blurb: 'Arrives',
+          at: 1,
+          prompt: 'walks onto the pier',
+          stillStatus,
+        }),
+        false,
+        stillStatus
+      );
+    }
+  });
+
   it('treats mp4 and i2v/extend entries as clips', () => {
     assert.equal(looksLikeVideoUrl('http://local/clip.mp4'), true);
     assert.equal(looksLikeVideoUrl('http://local/still.png'), false);

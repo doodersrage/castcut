@@ -12,6 +12,11 @@ type MotionMediaProps = {
   controls?: boolean;
   loop?: boolean;
   muted?: boolean;
+  /**
+   * What the caller knows it is. A Gallery copy (`/api/gallery/media/<id>`) has no extension, so
+   * the url alone read as an image: a Story clip played until it was saved there, then went blank.
+   */
+  kind?: 'video' | 'image';
 };
 
 /** Retries of the preferred element before trying the other one (a reload hiccup, not a bad file). */
@@ -43,9 +48,10 @@ function MotionMedia({
   controls = false,
   loop = true,
   muted = true,
+  kind,
 }: MotionMediaProps) {
   const url = stripGalleryViewWidthParam(src);
-  const preferred = isHtmlVideoViewUrl(url) ? 'video' : 'image';
+  const preferred = kind ?? (isHtmlVideoViewUrl(url) ? 'video' : 'image');
   const other = preferred === 'video' ? 'image' : 'video';
   // Failures for the current url, and how many times "missing" has been retried.
   const [failures, setFailures] = useState<{ url: string; count: number; rounds: number }>({

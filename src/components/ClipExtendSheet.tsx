@@ -17,6 +17,8 @@ import { DAY_H3_PART_SECONDS } from '@/lib/day/clip-length';
 
 export type ClipExtendChoice = {
   direction?: string;
+  /** What the whole clip is about (the Animate sheet's scene): each part is written from it. */
+  scene?: string;
   beats?: string[];
   lines?: string[];
   tones?: string[];

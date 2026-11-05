@@ -5,14 +5,31 @@ clip. Open **Story** (`/story`) — it opens once you've cut your first Day.
 
 ## Play it
 
-1. **Roll four scenes** — four cards, each with a small figure of its pose.
+The story fills the page — the newest scene large, the earlier ones as a strip under it — and
+**What happens next?** stays at the bottom of the screen like a message box: a bar showing
+*Scene 5 of 10* (then the ending), **Roll four scenes**, **Or write what happens next**, **Each
+scene makes Still / Still + clip**, **Story settings**, and once there are scenes **Cut film →**,
+**Download** and **Save poster**.
+
+1. **Roll four scenes** — four cards, each with a small figure of its pose. With today's Day
+   rendered, an empty Story asks **How does it start?**: **Start from today's Day** (its stills
+   become the first scenes) or **Roll four scenes**.
 2. **Pick one**, or write your own under **Or write what happens next**.
-3. The scene's still queues; **Animate** makes the clip.
-4. Repeat. **Cut film →** opens [Cut](guide-film.md) with the Story's shots.
+3. The scene's still queues (with **Still + clip**, its clip too).
+4. Repeat. **Cut film →** opens [Cut](guide-film.md) with the Story's shots — greyed out, it says
+   why (*Needs a scene first*).
+
+Who the story follows sits above it as a chip — **Lio · Yellow raincoat ▾** — opening the Cast, the
+photo, the bible links and **Outfit for stills** in a sheet. In the strip under the scene, a dot
+marks one still rendering and ▶ one with a clip; hover a scene for **Redo** (the still again) and
+**Clip**.
+
+Keys (not while typing): **1–4** pick a beat · **R** rolls new beats · **U** takes back the last
+scene · **← →** step through the scenes.
 
 | Control | What it does |
 | --- | --- |
-| **Story settings** | Tone, rating, setting, notes (and Solo / Duo / Mixed on adult ratings) |
+| **Story settings** | Tone, rating, setting, notes (and Solo / Duo / Mixed on adult ratings); **Write each scene's prompt, don't queue it** to read or edit it first |
 | **Take back the last scene** | Removes only the last scene |
 | **Start the story over** | Clears the reel — keep the bible or write a new one |
 | **Retry N flagged** | Redoes every failed still and every pose or face miss |

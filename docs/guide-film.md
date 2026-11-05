@@ -5,7 +5,8 @@
 picked.
 
 The monitor and the timeline sit together, with one panel beside them — **Shots**, **Options**,
-**Subtitles**, **Continuity** (with how many are flagged) and, when a file is gone, **Missing** —
+**Transcript**, **Subtitles**, **Continuity** (with how many are flagged), **Notes** (review
+comments, with how many are open) and, when a file is gone, **Missing** —
 so watching, arranging and setting up the film happen on one screen (on a narrow screen the panel
 comes under the timeline). **Your films**, **Versions** and **Package** are tabs below.
 
@@ -13,10 +14,12 @@ comes under the timeline). **Your films**, **Versions** and **Package** are tabs
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **What's in it**  | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them. With Scenes or the animatic in, each script's coverage shows under them (_5 planned · 3 made · 1 kept · 1 in the Cut_), linking to the script                                                                                                                                                                                                                                                                                                                                                                             |
 | **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Timeline**      | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option)                                                                                         |
+| **Timeline**      | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Drop pictures from your computer on it to add them to the end of the cut (they go into the Gallery too). Pictures only — a video file can't be brought in this way. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option)                                                                                         |
 | **Shots**         | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim), **Bridge to next** renders a short clip that moves from the end of the shot under the playhead into the next shot — she moves and the place turns into the next one, instead of a cut or a fade (MiniMax-H3, a few minutes; it joins the film when ready, its sound muted). Added shots have **Remove** |
 | **Options**       | **Made for** (a profile), shape, size, length, music, subtitles, titles — kept between visits — and **Before cutting**, the checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Transcript**    | The cut read as text: each shot's words in film order (or _no words_). Click a line to jump there; **Cut** leaves that shot out (Ctrl+Z brings it back). One line is one shot — the words themselves are edited under **Subtitles** |
 | **Subtitles**     | Each shot's subtitle and when it shows, the checks, **Export .srt** / **Import .srt…** (see [Subtitles](#subtitles))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Notes**         | **Your markers** — press **M** at the playhead (or **+ Marker**) to drop one, give it a note, jump to it, remove it; they show amber on the ruler and are kept with the cut. Then what reviewers said on this cut's review links (**Share for review**, below), pinned ones in film order: click the time to jump there, tick a comment once it is dealt with. Pinned comments also show as marks on the timeline's ruler. The times are the film's as it was shared — an edit since moves the shots under them |
 | **Missing**       | Shown when a shot's file is gone: **Relink** it (see [Missing media](#missing-media))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | **Continuity**    | What the checks found on the shots (face, pose, outfit jumps between shots…), each decided **It's fine** or **It's real**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Versions**      | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -83,6 +86,20 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 | I / O         | Trim the clip's in / out point to the playhead                        |
 | F             | Freeze frame — the clip's frame held 2 s after it                     |
 | D             | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
+| M · [ ]       | Drop a marker at the playhead · jump to the marker (or review comment) before / after |
+| Shift+← →     | A second back / on · Home / End: the start / the end                  |
+| + − · \       | Zoom the timeline in / out · fit the cut to it                        |
+| Shift-click   | Pick several shots: Delete (or **Leave them out**) leaves them all out · Escape clears |
+
+Dragging a still's hold edge or a clip's end **snaps** to the playhead, your markers, the music's
+beats and the edges of the shots before it (a line shows where); hold **Alt** to drag freely.
+Moving the pointer over the shots **skims**: the monitor shows that moment and the playhead stays
+put. A clip block shows frames along it, and the clip-sound and narration lanes show their
+waveforms.
+
+Under the monitor: **Safe** shows where Shorts, Reels and TikTok put their own buttons and
+captions (vertical; a feed's bars on square; the title-safe frame on widescreen), **Loop** repeats
+the shot under the playhead, the **speed** plays at 0.5×–2×, and **⛶** goes full screen.
 
 **Make longer…** carries the clip under the playhead on in the same shot (+4, +8 or +15 s); the longer clip takes its place when it has rendered.
 
@@ -142,6 +159,12 @@ when each phrase shows.
 
 The monitor shows the subtitle at the playhead (**CC** hides it), and the encode burns in the
 same cues at the same times.
+
+**Subtitle look** (Options → Text & logo) sets how they are drawn: **Classic** (white on a dark
+band at the bottom), **Bold** (big white words with a black outline), **Pop** (big yellow words
+with an outline) or **Word by word** (a few big words at a time as they are said — the short-video
+look). The outlined looks sit higher, clear of a phone's own buttons on Shorts and Reels. The .srt
+always keeps whole phrases.
 
 **Export .srt** downloads them any time. **Import .srt…** reads a subtitle file, places each
 line on the shot it falls in (a shot with several keeps each as a timed cue), and shows the result

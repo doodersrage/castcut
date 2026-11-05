@@ -1046,7 +1046,8 @@ const INTIMATE_SOLO_NUDE_DEFAULT =
 const SOLO_BRIEF_RE =
   /\b(?:SOLO SUBJECT \(mandatory\)|SOLO ACT:|SOLO TOY LOCK|MOOD:\s*(?:intimate|raunchy)\s+solo)/i;
 const SOLO_BEAT_RE =
-  /\b(?:solo|alone|masturbat\w*|self[- ]pleasur\w*|self[- ]touch\w*|touch(?:es|ing)?\s+herself|finger(?:s|ing)?\s+herself|her\s+own\s+hand|one\s+adult\s+only)\b/i;
+  // "Exactly one person" is the headcount the still / clip prompts write for a one-person scene.
+  /\b(?:solo|alone|masturbat\w*|self[- ]pleasur\w*|self[- ]touch\w*|touch(?:es|ing)?\s+herself|finger(?:s|ing)?\s+herself|her\s+own\s+hand|one\s+adult\s+only|exactly\s+one\s+person)\b/i;
 const DUO_BEAT_RE =
   /\b(?:partner|lover|boyfriend|girlfriend|husband|wife|second\s+adult|two\s+adults|both\s+of\s+them|PARTNERS:|mid-sex|his\s+(?:cock|penis|dick|hips|mouth|tongue|lap))\b/i;
 

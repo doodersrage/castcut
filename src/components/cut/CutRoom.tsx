@@ -16,7 +16,8 @@ import CutMonitor from '@/components/cut/CutMonitor';
 import CutContinuity from '@/components/cut/CutContinuity';
 import { shotStateSummary } from '@/lib/film/shot-state';
 import CutShotPin from '@/components/cut/CutShotPin';
-import CutTimeline from '@/components/cut/CutTimeline';
+import { detectTempoBpmFromUrl } from '@/lib/film/cut-media';
+import CutTimeline, { CUT_TIMELINE_ZOOM_EVENT } from '@/components/cut/CutTimeline';
 import CutGalleryPicker from '@/components/cut/CutGalleryPicker';
 import CutMissingMedia from '@/components/cut/CutMissingMedia';
 import CutEffects from '@/components/cut/CutEffects';
@@ -30,6 +31,18 @@ import { filmShotSubtitle } from '@/lib/media/kind';
 import FilmLoudness from '@/components/cut/FilmLoudness';
 import { CUT_TRACKS, cutTrackGain, type CutTrack } from '@/lib/video/cut-sound';
 import CutVersions from '@/components/cut/CutVersions';
+import { importLocalImagesToGallery } from '@/lib/gallery/local-import';
+import CutMarkers from '@/components/cut/CutMarkers';
+import {
+  addCutMarker,
+  editCutMarker,
+  normalizeCutMarkers,
+  removeCutMarker,
+} from '@/lib/film/cut-markers';
+import CutReviewNotes from '@/components/cut/CutReviewNotes';
+import { normalizeSubtitleStyle, wordChunks } from '@/lib/video/subtitle-style';
+import CutTranscript from '@/components/cut/CutTranscript';
+import { useCutReviewNotes } from '@/hooks/useCutReviewNotes';
 import CutGeneratePanel from '@/components/cut/CutGeneratePanel';
 import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
@@ -59,7 +72,8 @@ import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import { isMobileStudioPath, toMobileStudioHref } from '@/lib/app/mobile-studio';
 
 /** The panel beside the monitor, and the tab below it. */
-type CutPanel = 'shots' | 'options' | 'subtitles' | 'continuity' | 'missing';
+type CutPanel =
+  'shots' | 'options' | 'transcript' | 'subtitles' | 'continuity' | 'notes' | 'missing';
 type CutKeep = 'films' | 'versions' | 'package';
 
 function subscribeHash(onChange: () => void): () => void {
@@ -70,11 +84,46 @@ const readHash = () => window.location.hash;
 
 export default function CutRoom() {
   const vm = useCutRoom();
+  // Review comments on this cut's shared films (Notes tab, timeline marks).
+  const review = useCutReviewNotes(vm.films, vm.previewShots);
   const router = useRouter();
   const [recording, setRecording] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   /** Relink from Gallery (M4 F3): the shot the picker relinks. */
   const [relinkKey, setRelinkKey] = useState<string | null>(null);
+  // Pictures dropped on the timeline from the computer: into the Gallery, then onto the cut.
+  const [dropping, setDropping] = useState(false);
+  const [dropNote, setDropNote] = useState<string | null>(null);
+  const dropFiles = async (files: File[]) => {
+    const pictures = files.filter(file => file.type.startsWith('image/'));
+    const others = files.length - pictures.length;
+    if (!pictures.length) {
+      setDropNote(
+        others
+          ? 'Only pictures can be dropped here — a video file can’t be brought into the cut this way.'
+          : null
+      );
+      return;
+    }
+    setDropNote(`Adding ${pictures.length} picture${pictures.length === 1 ? '' : 's'}…`);
+    const result = await importLocalImagesToGallery(pictures, {
+      ...(vm.filmCastId ? { characterId: vm.filmCastId } : {}),
+    });
+    for (const entry of result.entries) vm.addMedia(entry);
+    setDropNote(
+      [
+        result.entries.length
+          ? `Added ${result.entries.length} to the end of the cut (and the Gallery).`
+          : '',
+        result.errors[0] ?? '',
+        others
+          ? `${others} that ${others === 1 ? 'was not a picture was' : 'were not pictures were'} left out.`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    );
+  };
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const titleCard =
@@ -104,6 +153,29 @@ export default function CutRoom() {
     solo,
   });
   const activeKey = preview.keyAt(preview.time);
+  // The music's beat grid, for snapping an edge on the beat (the tempo "Fit to the music" reads).
+  const bedUrl = vm.options.audioBedUrl.trim();
+  const [beatSec, setBeatSec] = useState<{ url: string; sec: number } | null>(null);
+  useEffect(() => {
+    if (!bedUrl || beatSec?.url === bedUrl) return;
+    let cancelled = false;
+    void detectTempoBpmFromUrl(bedUrl)
+      .then(bpm => {
+        if (!cancelled && bpm) setBeatSec({ url: bedUrl, sec: 60 / bpm });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [bedUrl, beatSec?.url]);
+  /** The shot under the playhead, as a loop range. */
+  const shotRange = (() => {
+    const loaded = preview.loaded;
+    if (!loaded || !activeKey) return null;
+    const index = loaded.keys.indexOf(activeKey);
+    const item = loaded.timeline.items.find(entry => entry.shot === index);
+    return item ? { from: item.startSec, to: item.startSec + item.durSec } : null;
+  })();
   // The subtitle track (M4 F5): each shot on the monitor's timeline, its subtitle and window.
   const subtitleRows = useMemo((): CutSubtitleRow[] => {
     const loaded = preview.loaded;
@@ -184,6 +256,17 @@ export default function CutRoom() {
   // Ctrl+Z / Ctrl+Shift+Z undo / redo, S split, I / O trim in / out at the playhead, J / K / L
   // back a shot / pause / play, , . one frame, D duplicate. Not while typing in a field.
   const { undo, redo, setOptions, options, split, duplicate, freezeFrame } = vm;
+  // Shift- / Ctrl-clicked shots: Delete leaves them all out (Escape clears).
+  const [selected, setSelected] = useState<string[]>([]);
+  // Your markers and the review comments' moments, in film order ([ and ] jump between them).
+  const markTimes = useMemo(
+    () =>
+      [
+        ...normalizeCutMarkers(options.markers).map(marker => marker.timeSec),
+        ...review.notes.flatMap(note => (note.timeSec !== undefined ? [note.timeSec] : [])),
+      ].sort((a, b) => a - b),
+    [options.markers, review.notes]
+  );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -211,6 +294,44 @@ export default function CutRoom() {
         else preview.play();
         return;
       }
+      // Shift+← →: a second; Home / End: the start and the end.
+      if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && event.shiftKey && !mod) {
+        event.preventDefault();
+        preview.seek(preview.time + (event.key === 'ArrowLeft' ? -1 : 1));
+        return;
+      }
+      if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        preview.seek(event.key === 'Home' ? 0 : preview.total);
+        return;
+      }
+      if (event.key === 'Escape' && selected.length) {
+        setSelected([]);
+        return;
+      }
+      // [ ]: the marker (or review comment) before / after the playhead.
+      if ((event.key === '[' || event.key === ']') && !mod) {
+        event.preventDefault();
+        const next =
+          event.key === '['
+            ? [...markTimes].reverse().find(t => t < preview.time - 0.05)
+            : markTimes.find(t => t > preview.time + 0.05);
+        if (next !== undefined) preview.seek(next);
+        return;
+      }
+      // + − zoom the timeline, \ fits the cut to it.
+      if (
+        (event.key === '+' || event.key === '=' || event.key === '-' || event.key === '\\') &&
+        !mod
+      ) {
+        event.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent(CUT_TIMELINE_ZOOM_EVENT, {
+            detail: event.key === '-' ? 'out' : event.key === '\\' ? 'fit' : 'in',
+          })
+        );
+        return;
+      }
       if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && !mod) {
         event.preventDefault();
         const delta = event.key === 'ArrowLeft' ? -1 : 1;
@@ -226,6 +347,14 @@ export default function CutRoom() {
       }
       if (!mod && !event.altKey) {
         const key = event.key.toLowerCase();
+        if (key === 'm') {
+          event.preventDefault();
+          setOptions({
+            ...options,
+            markers: addCutMarker(options.markers, preview.time, crypto.randomUUID().slice(0, 8)),
+          });
+          return;
+        }
         if (key === 's' && splitAt) {
           event.preventDefault();
           split(splitAt.key, splitAt.fileSec);
@@ -279,6 +408,16 @@ export default function CutRoom() {
           return;
         }
       }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selected.length > 1) {
+        event.preventDefault();
+        let shotEdits = options.shotEdits;
+        for (const key of selected) {
+          shotEdits = withCutShotEdit(shotEdits, order, key, { include: false });
+        }
+        setOptions({ ...options, shotEdits });
+        setSelected([]);
+        return;
+      }
       if ((event.key === 'Delete' || event.key === 'Backspace') && activeKey) {
         event.preventDefault();
         const included = options.shotEdits?.shots?.[activeKey]?.include !== false;
@@ -291,6 +430,8 @@ export default function CutRoom() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [
+    markTimes,
+    selected,
     activeKey,
     clipPoint,
     duplicate,
@@ -431,14 +572,23 @@ export default function CutRoom() {
 
   // The editing loop on one screen: the monitor and timeline beside one panel at a time.
   const flagged = vm.continuity.filter(item => item.decision?.decision !== 'dismissed').length;
+  const openNotes =
+    review.notes.filter(note => !note.resolved).length +
+    normalizeCutMarkers(vm.options.markers).length;
   const panels: Array<{ value: CutPanel; label: string; tone?: 'danger'; testId: string }> = [
     { value: 'shots', label: `Shots · ${vm.previewShots.length}`, testId: 'cut-tab-shots' },
     { value: 'options', label: 'Options', testId: 'cut-tab-options' },
+    { value: 'transcript', label: 'Transcript', testId: 'cut-tab-transcript' },
     { value: 'subtitles', label: 'Subtitles', testId: 'cut-tab-subtitles' },
     {
       value: 'continuity',
       label: flagged ? `Continuity · ${flagged}` : 'Continuity',
       testId: 'cut-tab-continuity',
+    },
+    {
+      value: 'notes',
+      label: openNotes ? `Notes · ${openNotes}` : 'Notes',
+      testId: 'cut-tab-notes',
     },
     ...(vm.missingMedia.length > 0
       ? [
@@ -630,12 +780,25 @@ export default function CutRoom() {
                     onPlay={preview.play}
                     onPause={preview.pause}
                     onSeek={preview.seek}
+                    rate={preview.rate}
+                    onRate={preview.setRate}
+                    looping={preview.loop !== null}
+                    onLoop={() => preview.setLoop(preview.loop ? null : shotRange)}
                     onPrev={() => step(-1)}
                     onNext={() => step(1)}
-                    subtitle={
-                      preflightCues.find(cue => preview.time >= cue.from && preview.time < cue.to)
-                        ?.text ?? null
-                    }
+                    subtitle={(() => {
+                      const cue = preflightCues.find(
+                        entry => preview.time >= entry.from && preview.time < entry.to
+                      );
+                      if (!cue) return null;
+                      // Word by word: the few words the film shows at this moment.
+                      return normalizeSubtitleStyle(vm.options.subtitleStyle) === 'words'
+                        ? (wordChunks([cue]).find(
+                            chunk => preview.time >= chunk.from && preview.time < chunk.to
+                          )?.text ?? cue.text)
+                        : cue.text;
+                    })()}
+                    subtitleStyle={normalizeSubtitleStyle(vm.options.subtitleStyle)}
                     extra={
                       <>
                         <Button
@@ -685,7 +848,8 @@ export default function CutRoom() {
                 <ToolSection className="sidebar-scroll xl:absolute xl:inset-0 xl:overflow-y-auto">
                   <div className="mb-3">
                     <SegmentedControl
-                      aria-label="Shots, options, subtitles and continuity"
+                      aria-label="Shots, options, transcript, subtitles, continuity and review notes"
+                      wrap
                       value={panel}
                       onChange={setPanel}
                       options={panels}
@@ -1081,6 +1245,22 @@ export default function CutRoom() {
                       </div>
                     </div>
                   ) : null}
+                  {panel === 'transcript' ? (
+                    <CutTranscript
+                      rows={subtitleRows}
+                      activeKey={activeKey}
+                      disabled={busy}
+                      onSeek={preview.seek}
+                      onLeaveOut={key =>
+                        vm.setOptions({
+                          ...vm.options,
+                          shotEdits: withCutShotEdit(vm.options.shotEdits, order, key, {
+                            include: false,
+                          }),
+                        })
+                      }
+                    />
+                  ) : null}
                   {panel === 'subtitles' ? (
                     <div data-testid="cut-subtitles-section">
                       <CutSubtitles
@@ -1103,6 +1283,45 @@ export default function CutRoom() {
                       />
                     </div>
                   ) : null}
+                  {panel === 'notes' ? (
+                    <div className="space-y-4" data-testid="cut-notes-section">
+                      <CutMarkers
+                        markers={normalizeCutMarkers(vm.options.markers)}
+                        time={preview.time}
+                        disabled={busy}
+                        onAdd={() =>
+                          vm.setOptions({
+                            ...vm.options,
+                            markers: addCutMarker(
+                              vm.options.markers,
+                              preview.time,
+                              crypto.randomUUID().slice(0, 8)
+                            ),
+                          })
+                        }
+                        onSeek={preview.seek}
+                        onNote={(id, note) =>
+                          vm.setOptions({
+                            ...vm.options,
+                            markers: editCutMarker(vm.options.markers, id, note),
+                          })
+                        }
+                        onRemove={id =>
+                          vm.setOptions({
+                            ...vm.options,
+                            markers: removeCutMarker(vm.options.markers, id),
+                          })
+                        }
+                      />
+                      <CutReviewNotes
+                        notes={review.notes}
+                        loading={review.loading}
+                        error={review.error}
+                        onSeek={preview.seek}
+                        onResolve={(note, resolved) => void review.setResolved(note, resolved)}
+                      />
+                    </div>
+                  ) : null}
                   {panel === 'missing' && vm.missingMedia.length > 0 ? (
                     <div data-testid="cut-missing-section">
                       <CutMissingMedia
@@ -1120,65 +1339,165 @@ export default function CutRoom() {
                 </ToolSection>
               </aside>
             </div>
-            <ToolSection data-testid="cut-timeline-section" title="Timeline">
-              <CutTimeline
-                loaded={preview.loaded}
-                order={order}
-                edits={vm.options.shotEdits}
-                time={preview.time}
-                activeKey={activeKey}
-                holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
-                disabled={busy}
-                thumbFor={key => {
-                  const shot = vm.previewShots.find(entry => entry.key === key);
-                  if (!shot) return null;
-                  // A clip shows the still it started from (a video frame may not paint).
-                  return shot.kind === 'clip' && shot.thumbUrl
-                    ? { url: shot.thumbUrl, clip: false }
-                    : { url: shot.url, clip: shot.kind === 'clip' };
-                }}
-                playing={preview.playing}
-                bedUrl={vm.options.audioBedUrl.trim() || undefined}
-                bedLabel={vm.options.audioBedName}
-                sound={vm.options.sound}
-                audible={Object.fromEntries(
-                  CUT_TRACKS.map(track => [
-                    track,
-                    cutTrackGain(vm.options.sound, track, solo) === 1,
-                  ])
-                )}
-                trackHeader={track => (
-                  <CutTrackHeader
-                    track={track}
-                    sound={vm.options.sound}
-                    solo={solo}
-                    disabled={busy}
-                    onMute={vm.setTrackMuted}
-                    onSolo={setSolo}
-                  />
-                )}
-                onSeek={preview.seek}
-                onPick={pick}
-                onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
-              />
-              <div className="mt-1">
-                <CutTracksNote sound={vm.options.sound} />
-              </div>
-              <div className="mt-2">
-                <CutEffects
-                  sound={vm.options.sound}
+            <div
+              className={`rounded-[var(--radius-lg)] ${dropping ? 'ring-2 ring-[var(--accent)]' : ''}`}
+              data-testid="cut-timeline-drop"
+              onDragOver={event => {
+                // Pictures from the computer only — a shot dragged along the timeline stays a move.
+                if (!event.dataTransfer.types.includes('Files')) return;
+                event.preventDefault();
+                setDropping(true);
+              }}
+              onDragLeave={event => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setDropping(false);
+                }
+              }}
+              onDrop={event => {
+                if (!event.dataTransfer.types.includes('Files')) return;
+                event.preventDefault();
+                setDropping(false);
+                void dropFiles([...event.dataTransfer.files]);
+              }}
+            >
+              <ToolSection data-testid="cut-timeline-section" title="Timeline">
+                <CutTimeline
+                  loaded={preview.loaded}
+                  order={order}
+                  edits={vm.options.shotEdits}
                   time={preview.time}
+                  activeKey={activeKey}
+                  holdsLocked={(vm.options.length ?? 'shots') !== 'shots'}
                   disabled={busy}
-                  onChange={vm.setEffect}
+                  thumbFor={key => {
+                    const shot = vm.previewShots.find(entry => entry.key === key);
+                    if (!shot) return null;
+                    // A clip shows the still it started from (a video frame may not paint).
+                    return shot.kind === 'clip' && shot.thumbUrl
+                      ? { url: shot.thumbUrl, clip: false }
+                      : { url: shot.url, clip: shot.kind === 'clip' };
+                  }}
+                  playing={preview.playing}
+                  bedUrl={vm.options.audioBedUrl.trim() || undefined}
+                  bedLabel={vm.options.audioBedName}
+                  sound={vm.options.sound}
+                  audible={Object.fromEntries(
+                    CUT_TRACKS.map(track => [
+                      track,
+                      cutTrackGain(vm.options.sound, track, solo) === 1,
+                    ])
+                  )}
+                  trackHeader={track => (
+                    <CutTrackHeader
+                      track={track}
+                      sound={vm.options.sound}
+                      solo={solo}
+                      disabled={busy}
+                      onMute={vm.setTrackMuted}
+                      onSolo={setSolo}
+                    />
+                  )}
+                  snapTimes={[
+                    preview.time,
+                    ...markTimes,
+                    ...(beatSec && beatSec.url === bedUrl
+                      ? Array.from(
+                          { length: Math.floor(preview.total / beatSec.sec) },
+                          (_, i) => (i + 1) * beatSec.sec
+                        )
+                      : []),
+                  ]}
+                  selected={selected}
+                  onSelect={(key, add) =>
+                    setSelected(list =>
+                      add
+                        ? list.includes(key)
+                          ? list.filter(entry => entry !== key)
+                          : [...(list.length ? list : activeKey ? [activeKey] : []), key]
+                        : []
+                    )
+                  }
+                  onSkim={preview.skim}
+                  markers={[
+                    ...normalizeCutMarkers(vm.options.markers).map(marker => ({
+                      id: `own-${marker.id}`,
+                      timeSec: marker.timeSec,
+                      label: marker.note || 'Your marker',
+                      own: true,
+                    })),
+                    ...review.notes
+                      .filter(note => note.timeSec !== undefined)
+                      .map(note => ({
+                        id: `${note.token}-${note.id}`,
+                        timeSec: note.timeSec!,
+                        label: `${note.name}: ${note.text}`,
+                        ...(note.resolved ? { resolved: true } : {}),
+                      })),
+                  ]}
                   onSeek={preview.seek}
+                  onPick={pick}
+                  onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
                 />
-              </div>
-              <p className="type-caption mt-2 text-[var(--text-muted)]">
-                Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+← →
-                move the shot · S split · I / O trim in / out · F freeze frame · D duplicate ·
-                Delete leave it out · Ctrl+Z undo
-              </p>
-            </ToolSection>
+                {selected.length > 1 ? (
+                  <div
+                    className="mt-1 flex flex-wrap items-center gap-2"
+                    role="status"
+                    data-testid="cut-selection"
+                  >
+                    <span className="type-caption text-[var(--text-secondary)]">
+                      {selected.length} shots picked
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy}
+                      data-testid="cut-selection-leave-out"
+                      onClick={() => {
+                        let shotEdits = vm.options.shotEdits;
+                        for (const key of selected) {
+                          shotEdits = withCutShotEdit(shotEdits, order, key, { include: false });
+                        }
+                        vm.setOptions({ ...vm.options, shotEdits });
+                        setSelected([]);
+                      }}
+                    >
+                      Leave them out
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelected([])}>
+                      Clear
+                    </Button>
+                  </div>
+                ) : null}
+                <div className="mt-1">
+                  <CutTracksNote sound={vm.options.sound} />
+                </div>
+                <div className="mt-2">
+                  <CutEffects
+                    sound={vm.options.sound}
+                    time={preview.time}
+                    disabled={busy}
+                    onChange={vm.setEffect}
+                    onSeek={preview.seek}
+                  />
+                </div>
+                <p className="type-caption mt-2 text-[var(--text-muted)]">
+                  Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+←
+                  → move the shot · S split · I / O trim in / out · F freeze frame · D duplicate ·
+                  Delete leave it out · M marker · [ ] markers · Shift+← → a second · Home / End · +
+                  − {'\\'} zoom · Shift-click to pick several · Alt while dragging an edge: no
+                  snapping · Ctrl+Z undo · drop pictures here to add them
+                </p>
+                {dropNote ? (
+                  <p
+                    className="type-caption mt-1 text-[var(--text-muted)]"
+                    role="status"
+                    data-testid="cut-drop-note"
+                  >
+                    {dropNote}
+                  </p>
+                ) : null}
+              </ToolSection>
+            </div>
           </>
         ) : null}
 

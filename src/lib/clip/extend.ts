@@ -841,8 +841,18 @@ export async function waitForClipExtend(
     const body = (await poll.json().catch(() => ({}))) as { job?: ClipExtendJob; error?: string };
     if (!poll.ok || !body.job) throw new Error(body.error ?? 'Lost track of the extension.');
     options?.onProgress?.(body.job);
-    if (body.job.status === 'completed' && body.job.url) return body.job;
-    if (body.job.status === 'error') throw new Error(body.job.error ?? 'The extension failed.');
+    if (body.job.status === 'completed' && body.job.url) {
+      void import('../app/desktop-notify').then(({ notifyDesktop }) =>
+        notifyDesktop({ title: 'Your longer clip is ready', body: 'Make it 30 s finished.' })
+      );
+      return body.job;
+    }
+    if (body.job.status === 'error') {
+      void import('../app/desktop-notify').then(({ notifyDesktop }) =>
+        notifyDesktop({ title: 'Make it 30 s failed', body: body.job?.error })
+      );
+      throw new Error(body.job.error ?? 'The extension failed.');
+    }
     await new Promise(resolve => setTimeout(resolve, options?.pollMs ?? 4000));
   }
 }

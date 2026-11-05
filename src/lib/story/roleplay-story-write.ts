@@ -7,15 +7,17 @@ import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import type { RoleplayBeatOutput } from '@/lib/story/roleplay-film';
 
 /**
- * How a picked scene (or a story's opening scene) is written: with "Clip" output and queueing on
- * pick, no still is queued — the clip is queued from the scene's text — so the beat is not shown
- * as a still being written.
+ * How a picked scene (or a story's opening scene) is written: its still is written, and queued
+ * when queueing on pick — in "Still + clip" too, whose clip then starts from that still
+ * (shouldAutoQueueRoleplayClip). It used to skip the still and queue the clip from the scene's
+ * text, which for a photo story made the Cast's plate the clip's first frame (user report
+ * 2026-11-05: "just pulls the identity image for the first frame").
  */
 export function roleplaySceneWritePlan(input: {
   beatOutput: RoleplayBeatOutput;
   autoQueue: boolean;
 }): { skipStill: boolean; queueStill: boolean; stillStatus: 'writing' | undefined } {
-  const skipStill = input.beatOutput === 'clip' && input.autoQueue;
+  const skipStill = false;
   return {
     skipStill,
     queueStill: input.autoQueue && !skipStill,

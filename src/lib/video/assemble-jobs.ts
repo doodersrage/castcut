@@ -2,6 +2,7 @@
  * In-memory film assemble jobs with optional disk spill for completed MP4 bytes.
  */
 
+import type { SubtitleStyle } from './subtitle-style';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { normalizeFilmTitleCard, type FilmTitleCard } from './polish';
 import fs from 'node:fs/promises';
@@ -190,6 +191,8 @@ export type StartFilmAssembleInput = {
   /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
   smoothMotion?: boolean;
   sharpen?: boolean;
+  /** How the subtitles look (subtitle-style.ts). */
+  subtitleStyle?: SubtitleStyle;
   /** A logo / watermark over the whole film (cut-overlay.ts). */
   logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
@@ -252,6 +255,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         followFaces: input.followFaces,
         smoothMotion: input.smoothMotion,
         sharpen: input.sharpen,
+        subtitleStyle: input.subtitleStyle,
         logo: input.logo,
         sound: input.sound,
         userId: input.userId,

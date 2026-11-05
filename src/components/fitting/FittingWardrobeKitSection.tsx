@@ -1,7 +1,7 @@
 'use client';
 
 import type { FootwearFieldValue } from '@/components/wardrobe/FootwearField';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton } from '@/components/ui/Field';
 import { CollapsibleSection, ToolSection } from '@/components/ui/ToolPageShell';
@@ -74,6 +74,8 @@ export type FittingWardrobeKitSectionProps = {
   /** Desk fitting room: the picker shown in place (no Choose… row and sheet). */
   inline?: boolean;
   kitPickerTestId?: string;
+  /** Above the kits: clothing-type chips, favourites and recently tried (ClothingPicker). */
+  kitsHeader?: ReactNode;
 };
 
 /**
@@ -126,6 +128,7 @@ export default function FittingWardrobeKitSection({
   compact = false,
   inline = false,
   kitPickerTestId = 'fitting-wardrobe-kit-picker',
+  kitsHeader,
 }: FittingWardrobeKitSectionProps) {
   useWardrobeGarmentThumbManifestGeneration();
   const [open, setOpen] = useState(false);
@@ -189,6 +192,7 @@ export default function FittingWardrobeKitSection({
         selectedKitId={deckSelectionId}
         kitSize={compact ? 'sm' : 'md'}
         kitPickerTestId={kitPickerTestId}
+        kitsHeader={kitsHeader}
         onSelectKit={onSelectKit}
         onSwipeKit={delta => onSwipeKit(delta)}
         onClearKit={onClearKit}

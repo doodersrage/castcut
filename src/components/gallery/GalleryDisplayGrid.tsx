@@ -51,6 +51,8 @@ type GalleryDisplayGridProps = {
   onWinnerRefine?: (entry: ComfyGalleryEntry) => void;
   onWinnerContinue?: (entry: ComfyGalleryEntry) => void;
   layout: GalleryLayoutMode;
+  /** Date headings between days (a date sort). */
+  dayHeadings?: boolean;
   density?: GalleryDensity;
   compact: boolean;
   gridClassName: string;
@@ -94,6 +96,31 @@ function CardsRow({
   );
 }
 
+/** "Today", "Yesterday", or "Tue 3 Nov" (with the year when it isn't this one). */
+function galleryDayOf(entry: ComfyGalleryEntry): { key: string; label: string } | null {
+  const at = entry.completedAt ?? entry.queuedAt;
+  if (!at) return null;
+  const date = new Date(at);
+  const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const same = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  const label = same(date, today)
+    ? 'Today'
+    : same(date, yesterday)
+      ? 'Yesterday'
+      : date.toLocaleDateString(undefined, {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          ...(date.getFullYear() === today.getFullYear() ? {} : { year: 'numeric' }),
+        });
+  return { key, label };
+}
+
 function DisplayRowView({
   row,
   layout,
@@ -125,6 +152,17 @@ function DisplayRowView({
   onWinnerContinue?: (entry: ComfyGalleryEntry) => void;
   renderCard: (entry: ComfyGalleryEntry) => ReactNode;
 }) {
+  if (row.kind === 'day') {
+    // Kept in view while its day scrolls by (sticky works where the rows aren't virtualised).
+    return (
+      <h3
+        className="ui-sticky-surface type-label sticky top-[calc(var(--header-offset,0px)+0.25rem)] z-[5] -mx-1 rounded-[var(--radius-md)] px-2 py-1.5 text-[var(--text-secondary)]"
+        data-testid="gallery-day-heading"
+      >
+        {row.label}
+      </h3>
+    );
+  }
   if (row.kind === 'cards') {
     return (
       <CardsRow
@@ -186,6 +224,9 @@ function DisplayRowView({
 }
 
 function rowKey(row: GalleryDisplayRow, index: number): string {
+  if (row.kind === 'day') {
+    return `day-${row.key}`;
+  }
   if (row.kind === 'lineage') {
     return `lineage-${row.groupId}`;
   }
@@ -206,6 +247,9 @@ function estimateDisplayRowHeight(
   }
   if (row.kind === 'cards') {
     return cardEstimate + gapPx;
+  }
+  if (row.kind === 'day') {
+    return 36 + gapPx;
   }
   // Experiment / lineage blocks are a single virtual row that can span many card rows.
   // Underestimating them makes window virtualization jump and leaves page navigation mid-block.
@@ -304,6 +348,9 @@ function VirtualizedDisplayRows({
       }
       if (row.kind === 'lineage') {
         return `l:${row.groupId}:${row.collapsed ? 1 : 0}:${row.derivatives.length}`;
+      }
+      if (row.kind === 'day') {
+        return `d:${row.key}`;
       }
       return `c:${row.entries.length}`;
     })
@@ -406,6 +453,7 @@ export default function GalleryDisplayGrid({
   onWinnerContinue,
   layout,
   density = 'comfortable',
+  dayHeadings = false,
   compact,
   gridClassName,
   virtualGridClassName,
@@ -446,8 +494,10 @@ export default function GalleryDisplayGrid({
         experimentGroups,
         collapsedExperimentGroups,
         winners: experimentWinners,
+        dayOf: dayHeadings ? galleryDayOf : undefined,
       }),
     [
+      dayHeadings,
       collapsedExperimentGroups,
       collapsedLineageGroups,
       columns,

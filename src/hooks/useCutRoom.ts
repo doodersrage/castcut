@@ -2251,6 +2251,7 @@ export function useCutRoom() {
           stillMotion: cutOptions.stillMotion !== false,
           captions: cutOptions.titles === true,
           subtitles: cutOptions.subtitles !== false,
+          subtitleStyle: cutOptions.subtitleStyle,
           titleCard: cutOptions.titles
             ? {
                 ...(withDay && cast
@@ -2803,5 +2804,7 @@ export function useCutRoom() {
     cutDone,
     films,
     castMedia,
+    /** The Cast whose film this is (pictures dropped on the timeline are theirs). */
+    filmCastId,
   };
 }

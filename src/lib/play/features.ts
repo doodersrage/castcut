@@ -5,6 +5,7 @@
  */
 
 import { openClipRestyle } from '../clip/restyle-open';
+import { openClipBackground } from '../clip/background-open';
 import { openMotionBrush } from '../clip/motion-open';
 import { openClipRemove } from '../clip/remove-open';
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
@@ -209,6 +210,18 @@ registerGalleryClipTool({
   keepKind: 'remove',
   job: 'remove',
   open: openClipRemove,
+});
+
+// Change the background (clip/vace.ts): the people found by SAM 3, the rest redrawn as your words.
+registerGalleryClipTool({
+  id: 'background',
+  label: 'Change the background…',
+  title:
+    'The people kept as they are, the place behind them redrawn as what you say — a beach, a rainy street. Several minutes.',
+  busyText: 'Changing the background…',
+  keepKind: 'background',
+  job: 'background',
+  open: openClipBackground,
 });
 
 // Gallery ⋯ → Make it move → Motion brush…: draw where things go (clip/motion-brush.ts).

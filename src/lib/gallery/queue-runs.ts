@@ -1,5 +1,6 @@
 import type { ExperimentGroup } from '../experiment/groups';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
+import { resolveComfyOutputMediaKind } from '../comfyui/outputs';
 
 const DEFAULT_WINDOW_MS = 45_000;
 const MIN_BATCH = 3;
@@ -152,7 +153,13 @@ export function groupGalleryFilmRuns(
 }
 
 function isClipEntry(entry: ComfyGalleryEntry): boolean {
-  return entry.tool === 'video' || entry.derivedKind === 'i2v' || entry.derivedKind === 't2v';
+  if (entry.tool === 'video' || entry.derivedKind === 'i2v' || entry.derivedKind === 't2v') {
+    return true;
+  }
+  // A Day / Story clip is stamped with its page's tool, not "video": its file says it's a clip
+  // (the run read "10 stills" with two clips in it — 2026-11-05).
+  const output = entry.images?.[0];
+  return output ? resolveComfyOutputMediaKind(output) === 'video' : false;
 }
 
 function filmRunGroup(

@@ -103,6 +103,22 @@ function sampleColourStats(
   }
 }
 
+/** Each of the monitor's media at a playback speed. */
+function setMediaRate(
+  media: {
+    videos: Map<number, HTMLVideoElement>;
+    voices: Map<number, HTMLAudioElement>;
+    bed: HTMLAudioElement | null;
+  },
+  value: number
+) {
+  for (const [, video] of media.videos)
+    if (video.playbackRate !== value) video.playbackRate = value;
+  for (const [, voice] of media.voices)
+    if (voice.playbackRate !== value) voice.playbackRate = value;
+  if (media.bed && media.bed.playbackRate !== value) media.bed.playbackRate = value;
+}
+
 /** A looped track at a volume, playing or paused with the monitor. */
 function syncLoopedAudio(audio: HTMLAudioElement, volume: number, play: boolean) {
   audio.volume = volume;
@@ -192,6 +208,13 @@ export function useCutPreview(input: {
   const [time, setTime] = useState(0);
   const clock = useRef<{ startedAt: number; from: number } | null>(null);
   const timeRef = useRef(0);
+  // Playback speed (0.5×, 1×, 2×) and a loop range (a shot, or between markers) for the monitor.
+  const [rate, setRateState] = useState(1);
+  const rateRef = useRef(1);
+  const loopRef = useRef<{ from: number; to: number } | null>(null);
+  const [loop, setLoopState] = useState<{ from: number; to: number } | null>(null);
+  // Skimming: the frame under the pointer, the playhead kept where it was.
+  const skimRef = useRef<number | null>(null);
   const mediaRef = useRef<Media>({
     images: new Map(),
     videos: new Map(),
@@ -854,6 +877,8 @@ export function useCutPreview(input: {
     [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound, solo]
   );
 
+  /** Every playing medium at the monitor's speed (pitch kept). */
+  const applyRate = useCallback((value: number) => setMediaRate(mediaRef.current, value), []);
   // The clock: draw every frame while playing.
   useEffect(() => {
     if (!loaded || !playing) return;
@@ -861,7 +886,13 @@ export function useCutPreview(input: {
     const tick = () => {
       const started = clock.current;
       if (!started) return;
-      const t = started.from + (performance.now() - started.startedAt) / 1000;
+      let t = started.from + ((performance.now() - started.startedAt) / 1000) * rateRef.current;
+      const range = loopRef.current;
+      if (range && t >= range.to) {
+        t = range.from;
+        clock.current = { startedAt: performance.now(), from: t };
+        syncMedia(t, false);
+      }
       if (t >= loaded.timeline.totalSec) {
         timeRef.current = loaded.timeline.totalSec;
         setTime(loaded.timeline.totalSec);
@@ -874,12 +905,13 @@ export function useCutPreview(input: {
       timeRef.current = t;
       setTime(t);
       syncMedia(t, true);
+      applyRate(rateRef.current);
       draw(t);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [draw, loaded, playing, syncMedia]);
+  }, [applyRate, draw, loaded, playing, syncMedia]);
 
   // The frame under the playhead once (re)built, and when the look changes.
   useEffect(() => {
@@ -892,9 +924,32 @@ export function useCutPreview(input: {
     return undefined;
   }, [draw, loaded, playing]);
 
+  const setRate = useCallback(
+    (value: number) => {
+      const next = Math.max(0.25, Math.min(4, value));
+      // The clock restarts from where it is, at the new speed.
+      if (clock.current) clock.current = { startedAt: performance.now(), from: timeRef.current };
+      rateRef.current = next;
+      setRateState(next);
+      applyRate(next);
+    },
+    [applyRate]
+  );
+  /** Loop between two times (null: no loop). Playing outside it jumps to its start. */
+  const setLoop = useCallback((range: { from: number; to: number } | null) => {
+    const next = range && range.to - range.from > 0.2 ? range : null;
+    loopRef.current = next;
+    setLoopState(next);
+  }, []);
   const play = useCallback(() => {
     if (!loaded) return;
-    const from = timeRef.current >= loaded.timeline.totalSec ? 0 : timeRef.current;
+    const range = loopRef.current;
+    const from =
+      range && (timeRef.current < range.from || timeRef.current >= range.to)
+        ? range.from
+        : timeRef.current >= loaded.timeline.totalSec
+          ? 0
+          : timeRef.current;
     clock.current = { startedAt: performance.now(), from };
     setPlaying(true);
   }, [loaded]);
@@ -914,6 +969,29 @@ export function useCutPreview(input: {
       draw(at);
       // A seeked clip paints once its frame is there.
       window.setTimeout(() => draw(at), 120);
+    },
+    [draw, loaded, syncMedia]
+  );
+  /**
+   * Show the frame at `t` without moving the playhead (skimming over the timeline); null puts the
+   * playhead's frame back. Ignored while playing.
+   */
+  const skim = useCallback(
+    (t: number | null) => {
+      if (!loaded || clock.current) return;
+      if (t == null) {
+        if (skimRef.current == null) return;
+        skimRef.current = null;
+        syncMedia(timeRef.current, false);
+        draw(timeRef.current);
+        window.setTimeout(() => skimRef.current == null && draw(timeRef.current), 120);
+        return;
+      }
+      const at = Math.max(0, Math.min(loaded.timeline.totalSec, t));
+      skimRef.current = at;
+      syncMedia(at, false);
+      draw(at);
+      window.setTimeout(() => skimRef.current === at && draw(at), 120);
     },
     [draw, loaded, syncMedia]
   );
@@ -953,6 +1031,11 @@ export function useCutPreview(input: {
     seek,
     seekToKey,
     keyAt,
+    rate,
+    setRate,
+    loop,
+    setLoop,
+    skim,
   };
 }
 

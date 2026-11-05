@@ -6,6 +6,7 @@ import {
   listFilmReviews,
   REVIEW_DEFAULT_DAYS,
   revokeFilmReview,
+  setFilmReviewCommentResolved,
 } from '@/lib/film/review-store';
 import { readGalleryOriginalFile } from '@/lib/gallery/media-store';
 
@@ -59,6 +60,24 @@ export async function DELETE(request: Request) {
   return revokeFilmReview(token, who) ? apiJson({ ok: true }) : apiError('Link not found.', 404);
 }
 
+/** Tick a comment off in the Cut, or back on: PATCH { token, commentId, resolved }. */
+export async function PATCH(request: Request) {
+  const who = owner(request);
+  if (who instanceof Response) return who;
+  let body: { token?: unknown; commentId?: unknown; resolved?: unknown };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return apiError('Invalid JSON body.', 400);
+  }
+  const token = typeof body.token === 'string' ? body.token.trim() : '';
+  const commentId = typeof body.commentId === 'string' ? body.commentId.trim() : '';
+  if (!token || !commentId) return apiError('token and commentId are required.', 400);
+  return setFilmReviewCommentResolved(token, commentId, who, body.resolved === true)
+    ? apiJson({ ok: true })
+    : apiError('Comment not found.', 404);
+}
+
 export function PUT() {
-  return apiMethodNotAllowed(['GET', 'POST', 'DELETE'], '/api/film/review');
+  return apiMethodNotAllowed(['GET', 'POST', 'DELETE', 'PATCH'], '/api/film/review');
 }

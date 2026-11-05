@@ -84,8 +84,18 @@ export function shouldAutoQueueRoleplayClip(beat: RoleplayStoryBeat): boolean {
   if (beat.stillStatus === 'completed' && beat.imageUrl?.trim()) {
     return true;
   }
-  // Text-only beat: queue T2V once the prompt exists.
-  return Boolean(beat.prompt?.trim()) && !beat.imageUrl?.trim() && beat.stillStatus !== 'writing';
+  // Its still is on the way (or failed and waits for a retry): the clip starts from that still,
+  // not from the text or the plate.
+  if (
+    beat.stillStatus === 'writing' ||
+    beat.stillStatus === 'queued' ||
+    beat.stillStatus === 'running' ||
+    beat.stillStatus === 'error'
+  ) {
+    return false;
+  }
+  // Text-only beat (an older session, no still): queue T2V once the prompt exists.
+  return Boolean(beat.prompt?.trim()) && !beat.imageUrl?.trim();
 }
 
 export {

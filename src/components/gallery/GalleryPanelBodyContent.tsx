@@ -210,6 +210,8 @@ export default function GalleryPanelBodyContent({
         experimentGridHandlers={grid.experimentGridHandlers}
         layout={browse.layout}
         density={browse.density}
+        // Date headings while sorted by date (newest or oldest first).
+        dayHeadings={['queued-desc', 'queued-asc', 'completed-desc'].includes(browse.sort)}
         compact={chrome.compact}
         galleryCardGridClass={grid.galleryCardGridClass}
         galleryVirtualGridClass={grid.galleryVirtualGridClass}

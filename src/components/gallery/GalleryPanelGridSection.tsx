@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import GalleryDisplayGrid from '@/components/gallery/GalleryDisplayGrid';
+import { useGalleryGridKeys } from '@/hooks/gallery/useGalleryGridKeys';
 import GalleryEmptyPanel from '@/components/gallery/GalleryEmptyPanel';
 import GalleryPaginator from '@/components/gallery/GalleryPaginator';
 import type { ComfyGalleryEntry, GalleryLayoutMode } from '@/lib/gallery/comfyui-gallery';
@@ -33,6 +34,7 @@ type GalleryPanelGridSectionProps = {
   };
   layout: GalleryLayoutMode;
   density: GalleryDensity;
+  dayHeadings?: boolean;
   compact: boolean;
   galleryCardGridClass: string;
   galleryVirtualGridClass: string;
@@ -64,6 +66,7 @@ export default function GalleryPanelGridSection({
   experimentGridHandlers,
   layout,
   density,
+  dayHeadings = false,
   compact,
   galleryCardGridClass,
   galleryVirtualGridClass,
@@ -79,6 +82,7 @@ export default function GalleryPanelGridSection({
   derivedKind = null,
   characterId = null,
 }: GalleryPanelGridSectionProps) {
+  useGalleryGridKeys(visibleEntries.length > 0);
   return (
     <>
       {visibleEntries.length === 0 ? (
@@ -108,6 +112,7 @@ export default function GalleryPanelGridSection({
           onWinnerContinue={experimentGridHandlers.onWinnerContinue}
           layout={layout}
           density={density}
+          dayHeadings={dayHeadings}
           compact={compact}
           gridClassName={galleryCardGridClass}
           virtualGridClassName={galleryVirtualGridClass}

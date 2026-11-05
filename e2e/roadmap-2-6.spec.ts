@@ -474,6 +474,13 @@ test('Animate opens a sheet with the engine and an editable direction', async ({
   await expect(sheet.getByTestId('day-animate-length-4')).toHaveAttribute('aria-selected', 'true');
   await expect(sheet.getByTestId('day-animate-length')).toContainText('take longer to render');
   await expect(sheet.getByTestId('day-animate-prompt')).toContainText('8s clip');
+  // Camera (2026-11-05): picked by sight on the still; the move takes the locked camera's place.
+  await expect(sheet.getByTestId('day-animate-camera-still')).toHaveAttribute('aria-checked', 'true');
+  await expect(sheet.getByTestId('day-animate-prompt')).toContainText('locked-off');
+  await sheet.getByTestId('day-animate-camera-orbit').click();
+  await expect(sheet.getByTestId('day-animate-camera-orbit')).toHaveAttribute('aria-checked', 'true');
+  await expect(sheet.getByTestId('day-animate-prompt')).toContainText('circles slowly sideways around');
+  await expect(sheet.getByTestId('day-animate-prompt')).not.toContainText('locked-off');
   await sheet.getByTestId('day-animate-cancel').click();
   await expect(sheet).toHaveCount(0);
 });

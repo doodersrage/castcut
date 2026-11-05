@@ -151,3 +151,41 @@ test('Remove or replace: painted on the first frame, with words and tracking off
   expect(posted).toContain('a vase of flowers');
   expect(posted).toMatch(/name="track"\r\n\r\nfalse/);
 });
+
+// 2026-11-05: Gallery ⋯ → Clip → Change the background… — a place picked, then your own words.
+test('Change the background: a place picked or typed goes up with the clip', async ({ page }) => {
+  await page.route('**/api/comfyui/view**', route =>
+    route.fulfill({ contentType: 'video/webm', body: CLIP })
+  );
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/clip/background', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({ json: { job: job('background', 'running') } });
+  });
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({ json: { job: job('background', 'completed', '/e2e-background.mp4') } })
+  );
+  const panel = await openGallery(page, {
+    id: 'e2e-background-clip',
+    promptId: 'e2e-background-prompt',
+    prompt: 'a woman on the stairs',
+    tool: 'day',
+    comfyUrl: 'http://127.0.0.1:8188',
+    status: 'completed',
+    queuedAt: Date.now(),
+    completedAt: Date.now(),
+    images: [{ filename: 'e2e-background.mp4', subfolder: '', type: 'output', format: 'video/mp4' }],
+  });
+  await panel.locator('summary', { hasText: 'Clip' }).click();
+  await panel.getByTestId('gallery-clip-tool-background').click();
+  const dialog = page.getByTestId('clip-background-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId('clip-background-go')).toBeDisabled();
+  await dialog.getByTestId('clip-background-place-0').click();
+  await expect(dialog.getByTestId('clip-background-words')).toHaveValue(/sunny beach/);
+  await dialog.getByTestId('clip-background-words').fill('a library with tall shelves');
+  await dialog.getByTestId('clip-background-go').click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => posts.length, { timeout: 30_000 }).toBe(1);
+  expect(posts[0]).toMatchObject({ words: 'a library with tall shelves', entryId: 'e2e-background-clip' });
+});

@@ -4664,6 +4664,7 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
     partSeconds?: unknown;
     speakers?: unknown;
     forClip?: unknown;
+    scene?: unknown;
   } | null;
   const targetSec = Number(record?.targetSec);
   const forClip = readText(record?.forClip, 160);
@@ -4684,6 +4685,7 @@ function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogu
       ...(tones.some(Boolean) ? { tones } : {}),
       ...(beats.some(Boolean) ? { beats } : {}),
       ...(partSeconds.some(Boolean) ? { partSeconds } : {}),
+      ...(readText(record.scene, 300) ? { scene: readText(record.scene, 300) } : {}),
       ...(normalizeDaySpeakers(record.speakers, lines.length)
         ? { speakers: normalizeDaySpeakers(record.speakers, lines.length) }
         : {}),

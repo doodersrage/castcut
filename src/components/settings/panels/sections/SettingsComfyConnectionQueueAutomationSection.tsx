@@ -160,7 +160,7 @@ export function SettingsComfyConnectionQueueAutomationSection({
           onChange={event => updateSettings({ notifyOnComplete: event.target.checked })}
           className="h-4 w-4 rounded border-[var(--border-default)] bg-[var(--bg-muted)] accent-[var(--accent)]"
         />
-        Notify when ComfyUI jobs complete
+        Notify when ComfyUI jobs complete (renders, clip tools, Make it 30 s)
         {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
           <button
             type="button"

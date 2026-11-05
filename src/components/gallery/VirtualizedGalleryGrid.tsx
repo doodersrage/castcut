@@ -30,8 +30,9 @@ export function galleryGridColumnCount(
     if (width >= 640) return 3;
     return 2;
   }
-  if (width >= 1024) return 4;
-  if (width >= 640) return 3;
+  // Large: fewer, bigger pictures (it was Medium's 4 columns with wider gaps).
+  if (width >= 1024) return 3;
+  if (width >= 640) return 2;
   return 1;
 }
 

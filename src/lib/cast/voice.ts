@@ -5,6 +5,7 @@
  */
 
 import { getCharacter, upsertCharacter, type CastVoice } from '../character/os';
+import { normalizeCastAccent } from './speech';
 
 /** ID-LoRA was trained on ~5 s references; longer or shorter ones transfer worse. */
 export const CAST_VOICE_SAMPLE_SEC = 5;
@@ -269,12 +270,17 @@ export function castVoiceAuditionPrompt(input: {
   name: string;
   lead: 'woman' | 'man';
   index: number;
+  /** One of CAST_ACCENTS (cast/speech.ts). */
+  accent?: string;
 }): string {
   const voices = CAST_VOICE_AUDITIONS[input.lead];
-  const voice = voices[input.index % voices.length]!;
+  const accent = normalizeCastAccent(input.accent);
+  const spoken = accent
+    ? `${voices[input.index % voices.length]!}, with ${/^[AEIOU]/.test(accent) ? 'an' : 'a'} ${accent} accent`
+    : voices[input.index % voices.length]!;
   const subject = input.lead === 'man' ? 'The man' : 'The woman';
   const name = input.name.replace(/["“”]/g, '').trim() || (input.lead === 'man' ? 'Sam' : 'Nora');
-  return `${subject} looks into the camera, smiles and says clearly in ${voice}, "Hi, I'm ${name}. This is what I sound like." Quiet room, head and shoulders, natural light.`;
+  return `${subject} looks into the camera, smiles and says clearly in ${spoken}, "Hi, I'm ${name}. This is what I sound like." Quiet room, head and shoulders, natural light.`;
 }
 
 /** Ask the server to render one audition (≈45 s on LTX-2.5). Rejects with its message. */
@@ -283,6 +289,7 @@ export async function requestCastVoiceAudition(input: {
   name: string;
   lead: 'woman' | 'man';
   index: number;
+  accent?: string;
 }): Promise<string> {
   const response = await fetch('/api/cast-voice/audition', {
     method: 'POST',

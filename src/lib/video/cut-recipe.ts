@@ -34,6 +34,8 @@ export type CutRecipe = {
   /** Clips under 25 fps get RIFE in-between frames; a light sharpen over the picture. */
   smoothMotion?: boolean;
   sharpen?: boolean;
+  /** How the subtitles looked (subtitle-style.ts). */
+  subtitleStyle?: import('./subtitle-style').SubtitleStyle;
   /** A logo / watermark over the whole film (cut-overlay.ts). */
   logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */

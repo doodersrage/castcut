@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { normalizeSubtitleStyle } from '@/lib/video/subtitle-style';
 import { NextResponse } from 'next/server';
 import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
       followFaces: body.followFaces !== false,
       smoothMotion: body.smoothMotion === true,
       sharpen: body.sharpen === true,
+      subtitleStyle: normalizeSubtitleStyle(body.subtitleStyle),
       logo:
         body.logo &&
         typeof body.logo === 'object' &&

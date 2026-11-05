@@ -5,12 +5,12 @@ import ActionMenu, {
   ACTION_MENU_ITEM_CLASS,
 } from '@/components/ui/ActionMenu';
 import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/ViewState';
 import { CastImportButton } from '@/components/cast/CastTransferControls';
-import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
+import { ToolLayout } from '@/components/ui/ToolPageShell';
 import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
 import {
   applyCharacterRecord,
@@ -38,6 +38,24 @@ import {
   roleplaySessionsForCharacterSync,
 } from '@/lib/story/roleplay-library';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { TextInput } from '@/components/ui/Field';
+import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
+import {
+  COMFYUI_GALLERY_UPDATED_EVENT,
+  getGalleryCache,
+  initGalleryStore,
+} from '@/lib/gallery/comfyui-gallery';
+
+const EMPTY_GALLERY: ReturnType<typeof getGalleryCache> = [];
+
+function subscribeGallery(onChange: () => void): () => void {
+  window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onChange);
+  window.addEventListener(BROWSER_STORAGE_HEALTH_EVENT, onChange);
+  return () => {
+    window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, onChange);
+    window.removeEventListener(BROWSER_STORAGE_HEALTH_EVENT, onChange);
+  };
+}
 
 function applyCharacter(character: CharacterRecord) {
   saveSharedSettings({
@@ -80,6 +98,39 @@ export default function CharacterCastRoster() {
   }, []);
 
   const filmLead = rosterFilmLead(characters, activeCharacterId);
+
+  // Each Cast's films (a badge on the card) — from the Gallery, read once it's loaded.
+  const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
+  useEffect(() => {
+    void initGalleryStore();
+  }, []);
+  const filmCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entry of gallery) {
+      if (entry.derivedKind === 'film' && entry.status === 'completed' && entry.characterId) {
+        counts.set(entry.characterId, (counts.get(entry.characterId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [gallery]);
+
+  // Search and sort once the roster is more than a glance.
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'recent' | 'name'>('recent');
+  const searchable = characters.length > 4;
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const matching = needle
+      ? characters.filter(character =>
+          [character.name, character.descriptor].some(text => text?.toLowerCase().includes(needle))
+        )
+      : [...characters];
+    return matching.sort((a, b) =>
+      sort === 'name'
+        ? (a.name ?? '').localeCompare(b.name ?? '')
+        : (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+    );
+  }, [characters, query, sort]);
 
   const forgetCharacter = async (id: string) => {
     const character = characters.find(entry => entry.id === id);
@@ -160,20 +211,21 @@ export default function CharacterCastRoster() {
       width="full"
       title="Characters"
       description="Everyone you make films with."
-    >
-      {characters.length > 0 ? (
-        <ToolSection title="Film loop" description="Start a film, or add someone new.">
-          <div className="flex flex-wrap gap-2">
-            {filmLead ? (
-              <Button
-                size="sm"
-                variant="primary"
-                data-testid="cast-roster-start-film"
-                onClick={() => applyAndStartFilm(filmLead.id)}
-              >
-                {`Start a film with ${filmLead.name?.trim() || 'this character'}`}
-              </Button>
-            ) : null}
+      // The page's own actions in its header (they were a "Film loop" card and a "Cast files"
+      // section of their own — 2026-11-05).
+      headerActions={
+        <div className="flex flex-wrap items-center gap-2">
+          {filmLead ? (
+            <Button
+              size="sm"
+              variant="primary"
+              data-testid="cast-roster-start-film"
+              onClick={() => applyAndStartFilm(filmLead.id)}
+            >
+              {`Start a film with ${filmLead.name?.trim() || 'this character'}`}
+            </Button>
+          ) : null}
+          {characters.length > 0 ? (
             <Button
               size="sm"
               variant="secondary"
@@ -182,9 +234,11 @@ export default function CharacterCastRoster() {
             >
               New character
             </Button>
-          </div>
-        </ToolSection>
-      ) : null}
+          ) : null}
+          <CastImportButton />
+        </div>
+      }
+    >
       {characters.length === 0 ? (
         <EmptyState
           icon="catalog"
@@ -193,15 +247,39 @@ export default function CharacterCastRoster() {
           action={{ label: 'Create a Cast lead', href: '/play?new=1' }}
         />
       ) : (
-        <ToolSection title="Roster" description={`${characters.length} saved`}>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {characters.map(character => {
+        <section className="space-y-3" data-testid="cast-roster" aria-label="Roster">
+          {searchable ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <TextInput
+                type="search"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+                placeholder={`Search ${characters.length} characters`}
+                aria-label="Search characters"
+                className="max-w-xs"
+                data-testid="cast-roster-search"
+              />
+              <select
+                className="ui-select h-9 w-auto"
+                value={sort}
+                aria-label="Sort characters"
+                data-testid="cast-roster-sort"
+                onChange={event => setSort(event.target.value === 'name' ? 'name' : 'recent')}
+              >
+                <option value="recent">Recently changed</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
+          ) : null}
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {shown.map(character => {
               const looks = looksOf(character);
               const trigger = loraTriggerFromCharacter(character);
               const detailsOpen = detailsId === character.id;
               const plateUrl = missingPlates.has(character.id)
                 ? undefined
                 : castPlateThumbUrl(character);
+              const films = filmCounts.get(character.id) ?? 0;
               const readiness = castRosterReadinessLine({
                 lookCount: looks.length,
                 hasPlate: Boolean(plateUrl),
@@ -209,11 +287,21 @@ export default function CharacterCastRoster() {
                 loraCount: character.loraLibraryIds?.length ?? 0,
               });
               return (
-                <li key={character.id} className="ui-card space-y-3 p-[var(--card-padding)]">
-                  <div className="flex gap-3">
+                <li
+                  key={character.id}
+                  className="ui-card flex min-w-0 flex-col overflow-hidden"
+                  data-testid={`cast-roster-card-${character.id}`}
+                >
+                  {/* The plate fills the card; a click opens their page. */}
+                  <Button
+                    variant="plain"
+                    aria-label={`Open ${character.name}`}
+                    className="relative block aspect-[3/4] w-full overflow-hidden bg-[var(--bg-muted)]"
+                    onClick={() => applyAndOpenHome(character.id)}
+                  >
                     {plateUrl ? (
-                      <div
-                        className="h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40"
+                      <span
+                        className="block h-full w-full"
                         data-testid={`cast-roster-plate-${character.id}`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- cast identity plate preview */}
@@ -225,37 +313,55 @@ export default function CharacterCastRoster() {
                             setMissingPlates(previous => new Set(previous).add(character.id))
                           }
                         />
-                      </div>
+                      </span>
                     ) : (
-                      <div
-                        className="flex h-20 w-16 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-1 text-center"
+                      <span
+                        className="flex h-full w-full flex-col items-center justify-center gap-1 border-b border-dashed border-[var(--border-subtle)] text-center"
                         data-testid={`cast-roster-no-plate-${character.id}`}
                       >
+                        <span className="text-3xl font-semibold text-[var(--text-muted)]">
+                          {(character.name?.trim() || '?').slice(0, 1).toUpperCase()}
+                        </span>
                         <span className="type-caption text-[var(--tint-warning-text,var(--text-muted))]">
                           No plate
                         </span>
-                      </div>
+                      </span>
                     )}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="type-heading">{character.name}</p>
-                      <p
-                        className={
-                          readiness.noPlate
-                            ? 'type-caption text-[var(--tint-warning-text,var(--text-muted))]'
-                            : 'type-caption text-[var(--text-muted)]'
-                        }
-                        data-testid={`cast-roster-readiness-${character.id}`}
+                    {films ? (
+                      <span
+                        className="absolute bottom-1.5 left-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[11px] text-white"
+                        data-testid={`cast-roster-films-${character.id}`}
                       >
-                        {readiness.line}
+                        ▶ {films} {films === 1 ? 'film' : 'films'}
+                      </span>
+                    ) : null}
+                    {character.id === activeCharacterId ? (
+                      <span className="absolute right-1.5 top-1.5 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[11px] font-medium text-white">
+                        On Film
+                      </span>
+                    ) : null}
+                  </Button>
+                  <div className="min-w-0 flex-1 space-y-0.5 px-3 pt-2">
+                    <p className="type-heading truncate">{character.name}</p>
+                    <p
+                      className={
+                        readiness.noPlate
+                          ? 'type-caption truncate text-[var(--tint-warning-text,var(--text-muted))]'
+                          : 'type-caption truncate text-[var(--text-muted)]'
+                      }
+                      data-testid={`cast-roster-readiness-${character.id}`}
+                    >
+                      {readiness.line}
+                    </p>
+                    {character.descriptor && !detailsOpen ? (
+                      <p className="type-caption line-clamp-1" title={character.descriptor}>
+                        {character.descriptor}
                       </p>
-                      {character.descriptor && !detailsOpen ? (
-                        <p className="type-caption line-clamp-2">{character.descriptor}</p>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
                   {detailsOpen ? (
                     <div
-                      className="space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-2"
+                      className="mx-3 mt-2 space-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-muted)]/40 px-3 py-2"
                       data-testid={`cast-roster-details-${character.id}`}
                     >
                       {character.descriptor ? (
@@ -300,7 +406,7 @@ export default function CharacterCastRoster() {
                       ) : null}
                     </div>
                   ) : null}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 p-3 pt-2">
                     <Button
                       size="sm"
                       variant="primary"
@@ -370,15 +476,30 @@ export default function CharacterCastRoster() {
                 </li>
               );
             })}
+            <li>
+              <Button
+                variant="plain"
+                className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--accent-border)] hover:text-[var(--text-primary)]"
+                data-testid="cast-roster-new-card"
+                onClick={startNewCharacter}
+              >
+                <span aria-hidden className="text-3xl">
+                  +
+                </span>
+                <span className="type-label">New character</span>
+              </Button>
+            </li>
           </ul>
-        </ToolSection>
+          {shown.length === 0 ? (
+            <p className="type-caption text-[var(--text-muted)]">No one matches “{query}”.</p>
+          ) : null}
+          <p className="type-caption text-[var(--text-muted)]">
+            Import moves a character from another install, or brings back a backup (Export is on
+            each character&apos;s page) — picture, looks, bible, story and Day plan; stills stay in
+            the gallery they were made in.
+          </p>
+        </section>
       )}
-      <ToolSection
-        title="Cast files"
-        description="Move a character to another install, or keep a backup: Export on a character's page, Import here. Its picture, looks, bible, story and Day plan come along; stills stay in the gallery they were made in."
-      >
-        <CastImportButton />
-      </ToolSection>
     </ToolLayout>
   );
 }

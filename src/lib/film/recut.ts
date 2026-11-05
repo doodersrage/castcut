@@ -66,6 +66,7 @@ export async function recutFilm(input: {
     followFaces: recipe.followFaces,
     smoothMotion: recipe.smoothMotion,
     sharpen: recipe.sharpen,
+    subtitleStyle: recipe.subtitleStyle,
     logo: recipe.logo,
     sound: recipe.sound,
     onProgress: progress => input.onProgress?.(progress.label),

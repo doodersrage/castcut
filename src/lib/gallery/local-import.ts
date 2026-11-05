@@ -59,10 +59,16 @@ export function galleryUploadPromptLooksGeneric(entry: {
   return !prompt.includes(',') && prompt.split(/\s+/).length <= 8 && prompt.length <= 80;
 }
 
-export async function importLocalImagesToGallery(files: File[]): Promise<{
+export async function importLocalImagesToGallery(
+  files: File[],
+  /** Whose pictures they are (a drop on the Cut's timeline: its Cast's). */
+  options: { characterId?: string } = {}
+): Promise<{
   imported: number;
   failed: number;
   errors: string[];
+  /** The new Gallery entries, in the order the files came. */
+  entries: NonNullable<ReturnType<typeof addComfyGalleryEntry>>[];
 }> {
   const picked = files.slice(0, MAX_GALLERY_UPLOAD_FILES);
   let imported = 0;
@@ -104,6 +110,7 @@ export async function importLocalImagesToGallery(files: File[]): Promise<{
             durableOriginalPath: persisted.originalPath,
             sourceImageUrl: persisted.originalUrl,
             userTags: ['upload'],
+            ...(options.characterId ? { characterId: options.characterId } : {}),
           })
         );
         imported += 1;
@@ -140,6 +147,7 @@ export async function importLocalImagesToGallery(files: File[]): Promise<{
           ],
           sourceImageUrl,
           userTags: ['upload'],
+          ...(options.characterId ? { characterId: options.characterId } : {}),
         })
       );
       imported += 1;
@@ -161,7 +169,12 @@ export async function importLocalImagesToGallery(files: File[]): Promise<{
     });
   }
 
-  return { imported, failed, errors };
+  return {
+    imported,
+    failed,
+    errors,
+    entries: created.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry)),
+  };
 }
 
 async function promptFromUploadFile(file: File): Promise<string> {

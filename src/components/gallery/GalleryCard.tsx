@@ -269,7 +269,7 @@ export default function GalleryCard({
     describeQueueJob(entry, null).label,
     entry.model ? engineFamilyLabel(entry.model) : undefined,
     entry.parentGalleryEntryId ? undefined : derivedLabel,
-    renderDurationLabel ? `render ${renderDurationLabel}` : undefined,
+    // Render time is for tuning a run, not browsing ("render 0ms" on imports): it's in Details.
   ]
     .filter(Boolean)
     .join(' · ');
@@ -376,6 +376,7 @@ export default function GalleryCard({
       promptExpanded={promptExpanded}
       setPromptExpanded={setPromptExpanded}
       metaLine={metaLine}
+      renderLabel={renderDurationLabel ? `render ${renderDurationLabel}` : undefined}
       derivedLabel={derivedLabel}
       primaryMediaKind={primaryMediaKind}
       stripMediaKinds={stripMediaKinds}

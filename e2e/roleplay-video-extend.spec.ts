@@ -27,7 +27,8 @@ test('roleplay still/clip toggle is visible', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Still', exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  const clip = page.getByRole('button', { name: 'Clip', exact: true });
+  // One choice: a still per scene, or a still and its clip.
+  const clip = page.getByRole('button', { name: 'Still + clip', exact: true });
   await expect(clip).toBeVisible();
   await expect(async () => {
     await clip.click();

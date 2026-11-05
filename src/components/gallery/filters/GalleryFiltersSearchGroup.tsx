@@ -8,6 +8,11 @@ import { FilterChip } from '@/components/gallery/GalleryFilterChip';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 type Props = {
+  /**
+   * `search`: the search box (and the phone toggle) for the bar; `more`: match, status and
+   * group, for the Filters panel (2026-11-05). Both when omitted.
+   */
+  part?: 'search' | 'more';
   /** Phones: hide everything but Search (the Filters toggle opens it). */
   collapsedOnPhone?: boolean;
   /** Phones: the Filters toggle, shown right under Search. */
@@ -39,140 +44,154 @@ export function GalleryFiltersSearchGroup({
   onDeleteCustomGroup,
   collapsedOnPhone = false,
   phoneToggle,
+  part,
 }: Props) {
   const phoneHidden = collapsedOnPhone ? ' max-md:hidden' : '';
+  const showSearch = part !== 'more';
+  const showMore = part !== 'search';
   return (
     <>
-      <label className="min-w-[min(100%,20rem)] flex-1 space-y-1.5">
-        <span className="type-caption text-[var(--text-muted)]">Search</span>
-        <input
-          type="search"
-          value={queryDraft}
-          onChange={event => setQueryDraft(event.target.value)}
-          placeholder={
-            lean
-              ? 'Search prompts, tool, or model…'
-              : 'Prompt, tool, model, prompt id, vision tags…'
-          }
-          className="ui-input block w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
-        />
-      </label>
-      {phoneToggle}
+      {showSearch ? (
+        <label className="min-w-[min(100%,16rem)] flex-1 space-y-1.5">
+          <span className={part === 'search' ? 'sr-only' : 'type-caption text-[var(--text-muted)]'}>
+            Search
+          </span>
+          <input
+            type="search"
+            value={queryDraft}
+            onChange={event => setQueryDraft(event.target.value)}
+            placeholder={
+              part === 'search'
+                ? 'Search prompts, tags, models…'
+                : lean
+                  ? 'Search prompts, tool, or model…'
+                  : 'Prompt, tool, model, prompt id, vision tags…'
+            }
+            className="ui-input block w-full px-(--input-padding-x) py-(--input-padding-y) type-body"
+          />
+        </label>
+      ) : null}
+      {showSearch ? phoneToggle : null}
+      {showMore ? (
+        <>
+          {!lean ? (
+            <div className={`flex min-w-[8rem] flex-col gap-1.5${phoneHidden}`}>
+              <span className="type-caption text-[var(--text-muted)]">Match</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <FilterChip
+                  active={Boolean(filter.semanticSearch)}
+                  label={
+                    embeddingSearchLoading
+                      ? 'Semantic…'
+                      : embeddingSearchActive
+                        ? 'Semantic ✓'
+                        : 'Semantic'
+                  }
+                  testId="gallery-filter-semantic-inline"
+                  onClick={() =>
+                    setFilter({
+                      ...filter,
+                      semanticSearch: filter.semanticSearch ? undefined : true,
+                    })
+                  }
+                />
+                {filter.semanticSearch && embeddingSearchUnavailable ? (
+                  <span className="type-caption text-[var(--tint-warning-text)]">
+                    text fallback
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
-      {!lean ? (
-        <div className={`flex min-w-[8rem] flex-col gap-1.5${phoneHidden}`}>
-          <span className="type-caption text-[var(--text-muted)]">Match</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterChip
-              active={Boolean(filter.semanticSearch)}
-              label={
-                embeddingSearchLoading
-                  ? 'Semantic…'
-                  : embeddingSearchActive
-                    ? 'Semantic ✓'
-                    : 'Semantic'
-              }
-              testId="gallery-filter-semantic-inline"
-              onClick={() =>
+          <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
+            <span className="type-caption text-[var(--text-muted)]">Status</span>
+            <select
+              value={filter.status ?? 'all'}
+              onChange={event =>
                 setFilter({
                   ...filter,
-                  semanticSearch: filter.semanticSearch ? undefined : true,
+                  status: event.target.value as ComfyGalleryJobStatus | 'all',
                 })
               }
-            />
-            {filter.semanticSearch && embeddingSearchUnavailable ? (
-              <span className="type-caption text-[var(--tint-warning-text)]">text fallback</span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
-        <span className="type-caption text-[var(--text-muted)]">Status</span>
-        <select
-          value={filter.status ?? 'all'}
-          onChange={event =>
-            setFilter({
-              ...filter,
-              status: event.target.value as ComfyGalleryJobStatus | 'all',
-            })
-          }
-          className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
-        >
-          <option value="all">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="running">Running</option>
-          <option value="completed">Completed</option>
-          <option value="error">Error</option>
-        </select>
-      </label>
-
-      <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
-        <span className="type-caption text-[var(--text-muted)]">Gallery group</span>
-        <select
-          value={filter.customGroup ?? ''}
-          onChange={event =>
-            setFilter({
-              ...filter,
-              customGroup: event.target.value || undefined,
-            })
-          }
-          data-testid="gallery-filter-custom-group"
-          className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
-        >
-          <option value="">All groups</option>
-          <option value={GALLERY_UNGROUPED_FILTER}>Ungrouped</option>
-          {customGroups.map(group => (
-            <option key={group} value={group}>
-              {group}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {filter.customGroup &&
-      filter.customGroup !== GALLERY_UNGROUPED_FILTER &&
-      (onRenameCustomGroup || onDeleteCustomGroup) ? (
-        <div className={`flex flex-wrap items-end gap-2 pb-0.5${phoneHidden}`}>
-          {onRenameCustomGroup ? (
-            <button
-              type="button"
-              data-testid="gallery-group-rename"
-              className="ui-btn-ghost ui-btn-sm text-2xs"
-              onClick={() => {
-                const next = window.prompt('Rename group', filter.customGroup);
-                if (next?.trim() && next.trim() !== filter.customGroup) {
-                  onRenameCustomGroup(filter.customGroup!, next.trim());
-                  setFilter(previous => ({ ...previous, customGroup: next.trim() }));
-                }
-              }}
+              className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
             >
-              Rename
-            </button>
-          ) : null}
-          {onDeleteCustomGroup ? (
-            <button
-              type="button"
-              data-testid="gallery-group-delete"
-              className="ui-btn-ghost ui-btn-sm text-2xs text-[var(--tint-danger-text)]"
-              onClick={async () => {
-                if (
-                  await confirmAction({
-                    title: `Delete the group “${filter.customGroup}”?`,
-                    body: 'The label comes off every gallery item. The stills and clips stay.',
-                    confirmLabel: 'Delete group',
-                    tone: 'danger',
-                  })
-                ) {
-                  onDeleteCustomGroup(filter.customGroup!);
-                  setFilter(previous => ({ ...previous, customGroup: undefined }));
-                }
-              }}
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="running">Running</option>
+              <option value="completed">Completed</option>
+              <option value="error">Error</option>
+            </select>
+          </label>
+
+          <label className={`min-w-[8rem] space-y-1.5${phoneHidden}`}>
+            <span className="type-caption text-[var(--text-muted)]">Gallery group</span>
+            <select
+              value={filter.customGroup ?? ''}
+              onChange={event =>
+                setFilter({
+                  ...filter,
+                  customGroup: event.target.value || undefined,
+                })
+              }
+              data-testid="gallery-filter-custom-group"
+              className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
             >
-              Delete group
-            </button>
+              <option value="">All groups</option>
+              <option value={GALLERY_UNGROUPED_FILTER}>Ungrouped</option>
+              {customGroups.map(group => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {filter.customGroup &&
+          filter.customGroup !== GALLERY_UNGROUPED_FILTER &&
+          (onRenameCustomGroup || onDeleteCustomGroup) ? (
+            <div className={`flex flex-wrap items-end gap-2 pb-0.5${phoneHidden}`}>
+              {onRenameCustomGroup ? (
+                <button
+                  type="button"
+                  data-testid="gallery-group-rename"
+                  className="ui-btn-ghost ui-btn-sm text-2xs"
+                  onClick={() => {
+                    const next = window.prompt('Rename group', filter.customGroup);
+                    if (next?.trim() && next.trim() !== filter.customGroup) {
+                      onRenameCustomGroup(filter.customGroup!, next.trim());
+                      setFilter(previous => ({ ...previous, customGroup: next.trim() }));
+                    }
+                  }}
+                >
+                  Rename
+                </button>
+              ) : null}
+              {onDeleteCustomGroup ? (
+                <button
+                  type="button"
+                  data-testid="gallery-group-delete"
+                  className="ui-btn-ghost ui-btn-sm text-2xs text-[var(--tint-danger-text)]"
+                  onClick={async () => {
+                    if (
+                      await confirmAction({
+                        title: `Delete the group “${filter.customGroup}”?`,
+                        body: 'The label comes off every gallery item. The stills and clips stay.',
+                        confirmLabel: 'Delete group',
+                        tone: 'danger',
+                      })
+                    ) {
+                      onDeleteCustomGroup(filter.customGroup!);
+                      setFilter(previous => ({ ...previous, customGroup: undefined }));
+                    }
+                  }}
+                >
+                  Delete group
+                </button>
+              ) : null}
+            </div>
           ) : null}
-        </div>
+        </>
       ) : null}
     </>
   );

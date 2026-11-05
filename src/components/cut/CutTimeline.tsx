@@ -25,6 +25,8 @@ import {
   type CutShotEdits,
 } from '@/lib/film/cut-plan';
 import { Button } from '@/components/ui/Button';
+import { clipFrames } from '@/lib/video/filmstrip-client';
+import { nearestSnap } from '@/lib/film/cut-markers';
 
 type Drag =
   | { kind: 'hold'; key: string; startX: number; base: number; value: number }
@@ -51,6 +53,55 @@ type Drag =
 
 const round = (value: number) => Math.round(value * 10) / 10;
 
+/** Window event the Cut's keys send to zoom the timeline: 'in', 'out' or 'fit'. */
+export const CUT_TIMELINE_ZOOM_EVENT = 'castcut-cut-timeline-zoom';
+
+/** How close (px) an edge comes to the playhead, a marker, a beat or a shot's edge to snap. */
+const SNAP_PX = 8;
+
+/** Frames along a clip block (filmstrip-client.ts), drawn once read; the block's own picture until then. */
+function ClipFilmstrip({
+  url,
+  fromSec,
+  toSec,
+  count,
+}: {
+  url: string;
+  fromSec: number;
+  toSec: number;
+  count: number;
+}) {
+  const [frames, setFrames] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const span = Math.max(0.1, toSec - fromSec);
+    const times = Array.from({ length: count }, (_, i) => fromSec + (span * (i + 0.5)) / count);
+    void clipFrames(url, times).then(next => {
+      if (!cancelled) setFrames(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [url, fromSec, toSec, count]);
+  if (frames.length < 2) return null;
+  return (
+    <span
+      className="pointer-events-none absolute inset-0 flex"
+      data-testid="cut-timeline-filmstrip"
+    >
+      {frames.map((frame, index) => (
+        // eslint-disable-next-line @next/next/no-img-element -- frames read from the clip, data URLs
+        <img
+          key={index}
+          src={frame}
+          alt=""
+          className="h-full min-w-0 flex-1 object-cover opacity-90"
+        />
+      ))}
+    </span>
+  );
+}
+
 /** The ruler and shots, then a lane per sound track (CutSoundLane). */
 const TIMELINE_HEIGHT = CUT_LANES_TOP + CUT_LANES_HEIGHT + 2;
 
@@ -69,6 +120,11 @@ export default function CutTimeline({
   sound,
   audible,
   trackHeader,
+  markers,
+  snapTimes,
+  selected,
+  onSelect,
+  onSkim,
   onSeek,
   onPick,
   onChange,
@@ -95,6 +151,23 @@ export default function CutTimeline({
   audible?: Partial<Record<CutTrack, boolean>>;
   /** Each sound lane's header (its name, mute and solo), at the start of the lane. */
   trackHeader?: (track: CutTrack) => ReactNode;
+  /** Review comments pinned to a moment (review-notes.ts): a mark on the ruler, click to jump. */
+  markers?: Array<{
+    id: string;
+    timeSec: number;
+    label: string;
+    resolved?: boolean;
+    /** Your own marker (M), not a reviewer's comment. */
+    own?: boolean;
+  }>;
+  /** Where a dragged edge snaps besides the shots' edges: the playhead, markers, the beats. */
+  snapTimes?: readonly number[];
+  /** Shots picked together (Shift- / Ctrl-click). */
+  selected?: readonly string[];
+  /** A Shift- / Ctrl-click adds or takes a shot from the picked ones; a plain click picks only it. */
+  onSelect?: (key: string, add: boolean) => void;
+  /** The pointer over the shots, not dragging: the monitor shows that moment (null: back). */
+  onSkim?: (t: number | null) => void;
   onSeek: (t: number) => void;
   onPick: (key: string) => void;
   onChange: (next: CutShotEdits) => void;
@@ -126,6 +199,19 @@ export default function CutTimeline({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const onZoom = (event: Event) => {
+      const how = (event as CustomEvent<'in' | 'out' | 'fit'>).detail;
+      setZoom(value =>
+        how === 'fit' ? 1 : how === 'in' ? Math.min(8, value * 1.5) : Math.max(0.5, value / 1.5)
+      );
+    };
+    window.addEventListener(CUT_TIMELINE_ZOOM_EVENT, onZoom);
+    return () => window.removeEventListener(CUT_TIMELINE_ZOOM_EVENT, onZoom);
+  }, []);
+  // Where the last dragged edge snapped (a guide line while it holds there).
+  const [snapAt, setSnapAt] = useState<number | null>(null);
 
   const total = loaded?.timeline.totalSec ?? 0;
   // Fit the cut to the width at zoom 1; at least 24 px a second so a long cut scrolls.
@@ -172,10 +258,31 @@ export default function CutTimeline({
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
   };
-  const moveEdge = (event: { clientX: number }) => {
+  const moveEdge = (event: { clientX: number; altKey?: boolean }) => {
     const drag = dragRef.current;
     if (!drag) return;
-    const delta = (event.clientX - drag.startX) / pps;
+    let delta = (event.clientX - drag.startX) / pps;
+    // An end edge snaps to the playhead, a marker, a beat or an earlier shot's edge (Alt: free).
+    // Later shots move with it, so their edges are no target.
+    if (drag.kind !== 'trimStart' && !event.altKey) {
+      const index = items.findIndex(item => item.shot >= 0 && loaded?.keys[item.shot] === drag.key);
+      const item = items[index];
+      if (item) {
+        const edgeAt = item.startSec + item.durSec;
+        const wanted = edgeAt + delta;
+        const targets = [
+          ...(snapTimes ?? []),
+          ...items
+            .slice(0, index)
+            .flatMap(other => [other.startSec, other.startSec + other.durSec]),
+        ].filter(t => t > item.startSec + 0.2);
+        const best = nearestSnap(wanted, targets, SNAP_PX / pps);
+        setSnapAt(best);
+        if (best != null) delta = best - edgeAt;
+      }
+    } else {
+      setSnapAt(null);
+    }
     if (drag.kind === 'hold') {
       setDrag({
         ...drag,
@@ -196,6 +303,7 @@ export default function CutTimeline({
   };
   const endEdge = () => {
     const drag = dragRef.current;
+    setSnapAt(null);
     if (!drag) return;
     if (drag.kind === 'hold') commit(drag.key, { holdSec: drag.value });
     else if (drag.kind === 'trimEnd')
@@ -268,7 +376,23 @@ export default function CutTimeline({
           ))}
         </div>
         <div ref={scroller} className="relative min-w-0 flex-1 overflow-x-auto">
-          <div className="relative" style={{ width: trackWidth, height: TIMELINE_HEIGHT }}>
+          <div
+            className="relative"
+            style={{ width: trackWidth, height: TIMELINE_HEIGHT }}
+            onPointerMove={event => {
+              // Skimming: the moment under the pointer on the monitor, the playhead left where it is.
+              if (!onSkim || playing || dragRef.current || dragging || event.buttons) return;
+              onSkim(timeAt(event.clientX));
+            }}
+            onPointerLeave={() => onSkim?.(null)}
+          >
+            {snapAt != null ? (
+              <span
+                className="pointer-events-none absolute top-0 z-20 w-px bg-[var(--tint-warning-text)]"
+                style={{ left: snapAt * pps, height: TIMELINE_HEIGHT }}
+                data-testid="cut-timeline-snap"
+              />
+            ) : null}
             {/* Ruler: click or drag to scrub. */}
             <div
               className="absolute inset-x-0 top-0 h-5 cursor-pointer select-none border-b border-[var(--border-subtle)]"
@@ -293,6 +417,19 @@ export default function CutTimeline({
                 >
                   {Math.floor(t / 60)}:{String(Math.round(t) % 60).padStart(2, '0')}
                 </span>
+              ))}
+              {markers?.map(marker => (
+                <Button
+                  key={marker.id}
+                  variant="plain"
+                  title={marker.label}
+                  aria-label={`${marker.own ? 'Marker' : 'Review comment'} at ${Math.floor(marker.timeSec / 60)}:${String(Math.floor(marker.timeSec) % 60).padStart(2, '0')}: ${marker.label}`}
+                  className={`absolute top-0.5 z-10 h-3.5 w-2.5 -translate-x-1/2 rounded-b-full ${marker.own ? 'bg-[var(--tint-warning-text)]' : marker.resolved ? 'bg-[var(--text-muted)]/50' : 'bg-[var(--accent)]'}`}
+                  style={{ left: Math.min(total, marker.timeSec) * pps }}
+                  data-testid={marker.own ? 'cut-timeline-marker' : 'cut-timeline-review-marker'}
+                  onPointerDown={event => event.stopPropagation()}
+                  onClick={() => onSeek(Math.min(total, marker.timeSec))}
+                />
               ))}
             </div>
             {/* Shots. */}
@@ -400,13 +537,20 @@ export default function CutTimeline({
                     const before = from < to ? (order[to + 1] ?? null) : key;
                     onChange({ ...edits, order: moveCutShotBefore(order, moved, before) });
                   }}
-                  onClick={() => onPick(key)}
+                  onClick={event => {
+                    const add = event.shiftKey || event.ctrlKey || event.metaKey;
+                    onSelect?.(key, add);
+                    if (!add) onPick(key);
+                  }}
+                  aria-selected={selected?.includes(key) || undefined}
                   className={`group absolute top-6 h-[5.5rem] cursor-pointer overflow-hidden rounded-[var(--radius-sm)] bg-black ${
-                    active
-                      ? 'ring-2 ring-[var(--accent)]'
-                      : over === key
-                        ? 'ring-2 ring-[var(--accent-border)]'
-                        : 'ring-1 ring-black/40'
+                    selected?.includes(key) && (selected?.length ?? 0) > 1
+                      ? 'ring-2 ring-[var(--tint-warning-text)]'
+                      : active
+                        ? 'ring-2 ring-[var(--accent)]'
+                        : over === key
+                          ? 'ring-2 ring-[var(--accent-border)]'
+                          : 'ring-1 ring-black/40'
                   } ${dragging === key ? 'opacity-40' : ''}`}
                   style={{ left, width: blockWidth }}
                   title={`${loaded?.shots[item.shot]?.title ?? ''} · ${round(shownSlot)} s`}
@@ -429,6 +573,14 @@ export default function CutTimeline({
                         className="pointer-events-none h-full w-full object-cover opacity-90"
                       />
                     )
+                  ) : null}
+                  {item.kind === 'clip' && blockWidth > 110 && loaded?.shots[item.shot]?.url ? (
+                    <ClipFilmstrip
+                      url={loaded.shots[item.shot]!.url}
+                      fromSec={item.fromSec}
+                      toSec={item.fromSec + item.durSec * (item.speed ?? 1)}
+                      count={Math.min(12, Math.max(2, Math.floor(blockWidth / 64)))}
+                    />
                   ) : null}
                   {item.inSec > 0 ? (
                     <span

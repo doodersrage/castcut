@@ -81,9 +81,24 @@ export default function RoleplayFilmCutActions({
       <div className="flex flex-wrap gap-2">
         {/* Cut is the film's own step: options, preview, shot list and the cut live there. */}
         {storyEmpty ? (
-          <Button variant="primary" disabled data-testid="story-open-cut">
-            Cut film →
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              disabled
+              title="Cut film needs a scene with a finished still"
+              aria-describedby="story-open-cut-why"
+              data-testid="story-open-cut"
+            >
+              Cut film →
+            </Button>
+            <span
+              id="story-open-cut-why"
+              className="type-caption self-center text-[var(--text-muted)]"
+              data-testid="story-open-cut-why"
+            >
+              Needs a scene first
+            </span>
+          </>
         ) : (
           <ButtonLink href={cutHref} variant="primary" data-testid="story-open-cut">
             Cut film →

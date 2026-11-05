@@ -138,3 +138,28 @@ describe('Restyle and Remove on VACE', () => {
     assert.equal(CLIP_STYLES.watercolour.approximate, true);
   });
 });
+
+describe('change the background', () => {
+  it('finds the people by name, grows them, and keeps everything else', () => {
+    const graph = buildClipTrackGraph({
+      video: 'v.mp4', find: 'person', invert: true, width: 480, height: 640, fps: 16, prefix: 'p',
+    }) as Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+    const track = Object.values(graph).find(node => node.class_type === 'SAM3_VideoTrack')!;
+    assert.deepEqual(track.inputs.conditioning, ['4', 0]);
+    assert.equal(track.inputs.initial_mask, undefined);
+    assert.equal(graph['4']!.inputs.text, 'person');
+    assert.equal(graph['13']!.class_type, 'InvertMask');
+    assert.deepEqual(graph['13']!.inputs.mask, ['12', 0]);
+  });
+
+  it('asks VACE for the new place behind the people', () => {
+    const graph = buildClipVaceGraph({
+      video: 'v.mp4', width: 480, height: 640, fps: 16, frames: 81, seed: 1, prefix: 'p',
+      mode: { kind: 'remove', mask: 'm.mp4', maskIsVideo: true, words: 'a sunny beach', background: true },
+    });
+    const texts = Object.values(graph as Record<string, { class_type: string; inputs: { text?: string } }>)
+      .filter(node => node.class_type === 'CLIPTextEncode')
+      .map(node => node.inputs.text ?? '');
+    assert.ok(texts.some(text => text.includes('the whole setting around and behind the people is a sunny beach')));
+  });
+});

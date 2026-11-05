@@ -150,6 +150,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const job = await startClipExtend(
           {
             ...request,
+            ...(choice?.scene?.trim() ? { scene: choice.scene.trim() } : {}),
             direction: choice?.direction,
             beats: choice?.beats,
             ...(choice?.partSeconds?.some(Boolean) ? { partSeconds: choice.partSeconds } : {}),
@@ -223,7 +224,8 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
         const slot = slots.find(entry => entry.id === still.slotId);
         if (step !== 'start' || !still.pendingDialogue || !slot) continue;
         const { slotId } = still;
-        const { lines, tones, beats, partSeconds, speakers, targetSec } = still.pendingDialogue;
+        const { lines, tones, beats, partSeconds, speakers, targetSec, scene } =
+          still.pendingDialogue;
         // Wordless parts: a MiniMax-H3 clip grown past its own ~5 s shot.
         const spoken = lines.some(line => line.trim());
         // Cleared first and flagged, so a re-render while the job starts cannot start it twice.
@@ -236,6 +238,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
             extendSlotClip(
               slot,
               {
+                ...(scene ? { scene } : {}),
                 lines,
                 tones,
                 beats,

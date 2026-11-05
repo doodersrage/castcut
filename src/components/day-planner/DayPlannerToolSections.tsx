@@ -41,6 +41,7 @@ import { resolveQueueFailureGuideLabel } from '@/lib/queue/failure-playbook';
 import {
   buildDayProgressLightboxState,
   daySessionStatusLine,
+  daySlotProgressState,
   isDayAdultMood,
   normalizeDayIntimateMix,
   type DaySlotId,
@@ -447,6 +448,68 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     [setActiveSlotId]
   );
 
+  // Keys on the board (not while typing, nor with a dialog or the slot sheet open): ← → the
+  // slot before / after, Enter edits it, Q queues (or requeues) it, A animates its still.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target &&
+          (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) ||
+        slotSheetOpen ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const index = slots.findIndex(slot => slot.id === activeSlotId);
+      const slot = slots[index];
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const next =
+          slots[
+            Math.max(0, Math.min(slots.length - 1, index + (event.key === 'ArrowLeft' ? -1 : 1)))
+          ];
+        if (next) {
+          event.preventDefault();
+          setActiveSlotId(next.id);
+          document
+            .querySelector(`[data-testid="day-progress-${CSS.escape(next.id)}"]`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        return;
+      }
+      if (!slot) return;
+      const key = event.key.toLowerCase();
+      if (event.key === 'Enter' && target?.tagName !== 'BUTTON' && target?.tagName !== 'A') {
+        event.preventDefault();
+        openSlotSheet(slot.id);
+      } else if (key === 'q' && !busy && !queueBlocked) {
+        event.preventDefault();
+        void queueSlot(slot, { byPlayer: true });
+      } else if (key === 'a' && !busy) {
+        const still = stills.find(entry => entry.slotId === slot.id);
+        if (daySlotProgressState(still) === 'done') {
+          event.preventDefault();
+          setAnimateTarget(slot);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [
+    activeSlotId,
+    busy,
+    openSlotSheet,
+    queueBlocked,
+    queueSlot,
+    setActiveSlotId,
+    slotSheetOpen,
+    slots,
+    stills,
+  ]);
+
   const openProgressLightbox = useCallback(
     (slotId: string) => {
       const next = buildDayProgressLightboxState(slots, stills, slotId, (url, still) =>
@@ -803,70 +866,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           </div>
         ) : null}
 
-        {showCutCoach ? (
-          <div
-            className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--bg-elevated)] px-4 py-3"
-            data-testid="day-cut-coach"
-            role="status"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                {/* One line says it (it was an overline, a heading and a sentence saying the same). */}
-                <p className="type-heading text-[var(--text-primary)]">
-                  Ready to cut · {completedShotCount} of {slotTotal} stills
-                </p>
-                {completedShotCount < slotTotal ? (
-                  <p className="type-caption text-[var(--text-muted)]">
-                    Cut with what you have, or wait for the rest of the day.
-                  </p>
-                ) : null}
-                <CutReadinessNotes
-                  coverage={cutReadiness.coverage}
-                  coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}
-                  notes={cutReadiness.notes}
-                  testId="day-cut-readiness"
-                />
-                {silentClipSlotIds.length > 0 ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="mt-1"
-                    disabled={assemblingFilm || Boolean(voicingSlotId)}
-                    data-testid="day-cut-add-sound"
-                    title="WAN clips have no sound — give each one LTX-2.5's room sound (and its line, if it has one), picture unchanged"
-                    onClick={() => void addSoundToSilentClips()}
-                  >
-                    {voicingSlotId
-                      ? 'Adding sound…'
-                      : `Give the ${silentClipSlotIds.length} silent clip${silentClipSlotIds.length === 1 ? '' : 's'} sound`}
-                  </Button>
-                ) : null}
-              </div>
-              <ToolActionRow>
-                <ButtonLink
-                  href={cutHref}
-                  size="sm"
-                  variant="primary"
-                  data-testid="day-cut-coach-cut"
-                >
-                  Open Cut →
-                </ButtonLink>
-                {completedShotCount < slotTotal ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    data-testid="day-cut-coach-queue"
-                    onClick={() => void queueAll()}
-                  >
-                    Queue rest
-                  </Button>
-                ) : null}
-              </ToolActionRow>
-            </div>
-          </div>
-        ) : null}
-
         {/* No heading: the page title already says Day. */}
         <ToolSection data-testid="day-slot-board">
           {/* The few files this Day needs, one Download all (hidden when installed). */}
@@ -879,6 +878,24 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               faceFinish,
               autoReview: autoReviewStills,
             }}
+          />
+          {/* Where a Day starts: an idea (or a script) — first, as the page is read. */}
+          <DayIdeaRow
+            className="mb-3"
+            dayMood={dayMood}
+            busy={busy}
+            slotCount={slots.length}
+            onWrite={writeDayFromIdea}
+            event={activeDayEvent(toolSettings.dayEvent, slots)}
+            onWriteEvent={writeDayEvent}
+            onLeaveEvent={leaveDayEvent}
+            onSwitchToWholeDay={() => void suggestDayScenes()}
+          />
+          <DayScriptImport
+            className="-mt-1 mb-3"
+            busy={busy}
+            stillCount={stills.filter(still => still.imageUrl).length}
+            onImport={importDayScript}
           />
           {/* The plan decides the board — chosen once, so it sits above the cards. */}
           <DayPlanBar
@@ -1018,6 +1035,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onNotesChange={next => updateToolSettings({ notes: next })}
             />
           ) : null}
+          {advancedOpen ? (
+            <div className="mb-3">
+              <ClipEngineNote
+                day
+                twoPersonAdultPossible={
+                  isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
+                }
+              />
+            </div>
+          ) : null}
           <DaySlotBoard
             castName={character?.name}
             castId={character?.id}
@@ -1062,130 +1089,190 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               sketch: slotMedia.applySketchToSlot,
             }}
           />
-          <DayIdeaRow
-            className="mt-3"
-            dayMood={dayMood}
-            busy={busy}
-            slotCount={slots.length}
-            onWrite={writeDayFromIdea}
-            event={activeDayEvent(toolSettings.dayEvent, slots)}
-            onWriteEvent={writeDayEvent}
-            onLeaveEvent={leaveDayEvent}
-            onSwitchToWholeDay={() => void suggestDayScenes()}
-          />
-          <DayScriptImport
-            className="mt-2"
-            busy={busy}
-            stillCount={stills.filter(still => still.imageUrl).length}
-            onImport={importDayScript}
-          />
-          {/* One primary per phase: Queue day → Animate all → Cut (the banner) → Save. */}
-          <ToolActionRow className="mt-3">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              data-testid="day-suggest"
-              title="Fill Setting & Beat for every slot — edit before Queue day"
-              onClick={() => suggestDayScenes()}
-            >
-              Suggest day
-            </Button>
-            <Button
-              size="sm"
-              variant={dayPhase === 'animate' && canAnimateAll ? 'secondary' : 'primary'}
-              disabled={busy || queueBlocked}
-              data-testid="day-queue-all"
-              onClick={() => void queueAll()}
-            >
-              {busy ? 'Queueing…' : completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}
-            </Button>
-            {canAnimateAll ? (
-              <Button
-                size="sm"
-                variant={dayPhase === 'animate' && !animateFilesMissing ? 'primary' : 'secondary'}
-                disabled={busy || renderOffline}
-                data-testid="day-animate-all"
-                title={
-                  animateFilesMissing
-                    ? 'ComfyUI is missing files clips need — see the note in Day reel'
-                    : 'Animate every finished still into a clip — clips preferred, Cut works from stills alone'
-                }
-                onClick={() => void animateAllClips()}
-              >
-                Animate all
-              </Button>
-            ) : null}
-            {slots.some(slot => slot.line?.trim()) ? (
-              <DayDubControl
-                language={slots.find(slot => slot.lineLanguage)?.lineLanguage}
-                disabled={busy || renderOffline}
-                onDub={dubDay}
-              />
-            ) : null}
-            {flaggedRetryCount > 0 ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy || queueBlocked}
-                data-testid="day-retry-flagged"
-                title="Requeue every still and clip Auto-review flagged"
-                onClick={() => void retryFlagged()}
-              >
-                Retry {flaggedRetryCount} flagged
-              </Button>
-            ) : null}
-            {showDemoEscape ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy}
-                data-testid="day-demo-stills"
-                onClick={seedDemoStills}
-              >
-                Demo stills
-              </Button>
-            ) : null}
-          </ToolActionRow>
-          {/* How long the batch buttons would take here, behind what is queued (day-batch-plan). */}
-          {(batchPlan.queueLine && !queueBlocked) || (batchPlan.animateLine && canAnimateAll) ? (
-            <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="day-batch-plan">
-              {[
-                batchPlan.queueLine && !queueBlocked
-                  ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
-                  : '',
-                batchPlan.animateLine && canAnimateAll
-                  ? `Animate all: ${batchPlan.animateLine}`
-                  : '',
-              ]
-                .filter(Boolean)
-                .join(' — ')}
-            </p>
-          ) : null}
-          {animateFilesMissing && canAnimateAll && !renderOffline ? (
-            <p
-              className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
-              data-testid="day-animate-files-missing"
-            >
-              Animate needs a few ComfyUI files (listed in Day reel). Cut film works without them.
-            </p>
-          ) : null}
-          {shownQueueBlockReason ? (
-            <p
-              className="type-caption mt-2 text-[var(--tint-warning-text,var(--accent-text))]"
-              data-testid="day-queue-block-reason"
-            >
-              {shownQueueBlockReason}
-            </p>
-          ) : null}
-          {completedShotCount > 0 && !firstCutCelebrate ? (
-            <ClipEngineNote
-              day
-              twoPersonAdultPossible={
-                isDayAdultMood(dayMood) && normalizeDayIntimateMix(intimateMix) !== 'solo'
-              }
-            />
-          ) : null}
+          {/*
+            One place for the next step (it was three: a Ready-to-cut box above the cards, buttons
+            under them and the phase strip), kept in view while the cards are worked on.
+          */}
+          <div
+            className="sticky bottom-2 z-20 mt-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/95 px-3 py-2 shadow-lg backdrop-blur"
+            data-testid="day-action-bar"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="min-w-0 flex-1">
+                {showCutCoach ? (
+                  <div data-testid="day-cut-coach" role="status">
+                    <p className="type-body font-medium text-[var(--text-primary)]">
+                      Ready to cut · {completedShotCount} of {slotTotal} stills
+                      {completedShotCount < slotTotal ? (
+                        <span className="type-caption font-normal text-[var(--text-muted)]">
+                          {' '}
+                          — cut with what you have, or queue the rest
+                        </span>
+                      ) : null}
+                    </p>
+                    {/* What's checked and what's left out: one click away, so the bar stays one line
+                        over the cards. */}
+                    <details className="group/details" data-testid="day-cut-details">
+                      <summary className="type-caption cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+                        Details
+                      </summary>
+                      <CutReadinessNotes
+                        coverage={cutReadiness.coverage}
+                        coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}
+                        notes={cutReadiness.notes}
+                        testId="day-cut-readiness"
+                      />
+                    </details>
+                    {silentClipSlotIds.length > 0 ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="mt-1"
+                        disabled={assemblingFilm || Boolean(voicingSlotId)}
+                        data-testid="day-cut-add-sound"
+                        title="WAN clips have no sound — give each one LTX-2.5's room sound (and its line, if it has one), picture unchanged"
+                        onClick={() => void addSoundToSilentClips()}
+                      >
+                        {voicingSlotId
+                          ? 'Adding sound…'
+                          : `Give the ${silentClipSlotIds.length} silent clip${silentClipSlotIds.length === 1 ? '' : 's'} sound`}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p
+                    className="type-caption text-[var(--text-secondary)]"
+                    data-testid="day-action-status"
+                  >
+                    {slotTotal ? `${completedShotCount} of ${slotTotal} stills` : 'No slots yet'}
+                    {completedClipCount
+                      ? ` · ${completedClipCount} clip${completedClipCount === 1 ? '' : 's'}`
+                      : ''}
+                  </p>
+                )}
+                {(batchPlan.queueLine && !queueBlocked) ||
+                (batchPlan.animateLine && canAnimateAll) ? (
+                  <p
+                    className={`type-caption text-[var(--text-muted)] ${showCutCoach ? 'max-md:hidden' : ''}`}
+                    data-testid="day-batch-plan"
+                  >
+                    {[
+                      batchPlan.queueLine && !queueBlocked
+                        ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
+                        : '',
+                      batchPlan.animateLine && canAnimateAll
+                        ? `Animate all: ${batchPlan.animateLine}`
+                        : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')}
+                  </p>
+                ) : null}
+                {animateFilesMissing && canAnimateAll && !renderOffline ? (
+                  <p
+                    className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
+                    data-testid="day-animate-files-missing"
+                  >
+                    Animate needs a few ComfyUI files (listed in Day reel). Cut film works without
+                    them.
+                  </p>
+                ) : null}
+                {/* Offline or no Cast: said here, beside the buttons it holds back (a missing plate is
+                    said once, by the card at the top). */}
+                {renderOffline || (shownQueueBlockReason && !character) ? (
+                  <p
+                    className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
+                    data-testid="day-queue-block-reason"
+                  >
+                    {shownQueueBlockReason}
+                  </p>
+                ) : null}
+              </div>
+              <ToolActionRow className="shrink-0">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  data-testid="day-suggest"
+                  title="Fill Setting & Beat for every slot — edit before Queue day"
+                  onClick={() => suggestDayScenes()}
+                >
+                  Suggest day
+                </Button>
+                <Button
+                  size="sm"
+                  variant={dayPhase === 'animate' && canAnimateAll ? 'secondary' : 'primary'}
+                  disabled={busy || queueBlocked}
+                  data-testid="day-queue-all"
+                  onClick={() => void queueAll()}
+                >
+                  {busy ? 'Queueing…' : completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}
+                </Button>
+                {canAnimateAll ? (
+                  <Button
+                    size="sm"
+                    variant={
+                      dayPhase === 'animate' && !animateFilesMissing ? 'primary' : 'secondary'
+                    }
+                    disabled={busy || renderOffline}
+                    data-testid="day-animate-all"
+                    title={
+                      animateFilesMissing
+                        ? 'ComfyUI is missing files clips need — see the note in Day reel'
+                        : 'Animate every finished still into a clip — clips preferred, Cut works from stills alone'
+                    }
+                    onClick={() => void animateAllClips()}
+                  >
+                    Animate all
+                  </Button>
+                ) : null}
+                {slots.some(slot => slot.line?.trim()) ? (
+                  <DayDubControl
+                    language={slots.find(slot => slot.lineLanguage)?.lineLanguage}
+                    disabled={busy || renderOffline}
+                    onDub={dubDay}
+                  />
+                ) : null}
+                {flaggedRetryCount > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy || queueBlocked}
+                    data-testid="day-retry-flagged"
+                    title="Requeue every still and clip Auto-review flagged"
+                    onClick={() => void retryFlagged()}
+                  >
+                    Retry {flaggedRetryCount} flagged
+                  </Button>
+                ) : null}
+                {showDemoEscape ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    data-testid="day-demo-stills"
+                    onClick={seedDemoStills}
+                  >
+                    Demo stills
+                  </Button>
+                ) : null}
+                {completedShotCount > 0 && !firstCutCelebrate ? (
+                  <ButtonLink
+                    href={cutHref}
+                    size="sm"
+                    variant={
+                      completedShotCount >= slotTotal || dayPhase === 'cut'
+                        ? 'primary'
+                        : 'secondary'
+                    }
+                    data-testid="day-cut-coach-cut"
+                  >
+                    Open Cut →
+                  </ButtonLink>
+                ) : null}
+              </ToolActionRow>
+            </div>
+          </div>
         </ToolSection>
 
         <ToolSection

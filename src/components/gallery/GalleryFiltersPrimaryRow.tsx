@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  GalleryRatingSelect,
+  GalleryTypeChips,
+} from '@/components/gallery/filters/GalleryTypeChips';
+
 import { useState } from 'react';
 
 import { FilterChip } from '@/components/gallery/GalleryFilterChip';
@@ -17,7 +22,6 @@ import { useGalleryFilterQueryDraft } from '@/components/gallery/useGalleryFilte
 import { GalleryFiltersSearchGroup } from '@/components/gallery/filters/GalleryFiltersSearchGroup';
 import { GalleryFiltersLayoutGroup } from '@/components/gallery/filters/GalleryFiltersLayoutGroup';
 import { GalleryFiltersGroupsRail } from '@/components/gallery/filters/GalleryFiltersGroupsRail';
-import { GalleryFiltersRatingModelRow } from '@/components/gallery/filters/GalleryFiltersRatingModelRow';
 import { GalleryFiltersLeanRow } from '@/components/gallery/filters/GalleryFiltersLeanRow';
 import { useGalleryManageMode } from '@/lib/gallery/manage-mode';
 
@@ -54,16 +58,12 @@ export type GalleryFiltersPrimaryRowProps = {
 export default function GalleryFiltersPrimaryRow({
   filter,
   setFilter,
-  models,
   castIds,
-  hasPlayChecks,
   customGroups = [],
   onRenameCustomGroup,
   onDeleteCustomGroup,
   sort,
   setSort,
-  pageSize,
-  setPageSize,
   paginationEnabled,
   embeddingSearchActive,
   embeddingSearchLoading = false,
@@ -97,10 +97,28 @@ export default function GalleryFiltersPrimaryRow({
   ].filter(Boolean).length;
   const phoneHidden = phoneFiltersOpen ? '' : 'max-md:hidden';
 
+  const searchProps = {
+    lean,
+    filter,
+    setFilter,
+    queryDraft,
+    setQueryDraft,
+    embeddingSearchActive,
+    embeddingSearchLoading,
+    embeddingSearchUnavailable,
+    customGroups,
+    onRenameCustomGroup,
+    onDeleteCustomGroup,
+  };
+
+  // One slim bar (2026-11-05): search, what kind, stars, sort and size on a line, then Cast and
+  // look — the rest is in Filters (GalleryFiltersMoreRow). It was ~400px of controls.
   return (
     <>
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <GalleryFiltersSearchGroup
+          {...searchProps}
+          part="search"
           collapsedOnPhone={!phoneFiltersOpen}
           phoneToggle={
             // A wrapper owns the breakpoint — .ui-btn sets its own display.
@@ -117,23 +135,12 @@ export default function GalleryFiltersPrimaryRow({
               </button>
             </span>
           }
-          lean={lean}
-          filter={filter}
-          setFilter={setFilter}
-          queryDraft={queryDraft}
-          setQueryDraft={setQueryDraft}
-          embeddingSearchActive={embeddingSearchActive}
-          embeddingSearchLoading={embeddingSearchLoading}
-          embeddingSearchUnavailable={embeddingSearchUnavailable}
-          customGroups={customGroups}
-          onRenameCustomGroup={onRenameCustomGroup}
-          onDeleteCustomGroup={onDeleteCustomGroup}
         />
         <div className={`contents ${phoneHidden}`}>
+          <GalleryTypeChips filter={filter} setFilter={setFilter} />
+          <GalleryRatingSelect filter={filter} setFilter={setFilter} />
           <GalleryFiltersLayoutGroup
             lean={lean}
-            filter={filter}
-            setFilter={setFilter}
             sort={sort}
             setSort={setSort}
             paginationEnabled={paginationEnabled}
@@ -162,14 +169,88 @@ export default function GalleryFiltersPrimaryRow({
       ) : null}
 
       <div className={`contents ${phoneHidden}`}>
-        <GalleryFiltersRatingModelRow filter={filter} setFilter={setFilter} models={models} />
         <GalleryCastFilter filter={filter} setFilter={setFilter} castIds={castIds ?? []} />
         <GalleryLookFilter filter={filter} setFilter={setFilter} />
+      </div>
+    </>
+  );
+}
+
+/** The Filters panel's first row: match, status, group, model, checks (and lean paging). */
+export function GalleryFiltersMoreRow({
+  filter,
+  setFilter,
+  models,
+  hasPlayChecks,
+  customGroups = [],
+  onRenameCustomGroup,
+  onDeleteCustomGroup,
+  pageSize,
+  setPageSize,
+  paginationEnabled,
+  embeddingSearchActive,
+  embeddingSearchLoading = false,
+  embeddingSearchUnavailable = false,
+  lean = false,
+}: Pick<
+  GalleryFiltersPrimaryRowProps,
+  | 'filter'
+  | 'setFilter'
+  | 'models'
+  | 'hasPlayChecks'
+  | 'customGroups'
+  | 'onRenameCustomGroup'
+  | 'onDeleteCustomGroup'
+  | 'pageSize'
+  | 'setPageSize'
+  | 'paginationEnabled'
+  | 'embeddingSearchActive'
+  | 'embeddingSearchLoading'
+  | 'embeddingSearchUnavailable'
+  | 'lean'
+>) {
+  const { queryDraft, setQueryDraft } = useGalleryFilterQueryDraft(filter, setFilter);
+  const manage = useGalleryManageMode();
+  return (
+    <>
+      <div className="flex flex-wrap items-end gap-3">
+        <GalleryFiltersSearchGroup
+          part="more"
+          lean={lean}
+          filter={filter}
+          setFilter={setFilter}
+          queryDraft={queryDraft}
+          setQueryDraft={setQueryDraft}
+          embeddingSearchActive={embeddingSearchActive}
+          embeddingSearchLoading={embeddingSearchLoading}
+          embeddingSearchUnavailable={embeddingSearchUnavailable}
+          customGroups={customGroups}
+          onRenameCustomGroup={onRenameCustomGroup}
+          onDeleteCustomGroup={onDeleteCustomGroup}
+        />
+        {lean && models.length > 0 ? (
+          <label className="min-w-[8rem] space-y-1.5">
+            <span className="type-caption text-[var(--text-muted)]">Model</span>
+            <select
+              value={filter.model ?? ''}
+              onChange={event => setFilter({ ...filter, model: event.target.value || undefined })}
+              data-testid="gallery-filter-model"
+              className="ui-input block w-full px-3 py-(--input-padding-y) type-body"
+            >
+              <option value="">All models</option>
+              {models.map(model => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       {hasPlayChecks ? (
         <div
-          className={`flex flex-wrap items-center gap-1.5 ${phoneHidden}`}
+          className="flex flex-wrap items-center gap-1.5"
           role="group"
           aria-label="Filter by checks"
         >

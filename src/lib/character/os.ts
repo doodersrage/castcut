@@ -199,6 +199,8 @@ export type CastPronunciation = { word: string; sayAs: string };
 
 /** How a Cast talks beyond the voice sample (cast-speech.ts). */
 export type CastSpeech = {
+  /** How they sound when they talk: one of CAST_ACCENTS (cast/speech.ts). */
+  accent?: string;
   pronunciations?: CastPronunciation[];
   catchphrases?: string[];
 };

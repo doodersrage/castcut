@@ -56,6 +56,12 @@ import {
   overlayFfmpegXY,
   type OverlayCorner,
 } from './cut-overlay';
+import {
+  normalizeSubtitleStyle,
+  subtitleDrawSettings,
+  wordChunks,
+  type SubtitleStyle,
+} from './subtitle-style';
 import { cuesToSrt, speechSpanFromSilence, subtitleCues, type SubtitleCue } from './cut-subtitles';
 import {
   effectsFilterParts,
@@ -98,6 +104,8 @@ export type FilmServerEncodeOptions = {
   captions?: boolean;
   /** What is said (else the narration), bottom centre over the shot (needs drawtext + a font). */
   subtitles?: boolean;
+  /** How the subtitles look (subtitle-style.ts); classic when unset. */
+  subtitleStyle?: SubtitleStyle;
   /** Opening title card (needs drawtext + a font). */
   titleCard?: FilmTitleCard | null;
   /** Optional audio bed URL (http/https, private allowed for same-origin). */
@@ -415,7 +423,13 @@ export type FilmGraphText = {
   lowerThirdFile?: string | null;
   lowerThirdSubFile?: string | null;
   /** Timed subtitle phrases (cut-subtitles.ts), shot seconds; drawn instead of speechFile. */
-  speechCues?: Array<{ file: string; from: number; to: number }>;
+  speechCues?: Array<{
+    file: string;
+    from: number;
+    to: number;
+    /** Outlined subtitle looks: one file per line, each drawn centred (subtitle-style.ts). */
+    lines?: string[];
+  }>;
   titleFile?: string | null;
   subtitleFile?: string | null;
 };
@@ -501,13 +515,20 @@ export function buildFilterComplex(input: {
   logo?: { input: number; corner: OverlayCorner } | null;
   /** A light unsharp mask over the finished picture (before the logo). */
   sharpen?: boolean;
+  /** How the subtitles look (subtitle-style.ts). */
+  subtitleStyle?: SubtitleStyle;
 }): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const centreFit = buildFilmScaleFilter(width, height);
   const font = input.fontFile ? q(input.fontFile) : null;
   const captionSize = Math.round(Math.min(width, height) * 0.045);
-  const subtitleTextSize = Math.round(Math.min(width, height) * 0.05);
   const margin = Math.round(Math.min(width, height) * 0.06);
+  const subtitleLook = subtitleDrawSettings(
+    normalizeSubtitleStyle(input.subtitleStyle),
+    width,
+    height,
+    margin
+  );
 
   const parts: string[] = [];
   const labels: string[] = [];
@@ -619,13 +640,20 @@ export function buildFilterComplex(input: {
         `:alpha=${q(captionAlphaExpr(hold))}`;
     }
     const subtitleDraw = (file: string) =>
-      `,drawtext=fontfile=${font}:textfile=${q(file)}:fontcolor=white:fontsize=${subtitleTextSize}` +
-      `:line_spacing=${Math.round(subtitleTextSize * 0.25)}:x=(w-tw)/2:y=h-th-${margin}` +
-      `:box=1:boxcolor=black@0.55:boxborderw=${Math.round(subtitleTextSize * 0.4)}`;
+      `,drawtext=fontfile=${font}:textfile=${q(file)}:${subtitleLook.draw}`;
     if (kind !== 'title' && font && text?.speechCues?.length) {
       // Timed subtitles: each phrase while it is spoken.
       for (const cue of text.speechCues) {
-        chain += `${subtitleDraw(cue.file)}:enable=${q(`between(t,${cue.from.toFixed(3)},${cue.to.toFixed(3)})`)}`;
+        const enable = `:enable=${q(`between(t,${cue.from.toFixed(3)},${cue.to.toFixed(3)})`)}`;
+        chain +=
+          cue.lines?.length && subtitleLook.lineAt
+            ? cue.lines
+                .map(
+                  (file, index) =>
+                    `,drawtext=fontfile=${font}:textfile=${q(file)}:${subtitleLook.lineAt!(index, cue.lines!.length)}${enable}`
+                )
+                .join('')
+            : `${subtitleDraw(cue.file)}${enable}`;
       }
     } else if (kind !== 'title' && font && text?.speechFile) {
       // Subtitles: bottom centre for the whole shot, wrapped by the writer (subtitleLines).
@@ -1079,7 +1107,8 @@ export async function encodeFilmPlaylistServer(
       return usableFilterPath(file) ? file : null;
     };
 
-    const subtitleWrapSize = Math.round(Math.min(width, height) * 0.05);
+    const subtitleStyle = normalizeSubtitleStyle(options.subtitleStyle);
+    const subtitleWrapSize = subtitleDrawSettings(subtitleStyle, width, height, 0).size;
     // Multi-line text as is (sanitizeFilmCaption keeps a caption to one line).
     const writeRawText = async (name: string, value: string): Promise<string | null> => {
       if (!value.trim() || !usableFont) return null;
@@ -1297,13 +1326,25 @@ export async function encodeFilmPlaylistServer(
                 to: Math.min(hold, span?.to ?? hold - 0.2),
               });
           const out: Array<{ file: string; from: number; to: number }> = [];
-          for (const [k, cue] of cues.entries()) {
-            const file = await writeRawText(
-              `speech-${i}-${k}.txt`,
-              subtitleLines(cue.text, Math.round(width / (subtitleWrapSize * 0.55)))
-            );
-            if (file) out.push({ file, from: cue.from, to: cue.to });
-            filmCues.push({ shot: graphKinds.length - 1, cue });
+          // Word by word: what the .srt keeps is the whole phrase; the picture shows a few words.
+          for (const cue of cues) filmCues.push({ shot: graphKinds.length - 1, cue });
+          const drawn = subtitleStyle === 'words' ? wordChunks(cues) : cues;
+          for (const [k, cue] of drawn.entries()) {
+            const wrapped = subtitleLines(cue.text, Math.round(width / (subtitleWrapSize * 0.55)));
+            const file = await writeRawText(`speech-${i}-${k}.txt`, wrapped);
+            if (!file) continue;
+            // Outlined looks: each line its own file, drawn centred.
+            const lines =
+              subtitleStyle === 'classic'
+                ? []
+                : (
+                    await Promise.all(
+                      wrapped
+                        .split('\n')
+                        .map((line, at) => writeRawText(`speech-${i}-${k}-${at}.txt`, line))
+                    )
+                  ).filter((line): line is string => Boolean(line));
+            out.push({ file, from: cue.from, to: cue.to, ...(lines.length ? { lines } : {}) });
           }
           return out.length ? out : undefined;
         })(),
@@ -1381,6 +1422,7 @@ export async function encodeFilmPlaylistServer(
       reverses: graphReverses,
       reframes: graphReframes,
       sharpen: options.sharpen === true,
+      subtitleStyle,
       soundLeads: graphLeads,
       soundTails: graphTails,
       sound: options.sound,

@@ -193,3 +193,25 @@ test('Day slot: Suggest a narration fills the voice-over', async ({ page }) => {
   expect(sent.kind).toBe('narration');
   expect(sent.scene).toBe('making coffee');
 });
+
+// 2026-11-05: an accent on the Cast's voice — kept with the Cast, said in auditions and clips.
+test('Cast → Voice: an accent is picked and kept', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: 'e2e-accent' },
+    characters: cast('e2e-accent'),
+  });
+  await gotoStable(page, '/characters/e2e-accent');
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  const accent = page.getByTestId('cast-voice-accent');
+  await expect(accent).toBeVisible({ timeout: 30_000 });
+  await expect(accent).toHaveValue('');
+  await accent.selectOption('Scottish');
+  await expect(page.getByTestId('cast-voice-note')).toContainText('Scottish accent');
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await page.getByText('Bible', { exact: true }).first().click();
+  await expect(page.getByTestId('cast-voice-accent')).toHaveValue('Scottish', { timeout: 30_000 });
+  await page.getByTestId('cast-voice-accent').selectOption('');
+  await expect(page.getByTestId('cast-voice-note')).toContainText('No accent');
+});

@@ -51,11 +51,17 @@ export function RoleplayStillFrame({
   const clipTakeIndex = roleplayClipTakeIndex(beat);
   const completedUrl = beat.stillStatus === 'completed' ? beat.imageUrl : undefined;
   const clipUrl = beatMotionUrl(beat) ?? '';
-  const motionClip = Boolean(clipUrl && looksLikeMotionUrl(clipUrl));
   // Controls on real videos (talking clips have sound to unmute); gallery URLs carry no extension.
   const playHtmlVideo = Boolean(
     clipUrl &&
     (isHtmlVideoViewUrl(clipUrl) || clipUrlIsVideo(clipUrl, { promptId: beat.clipPromptId }))
+  );
+  // A finished clip is motion whatever its url looks like — once saved to the Gallery it reads
+  // /api/gallery/media/<id>, which looksLikeMotionUrl didn't know, and the card went blank
+  // (user report 2026-11-05: "plays fine for a couple loops then disappears").
+  const motionClip = Boolean(
+    clipUrl &&
+    (looksLikeMotionUrl(clipUrl) || playHtmlVideo || /\/api\/gallery\/media\//.test(clipUrl))
   );
   const openableUrl = beatPreviewUrl(beat, liveUrl);
   const displayUrl = beatPreviewUrl(beat, liveUrl) || lastCompletedRoleplayStillUrl(beat);
@@ -107,6 +113,8 @@ export function RoleplayStillFrame({
           loop
           muted
           controls={playHtmlVideo}
+          // Story clips are MP4 now; an older animated WebP still falls back to an image.
+          kind={playHtmlVideo || /\/api\/gallery\/media\//.test(clipUrl) ? 'video' : undefined}
           poster={completedUrl ?? displayUrl ?? undefined}
         />
       ) : frameUrl ? (

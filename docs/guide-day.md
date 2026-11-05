@@ -4,12 +4,19 @@ A day in the Cast's life: a handful of moments, each a still, then a clip. Open 
 
 ## The page
 
+Top to bottom, the way a Day is made:
+
 | Part | What's in it |
 | --- | --- |
-| **Plan bar** | Stills (2–8) · Mood · People · Weather · Quality · Advanced |
-| **Slot cards** | One per moment — tap a card to open its **slot sheet** |
-| **Action row** | Queue day → Animate all → **Open Cut →** |
-| **Reel** | The finished stills and clips |
+| **Idea** | Whole day or one event, **Write the day** from a sentence, **Import a script…** |
+| **Plan bar** | Stills (2–8) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
+| **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
+| **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · Animate all · **Open Cut →** |
+| **Reel** | The finished stills and clips, from the first frame |
+
+Keys on the board (not while typing): **← →** the slot before / after, **Enter** opens it,
+**Q** queues (or requeues) it, **A** animates its still. In the slot sheet **← →** step between
+slots and **Esc** closes it.
 
 ## Moods
 
@@ -123,13 +130,19 @@ The bodies are Blender Studio's *Human Base Meshes* (CC0).
 - A slot with a **line** becomes a **talking clip** — lip-synced, in the Cast's voice.
 - **Add sound** gives a silent clip the sound of its place.
 - **Make it 30 s** carries a clip on in parts that continue from each other.
-- On **MiniMax-H3** a longer **Length** is the first clip and then parts (~5 s each). Each part has
-  its own **Then…** — what happens in it — its length (**~5 s**, or cut to 2, 3 or 4 s), and
+- The **Animate** sheet's **Camera** picks a move for a clip without a line — **Still** (the
+  default, a locked-off camera), **Push in**, **Pull out**, **Pan left**, **Pan right**,
+  **Orbit**, **Rise** or **Handheld**. Each tile plays the move on the slot's own still; the
+  move's words take the locked camera's place in what gets sent.
+- On **MiniMax-H3** a longer **Length** is the first clip and then parts (~5 s each). The top field
+  becomes **The scene** — what the whole clip is about, which every part starts from — and under
+  **Each part**, **Part 1** (the first clip) and every later part has its own beat. Each later part
+  also has its length (**~5 s**, or cut to 2, 3 or 4 s), and
   optionally **a line to say** with how it's said (as on Make it 30 s): a part with a line speaks it
   in the Cast's kept voice (or, without one, the voice of the first part that speaks), a part
   without stays wordless. **Make it 30 s** on an H3 clip likewise gives each part its own length.
-  **Write the beats** writes the empty ones from the slot's beat and your direction; a part left
-  empty is written when it starts. Each part keeps the first clip's prompt — the place, the
+  **Write the beats** writes the empty ones, Part 1 included, from the scene; Part 1 left empty
+  runs the scene itself, and a later part left empty is written from the scene when it starts. Each part keeps the first clip's prompt — the place, the
   clothes, the look — with only its action changed, and holds the framing.
   Each part starts from the frame of the part before whose face is most the Cast's (when ComfyUI
   has the face check), and a part whose face changed is named when the clip is done.

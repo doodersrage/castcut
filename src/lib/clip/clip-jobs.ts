@@ -15,6 +15,7 @@ export type ClipJobTool =
   | 'upscale'
   | 'restyle'
   | 'remove'
+  | 'background'
   | 'motion'
   | 'sound-effect';
 
@@ -51,6 +52,7 @@ export const CLIP_JOB_LABEL: Record<ClipJobTool, string> = {
   upscale: 'Upscale to 4K',
   restyle: 'Restyle',
   remove: 'Remove from clip',
+  background: 'Change the background',
   motion: 'Motion brush',
   'sound-effect': 'Make a sound',
 };
@@ -64,6 +66,7 @@ export const CLIP_JOB_ENDPOINT: Record<ClipJobTool, string> = {
   upscale: '/api/still/upscale',
   restyle: '/api/clip/restyle',
   remove: '/api/clip/remove',
+  background: '/api/clip/background',
   motion: '/api/clip/motion',
   'sound-effect': '/api/clip/sound-effect',
 };

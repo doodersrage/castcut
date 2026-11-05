@@ -1,6 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import OutfitKitShelf from '@/components/fitting/OutfitKitShelf';
+import { useWardrobeGarmentThumbManifestGeneration } from '@/hooks/useWardrobeGarmentThumbManifest';
+import { resolveWardrobeKitThumbUrl } from '@/lib/wardrobe/garment-thumbs';
+import {
+  wardrobeCategoryFilterOptions,
+  normalizeWardrobeCategoryFilter,
+} from '@/lib/wardrobe/catalog-ui';
 import SideSheet from '@/components/ui/SideSheet';
 import { Button } from '@/components/ui/Button';
 
@@ -168,6 +175,43 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
     />
   );
   const platePicture = referencePreviewUrl || referenceImageUrl;
+  // Starred and recently tried kits, first above the picker (OutfitKitShelf).
+  // Re-drawn when the packshot list has loaded (the shelf showed names before that).
+  useWardrobeGarmentThumbManifestGeneration();
+  const favoriteKitIds = toolSettings.favoriteKitIds ?? [];
+  const recentKitIds = toolSettings.recentKitIds ?? [];
+  const kitLabelOf = (id: string) =>
+    wardrobeOptions.find(option => option.value === id)?.label ?? id;
+  const shelf = [...new Set([...favoriteKitIds, ...recentKitIds])].slice(0, 12).map(id => ({
+    id,
+    label: kitLabelOf(id),
+    // As the picker draws it: the packshot, or the catalog's own thumb.
+    thumb: resolveWardrobeKitThumbUrl({ wardrobeId: id, personPreviewUrl: null }),
+    starred: favoriteKitIds.includes(id),
+  }));
+  const kitOn = shared.lockedWardrobeId?.trim() || '';
+  const rememberKit = () => {
+    if (!kitOn) return;
+    updateToolSettings({
+      recentKitIds: [kitOn, ...recentKitIds.filter(id => id !== kitOn)].slice(0, 8),
+    });
+  };
+  const toggleFavorite = () => {
+    if (!kitOn) return;
+    updateToolSettings({
+      favoriteKitIds: favoriteKitIds.includes(kitOn)
+        ? favoriteKitIds.filter(id => id !== kitOn)
+        : [kitOn, ...favoriteKitIds].slice(0, 24),
+    });
+  };
+  const tryOnNow = () => {
+    rememberKit();
+    void queueTryOn();
+  };
+  const tryOnAndNext = () => {
+    rememberKit();
+    void queueTryOnAndSwipe();
+  };
   const pending = toolSettings.pendingTryOn;
   const plateSection = (
     <FittingPlateSection
@@ -190,6 +234,43 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       characterId={shared.activeCharacterId}
     />
   );
+  // Keys (not while typing, nor over a dialog): ← → the kit before / after, Enter tries it on,
+  // N tries it on then moves to the next, K keeps the try-on on the stage.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (target &&
+          (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) ||
+        document.querySelector('[role="dialog"]')
+      ) {
+        return;
+      }
+      const click = (testId: string) => {
+        const button = document.querySelector<HTMLButtonElement>(`[data-testid="${testId}"]`);
+        if (!button || button.disabled) return false;
+        button.click();
+        return true;
+      };
+      const key = event.key.toLowerCase();
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        if (busy) return;
+        event.preventDefault();
+        swipeKit(event.key === 'ArrowLeft' ? -1 : 1);
+      } else if (event.key === 'Enter' && target?.tagName !== 'BUTTON' && target?.tagName !== 'A') {
+        if (click('fitting-queue-try-on')) event.preventDefault();
+      } else if (key === 'n') {
+        if (click('fitting-queue-and-next')) event.preventDefault();
+      } else if (key === 'k') {
+        if (click('fitting-keep')) event.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [busy, swipeKit]);
   return (
     <ToolLayout
       accent={ACCENT}
@@ -238,11 +319,13 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
               {character ? 'Change person or look' : 'Pick a Cast lead'}
             </Button>
           </div>
-          {plateSection}
+          {/* With no plate yet it's the first step, in the stage (below); after, it sits here. */}
+          {hasReference ? plateSection : null}
         </div>
 
         <div className="ui-section-stack min-w-0">
           <FittingCompareSection
+            plateUrl={platePicture || undefined}
             characterId={shared.activeCharacterId}
             layout="stage"
             frontBack={quality.settings.frontBack}
@@ -280,9 +363,14 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
                   </p>
                 </div>
               ) : (
-                <p className="type-caption px-2 py-10 text-center text-[var(--text-muted)]">
-                  Add a plate first — the picture every try-on starts from.
-                </p>
+                // One step at a time: with no plate, nothing else on the page can run.
+                <div className="mx-auto max-w-sm space-y-2 py-4" data-testid="fitting-plate-first">
+                  <p className="type-heading text-center">Start with a plate</p>
+                  <p className="type-caption text-center text-[var(--text-muted)]">
+                    The picture every try-on starts from — then pick the clothes.
+                  </p>
+                  {plateSection}
+                </div>
               )
             }
           />
@@ -291,6 +379,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
             title="Pose"
             description="Try the kit on in the plate's own stance, or drag a figure into a pose."
             data-testid="fitting-pose-section"
+            className={hasReference ? '' : 'opacity-60'}
           >
             <OutfitPoseSection
               pose={toolSettings.tryOnPose}
@@ -306,105 +395,8 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
               footwear={toolSettings.footwear}
             />
           </ToolSection>
-        </div>
-
-        <div className="ui-section-stack min-w-0">
-          {/* Try it on first, and it stays in reach (under the header) through a long clothes list. */}
-          <div
-            className="ui-sticky-surface space-y-2 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-2 lg:sticky lg:top-[5.5rem] lg:z-10"
-            data-testid="fitting-try-panel"
-          >
-            <FittingActionRow
-              variant="panel"
-              continueDayHref={softAdvance ? null : continueDayHref}
-              dayPlannerHref={dayPlannerHref}
-              queueBlocked={queueBlocked}
-              queueBlockReason={queueBlockReason}
-              swipeDeckLength={swipeDeck.length}
-              hasKit={Boolean(shared.lockedWardrobeId?.trim())}
-              busy={busy}
-              character={character}
-              compareActive={compareTryOns.length > 0 && !continueDayHref}
-              softAdvanceActive={Boolean(softAdvance)}
-              onSkipKit={skipKit}
-              onQueueTryOn={() => void queueTryOn()}
-              onQueueTryOnAndSwipe={() => void queueTryOnAndSwipe()}
-              onSaveKitToCast={saveKitToCast}
-              onGoRoleplay={goRoleplay}
-            />
-            {saveStatus && !pending ? (
-              <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p>
-            ) : null}
-            <FittingKeeperStandInNote
-              status={keeperStandIn}
-              busy={busy}
-              onMake={makeStandingPicture}
-            />
-            {error ? <FieldError>{error}</FieldError> : null}
-          </div>
-
-          <FittingWardrobeKitSection
-            inline
-            busy={busy}
-            wardrobeReady={wardrobeReady}
-            wardrobeCategoryFilter={wardrobeCategoryFilter}
-            wardrobeOptions={wardrobeOptions}
-            swipeDeck={swipeDeck}
-            deckSelectionId={deckSelectionId}
-            activeLookId={activeLookId}
-            kitPreviews={kitPreviews}
-            autoKitPreviews={autoKitPreviews}
-            hasReference={hasReference}
-            isolateSubject={isolateSubject}
-            referenceIsolated={toolSettings.referenceIsolated === true}
-            previewModel={previewModel}
-            previewModelLabel={previewModelLabel}
-            selectedModelLabel={selectedModel?.label}
-            sharedModel={shared.model}
-            lockedWardrobeId={shared.lockedWardrobeId}
-            lockedWardrobeLabel={lockedWardrobeLabel}
-            completedPreviewCount={completedPreviewCount}
-            inFlightPreviewCount={inFlightPreviewCount}
-            previewStatus={previewStatus}
-            customGarmentImageUrl={toolSettings.customGarmentImageUrl}
-            customGarmentImageFilename={toolSettings.customGarmentImageFilename}
-            customGarmentDescription={toolSettings.customGarmentDescription}
-            garmentUploading={garmentUploading}
-            garmentScanStatus={garmentScanStatus}
-            onCategoryFilterChange={filter =>
-              updateToolSettings({ wardrobeCategoryFilter: filter })
-            }
-            onSwipeKit={swipeKit}
-            onSelectKit={selectKit}
-            onClearKit={clearKit}
-            onToggleAutoKitPreviews={() =>
-              updateToolSettings({ autoKitPreviews: !autoKitPreviews })
-            }
-            onFillKitPreviews={() => void fillKitPreviews()}
-            onApplyCustomGarment={applyCustomGarment}
-            onClearCustomGarment={clearCustomGarment}
-            onRescanCustomGarment={rescanCustomGarment}
-            onSaveCustomGarment={saveCurrentCustomGarment}
-            onApplySavedCustomGarment={applySavedCustomGarment}
-            onRemoveSavedCustomGarment={removeSavedCustomGarment}
-            onCustomGarmentDescriptionChange={value =>
-              updateToolSettings({ customGarmentDescription: value })
-            }
-            footwear={{
-              value: toolSettings.footwear,
-              imageUrl: toolSettings.footwearImageUrl,
-              imageFilename: toolSettings.footwearImageFilename,
-              onChange: patch => updateToolSettings(patch),
-              onApplyPhoto: applyFootwearPhoto,
-            }}
-            onError={message => setError(message)}
-          />
-
-          <div className="space-y-2">
-            <FittingStatusStrip
-              statusLine={statusLine}
-              queueBlockReason={queueBlocked && character ? queueBlockReason : null}
-            />
+          {/* Quality next to the try-on it sets (it was under the clothes list). */}
+          <div className="ui-card p-3" data-testid="fitting-quality-card">
             <OutfitQualityControls
               busy={busy}
               preset={quality.preset}
@@ -424,6 +416,153 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
             />
           </div>
         </div>
+
+        <div className="ui-section-stack min-w-0">
+          {hasReference ? null : (
+            <p className="type-caption text-[var(--text-muted)]" data-testid="fitting-clothes-wait">
+              Pick clothes any time — Try it on starts once there&apos;s a plate.
+            </p>
+          )}
+          <div className={hasReference ? '' : 'opacity-60'}>
+            <FittingWardrobeKitSection
+              inline
+              busy={busy}
+              kitsHeader={
+                <OutfitKitShelf
+                  categories={wardrobeCategoryFilterOptions()
+                    .filter(option =>
+                      [
+                        'all',
+                        'outfit',
+                        'top',
+                        'bottom',
+                        'outerwear',
+                        'swimwear',
+                        'formalwear',
+                        'sleepwear',
+                        'traditional',
+                      ].includes(option.value)
+                    )
+                    .map(option => ({
+                      value: option.value,
+                      label: option.value === 'all' ? 'All' : option.label,
+                    }))}
+                  category={wardrobeCategoryFilter}
+                  onCategory={value =>
+                    updateToolSettings({
+                      wardrobeCategoryFilter: normalizeWardrobeCategoryFilter(value),
+                    })
+                  }
+                  shelf={shelf}
+                  selectedId={kitOn || undefined}
+                  favorite={kitOn ? favoriteKitIds.includes(kitOn) : null}
+                  disabled={busy}
+                  onSelect={selectKit}
+                  onToggleFavorite={toggleFavorite}
+                />
+              }
+              wardrobeReady={wardrobeReady}
+              wardrobeCategoryFilter={wardrobeCategoryFilter}
+              wardrobeOptions={wardrobeOptions}
+              swipeDeck={swipeDeck}
+              deckSelectionId={deckSelectionId}
+              activeLookId={activeLookId}
+              kitPreviews={kitPreviews}
+              autoKitPreviews={autoKitPreviews}
+              hasReference={hasReference}
+              isolateSubject={isolateSubject}
+              referenceIsolated={toolSettings.referenceIsolated === true}
+              previewModel={previewModel}
+              previewModelLabel={previewModelLabel}
+              selectedModelLabel={selectedModel?.label}
+              sharedModel={shared.model}
+              lockedWardrobeId={shared.lockedWardrobeId}
+              lockedWardrobeLabel={lockedWardrobeLabel}
+              completedPreviewCount={completedPreviewCount}
+              inFlightPreviewCount={inFlightPreviewCount}
+              previewStatus={previewStatus}
+              customGarmentImageUrl={toolSettings.customGarmentImageUrl}
+              customGarmentImageFilename={toolSettings.customGarmentImageFilename}
+              customGarmentDescription={toolSettings.customGarmentDescription}
+              garmentUploading={garmentUploading}
+              garmentScanStatus={garmentScanStatus}
+              onCategoryFilterChange={filter =>
+                updateToolSettings({ wardrobeCategoryFilter: filter })
+              }
+              onSwipeKit={swipeKit}
+              onSelectKit={selectKit}
+              onClearKit={clearKit}
+              onToggleAutoKitPreviews={() =>
+                updateToolSettings({ autoKitPreviews: !autoKitPreviews })
+              }
+              onFillKitPreviews={() => void fillKitPreviews()}
+              onApplyCustomGarment={applyCustomGarment}
+              onClearCustomGarment={clearCustomGarment}
+              onRescanCustomGarment={rescanCustomGarment}
+              onSaveCustomGarment={saveCurrentCustomGarment}
+              onApplySavedCustomGarment={applySavedCustomGarment}
+              onRemoveSavedCustomGarment={removeSavedCustomGarment}
+              onCustomGarmentDescriptionChange={value =>
+                updateToolSettings({ customGarmentDescription: value })
+              }
+              footwear={{
+                value: toolSettings.footwear,
+                imageUrl: toolSettings.footwearImageUrl,
+                imageFilename: toolSettings.footwearImageFilename,
+                onChange: patch => updateToolSettings(patch),
+                onApplyPhoto: applyFootwearPhoto,
+              }}
+              onError={message => setError(message)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/*
+        One place for the next step (Try it on sat at the top of the clothes column, its status
+        lines twice under it), kept in view at the bottom while the clothes are picked.
+      */}
+      <div
+        className="ui-sticky-surface sticky bottom-2 z-20 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/95 px-3 py-2 shadow-lg backdrop-blur"
+        data-testid="fitting-try-panel"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <FittingStatusStrip
+            className="min-w-0 flex-1"
+            statusLine={statusLine}
+            // A missing plate is said once (the stage and the card at the top).
+            queueBlockReason={queueBlocked && character && hasReference ? queueBlockReason : null}
+          />
+          <div className="shrink-0 space-y-1">
+            <FittingActionRow
+              variant="panel"
+              continueDayHref={softAdvance ? null : continueDayHref}
+              dayPlannerHref={dayPlannerHref}
+              queueBlocked={queueBlocked}
+              queueBlockReason={null}
+              swipeDeckLength={swipeDeck.length}
+              hasKit={Boolean(shared.lockedWardrobeId?.trim())}
+              busy={busy}
+              character={character}
+              compareActive={compareTryOns.length > 0 && !continueDayHref}
+              softAdvanceActive={Boolean(softAdvance)}
+              onSkipKit={skipKit}
+              onQueueTryOn={tryOnNow}
+              onQueueTryOnAndSwipe={tryOnAndNext}
+              onSaveKitToCast={saveKitToCast}
+              onGoRoleplay={goRoleplay}
+            />
+            {saveStatus && !pending ? (
+              <p className="type-caption text-[var(--text-muted)]">{saveStatus}</p>
+            ) : null}
+            <FittingKeeperStandInNote
+              status={keeperStandIn}
+              busy={busy}
+              onMake={makeStandingPicture}
+            />
+            {error ? <FieldError>{error}</FieldError> : null}
+          </div>
+        </div>
       </div>
 
       <TaskRequirementsCard
@@ -434,7 +573,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
 
       <CollapsibleSection
         title="Prompt (advanced)"
-        summary="Edit the try-on prompt — Try it on is in the Clothes column."
+        summary="Edit the try-on prompt — Try it on is in the bar at the bottom."
         defaultOpen={false}
         persistKey="fitting-prompt-advanced"
       >

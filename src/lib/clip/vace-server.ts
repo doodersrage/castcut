@@ -212,7 +212,8 @@ export function restyleClip(
  */
 async function trackMask(
   context: ChunkedRerenderContext,
-  mask: string,
+  /** The first frame's painted mask (an input picture), or what to find by name. */
+  target: string | { find: string; invert?: boolean },
   comfyUrl?: string
 ): Promise<string | null> {
   try {
@@ -263,7 +264,7 @@ async function trackMask(
       signal,
       prompt: buildClipTrackGraph({
         video: uploaded.name,
-        mask,
+        ...(typeof target === 'string' ? { mask: target } : target),
         ...size,
         fps,
         prefix: 'Castcut-track',
@@ -344,6 +345,59 @@ export function removeFromClip(
         mode: chunk.extra.maskChunk
           ? { kind: 'remove', mask: chunk.extra.maskChunk, maskIsVideo: true, words: input.words }
           : { kind: 'remove', mask: chunk.extra.mask ?? '', words: input.words },
+      }),
+  });
+}
+
+/**
+ * Change the background (2026-11-05): the people found by SAM 3 in every frame (by the word
+ * "person"), everything else redrawn by VACE as `words` ("a rainy street at night") — their
+ * clothes, faces and movement untouched. Without SAM 3, or with nobody found, it stops and says so
+ * (a guessed mask would repaint the people).
+ */
+export function changeClipBackground(input: ChunkedClipInput & { words: string }): Promise<string> {
+  const progress = input.job?.progress ?? (() => undefined);
+  return rerenderClipInChunks(input, {
+    label: 'Change the background',
+    models: [...VACE_MODELS, { folder: 'checkpoints', file: CLIP_TRACK_MODEL }],
+    verb: 'Changing the background of',
+    uploadName: 'castcut-background',
+    outName: 'castcut-background.mp4',
+    saveNode: CLIP_VACE_SAVE_NODE,
+    freeAfter: true,
+    prepare: async (context): Promise<Record<string, string>> => {
+      progress({ note: 'Finding the people in every frame' });
+      const tracked = await trackMask(context, { find: 'person', invert: true }, input.comfyUrl);
+      if (!tracked) {
+        throw new Error(
+          'Could not find the people in this clip (SAM 3) — Change the background needs someone in the shot.'
+        );
+      }
+      return { tracked, ...(await lowOnlyFlag(context.baseUrl)) };
+    },
+    perChunk: async (chunk, context): Promise<Record<string, string>> => {
+      const part = path.join(/* turbopackIgnore: true */ context.dir, `mask-${chunk.index}.mp4`);
+      await context.cut(context.extra.tracked!, part, chunk);
+      const uploaded = await uploadComfyInputContent({
+        baseUrl: context.baseUrl,
+        bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ part)),
+        filename: `castcut-background-mask-${chunk.index}.mp4`,
+        mimeType: 'video/mp4',
+      });
+      return { maskChunk: uploaded.name };
+    },
+    graph: chunk =>
+      buildClipVaceGraph({
+        ...chunk,
+        lowOnly: chunk.extra.lowOnly === '1',
+        prefix: 'Castcut-background-part',
+        mode: {
+          kind: 'remove',
+          mask: chunk.extra.maskChunk ?? '',
+          maskIsVideo: true,
+          words: input.words,
+          background: true,
+        },
       }),
   });
 }

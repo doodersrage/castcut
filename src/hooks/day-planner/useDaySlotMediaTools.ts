@@ -24,6 +24,7 @@ export type DaySlotMediaTool =
   | 'realism'
   | 'restyle'
   | 'remove'
+  | 'background'
   | 'motion'
   | 'moves'
   | 'dance'
@@ -38,6 +39,7 @@ export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
   realism: 'Making it more realistic…',
   restyle: 'Restyling…',
   remove: 'Removing it…',
+  background: 'Changing the background…',
   motion: 'Moving it…',
   moves: 'Copying moves…',
   dance: 'Dancing…',

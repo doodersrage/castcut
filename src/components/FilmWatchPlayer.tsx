@@ -139,7 +139,9 @@ export default function FilmWatchPlayer({
           <video
             key={shot.url}
             ref={videoRef}
-            src={shot.url}
+            // Its first frame before Watch (it was a blank box until played).
+            src={`${shot.url}#t=0.1`}
+            preload="metadata"
             className="h-full w-full object-contain"
             playsInline
             muted
