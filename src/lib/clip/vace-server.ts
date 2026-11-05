@@ -36,6 +36,40 @@ const VACE_MODELS = [
   { folder: 'vae', file: CLIP_VACE_MODELS.vae },
 ];
 
+/** Frame `index` of a video as a PNG (ffmpeg to a pipe), or null. */
+function framePng(
+  ffmpeg: string,
+  source: string,
+  index: number,
+  signal?: AbortSignal
+): Promise<Buffer | null> {
+  return new Promise(resolve => {
+    const child = spawn(
+      ffmpeg,
+      [
+        '-v',
+        'error',
+        '-i',
+        source,
+        '-vf',
+        `select=eq(n\\,${Math.max(0, Math.round(index))})`,
+        '-frames:v',
+        '1',
+        '-f',
+        'image2pipe',
+        '-c:v',
+        'png',
+        '-',
+      ],
+      { stdio: ['ignore', 'pipe', 'ignore'], signal }
+    );
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
+    child.on('error', () => resolve(null));
+    child.on('close', code => resolve(code === 0 && chunks.length ? Buffer.concat(chunks) : null));
+  });
+}
+
 /** The clip's first frame as a PNG (ffmpeg to a pipe), or null. */
 function firstFramePng(
   ffmpeg: string,
@@ -116,9 +150,28 @@ export function restyleClip(
       const png = await firstFramePng(ffmpeg, source, signal);
       return { scene: png ? await describeColours(png, input.llm) : '' };
     },
+    // A later chunk: the chunk before's restyled frame where this one starts, as the reference.
+    perChunk: async (chunk, context): Promise<Record<string, string>> => {
+      if (!context.previous) return {};
+      const frame = await framePng(
+        context.ffmpeg,
+        context.previous.file,
+        chunk.start - context.previous.start,
+        context.signal
+      );
+      if (!frame) return {};
+      const uploaded = await uploadComfyInputContent({
+        baseUrl: context.baseUrl,
+        bytes: new Uint8Array(frame),
+        filename: `castcut-restyle-ref-${chunk.index}.png`,
+        mimeType: 'image/png',
+      });
+      return { reference: uploaded.name };
+    },
     graph: chunk =>
       buildClipVaceGraph({
         ...chunk,
+        reference: chunk.extra.reference,
         prefix: 'Castcut-restyle-part',
         mode: input.style
           ? { kind: 'restyle', style: input.style }

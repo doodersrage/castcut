@@ -23,7 +23,17 @@ describe('Restyle and Remove on VACE', () => {
     assert.deepEqual(vace.inputs.control_video, ['30', 0]);
     assert.equal(vace.inputs.control_masks, undefined);
     assert.equal(vace.inputs.length, 81);
-    assert.equal((graph['30'] as Node).class_type, 'DepthAnythingV2Preprocessor');
+    assert.equal((graph['28'] as Node).class_type, 'DepthAnythingV2Preprocessor');
+    // The depth smoothed (its steps came out as contour lines on skin).
+    assert.equal((graph['30'] as Node).class_type, 'ImageBlur');
+    assert.equal(vace.inputs.reference_image, undefined);
+    // A later chunk: the chunk before's restyled frame as the reference.
+    const later = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'restyle', style: 'noir' },
+      reference: 'ref.png',
+    });
+    assert.deepEqual(ofType(later, 'WanVaceToVideo')[0]!.inputs.reference_image, ['27', 0]);
     const texts = ofType(graph, 'CLIPTextEncode').map(node => node.inputs.text as string);
     assert.match(texts[0]!, /Black-and-white film noir/);
     assert.match(texts[1]!, /colour/);

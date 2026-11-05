@@ -102,7 +102,11 @@ export type ChunkedRerender = {
    */
   perChunk?: (
     chunk: ClipRealismChunk & { index: number },
-    context: ChunkedRerenderContext & { extra: Record<string, string> }
+    context: ChunkedRerenderContext & {
+      extra: Record<string, string>;
+      /** The chunk before, as rendered (its file and first source frame); none for the first. */
+      previous?: { file: string; start: number };
+    }
   ) => Promise<Record<string, string>>;
   /**
    * Unload ComfyUI's models when done (or failed): VACE's two 14B experts stayed in RAM after a
@@ -263,8 +267,16 @@ export async function rerenderClipInChunks(
       });
       const part = file(`chunk-${index}.mp4`);
       await cut(source, part, chunk);
+      const before = index > 0 ? chunks[index - 1] : undefined;
+      const previous =
+        before && rendered[index - 1]
+          ? { file: rendered[index - 1]!, start: before.start }
+          : undefined;
       const chunkExtra = how.perChunk
-        ? { ...extra, ...(await how.perChunk({ ...chunk, index }, { ...context, extra })) }
+        ? {
+            ...extra,
+            ...(await how.perChunk({ ...chunk, index }, { ...context, extra, previous })),
+          }
         : extra;
       const uploaded = await uploadComfyInputContent({
         baseUrl,

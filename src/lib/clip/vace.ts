@@ -125,6 +125,18 @@ export function buildClipVaceGraph(input: {
    * came out blue); the first frame as VACE's reference instead pulled it back to a photograph.
    */
   scene?: string;
+  /**
+   * Only the low-noise expert, for all 4 steps (one 17 GB model in memory, not two): for a
+   * machine short of RAM — the two experts took ComfyUI to ~30 GB (vace-server.ts decides).
+   */
+  lowOnly?: boolean;
+  /**
+   * Restyle, a later chunk: the chunk before's restyled frame where this one starts (an input
+   * picture) as VACE's reference, so the look's details carry on — each chunk redrew the walls
+   * on its own (a window, then a painting, then wallpaper over 30 s). Already in the look, so it
+   * doesn't pull back to a photograph as the clip's own frame did.
+   */
+  reference?: string;
 }): Record<string, unknown> {
   const { width, height, frames } = input;
   const mode = input.mode;
@@ -181,7 +193,7 @@ export function buildClipVaceGraph(input: {
   let control: [string, number];
   let masks: [string, number] | null = null;
   if (mode.kind === 'restyle') {
-    graph['30'] = {
+    graph['28'] = {
       class_type: 'DepthAnythingV2Preprocessor',
       inputs: {
         image: ['3', 0],
@@ -189,7 +201,19 @@ export function buildClipVaceGraph(input: {
         resolution: Math.min(1024, Math.max(64, Math.round(Math.max(width, height) / 64) * 64)),
       },
     };
+    // Smoothed: the depth map's steps came out as contour lines on skin, like wood grain (30 s).
+    graph['30'] = {
+      class_type: 'ImageBlur',
+      inputs: { image: ['28', 0], blur_radius: 6, sigma: 3 },
+    };
     control = ['30', 0];
+    if (input.reference) {
+      graph['29'] = { class_type: 'LoadImage', inputs: { image: input.reference } };
+      graph['27'] = {
+        class_type: 'ImageScale',
+        inputs: { image: ['29', 0], upscale_method: 'lanczos', width, height, crop: 'disabled' },
+      };
+    }
   } else {
     // The painted area, white on black, scaled to the frame, a little grown: one picture repeated
     // on every frame, or the mask video SAM 3 tracked through the clip (this chunk's frames).
@@ -261,6 +285,7 @@ export function buildClipVaceGraph(input: {
         strength: 1,
         control_video: control,
         ...(masks ? { control_masks: masks } : {}),
+        ...(input.reference && !masks ? { reference_image: ['27', 0] } : {}),
       },
     },
     '41': {
@@ -317,6 +342,12 @@ export function buildClipVaceGraph(input: {
       inputs: { video: ['39', 0], filename_prefix: input.prefix, format: 'mp4', codec: 'h264' },
     },
   });
+  if (input.lowOnly) {
+    (graph['41'] as { inputs: Record<string, unknown> }).inputs.model = ['22', 0];
+    delete graph['10'];
+    delete graph['11'];
+    delete graph['12'];
+  }
   return graph;
 }
 
