@@ -34,7 +34,7 @@ export default function CharacterToolSections({ description, ...vm }: CharacterT
   return (
     <ToolLayout
       accent={accent}
-      title="Character"
+      title="Character stills"
       description={description}
       sidebarPersistKey="character"
       sidebar={

@@ -114,7 +114,7 @@ export function castChecklist(facts: CastChecklistFacts): CastChecklist {
     },
     {
       id: 'film',
-      label: 'Film cut',
+      label: 'Film saved',
       done: films > 0,
       detail:
         films > 0

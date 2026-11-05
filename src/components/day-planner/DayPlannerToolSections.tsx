@@ -633,6 +633,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         onResolve={action => void resolveCutProblems(action)}
       />
       <ToolLayout
+        width="full"
         accent={ACCENT}
         title="Day"
         description={description}

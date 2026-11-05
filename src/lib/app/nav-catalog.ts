@@ -62,7 +62,8 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
       },
       {
         href: '/character',
-        label: 'Character',
+        // "Character" beside Cast read as the same page: this one makes stills of a character.
+        label: 'Character stills',
         description: 'Person, pet, fantasy, or environment — switch on the page',
       },
     ],

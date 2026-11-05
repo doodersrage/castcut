@@ -200,6 +200,7 @@ export default function FilmDirector() {
   const scene = `/scene?character=${encodeURIComponent(castId)}`;
   return (
     <ToolLayout
+      width="full"
       accent="amber"
       title="Film Director"
       description={

@@ -90,6 +90,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
   return (
     <div data-testid="play-campaign" data-mobile-studio={props.mobileStudio ? 'true' : 'false'}>
       <ToolLayout
+        width="full"
         accent={ACCENT}
         title={props.campaignComplete ? 'Film complete' : 'Your film'}
         description={

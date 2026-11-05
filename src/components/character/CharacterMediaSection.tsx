@@ -274,7 +274,7 @@ export default function CharacterMediaSection({
             compact
             icon="inbox"
             title="Nothing stamped yet"
-            description="Queue from Generate, Story, or Video with this character active. Older stills stay untagged."
+            description="Render in Day, Story or Scene with this character, or make a still on Character. Older stills stay untagged."
             action={{ label: 'Generate as this character', onClick: () => go('/character') }}
           />
         )

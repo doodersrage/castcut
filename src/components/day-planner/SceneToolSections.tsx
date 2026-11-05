@@ -113,6 +113,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   return (
     <>
       <ToolLayout
+        width="full"
         accent={ACCENT}
         title="Scene"
         description="One shot, exactly as you want it — render takes, keep the best, make it move."

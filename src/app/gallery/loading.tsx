@@ -7,7 +7,7 @@ export default function GalleryLoading() {
     <PageCanvas accent="neutral">
       <ToolLayout
         accent="neutral"
-        width="wide"
+        width="full"
         title="Gallery"
         description="Browse outputs, review and compare variants, run experiments, and queue follow-up work from one place."
       >

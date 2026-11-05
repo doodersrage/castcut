@@ -56,7 +56,7 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
   return (
     <ToolLayout
       accent="sky"
-      width="wide"
+      width="full"
       title={character.name}
       description={
         character.descriptor?.trim() ||

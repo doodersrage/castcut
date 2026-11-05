@@ -2942,3 +2942,37 @@ Order: T1 (it can take ComfyUI down), T2, T3, T4.
   every draft fails).
 - T4: `play-ab.mjs` run live with `"own"` and `"original"`: the baseline on the render's own seed
   reproduced it exactly.
+
+# Part 16 — UI consistency pass (2026-11-04)
+
+The user asked whether the UI should be more consistent with similar apps; an audit of 22 pages
+(desk screenshots against the running app, demo Cast, writes refused) found, and the user said
+"do all":
+
+1. **One place for the next step.** The Gallery's empty state said its next step three times
+   (the empty state, a duplicate button and a Continue chip) — now once, with the phone's starter
+   film on the empty state's own button; "Generate" (not in Castcut) left out of the Gallery's,
+   the Queue's and the Cast media's empty copy and the Dashboard's description. The Dashboard's
+   Film-workspace checklist shows first-run setup only (the film's steps are Film's) and is full
+   width. Cast's "Film cut" step is "Film saved" (it counts saved films — the header's "Save film
+   to Cast"). The four "what's next" panels were left as they are: setup, one Cast's progress,
+   and the production are different questions (the screenshots' disagreement came from demo data
+   that marks a film cut with none saved).
+2. **One width.** Workspace pages (the Film top bar, Film Director, Queue, Dashboard) are all
+   `full` (they were three widths — 976 / 1104 / 1232 px — and the page jumped as you moved along
+   the top bar); Settings, Profile and the classic tools keep the form width. The Dashboard's
+   "Library" overline is gone in Castcut (Film pages carry none).
+3. **One step language.** Day and Story's phase strips are one component (`PhaseStrip`), named
+   for their scope ("This Day", "This Story") so their numbers aren't Film's, with Film's words:
+   Stills · Animate · Cut film · Save film (was Queue · Animate · Cut · Save).
+4. **Cut like an editor.** The monitor and the inspector side by side (the inspector as tall as the
+   monitor, scrolling inside), the timeline the full width under both, and a lane per sound track
+   — clip sound (spoken lines), narration, music (waveform), ambience, effects (at their times) —
+   each with its name, M and S at the lane's start (the old separate Tracks row); a lane you can't
+   hear is dimmed. Test ids kept (`cut-track-*`, `cut-sound-lane`, `cut-sound-note`).
+5. **Names.** "Open home" → "Open" on the Cast roster; the Character page (stills of a character,
+   easily read as the Cast page) is "Character stills".
+
+Checked: unit 9,127 pass, `tsc`, lint, import boundaries, core; screenshots after each step. Not
+run locally: e2e (the user's dev server holds :47832, and reusing it would run against their real
+data) — CI runs them.

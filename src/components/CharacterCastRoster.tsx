@@ -157,7 +157,7 @@ export default function CharacterCastRoster() {
   return (
     <ToolLayout
       accent="sky"
-      width="wide"
+      width="full"
       title="Characters"
       description="Everyone you make films with."
     >
@@ -307,7 +307,7 @@ export default function CharacterCastRoster() {
                       data-testid={`cast-roster-open-home-${character.id}`}
                       onClick={() => applyAndOpenHome(character.id)}
                     >
-                      Open home
+                      Open
                     </Button>
                     <Button
                       size="sm"

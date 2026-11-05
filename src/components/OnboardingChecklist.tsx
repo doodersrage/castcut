@@ -143,13 +143,9 @@ export default function OnboardingChecklist() {
     return null;
   }
 
-  // Play shows the film steps, after Heal & ready: this checklist owns first-run setup.
-  const playFocusIds = new Set([
-    'system-workflows',
-    'first-play-campaign',
-    'first-film-cut',
-    'watch-first-film',
-  ]);
+  // Play: first-run setup only — the film's own steps are Film's (its step tracker and the
+  // header's next step); listed here too they were a second, struck-through copy (2026-11-04).
+  const playFocusIds = new Set(['system-workflows']);
   const core = accessibleSteps.filter(step => {
     if (!isOnboardingCoreStep(step.id)) {
       return false;
@@ -165,12 +161,15 @@ export default function OnboardingChecklist() {
     ? accessibleSteps.filter(step => step.id === 'discover-palette' || step.id === 'pin-tool')
     : [];
   const nextOpen = core.find(step => !step.done);
+  if (isPlay && !nextOpen) {
+    return null;
+  }
 
   return (
-    <div className="mx-auto mb-6 max-w-3xl rounded-[var(--radius-xl)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 shadow-[var(--shadow-surface)]">
+    <div className="mb-6 rounded-[var(--radius-xl)] border border-[var(--accent-border)] bg-[var(--accent-muted)] p-4 shadow-[var(--shadow-surface)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-[var(--accent-text)]">
-          {isPlay ? 'Finish your film' : 'Getting started'}
+          {isPlay ? 'Get set up' : 'Getting started'}
         </p>
         <Button
           size="sm"
@@ -225,6 +224,15 @@ export default function OnboardingChecklist() {
           <StepRow key={step.id} step={step} />
         ))}
       </ul>
+      {isPlay ? (
+        <p className="mt-2 type-caption text-[var(--text-muted)]">
+          Then make your film on{' '}
+          <Link href="/play" className="text-[var(--accent-text)] hover:text-[var(--text-primary)]">
+            Film
+          </Link>
+          .
+        </p>
+      ) : null}
       {simpleTips.some(step => !step.done) ? (
         <div className="mt-4 border-t border-[var(--border-subtle)] pt-3">
           <p className="type-caption mb-2 text-[var(--text-muted)]">Quick tips</p>

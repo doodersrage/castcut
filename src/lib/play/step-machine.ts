@@ -129,7 +129,8 @@ export const PLAY_DAY_PHASES: Array<{
 }> = [
   {
     id: 'queue',
-    label: 'Queue',
+    // Named as Film's steps and the header name them (2026-11-04: "Queue", "Cut", "Save").
+    label: 'Stills',
     description: 'Generate morning → night stills.',
   },
   {
@@ -139,12 +140,12 @@ export const PLAY_DAY_PHASES: Array<{
   },
   {
     id: 'cut',
-    label: 'Cut',
+    label: 'Cut film',
     description: 'Assemble the Day reel.',
   },
   {
     id: 'save',
-    label: 'Save',
+    label: 'Save film',
     description: 'Stamp the reel into Cast / Gallery.',
   },
 ];
@@ -156,7 +157,7 @@ export const PLAY_STORY_PHASES: Array<{
 }> = [
   {
     id: 'queue',
-    label: 'Queue',
+    label: 'Stills',
     description: 'Roll scenes and queue stills.',
   },
   {
@@ -166,7 +167,7 @@ export const PLAY_STORY_PHASES: Array<{
   },
   {
     id: 'cut',
-    label: 'Cut',
+    label: 'Cut film',
     description: 'Assemble the Story reel.',
   },
 ];

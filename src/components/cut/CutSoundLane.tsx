@@ -1,13 +1,24 @@
 'use client';
 
 /**
- * Cut's sound lane, under the shots: the music's waveform over the cut's length (where it runs
- * out, or runs on past the end), and where lines are spoken and narration plays.
+ * Cut's sound lanes, under the shots — one per track, in CUT_TRACKS' order, as an editor's
+ * timeline has them (2026-11-04; before, one lane held the music and the lines together): where
+ * lines are spoken (the clips' sound), where narration plays, the music's waveform over the cut
+ * (where it runs out, or runs on past the end), the ambience under it all, and each effect where
+ * it starts. A lane you can't hear (muted, or another soloed) is dimmed.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import { audioPeaks } from '@/lib/audio/peaks-client';
+import { CUT_TRACKS, type CutSoundOptions, type CutTrack } from '@/lib/video/cut-sound';
+
+/** Where the lanes start under the shots, and each lane's height (px). */
+export const CUT_LANES_TOP = 118;
+export const CUT_LANE_HEIGHT = 28;
+export const CUT_LANES_HEIGHT = CUT_LANE_HEIGHT * CUT_TRACKS.length;
+
+const laneTop = (track: CutTrack) => CUT_TRACKS.indexOf(track) * CUT_LANE_HEIGHT;
 
 export default function CutSoundLane({
   loaded,
@@ -15,6 +26,8 @@ export default function CutSoundLane({
   width,
   bedUrl,
   bedLabel,
+  sound,
+  audible,
 }: {
   loaded: CutPreviewLoaded | null;
   /** Pixels per second (the timeline's scale). */
@@ -22,6 +35,10 @@ export default function CutSoundLane({
   width: number;
   bedUrl?: string;
   bedLabel?: string;
+  /** The ambience and the effects (cut-sound.ts). */
+  sound?: CutSoundOptions | null;
+  /** Whether each track is heard (mute and solo); unset tracks are. */
+  audible?: Partial<Record<CutTrack, boolean>>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // The waveform of the track it was read from (a changed track shows nothing until read).
@@ -74,46 +91,96 @@ export default function CutSoundLane({
     : bedUrl
       ? 'Reading the music…'
       : 'No music — add a track or Score this film in Options';
+  const lane = (track: CutTrack, children: ReactNode) => (
+    <div
+      key={track}
+      className={`absolute inset-x-0 border-t border-[var(--border-subtle)] ${audible?.[track] === false ? 'opacity-35' : ''}`}
+      style={{ top: laneTop(track), height: CUT_LANE_HEIGHT }}
+      data-testid={`cut-lane-${track}`}
+    >
+      {children}
+    </div>
+  );
+  const ambience = sound?.ambienceUrl?.trim() ? sound.ambienceName?.trim() || 'Ambience' : '';
+  const effects = sound?.effects ?? [];
   return (
     <div
       className="absolute inset-x-0"
-      style={{ top: 118, height: 52 }}
+      style={{ top: CUT_LANES_TOP, height: CUT_LANES_HEIGHT }}
       data-testid="cut-sound-lane"
     >
-      <canvas
-        ref={canvasRef}
-        width={Math.max(1, Math.round(width))}
-        height={30}
-        className="absolute left-0 top-0 h-[30px]"
-        style={{ width: Math.round(width) }}
-        aria-hidden
-      />
-      {lines.map(item => (
-        <span
-          key={`l${item.shot}`}
-          className="absolute top-0 h-[30px] rounded-sm border border-[var(--accent)] bg-[var(--accent)]/20"
-          style={{ left: item.startSec * pps, width: Math.max(4, item.durSec * pps - 2) }}
-          title={`Line: “${loaded?.shots[item.shot]?.spoken}”`}
-        />
-      ))}
-      {narrated.map(item => (
-        <span
-          key={`n${item.shot}`}
-          className="absolute top-[18px] h-[12px] truncate rounded-sm bg-amber-400/70 px-1 text-4xs leading-[12px] text-black"
-          style={{ left: item.startSec * pps, width: Math.max(24, item.durSec * pps - 2) }}
-          title={`Narration: ${loaded?.shots[item.shot]?.narrationText}`}
-        >
-          {loaded?.shots[item.shot]?.narrationText}
-        </span>
-      ))}
-      <span
-        className="absolute left-1 top-[32px] truncate text-3xs text-[var(--text-muted)]"
-        data-testid="cut-sound-note"
-      >
-        ♪ {note}
-        {lines.length ? ` · ${lines.length} line${lines.length === 1 ? '' : 's'}` : ''}
-        {narrated.length ? ` · ${narrated.length} narrated` : ''}
-      </span>
+      {lane(
+        'clips',
+        lines.map(item => (
+          <span
+            key={`l${item.shot}`}
+            className="absolute top-1 h-5 truncate rounded-sm border border-[var(--accent)] bg-[var(--accent)]/20 px-1 text-4xs leading-5 text-[var(--text-secondary)]"
+            style={{ left: item.startSec * pps, width: Math.max(4, item.durSec * pps - 2) }}
+            title={`Line: “${loaded?.shots[item.shot]?.spoken}”`}
+          >
+            {loaded?.shots[item.shot]?.spoken}
+          </span>
+        ))
+      )}
+      {lane(
+        'narration',
+        narrated.map(item => (
+          <span
+            key={`n${item.shot}`}
+            className="absolute top-1 h-5 truncate rounded-sm bg-amber-400/70 px-1 text-4xs leading-5 text-black"
+            style={{ left: item.startSec * pps, width: Math.max(24, item.durSec * pps - 2) }}
+            title={`Narration: ${loaded?.shots[item.shot]?.narrationText}`}
+          >
+            {loaded?.shots[item.shot]?.narrationText}
+          </span>
+        ))
+      )}
+      {lane(
+        'music',
+        <>
+          <canvas
+            ref={canvasRef}
+            width={Math.max(1, Math.round(width))}
+            height={24}
+            className="absolute left-0 top-0.5 h-[24px]"
+            style={{ width: Math.round(width) }}
+            aria-hidden
+          />
+          <span
+            className="absolute left-1 top-0.5 max-w-full truncate rounded-sm bg-[var(--bg-surface)]/80 px-1 text-3xs leading-4 text-[var(--text-muted)]"
+            data-testid="cut-sound-note"
+          >
+            ♪ {note}
+            {lines.length ? ` · ${lines.length} line${lines.length === 1 ? '' : 's'}` : ''}
+            {narrated.length ? ` · ${narrated.length} narrated` : ''}
+          </span>
+        </>
+      )}
+      {lane(
+        'ambience',
+        ambience ? (
+          <span
+            className="absolute top-1 h-5 truncate rounded-sm bg-emerald-500/25 px-1 text-4xs leading-5 text-[var(--text-secondary)]"
+            style={{ left: 0, width: Math.max(24, total * pps) }}
+            title={`Ambience under the whole film: ${ambience}`}
+          >
+            {ambience}
+          </span>
+        ) : null
+      )}
+      {lane(
+        'effects',
+        effects.map(effect => (
+          <span
+            key={effect.id}
+            className={`absolute top-1 h-5 max-w-40 truncate rounded-sm border-l-2 border-sky-500 bg-sky-500/20 px-1 text-4xs leading-5 text-[var(--text-secondary)] ${effect.muted ? 'opacity-40' : ''}`}
+            style={{ left: effect.atSec * pps }}
+            title={`${effect.name || 'Sound'} at ${effect.atSec.toFixed(1)} s`}
+          >
+            {effect.name || 'Sound'}
+          </span>
+        ))
+      )}
     </div>
   );
 }

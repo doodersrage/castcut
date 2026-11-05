@@ -135,8 +135,9 @@ export default function HomeDashboard() {
   return (
     <ToolLayout
       accent={ACCENT}
-      width="wide"
-      badge={<ToolBadge accent={ACCENT}>Library</ToolBadge>}
+      width="full"
+      // Film pages carry no overline: the header's tabs name the page (ToolLayout's badge).
+      badge={APP_HAS_PLAY ? undefined : <ToolBadge accent={ACCENT}>Library</ToolBadge>}
       title="Dashboard"
       description={description}
     >

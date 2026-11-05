@@ -84,7 +84,19 @@ export default function PlayGalleryEmptyPanel({
         icon="inbox"
         title="No gallery outputs yet"
         description="Start a film to queue Day stills, generate a surprise still, or upload your own."
-        action={{ label: filmCta.label, href: href(filmCta.href) }}
+        // The film's next step, once (the header's button says it too): on the phone, Film's
+        // starter film is started at once.
+        action={
+          mobile && filmCta.href === '/play'
+            ? {
+                label: filmCta.label,
+                onClick: () => {
+                  const result = startStarterPlayFilm();
+                  window.location.assign(toMobileStudioHref(result.href));
+                },
+              }
+            : { label: filmCta.label, href: href(filmCta.href) }
+        }
       />
       <div className="ui-panel-accent relative px-4 py-4">
         <p className="flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
@@ -98,10 +110,6 @@ export default function PlayGalleryEmptyPanel({
               Make a starter film
             </strong>{' '}
             — Day will queue morning → night stills.
-          </li>
-          <li>
-            Or use <strong className="font-medium text-[var(--text-secondary)]">Generate</strong>{' '}
-            for a single still, then continue the film loop.
           </li>
           <li>
             Use <strong className="font-medium text-[var(--text-secondary)]">Upload images</strong>{' '}
@@ -119,22 +127,6 @@ export default function PlayGalleryEmptyPanel({
               Upload images
             </button>
           ) : null}
-          <ButtonLink
-            href={href(filmCta.href)}
-            size="sm"
-            data-testid="gallery-empty-starter"
-            onClick={event => {
-              if (!mobile || filmCta.href !== '/play') {
-                return;
-              }
-              event.preventDefault();
-              const result = startStarterPlayFilm();
-              window.location.assign(toMobileStudioHref(result.href));
-            }}
-          >
-            {filmCta.label}
-          </ButtonLink>
-          <PlayContinueChip variant="secondary" />
           <ButtonLink href={href('/day')} variant="ghost" size="sm">
             Open Day
           </ButtonLink>

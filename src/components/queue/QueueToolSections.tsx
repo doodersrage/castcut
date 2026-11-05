@@ -81,7 +81,7 @@ export default function QueueToolSections({
   );
   const filmCta = useStudioEmptyCta(generateCta);
   return (
-    <ToolLayout accent={ACCENT} title="Queue" description={description}>
+    <ToolLayout width="full" accent={ACCENT} title="Queue" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
       <ToolActionRow>
         <AppSlot name="queue.top" />
@@ -124,7 +124,7 @@ export default function QueueToolSections({
               title="Queue is empty"
               description={
                 APP_HAS_PLAY
-                  ? 'Continue your film on Day, or send a still from Generate. Engines can wait — try demo stills on Day if Comfy is offline.'
+                  ? 'Renders from Day, Story, Scene and Outfit show here while ComfyUI works on them. ComfyUI offline? Day can use demo stills.'
                   : 'Send a still from Generate or any tool — it shows here while ComfyUI works on it.'
               }
               action={filmCta}

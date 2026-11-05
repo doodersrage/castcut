@@ -66,8 +66,7 @@ export const HUB_PAGE_DESCRIPTIONS = {
   },
   dashboard: {
     full: 'Pending ComfyUI jobs, recent outputs, queue status, and your active project — without the generator UI in the way.',
-    simple:
-      'Queue status and recent outputs at a glance — open Generate when you are ready to create.',
+    simple: 'Queue status and recent outputs at a glance.',
   },
   settings: {
     full: 'Organized by area — browser overrides apply per session; server defaults come from .env.local (see Overview).',

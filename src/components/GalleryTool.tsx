@@ -24,7 +24,7 @@ export default function GalleryTool() {
   const description = useHubPageDescription('gallery');
 
   return (
-    <ToolLayout accent={ACCENT} width="wide" title="Gallery" description={description}>
+    <ToolLayout accent={ACCENT} width="full" title="Gallery" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.gallery} />
       <ComfyUiGalleryPanel showFilters />
       {!isSimple && manage ? <GalleryImportSection /> : null}

@@ -293,7 +293,7 @@ describe("empty cta pins", () => {
     withMockLocalStorage(() => {
       saveNavFavorites(["/character"]);
       assert.deepEqual(resolveGenerateEmptyCta(), {
-        label: "Open Character",
+        label: "Open Character stills",
         href: "/character",
       });
     });
