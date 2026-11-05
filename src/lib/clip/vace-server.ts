@@ -9,6 +9,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
 import { runHeavyComfyGraph } from '../server/heavy-graph-server';
+import { parseComfyUiSystemStats } from '../comfyui/system-stats';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import { visionCompletion } from '../llm/client';
 import type { LlmRequestOptions } from '../llm/request-options';
@@ -132,6 +133,25 @@ async function describeColours(png: Buffer, llm?: LlmRequestOptions): Promise<st
 }
 
 /** Restyle: a preset look (`style`), or your own words for one (`look`). */
+/** Free RAM ComfyUI needs for both VACE experts (17 GB each) and the rest, with room to spare. */
+const VACE_BOTH_EXPERTS_RAM = 40e9;
+
+/**
+ * `{ lowOnly: '1' }` when ComfyUI is short of RAM for both experts: the low-noise expert alone
+ * (one model, not two) — live, the same chunk: the person as clearly in the look, the place more
+ * faithful but less stylised, 116 s against 140 s. Unknown RAM keeps both.
+ */
+async function lowOnlyFlag(baseUrl: string): Promise<Record<string, string>> {
+  try {
+    const response = await fetch(`${baseUrl}/system_stats`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return {};
+    const free = parseComfyUiSystemStats(await response.json()).ram?.free;
+    return free && free < VACE_BOTH_EXPERTS_RAM ? { lowOnly: '1' } : {};
+  } catch {
+    return {};
+  }
+}
+
 export function restyleClip(
   input: ChunkedClipInput &
     ({ style: ClipStyleId; look?: undefined } | { style?: undefined; look: string }) & {
@@ -146,9 +166,12 @@ export function restyleClip(
     outName: 'castcut-restyled.mp4',
     saveNode: CLIP_VACE_SAVE_NODE,
     freeAfter: true,
-    prepare: async ({ source, ffmpeg, signal }) => {
+    prepare: async ({ baseUrl, source, ffmpeg, signal }) => {
       const png = await firstFramePng(ffmpeg, source, signal);
-      return { scene: png ? await describeColours(png, input.llm) : '' };
+      return {
+        scene: png ? await describeColours(png, input.llm) : '',
+        ...(await lowOnlyFlag(baseUrl)),
+      };
     },
     // A later chunk: the chunk before's restyled frame where this one starts, as the reference.
     perChunk: async (chunk, context): Promise<Record<string, string>> => {
@@ -171,6 +194,7 @@ export function restyleClip(
     graph: chunk =>
       buildClipVaceGraph({
         ...chunk,
+        lowOnly: chunk.extra.lowOnly === '1',
         reference: chunk.extra.reference,
         prefix: 'Castcut-restyle-part',
         mode: input.style
@@ -293,10 +317,11 @@ export function removeFromClip(
         filename: 'castcut-remove-mask.png',
         mimeType: 'image/png',
       });
-      if (input.track === false) return { mask: uploaded.name };
+      const low = await lowOnlyFlag(context.baseUrl);
+      if (input.track === false) return { mask: uploaded.name, ...low };
       progress({ note: 'Following it through the clip' });
       const tracked = await trackMask(context, uploaded.name, input.comfyUrl);
-      return tracked ? { mask: uploaded.name, tracked } : { mask: uploaded.name };
+      return tracked ? { mask: uploaded.name, tracked, ...low } : { mask: uploaded.name, ...low };
     },
     // A tracked mask: this chunk's frames of it, cut as the clip's own.
     perChunk: async (chunk, context): Promise<Record<string, string>> => {
@@ -314,6 +339,7 @@ export function removeFromClip(
     graph: chunk =>
       buildClipVaceGraph({
         ...chunk,
+        lowOnly: chunk.extra.lowOnly === '1',
         prefix: 'Castcut-remove-part',
         mode: chunk.extra.maskChunk
           ? { kind: 'remove', mask: chunk.extra.maskChunk, maskIsVideo: true, words: input.words }

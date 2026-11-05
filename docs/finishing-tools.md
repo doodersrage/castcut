@@ -105,8 +105,9 @@ followed the original; the dress, shoes and walls kept their colours.
 - Without a vision model (Settings → LLM) it still restyles, but colours can change: depth
   carries none.
 - Needs WAN 2.2 Fun VACE (both experts, 17 GB each) and both WAN 2.2 Lightning LoRAs — the job
-  offers **Install** when they're missing. The two experts take a lot of memory: close other
-  big apps on that machine first.
+  offers **Install** when they're missing. When ComfyUI has under 40 GB of RAM free it runs on
+  the low-noise expert alone — one model instead of two, a little faster; the person keeps the
+  look, the place stays closer to the clip and a little less stylised.
 
 ## Remove or replace { #remove }
 

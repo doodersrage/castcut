@@ -103,4 +103,19 @@ describe('Restyle and Remove on VACE', () => {
     assert.deepEqual(track.inputs.initial_mask, ['5', 0]);
     assert.equal(ofType(graph, 'SaveVideo').length, 1);
   });
+
+  it('runs on the low-noise expert alone when asked (one model in memory)', () => {
+    const graph = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'restyle', style: 'anime' },
+      lowOnly: true,
+    });
+    assert.deepEqual(
+      ofType(graph, 'UNETLoader').map(node => node.inputs.unet_name),
+      [CLIP_VACE_MODELS.low]
+    );
+    const [first, second] = ofType(graph, 'KSamplerAdvanced');
+    assert.deepEqual(first!.inputs.model, ['22', 0]);
+    assert.deepEqual(second!.inputs.model, ['22', 0]);
+  });
 });
