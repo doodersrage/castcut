@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, ButtonLink } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import {
   COMFYUI_GALLERY_UPDATED_EVENT,
   galleryEntryHeroPreviewUrl,
@@ -17,8 +17,6 @@ import {
   COMFY_LIVE_PREVIEW_UPDATED_EVENT,
   getComfyLivePreviewUrl,
 } from '@/lib/comfyui/live-preview-store';
-import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
-import { toMobileStudioHref } from '@/lib/app/mobile-studio';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import { subscribeSharedHealth, type RawHealthResponse } from '@/lib/storage/shared-health-poll';
 
@@ -103,8 +101,6 @@ export default function MobileQueueTool() {
     }
   }, [active, refresh]);
 
-  const filmCta = useStudioEmptyCta();
-
   return (
     <div className="space-y-4" data-testid="mobile-queue">
       <div className="space-y-1">
@@ -129,32 +125,13 @@ export default function MobileQueueTool() {
       </div>
 
       {active.length === 0 ? (
-        <div
-          className="space-y-3 rounded-2xl border border-[var(--border-subtle)] px-4 py-8 text-center"
-          data-testid="mobile-queue-empty"
-        >
-          <p className="text-sm text-[var(--text-muted)]">
-            None of your jobs are rendering. Carry on with your film on Day.
-          </p>
-          <ButtonLink
-            href={toMobileStudioHref(filmCta.href)}
-            size="sm"
-            variant="primary"
-            className="justify-center"
-            data-testid="mobile-queue-empty-cta"
-          >
-            {filmCta.label}
-          </ButtonLink>
-          <ButtonLink
-            href="/m/day"
-            size="sm"
-            variant="secondary"
-            className="justify-center"
-            data-testid="mobile-queue-open-day"
-          >
+        // One line, as on desk — not a card repeating the header's next step.
+        <p className="text-sm text-[var(--text-muted)]" data-testid="mobile-queue-empty">
+          Nothing rendering.{' '}
+          <Link href="/m/day" className="underline" data-testid="mobile-queue-open-day">
             Open Day
-          </ButtonLink>
-        </div>
+          </Link>
+        </p>
       ) : (
         <ul className="space-y-2">
           {active.map(entry => {

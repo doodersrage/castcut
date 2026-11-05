@@ -24,10 +24,12 @@ export default function PhaseStrip({
 }) {
   const activePhase = phases[activeIndex]?.id ?? '';
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="type-caption text-[var(--text-muted)]">{scope}</span>
+    // One line on a phone too (it wrapped "4. Save film" under the rest): it scrolls sideways,
+    // as Film's step strip does.
+    <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <span className="type-caption shrink-0 text-[var(--text-muted)]">{scope}</span>
       <ol
-        className="flex flex-wrap gap-2"
+        className="flex shrink-0 gap-2 sm:shrink sm:flex-wrap"
         data-testid={testId}
         data-active-phase={activePhase}
         aria-label={`${scope} — phases`}
@@ -37,7 +39,7 @@ export default function PhaseStrip({
           const active = index === activeIndex;
           const detail = details[phase.id];
           return (
-            <li key={phase.id}>
+            <li key={phase.id} className="shrink-0">
               <span
                 className={`rounded-[var(--radius-md)] border px-2.5 py-1 type-caption ${
                   active
