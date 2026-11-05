@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { loadPlayCampaignState } from '@/lib/play/campaign';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import { ToolActionRow } from '@/components/ui/ToolPageShell';
 import { CastExportButton } from '@/components/cast/CastTransferControls';
 import type { useCharacterHomeOrchestration } from '@/hooks/useCharacterHomeOrchestration';
 
@@ -37,8 +36,10 @@ export default function CharacterHomeActionRow({
   }
 
   return (
-    <div className="space-y-3" data-testid="character-home-actions">
-      <ToolActionRow>
+    // One row: the film, then this character's pages, then More — three stacked rows before
+    // (a button, a caption, four buttons) under a checklist already marking the next step.
+    <div className="space-y-2" data-testid="character-home-actions">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
           variant="primary"
@@ -47,12 +48,13 @@ export default function CharacterHomeActionRow({
         >
           {filmUnderWay ? 'Continue the film' : 'Start a film'}
         </Button>
-      </ToolActionRow>
-      <div data-testid="character-home-continue">
-        <p className="type-caption mb-2 text-[var(--text-muted)]">
-          Continue with this character in
-        </p>
-        <ToolActionRow>
+        <div
+          className="flex flex-wrap items-center gap-2"
+          data-testid="character-home-continue"
+          role="group"
+          aria-label="Open with this character"
+        >
+          <span className="type-caption ml-1 text-[var(--text-muted)]">or open in</span>
           <Button
             size="sm"
             variant="secondary"
@@ -86,13 +88,13 @@ export default function CharacterHomeActionRow({
           >
             Story
           </Button>
-        </ToolActionRow>
+        </div>
       </div>
       <details>
         <summary className="type-caption cursor-pointer text-[var(--text-muted)]">More</summary>
         <div className="mt-2 flex flex-wrap gap-2">
           <Button size="sm" variant="ghost" onClick={() => go('/character')}>
-            Generate
+            Character stills
           </Button>
           <Button size="sm" variant="ghost" onClick={() => go('/video')}>
             Video

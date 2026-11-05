@@ -21,7 +21,6 @@ import QueueActiveJobRow from '@/components/queue/QueueActiveJobRow';
 import QueueJobTitle from '@/components/queue/QueueJobTitle';
 import { formatEta } from '@/lib/queue/eta';
 import QueueCompletedRow from '@/components/queue/QueueCompletedRow';
-import { useStudioEmptyCta } from '@/hooks/useEmptyCta';
 import type { useQueueToolOrchestration } from '@/hooks/useQueueToolOrchestration';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
 import { galleryFailureSummary } from '@/lib/gallery/failure-summary';
@@ -79,7 +78,6 @@ export default function QueueToolSections({
   const recentFailure = failed.some(
     entry => openedAt - (entry.completedAt ?? entry.queuedAt ?? 0) < 24 * 60 * 60 * 1000
   );
-  const filmCta = useStudioEmptyCta(generateCta);
   return (
     <ToolLayout width="full" accent={ACCENT} title="Queue" description={description}>
       <ToolSetupBanner toolLabel={TOOL_SETUP_LABELS.queue} />
@@ -117,18 +115,12 @@ export default function QueueToolSections({
               No gallery jobs are active. Host jobs that are not in this gallery are listed below.
             </p>
           ) : entries.length === 0 ? (
-            <EmptyState
-              compact
-              branded
-              icon="inbox"
-              title="Queue is empty"
-              description={
-                APP_HAS_PLAY
-                  ? 'Renders from Day, Story, Scene and Outfit show here while ComfyUI works on them. ComfyUI offline? Day can use demo stills.'
-                  : 'Send a still from Generate or any tool — it shows here while ComfyUI works on it.'
-              }
-              action={filmCta}
-            />
+            // One line, as "Nothing running." below — not a card with the header's next step.
+            <p className="text-sm text-[var(--text-muted)]" data-testid="queue-empty">
+              {APP_HAS_PLAY
+                ? 'Nothing rendering. Renders from Day, Story, Scene and Outfit show here while ComfyUI works on them.'
+                : 'Nothing rendering. Send a still from Generate or any tool — it shows here while ComfyUI works on it.'}
+            </p>
           ) : (
             // One line, not a card-sized empty box above the history.
             <p className="text-sm text-[var(--text-muted)]" data-testid="queue-idle">

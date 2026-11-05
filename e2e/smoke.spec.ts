@@ -293,7 +293,7 @@ const ADDITIONAL_ROUTES: Array<{
   heading: RegExp;
   level?: 1 | 2 | 3 | 4 | 5 | 6;
 }> = [
-  { path: '/character', heading: /^Character$/i },
+  { path: '/character', heading: /^Character stills$/i },
   { path: '/refine', heading: /^Refine$/i },
   { path: '/video', heading: /^Video$/i },
   { path: '/inpaint', heading: /^Inpaint$/i },

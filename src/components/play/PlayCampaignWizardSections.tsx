@@ -218,30 +218,32 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           <CastFirstPlatePanel characterId={props.createdCastId} mapHref={props.mapHref} />
         ) : null}
 
-        {!props.campaignComplete ? (
-          <PlayCampaignActionsSection
-            status={props.status}
-            durableCampaign={props.durableCampaign}
-            campaignCharacterMismatch={props.campaignCharacterMismatch}
-            savedCampaign={props.savedCampaign}
-            campaignComplete={props.campaignComplete}
-            characterId={props.characterId}
-            resumeStep={props.resumeStep}
-            nextAction={props.nextAction}
-            journey={props.journey}
-            activeLookPack={props.activeLookPack}
-            goToStep={props.goToStep}
-            startNewCampaign={props.startNewCampaign}
-            mapHref={props.mapHref}
-            compact={midFilm}
-            firstFilmDone={firstFilmDone}
-          />
-        ) : null}
-
-        {/* Mission-control chips — shell skips funnel on /m/film to avoid stacking. */}
-        <div className="mt-1" data-testid="play-campaign-mission-control">
-          {/* The pills track the saved film — hide them while it belongs to someone else. */}
-          {props.campaignCharacterMismatch ? null : <PlayFunnelStrip compact />}
+        {/* The step pills and the page's own actions share a row (they floated a row apart). */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          {/* Mission-control chips — shell skips funnel on /m/film to avoid stacking. */}
+          <div data-testid="play-campaign-mission-control">
+            {/* The pills track the saved film — hide them while it belongs to someone else. */}
+            {props.campaignCharacterMismatch ? null : <PlayFunnelStrip compact />}
+          </div>
+          {!props.campaignComplete ? (
+            <PlayCampaignActionsSection
+              status={props.status}
+              durableCampaign={props.durableCampaign}
+              campaignCharacterMismatch={props.campaignCharacterMismatch}
+              savedCampaign={props.savedCampaign}
+              campaignComplete={props.campaignComplete}
+              characterId={props.characterId}
+              resumeStep={props.resumeStep}
+              nextAction={props.nextAction}
+              journey={props.journey}
+              activeLookPack={props.activeLookPack}
+              goToStep={props.goToStep}
+              startNewCampaign={props.startNewCampaign}
+              mapHref={props.mapHref}
+              compact={midFilm}
+              firstFilmDone={firstFilmDone}
+            />
+          ) : null}
         </div>
 
         {midFilm || props.campaignComplete ? (

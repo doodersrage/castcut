@@ -225,7 +225,12 @@ export default function FilmDirector() {
         </ToolSection>
       ) : (
         <>
-          <ToolSection title="What next" data-testid="director-next">
+          {/* Nothing to do: one slim line, not a titled card for a sentence. */}
+          <ToolSection
+            title={listed.length || actions.length || snoozed ? 'What next' : undefined}
+            className={listed.length || actions.length || snoozed ? '' : '!py-3 sm:!py-3'}
+            data-testid="director-next"
+          >
             {listed.length ? (
               <>
                 <ol className="space-y-2">
@@ -275,8 +280,8 @@ export default function FilmDirector() {
               </p>
             ) : (
               <p className="type-caption text-[var(--text-muted)]" data-testid="director-next-none">
-                Nothing waiting on you — every Scene has a kept take, no job failed and nothing is
-                flagged.
+                <span className="font-medium text-[var(--text-secondary)]">What next:</span> nothing
+                waiting on you — every Scene has a kept take, no job failed and nothing is flagged.
               </p>
             )}
             {snoozed ? (

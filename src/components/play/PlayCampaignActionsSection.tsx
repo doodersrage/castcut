@@ -175,12 +175,7 @@ export default function PlayCampaignActionsSection({
             ) : null}
           </>
         )}
-        {/* Not on an empty Film: alone it floated under the cards (the Cast tab is in the header). */}
-        {characterId || campaignComplete ? (
-          <ButtonLink href={mapHref('/characters')} size="sm" variant="ghost">
-            Cast roster
-          </ButtonLink>
-        ) : null}
+        {/* No "Cast roster": the header's Cast tab is the roster (2026-11-04). */}
         {/* Optional, outside the steps: one shot exactly as wanted (day/scenes.ts). */}
         {characterId ? (
           <ButtonLink

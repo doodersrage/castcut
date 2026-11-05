@@ -134,7 +134,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
           characterId={character?.id}
           onOpenSetup={() => views.setSetupOpen(true)}
         />
-        <ToolSection data-testid="scene-list">
+        {/* A strip of scene tiles: a toolbar's padding, not a full section's. */}
+        <ToolSection data-testid="scene-list" className="!py-3 sm:!py-3">
           <div className="flex flex-wrap items-center gap-2">
             {scenesInOrder.length > 0 ? (
               <PortraitTileStrip
@@ -291,7 +292,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                 onAdvancedToggle={() => setAdvancedOpen(open => !open)}
                 advancedId={advancedId}
               />
-              <div className="mb-3 space-y-1.5">
+              {/* Hidden when every hint is off (it kept its margin, empty). */}
+              <div className="mb-3 space-y-1.5 empty:hidden">
                 <DayMoodHints
                   dayMood={dayMood}
                   intimateMix={intimateMix}
