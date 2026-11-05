@@ -188,5 +188,7 @@
   "src/lib/clip/vace-server.ts",
   "src/app/api/clip/restyle/route.ts",
   "src/app/api/clip/remove/route.ts",
-  "src/lib/clip/remove-open.ts"
+  "src/lib/clip/remove-open.ts",
+  "src/components/play/ClipRestyleHost.tsx",
+  "src/lib/clip/restyle-open.ts"
 ]

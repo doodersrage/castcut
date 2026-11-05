@@ -9,7 +9,7 @@ are in the [Gallery](#gallery) too.
 | [Sharpen & smooth](#sharpen-smooth)    | A clip   | 3 min             | —                            |
 | [Make more realistic](#realism)        | A clip   | A few min per 5 s | —                            |
 | [Restyle](#restyle)                    | A clip   | 6 min for 5 s     | A look                       |
-| [Remove something](#remove)            | A clip   | 6 min for 5 s     | What goes, painted           |
+| [Remove or replace](#remove)           | A clip   | 6 min for 5 s     | What goes, painted           |
 | [Copy moves from a video](#copy-moves) | A still  | 5 min for 5 s     | A video of one person        |
 | [Direct a move](#director)             | A still  | 3 min for 5 s     | A few beats, posed or picked |
 | [Dance to music](#dance)               | A still  | 10 min for 6 s    | A song                       |
@@ -43,8 +43,8 @@ Queue, Animate and Play another.
 ## In the Gallery { #gallery }
 
 Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth**,
-**Make more realistic**, [**Restyle**](#restyle) (one item per look) and
-[**Remove something…**](#remove). A finished still's **⋯** → **Make it move** has
+**Make more realistic**, [**Restyle…**](#restyle) and [**Remove or replace…**](#remove).
+Day, Scene and Story's card menus have **Restyle…** too. A finished still's **⋯** → **Make it move** has
 [**Direct a move…**](#director). The new clip is kept next to the original. One clip job runs
 at a time.
 
@@ -92,7 +92,8 @@ detail turn into real texture. Motion, framing and faces stay. The clip's own so
 ## Restyle { #restyle }
 
 Repaints a clip in a look — **Anime**, **Film noir**, **Claymation**, **Watercolour**,
-**Vintage film** or **3D animated** — keeping its scene, framing and motion. The clip's depth
+**Vintage film**, **3D animated**, or **your own look** in a few words ("1980s VHS", "oil
+painting") — keeping its scene, framing and motion. The clip's depth
 guides the new picture, and the vision model names what's in it and its colours first, so a red
 dress stays red. The sound is kept.
 
@@ -106,14 +107,21 @@ followed the original; the dress, shoes and walls kept their colours.
   offers **Install** when they're missing. The two experts take a lot of memory: close other
   big apps on that machine first.
 
-## Remove something { #remove }
+## Remove or replace { #remove }
 
-Paint over something in the clip's first frame — a sign, a lamp, a cup on the table — and it's
-filled from the scene around it on every frame. The rest of the clip and its sound are unchanged.
+Paint over something in the clip's first frame — a sign, a cup, a passer-by — and it's followed
+through the clip and filled from the scene around it. Name something in **What goes there
+instead?** and it becomes that ("a small glass of orange juice"). The rest of the clip and its
+sound are unchanged.
 
-- The same area is filled on every frame, so it suits something that stays put. Nothing follows
-  a moving object yet.
-- Same models as [Restyle](#restyle).
+!!! example "Live"
+A mug in a moving hand, replaced with a glass of orange juice: the glass stayed in her hand on
+every frame of a 5 s clip, in about 6 minutes.
+
+- **Follow it as it moves** uses SAM 3.1 (1.75 GB). Off, or without it, the painted area is the
+  same on every frame — fine for something that stays put.
+- Same models as [Restyle](#restyle). ComfyUI's models are unloaded when it's done, so the memory
+  comes back.
 
 ## Copy moves from a video { #copy-moves }
 

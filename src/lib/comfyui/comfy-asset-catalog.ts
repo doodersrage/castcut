@@ -1042,6 +1042,17 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     notes: 'The second expert for Restyle and Remove from clip (see the high-noise model).',
   },
   {
+    id: 'sam3-1-multiplex',
+    label: 'SAM 3.1 (video tracking)',
+    kind: 'checkpoint',
+    filename: 'sam3.1_multiplex_fp16.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors',
+    bytes: 1745546848,
+    modelIds: ['clip-vace'],
+    notes:
+      'Remove or replace: follows what was painted on the first frame through the clip. Without it the painted area is the same on every frame.',
+  },
+  {
     id: 'seedvr2-3b-int8',
     label: 'SeedVR2 3B video restore / upscale (int8)',
     kind: 'unet',

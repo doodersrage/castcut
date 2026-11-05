@@ -4,8 +4,7 @@
  * app does not, so the shared code never imports Play.
  */
 
-import { sharedLlmRequestBody } from '../llm/request-options';
-import { CLIP_STYLES, type ClipStyleId } from '../clip/vace';
+import { openClipRestyle } from '../clip/restyle-open';
 import { openClipRemove } from '../clip/remove-open';
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
 import { registerCastChangeScrubber, loadSettingsCache } from '../settings/cache';
@@ -189,29 +188,22 @@ registerGalleryClipTool({
   keepKind: 'realism',
   job: 'realism',
 });
-// Restyle (clip/vace.ts): one item per look; the clip's depth keeps its scene and motion.
+// Restyle (clip/vace.ts): a look picked in ClipRestyleHost (presets or your own words).
 registerGalleryClipTool({
   id: 'restyle',
-  label: 'Restyle',
+  label: 'Restyle…',
   title: 'Repaint the clip in a look on WAN VACE — its scene and motion kept. Several minutes.',
   busyText: 'Restyling the clip…',
   keepKind: 'restyle',
   job: 'restyle',
-  choices: (Object.keys(CLIP_STYLES) as ClipStyleId[]).map(id => ({
-    id,
-    label: CLIP_STYLES[id].label,
-  })),
-  // The vision model describes the clip's colours first (depth carries none).
-  body: ({ choice }) => ({
-    style: choice?.id,
-    ...sharedLlmRequestBody(loadSettingsCache().shared),
-  }),
+  open: ({ clipUrl, entry }) => openClipRestyle({ clipUrl, entry }),
 });
 // Remove from clip (clip/vace.ts): paint what goes (ClipRemoveHost), VACE fills it.
 registerGalleryClipTool({
   id: 'remove',
-  label: 'Remove something…',
-  title: 'Paint over something that stays put; it is filled from the scene on every frame.',
+  label: 'Remove or replace…',
+  title:
+    'Paint over something on the first frame: it is followed and filled from the scene, or with what you name.',
   busyText: 'Removing it from the clip…',
   keepKind: 'remove',
   job: 'remove',

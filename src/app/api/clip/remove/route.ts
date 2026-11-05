@@ -17,8 +17,9 @@ const text = (value: FormDataEntryValue | null, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 /**
- * POST multipart { mask (PNG: white where something goes), clipUrl, entryId?, comfyUrl? } →
- * { job }: fills the painted area from the scene on WAN VACE, the same area on every frame.
+ * POST multipart { mask (PNG: white where something goes), clipUrl, entryId?, words?, track?,
+ * comfyUrl? } → { job }: fills the painted area from the scene on WAN VACE — or with `words`
+ * (Replace) — followed through the clip by SAM 3 unless `track` is "false".
  * 409 { running } while another clip job runs.
  */
 export async function POST(request: Request) {
@@ -44,6 +45,8 @@ export async function POST(request: Request) {
       removeFromClip({
         clipUrl,
         mask: maskBytes,
+        words: text(form.get('words'), 200) || undefined,
+        track: text(form.get('track'), 8) !== 'false',
         entryId: text(form.get('entryId'), 200) || undefined,
         comfyUrl: text(form.get('comfyUrl'), 300) || undefined,
         requestOrigin: new URL(request.url).origin,

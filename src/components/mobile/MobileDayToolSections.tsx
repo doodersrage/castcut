@@ -1004,6 +1004,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             busy: slotMedia.busy,
             finish: slotMedia.finishSlotClip,
             realism: slotMedia.realismSlotClip,
+            restyle: slotMedia.restyleSlotClip,
             moves: slotMedia.copyMovesToSlot,
             continueMoves: slotMedia.continueSlotClip,
             dance: slotMedia.danceSlot,

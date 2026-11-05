@@ -74,6 +74,28 @@ export function normalizeClipStyle(value: unknown): ClipStyleId | null {
     : null;
 }
 
+/**
+ * What a VACE re-render does. Restyle: a preset look, or your own words for it. Remove: the
+ * painted area — one picture for every frame, or a mask video tracked through the clip (SAM 3) —
+ * filled with what was behind it, or with `words` (Replace: "a vase of flowers").
+ */
+export type ClipVaceMode =
+  | { kind: 'restyle'; style: ClipStyleId }
+  | { kind: 'restyle'; look: string }
+  | { kind: 'remove'; mask: string; maskIsVideo?: boolean; words?: string };
+
+/** Your own look's words, tidied (Restyle · your own look). */
+export const CLIP_LOOK_MAX = 200;
+export function cleanClipLook(value: unknown): string {
+  return typeof value === 'string'
+    ? value
+        .trim()
+        .replace(/\s+/g, ' ')
+        .slice(0, CLIP_LOOK_MAX)
+        .replace(/[.\s]+$/, '')
+    : '';
+}
+
 /** What fills a removed area: the place as it is behind it. */
 export const CLIP_REMOVE_PROMPT =
   'The same scene with nothing in the masked area: only the background and surfaces that were behind it, continuous with the surroundings, the same light and camera.';
@@ -96,7 +118,7 @@ export function buildClipVaceGraph(input: {
   frames: number;
   seed: number;
   prefix: string;
-  mode: { kind: 'restyle'; style: ClipStyleId } | { kind: 'remove'; mask: string };
+  mode: ClipVaceMode;
   /**
    * Restyle: what the clip shows, its colours named ("a woman in a red dress, white walls").
    * Depth carries no colour — without it the look repainted the clothes and walls (a red dress
@@ -105,12 +127,24 @@ export function buildClipVaceGraph(input: {
   scene?: string;
 }): Record<string, unknown> {
   const { width, height, frames } = input;
-  const look = input.mode.kind === 'restyle' ? CLIP_STYLES[input.mode.style] : null;
+  const mode = input.mode;
+  const look =
+    mode.kind !== 'restyle'
+      ? null
+      : 'style' in mode
+        ? CLIP_STYLES[mode.style]
+        : {
+            prompt: `The whole clip redrawn in this look: ${cleanClipLook(mode.look)}.`,
+            negative: 'flat, unchanged photograph, blurry',
+          };
   const scene = input.scene?.trim().replace(/[.\s]+$/, '');
+  const words = mode.kind === 'remove' ? cleanClipLook(mode.words) : '';
   const positive = look
     ? `${look.prompt}${scene ? ` The scene, its colours as they are: ${scene}.` : ''}`
-    : CLIP_REMOVE_PROMPT;
-  const negative = `${look ? look.negative : CLIP_REMOVE_NEGATIVE}, ${QUALITY_NEGATIVE}`;
+    : words
+      ? `In the masked area: ${words} — part of the same scene, in the same light and camera, sitting naturally where it is.`
+      : CLIP_REMOVE_PROMPT;
+  const negative = `${look ? look.negative : words ? 'blur, smear, artefacts, distorted, different scene' : CLIP_REMOVE_NEGATIVE}, ${QUALITY_NEGATIVE}`;
   const graph: Record<string, unknown> = {
     '1': { class_type: 'LoadVideo', inputs: { file: input.video } },
     '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
@@ -146,7 +180,7 @@ export function buildClipVaceGraph(input: {
   };
   let control: [string, number];
   let masks: [string, number] | null = null;
-  if (input.mode.kind === 'restyle') {
+  if (mode.kind === 'restyle') {
     graph['30'] = {
       class_type: 'DepthAnythingV2Preprocessor',
       inputs: {
@@ -157,19 +191,38 @@ export function buildClipVaceGraph(input: {
     };
     control = ['30', 0];
   } else {
-    // The painted area, white on black, scaled to the frame, a little grown, on every frame.
-    graph['31'] = { class_type: 'LoadImage', inputs: { image: input.mode.mask } };
-    graph['32'] = {
-      class_type: 'ImageScale',
-      inputs: {
-        image: ['31', 0],
-        upscale_method: 'nearest-exact',
-        width,
-        height,
-        crop: 'disabled',
-      },
-    };
-    graph['33'] = { class_type: 'RepeatImageBatch', inputs: { image: ['32', 0], amount: frames } };
+    // The painted area, white on black, scaled to the frame, a little grown: one picture repeated
+    // on every frame, or the mask video SAM 3 tracked through the clip (this chunk's frames).
+    if (mode.maskIsVideo) {
+      graph['31'] = { class_type: 'LoadVideo', inputs: { file: mode.mask } };
+      graph['30'] = { class_type: 'GetVideoComponents', inputs: { video: ['31', 0] } };
+      graph['33'] = {
+        class_type: 'ImageScale',
+        inputs: {
+          image: ['30', 0],
+          upscale_method: 'nearest-exact',
+          width,
+          height,
+          crop: 'disabled',
+        },
+      };
+    } else {
+      graph['31'] = { class_type: 'LoadImage', inputs: { image: mode.mask } };
+      graph['32'] = {
+        class_type: 'ImageScale',
+        inputs: {
+          image: ['31', 0],
+          upscale_method: 'nearest-exact',
+          width,
+          height,
+          crop: 'disabled',
+        },
+      };
+      graph['33'] = {
+        class_type: 'RepeatImageBatch',
+        inputs: { image: ['32', 0], amount: frames },
+      };
+    }
     graph['34'] = { class_type: 'ImageToMask', inputs: { image: ['33', 0], channel: 'red' } };
     graph['35'] = {
       class_type: 'GrowMask',
@@ -265,4 +318,56 @@ export function buildClipVaceGraph(input: {
     },
   });
   return graph;
+}
+
+export const CLIP_TRACK_SAVE_NODE = '10';
+export const CLIP_TRACK_MODEL = 'sam3.1_multiplex_fp16.safetensors';
+
+/**
+ * SAM 3 follows what was painted on the first frame through the whole clip: the clip (scaled to
+ * the re-render size) and the painted picture in, a black-and-white mask video out, as long as
+ * the clip (Remove from clip cuts it per chunk). Live: a mug held in a moving hand, followed.
+ */
+export function buildClipTrackGraph(input: {
+  video: string;
+  mask: string;
+  width: number;
+  height: number;
+  fps: number;
+  prefix: string;
+}): Record<string, unknown> {
+  const { width, height } = input;
+  return {
+    '1': { class_type: 'LoadVideo', inputs: { file: input.video } },
+    '2': { class_type: 'GetVideoComponents', inputs: { video: ['1', 0] } },
+    '3': { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: CLIP_TRACK_MODEL } },
+    '4': { class_type: 'LoadImage', inputs: { image: input.mask } },
+    '11': {
+      class_type: 'ImageScale',
+      inputs: { image: ['2', 0], upscale_method: 'lanczos', width, height, crop: 'disabled' },
+    },
+    '12': {
+      class_type: 'ImageScale',
+      inputs: { image: ['4', 0], upscale_method: 'nearest-exact', width, height, crop: 'disabled' },
+    },
+    '5': { class_type: 'ImageToMask', inputs: { image: ['12', 0], channel: 'red' } },
+    '6': {
+      class_type: 'SAM3_VideoTrack',
+      inputs: {
+        images: ['11', 0],
+        model: ['3', 0],
+        detection_threshold: 0.5,
+        max_objects: 1,
+        detect_interval: 1,
+        initial_mask: ['5', 0],
+      },
+    },
+    '7': { class_type: 'SAM3_TrackToMask', inputs: { track_data: ['6', 0], object_indices: '' } },
+    '8': { class_type: 'MaskToImage', inputs: { mask: ['7', 0] } },
+    '9': { class_type: 'CreateVideo', inputs: { images: ['8', 0], fps: input.fps } },
+    [CLIP_TRACK_SAVE_NODE]: {
+      class_type: 'SaveVideo',
+      inputs: { video: ['9', 0], filename_prefix: input.prefix, format: 'mp4', codec: 'h264' },
+    },
+  };
 }

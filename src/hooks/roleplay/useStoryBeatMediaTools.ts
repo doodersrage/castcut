@@ -1,5 +1,7 @@
 'use client';
 
+import type { ClipRestyleChoice } from '@/lib/clip/restyle-open';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { getCharacter } from '@/lib/character/os';
 import { keepStillInGallery } from '@/lib/clip/gallery-keep';
@@ -34,6 +36,8 @@ export type StoryBeatMediaTools = {
   busy: { key: string; tool: StoryMediaTool } | null;
   finish: (beat: RoleplayStoryBeat) => Promise<string | null>;
   realism: (beat: RoleplayStoryBeat) => Promise<string | null>;
+  /** Restyle (the look picked in ClipRestyleHost). */
+  restyle: (beat: RoleplayStoryBeat, choice: ClipRestyleChoice) => Promise<string | null>;
   moves: (
     beat: RoleplayStoryBeat,
     video: Blob,
@@ -197,6 +201,17 @@ export function useStoryBeatMediaTools({
       }),
     [sceneJob]
   );
+  const restyle = useCallback(
+    (beat: RoleplayStoryBeat, choice: ClipRestyleChoice) =>
+      sceneJob(beat, 'restyle', latest => {
+        const clipUrl = finishedClipOf(latest);
+        return {
+          body: { clipUrl, ...choice, ...sharedLlmRequestBody(loadSettingsCache().shared) },
+          source: clipUrl,
+        };
+      }),
+    [sceneJob]
+  );
 
   // A job that outlived the page: its scene shows busy while it runs, and gets the result once
   // kept — if the scene still has what the job started from.
@@ -207,7 +222,9 @@ export function useStoryBeatMediaTools({
         const beat = storyRef.current.find(item => storyBeatKey(item) === entry.owner?.ref);
         if (!beat) return false;
         const from =
-          entry.tool === 'finish' || entry.tool === 'realism' ? beat.clipUrl : stillOf(beat);
+          entry.tool === 'finish' || entry.tool === 'realism' || entry.tool === 'restyle'
+            ? beat.clipUrl
+            : stillOf(beat);
         if (entry.kept && (!entry.source || from?.trim() === entry.source)) {
           updateToolSettings({
             story: patchRoleplayStoryBeat(
@@ -348,6 +365,7 @@ export function useStoryBeatMediaTools({
     busy: busy ?? orphan,
     finish,
     realism,
+    restyle,
     moves,
     dance,
     lipSync,

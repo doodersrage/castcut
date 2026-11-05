@@ -3006,4 +3006,14 @@ Models: both Fun VACE experts (17.3 GB each, fp8) and the WAN 2.2 Lightning high
 the model catalog (`clip-vace`). Memory: the two experts with everything else open took the
 machine to 3 GB free once; with less open, a run peaked fine.
 
-Not done: motion brush (needs a different approach on these models).
+**T4 — Replace, tracking, your own look, memory (2026-11-04, "do all").**
+- Replace: Remove's dialog takes "What goes there instead?" — the masked area painted as that.
+- Tracking: SAM 3.1 (core `SAM3_VideoTrack` with the first frame's painted mask) follows it
+  through the whole clip once; each chunk gets its slice of the mask video (rerenderClipInChunks
+  `perChunk`). Without SAM 3 or on a failed track, the painted picture is used on every frame.
+  Live: a mug in a moving hand → a glass of orange juice on every frame, both chunks.
+- Restyle: one "Restyle…" item opening a look picker (six presets or your own words), also on
+  Day, Scene and Story's card menus (the result on the card).
+- Memory: VACE jobs unload ComfyUI's models when done (`freeAfter`): ComfyUI 30 GB → 2 GB.
+
+Not done yet: motion brush (WAN-Move; core `WanMoveTrackToVideo` is there, its model downloading).

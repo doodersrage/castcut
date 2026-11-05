@@ -73,6 +73,7 @@ export function SceneTakeCard({
         busy: slotMedia.busy,
         finish: slotMedia.finishSlotClip,
         realism: slotMedia.realismSlotClip,
+        restyle: slotMedia.restyleSlotClip,
         moves: slotMedia.copyMovesToSlot,
         dance: slotMedia.danceSlot,
         lipSync: slotMedia.lipSyncSlot,

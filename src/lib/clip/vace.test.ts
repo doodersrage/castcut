@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildClipVaceGraph, CLIP_STYLES, CLIP_VACE_MODELS, normalizeClipStyle } from './vace';
+import {
+  buildClipTrackGraph,
+  buildClipVaceGraph,
+  CLIP_STYLES,
+  CLIP_TRACK_MODEL,
+  CLIP_VACE_MODELS,
+  cleanClipLook,
+  normalizeClipStyle,
+} from './vace';
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
 const ofType = (graph: Record<string, unknown>, type: string) =>
@@ -45,5 +53,44 @@ describe('Restyle and Remove on VACE', () => {
     assert.equal(normalizeClipStyle('toString'), null);
     assert.equal(normalizeClipStyle(undefined), null);
     assert.equal(Object.keys(CLIP_STYLES).length, 6);
+  });
+
+  it('restyles in your own words, and replaces with yours', () => {
+    const own = buildClipVaceGraph({ ...base, mode: { kind: 'restyle', look: ' 1980s VHS. ' } });
+    const ownText = ofType(own, 'CLIPTextEncode')[0]!.inputs.text as string;
+    assert.match(ownText, /redrawn in this look: 1980s VHS\./);
+    const replace = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'remove', mask: 'mask.png', words: 'a vase of flowers' },
+    });
+    const text = ofType(replace, 'CLIPTextEncode')[0]!.inputs.text as string;
+    assert.match(text, /^In the masked area: a vase of flowers/);
+    assert.equal(cleanClipLook('  oil   painting.. '), 'oil painting');
+  });
+
+  it("follows a tracked mask: this chunk's mask video in place of one picture", () => {
+    const graph = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'remove', mask: 'mask-0.mp4', maskIsVideo: true },
+    });
+    assert.equal(ofType(graph, 'RepeatImageBatch').length, 0);
+    assert.equal(ofType(graph, 'LoadVideo').length, 2);
+    assert.deepEqual(ofType(graph, 'WanVaceToVideo')[0]!.inputs.control_masks, ['35', 0]);
+  });
+
+  it('tracks what was painted through the clip with SAM 3', () => {
+    const graph = buildClipTrackGraph({
+      video: 'clip.mp4',
+      mask: 'paint.png',
+      width: 720,
+      height: 960,
+      fps: 24,
+      prefix: 'x',
+    });
+    assert.equal(ofType(graph, 'CheckpointLoaderSimple')[0]!.inputs.ckpt_name, CLIP_TRACK_MODEL);
+    const track = ofType(graph, 'SAM3_VideoTrack')[0]!;
+    assert.equal(track.inputs.max_objects, 1);
+    assert.deepEqual(track.inputs.initial_mask, ['5', 0]);
+    assert.equal(ofType(graph, 'SaveVideo').length, 1);
   });
 });

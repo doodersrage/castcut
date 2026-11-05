@@ -1,5 +1,6 @@
 'use client';
 
+import { openClipRestyle, type ClipRestyleChoice } from '@/lib/clip/restyle-open';
 import { useClipJobProgress } from '@/hooks/useClipJobProgress';
 import IdentityMarkChip from '@/components/IdentityMarkChip';
 import { DAY_IDENTITY_BARS, identityMark } from '@/lib/character/identity-mark';
@@ -115,6 +116,8 @@ export type DaySlotBoardProps = {
     busy: { slotId: string; tool: DaySlotMediaTool } | null;
     finish: (slot: DaySlot) => Promise<string | null>;
     realism: (slot: DaySlot) => Promise<string | null>;
+    /** Restyle (the look picked in ClipRestyleHost). */
+    restyle?: (slot: DaySlot, choice: ClipRestyleChoice) => Promise<string | null>;
     moves: (
       slot: DaySlot,
       video: Blob,
@@ -630,6 +633,24 @@ export default function DaySlotBoard({
                     onClick={() => void runMedia(slot, 'realism', () => mediaTools.realism(slot))}
                   >
                     Make more realistic
+                  </button>
+                ) : null}
+                {mediaTools?.restyle && clipState === 'done' && doneClip ? (
+                  <button
+                    type="button"
+                    className={SHOT_CARD_MENU_ITEM_CLASS}
+                    disabled={busy || mediaTools.busy !== null}
+                    title="Repaint the clip in a look (anime, film noir… or your own words); its scene and motion stay — several minutes."
+                    data-testid={`day-progress-restyle-${slot.id}`}
+                    onClick={() =>
+                      openClipRestyle({
+                        clipUrl: doneClip,
+                        run: choice =>
+                          void runMedia(slot, 'restyle', () => mediaTools.restyle!(slot, choice)),
+                      })
+                    }
+                  >
+                    Restyle…
                   </button>
                 ) : null}
                 {onExtendClip && clipState === 'done' && doneClip ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import { openClipRestyle } from '@/lib/clip/restyle-open';
 import { useClipJobProgress } from '@/hooks/useClipJobProgress';
 import ClipExtendSheet from '@/components/ClipExtendSheet';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
@@ -458,6 +459,27 @@ export function RoleplayStoryBeatCard({
                   }
                 >
                   Make more realistic
+                </button>
+              ) : null}
+              {media && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (
+                <button
+                  type="button"
+                  className={SHOT_CARD_MENU_ITEM_CLASS}
+                  disabled={busy || media.busy !== null}
+                  title="Repaint the clip in a look (anime, film noir… or your own words); its scene and motion stay — several minutes."
+                  data-testid="story-beat-restyle"
+                  onClick={() =>
+                    openClipRestyle({
+                      clipUrl: beat.clipUrl!.trim(),
+                      run: choice =>
+                        runMedia(
+                          media.restyle(beat, choice),
+                          'Done — the clip is in its new look (the original is in the Gallery).'
+                        ),
+                    })
+                  }
+                >
+                  Restyle…
                 </button>
               ) : null}
               {edit && beat.clipStatus === 'completed' && beat.clipUrl?.trim() ? (

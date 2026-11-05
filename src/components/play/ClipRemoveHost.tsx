@@ -65,6 +65,8 @@ export default function ClipRemoveHost() {
   const [target, setTarget] = useState<ClipRemoveTarget | null>(null);
   const [frame, setFrame] = useState<string | null | 'loading'>('loading');
   const [hasMask, setHasMask] = useState(false);
+  const [words, setWords] = useState('');
+  const [track, setTrack] = useState(true);
   const brushRef = useRef<FixAreaBrushHandle>(null);
 
   useEffect(() => {
@@ -74,6 +76,8 @@ export default function ClipRemoveHost() {
       setTarget(detail);
       setFrame('loading');
       setHasMask(false);
+      setWords('');
+      setTrack(true);
       void firstFrame(detail.clipUrl).then(setFrame);
     };
     window.addEventListener(CLIP_REMOVE_OPEN_EVENT, onOpen);
@@ -98,25 +102,29 @@ export default function ClipRemoveHost() {
     form.append('mask', await dataUrlBlob(exported.dataUrl), 'mask.png');
     form.append('clipUrl', clipUrl);
     form.append('entryId', entry.id);
+    const said = words.trim();
+    if (said) form.append('words', said);
+    form.append('track', track ? 'true' : 'false');
     close();
     pushAppToast({
-      text: 'Removing it from the clip… It takes several minutes — follow it in the jobs tray.',
+      text: `${said ? 'Replacing it' : 'Removing it from the clip'}… It takes several minutes — follow it in the jobs tray.`,
       tone: 'info',
       ttlMs: 8000,
     });
     const about = entry.prompt ? ` · ${entry.prompt.slice(0, 120)}` : '';
+    const name = said ? `Replace with ${said.slice(0, 40)}` : 'Remove from clip';
     try {
       await runClipJob({
         tool: 'remove',
         body: form,
         keep: {
           kind: 'remove',
-          prompt: `Remove from clip${about}`,
+          prompt: `${name}${about}`,
           tool: entry.tool || 'gallery',
           sourceEntryId: entry.id,
         },
         owner: { feature: 'gallery', ref: entry.id },
-        label: `Remove from clip${about.slice(0, 63)}`,
+        label: `${name}${about.slice(0, 63)}`,
       });
     } catch (error) {
       if (error instanceof ClipJobBusyError) pushAppToast({ text: error.message, tone: 'warning' });
@@ -138,11 +146,11 @@ export default function ClipRemoveHost() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id="clip-remove-title" className="type-title text-base font-semibold">
-            Remove from clip
+            Remove or replace
           </h2>
           <p className="type-caption text-[var(--text-muted)]">
-            Paint over what should go. The same area is filled from the scene on every frame — for
-            something that stays put (a sign, a lamp, a cup on the table).
+            Paint over it on the first frame. It is followed as it moves and filled from the scene —
+            or with what you name below.
           </p>
         </div>
         <Button size="sm" variant="ghost" onClick={close} data-testid="clip-remove-close">
@@ -160,6 +168,25 @@ export default function ClipRemoveHost() {
           This clip&apos;s picture couldn&apos;t be read here.
         </p>
       )}
+      <input
+        type="text"
+        value={words}
+        maxLength={200}
+        placeholder="What goes there instead? Empty: nothing — the background behind it"
+        aria-label="What goes there instead"
+        className="ui-input"
+        onChange={event => setWords(event.target.value)}
+        data-testid="clip-remove-words"
+      />
+      <label className="type-caption flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={track}
+          onChange={event => setTrack(event.target.checked)}
+          data-testid="clip-remove-track"
+        />
+        Follow it as it moves (off: the same area on every frame)
+      </label>
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="ghost" onClick={close}>
           Cancel
@@ -170,7 +197,7 @@ export default function ClipRemoveHost() {
           onClick={() => void remove()}
           data-testid="clip-remove-go"
         >
-          Remove it
+          {words.trim() ? 'Replace it' : 'Remove it'}
         </Button>
       </div>
     </Dialog>

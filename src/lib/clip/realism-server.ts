@@ -12,7 +12,11 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
 import { comfyBaseUrl, type ComfyImageRef } from '../comfyui/comfy-utility-graph-server';
-import { requireComfyModels, runHeavyComfyGraph } from '../server/heavy-graph-server';
+import {
+  freeComfyAndSettle,
+  requireComfyModels,
+  runHeavyComfyGraph,
+} from '../server/heavy-graph-server';
 import {
   buildClipRealismGraph,
   CLIP_REALISM_DENOISE,
@@ -21,6 +25,7 @@ import {
   clipRealismChunks,
   clipRealismJoinFilter,
   clipRealismSize,
+  type ClipRealismChunk,
   type ClipRealismStrength,
 } from './realism';
 import { readClipStream } from './finish-server';
@@ -90,12 +95,20 @@ export type ChunkedRerender = {
    * Once, after the models check (a mask uploaded, the clip described): passed to every chunk's
    * graph. `source` is the whole clip on disk.
    */
-  prepare?: (context: {
-    baseUrl: string;
-    source: string;
-    ffmpeg: string;
-    signal?: AbortSignal;
-  }) => Promise<Record<string, string>>;
+  prepare?: (context: ChunkedRerenderContext) => Promise<Record<string, string>>;
+  /**
+   * Per chunk, before its graph (a tracked mask's slice cut and uploaded): merged over `prepare`'s
+   * values for that chunk's graph.
+   */
+  perChunk?: (
+    chunk: ClipRealismChunk & { index: number },
+    context: ChunkedRerenderContext & { extra: Record<string, string> }
+  ) => Promise<Record<string, string>>;
+  /**
+   * Unload ComfyUI's models when done (or failed): VACE's two 14B experts stayed in RAM after a
+   * job (~30 GB), and the next one took the machine to 3 GB free (2026-11-04).
+   */
+  freeAfter?: boolean;
   graph: (chunk: {
     video: string;
     width: number;
@@ -106,6 +119,20 @@ export type ChunkedRerender = {
     seed: number;
     extra: Record<string, string>;
   }) => Record<string, unknown>;
+};
+
+/** What `prepare` and `perChunk` get: the clip on disk, how big it renders, and a chunk cutter. */
+export type ChunkedRerenderContext = {
+  baseUrl: string;
+  source: string;
+  ffmpeg: string;
+  /** The job's work folder (removed when it ends). */
+  dir: string;
+  size: { width: number; height: number };
+  fps: number;
+  signal?: AbortSignal;
+  /** Cuts `chunk`'s frames out of `from` (a video as long as the clip) into `to`, as the clip's own. */
+  cut: (from: string, to: string, chunk: ClipRealismChunk) => Promise<void>;
 };
 
 export function makeClipRealistic(
@@ -181,28 +208,14 @@ export async function rerenderClipInChunks(
 
     const baseUrl = comfyBaseUrl(input.comfyUrl);
     await requireComfyModels(baseUrl, how.label, how.models);
-    const extra = how.prepare ? await how.prepare({ baseUrl, source, ffmpeg, signal }) : {};
-
-    // One seed for every chunk, so the shared frames match where they crossfade.
-    const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
-    const rendered: string[] = [];
-    for (const [index, chunk] of chunks.entries()) {
-      throwIfCancelled(signal);
-      progress({
-        done: index,
-        note:
-          chunks.length > 1
-            ? `${how.verb} part ${index + 1} of ${chunks.length}`
-            : `${how.verb} the clip`,
-      });
-      const part = file(`chunk-${index}.mp4`);
+    const cut = async (from: string, to: string, chunk: ClipRealismChunk) => {
       const pad = chunk.rendered - chunk.frames;
       await run(
         ffmpeg,
         [
           '-y',
           '-i',
-          source,
+          from,
           '-vf',
           [
             `select='between(n\\,${chunk.start}\\,${chunk.start + chunk.frames - 1})'`,
@@ -219,10 +232,40 @@ export async function rerenderClipInChunks(
           '12',
           '-pix_fmt',
           'yuv420p',
-          part,
+          to,
         ],
         signal
       );
+    };
+    const context: ChunkedRerenderContext = {
+      baseUrl,
+      source,
+      ffmpeg,
+      dir,
+      size,
+      fps,
+      signal,
+      cut,
+    };
+    const extra = how.prepare ? await how.prepare(context) : {};
+
+    // One seed for every chunk, so the shared frames match where they crossfade.
+    const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
+    const rendered: string[] = [];
+    for (const [index, chunk] of chunks.entries()) {
+      throwIfCancelled(signal);
+      progress({
+        done: index,
+        note:
+          chunks.length > 1
+            ? `${how.verb} part ${index + 1} of ${chunks.length}`
+            : `${how.verb} the clip`,
+      });
+      const part = file(`chunk-${index}.mp4`);
+      await cut(source, part, chunk);
+      const chunkExtra = how.perChunk
+        ? { ...extra, ...(await how.perChunk({ ...chunk, index }, { ...context, extra })) }
+        : extra;
       const uploaded = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ part)),
@@ -243,7 +286,7 @@ export async function rerenderClipInChunks(
           fps,
           frames: chunk.rendered,
           seed,
-          extra,
+          extra: chunkExtra,
         }),
         read: entry => {
           const out = (entry.outputs?.[how.saveNode] as { images?: ComfyImageRef[] } | undefined)
@@ -316,5 +359,6 @@ export async function rerenderClipInChunks(
     await fs
       .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })
       .catch(() => undefined);
+    if (how.freeAfter) await freeComfyAndSettle(input.comfyUrl);
   }
 }

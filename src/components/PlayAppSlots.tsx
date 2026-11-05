@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import ClipRemoveHost from '@/components/play/ClipRemoveHost';
+import ClipRestyleHost from '@/components/play/ClipRestyleHost';
 import { registerAppSlot } from '@/components/AppSlot';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import PlayContinueChip from '@/components/PlayContinueChip';
@@ -49,6 +50,8 @@ registerAppSlot('settings.firstRunChecks', 'play-checks', PlayFirstRunChecks, 0)
 registerAppSlot('shell.welcome', 'play-welcome', WorkspaceWelcome, 0);
 // Gallery ⋯ → Clip → Remove from clip: paint what goes (opened by clip/remove-open.ts).
 registerAppSlot('shell.overlays', 'play-clip-remove', ClipRemoveHost, 0);
+// Restyle's look picker (opened by clip/restyle-open.ts from the Gallery, Day and Story).
+registerAppSlot('shell.overlays', 'play-clip-restyle', ClipRestyleHost, 1);
 
 // Studio sidebar: the film in progress (Cast, progress, next step, back to Film).
 registerAppSlot('nav.top', 'play-film-context', PlayStudioFilmContext, 0);

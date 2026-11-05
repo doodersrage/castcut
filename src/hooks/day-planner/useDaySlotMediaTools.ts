@@ -1,5 +1,8 @@
 'use client';
 
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import type { ClipRestyleChoice } from '@/lib/clip/restyle-open';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { keepStillInGallery } from '@/lib/clip/gallery-keep';
@@ -173,6 +176,18 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
       }),
     [slotJob]
   );
+  // Restyle (clip/vace.ts): the look picked in ClipRestyleHost; the vision model names the colours.
+  const restyleSlotClip = useCallback(
+    (slot: DaySlot, choice: ClipRestyleChoice) =>
+      slotJob(slot, 'restyle', still => {
+        const clipUrl = finishedClip(still);
+        return {
+          body: { clipUrl, ...choice, ...sharedLlmRequestBody(loadSettingsCache().shared) },
+          source: clipUrl,
+        };
+      }),
+    [slotJob]
+  );
 
   // A job that outlived the page (a reload, another page meanwhile): its slot shows busy while it
   // runs, and gets the result once kept — if the slot still has what the job started from
@@ -184,7 +199,9 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
         const still = stillsRef.current.find(item => item.slotId === entry.owner?.ref);
         if (!still) return false;
         const from =
-          entry.tool === 'finish' || entry.tool === 'realism' ? still.clipUrl : stillUrlOf(still);
+          entry.tool === 'finish' || entry.tool === 'realism' || entry.tool === 'restyle'
+            ? still.clipUrl
+            : stillUrlOf(still);
         // A continued clip (Copy moves from its last frame) started from the clip.
         const continued = entry.tool === 'moves' && still.clipUrl?.trim() === entry.source;
         if (entry.kept && (!entry.source || from?.trim() === entry.source || continued)) {
@@ -340,6 +357,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     busy: busy ?? orphan,
     finishSlotClip,
     realismSlotClip,
+    restyleSlotClip,
     copyMovesToSlot,
     continueSlotClip,
     danceSlot,
