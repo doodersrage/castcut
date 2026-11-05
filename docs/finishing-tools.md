@@ -8,6 +8,8 @@ are in the [Gallery](#gallery) too.
 | -------------------------------------- | -------- | ----------------- | ---------------------------- |
 | [Sharpen & smooth](#sharpen-smooth)    | A clip   | 3 min             | —                            |
 | [Make more realistic](#realism)        | A clip   | A few min per 5 s | —                            |
+| [Restyle](#restyle)                    | A clip   | 6 min for 5 s     | A look                       |
+| [Remove something](#remove)            | A clip   | 6 min for 5 s     | What goes, painted           |
 | [Copy moves from a video](#copy-moves) | A still  | 5 min for 5 s     | A video of one person        |
 | [Direct a move](#director)             | A still  | 3 min for 5 s     | A few beats, posed or picked |
 | [Dance to music](#dance)               | A still  | 10 min for 6 s    | A song                       |
@@ -40,8 +42,9 @@ Queue, Animate and Play another.
 
 ## In the Gallery { #gallery }
 
-Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth** and
-**Make more realistic**. A finished still's **⋯** → **Make it move** has
+Open a finished clip's **⋯** menu in the Gallery → **Clip**: **Sharpen & smooth**,
+**Make more realistic**, [**Restyle**](#restyle) (one item per look) and
+[**Remove something…**](#remove). A finished still's **⋯** → **Make it move** has
 [**Direct a move…**](#director). The new clip is kept next to the original. One clip job runs
 at a time.
 
@@ -85,6 +88,32 @@ detail turn into real texture. Motion, framing and faces stay. The clip's own so
 - Run **Sharpen & smooth** after it for the full size and frame rate.
 
 ---
+
+## Restyle { #restyle }
+
+Repaints a clip in a look — **Anime**, **Film noir**, **Claymation**, **Watercolour**,
+**Vintage film** or **3D animated** — keeping its scene, framing and motion. The clip's depth
+guides the new picture, and the vision model names what's in it and its colours first, so a red
+dress stays red. The sound is kept.
+
+!!! example "Live"
+A 5 s clip (768×1024, two parts) in about 6 minutes: the pose, the steps, the counter and the mug
+followed the original; the dress, shoes and walls kept their colours.
+
+- Without a vision model (Settings → LLM) it still restyles, but colours can change: depth
+  carries none.
+- Needs WAN 2.2 Fun VACE (both experts, 17 GB each) and both WAN 2.2 Lightning LoRAs — the job
+  offers **Install** when they're missing. The two experts take a lot of memory: close other
+  big apps on that machine first.
+
+## Remove something { #remove }
+
+Paint over something in the clip's first frame — a sign, a lamp, a cup on the table — and it's
+filled from the scene around it on every frame. The rest of the clip and its sound are unchanged.
+
+- The same area is filled on every frame, so it suits something that stays put. Nothing follows
+  a moving object yet.
+- Same models as [Restyle](#restyle).
 
 ## Copy moves from a video { #copy-moves }
 

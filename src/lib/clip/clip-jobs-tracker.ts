@@ -17,7 +17,7 @@ import {
   fetchClipJob,
   startClipJob,
   type ClipJob,
-  type ClipJobTool,
+  type KeptClipJobTool,
 } from './clip-jobs';
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import { pushSystemTrayMessage } from '../app/system-tray-messages';
@@ -39,7 +39,7 @@ export type KeptClip = { url: string; entryId?: string; promptId?: string };
 
 export type TrackedClipJob = {
   jobId: string;
-  tool: ClipJobTool;
+  tool: KeptClipJobTool;
   /** "Make more realistic · Morning coffee". */
   label: string;
   /**
@@ -255,7 +255,7 @@ function drive(jobId: string): Promise<KeptClip> {
  * reload carries on where this left off. Rejects with ClipJobBusyError while another runs.
  */
 export async function runClipJob(input: {
-  tool: ClipJobTool;
+  tool: KeptClipJobTool;
   body: ClipJobBody;
   keep: ClipJobKeep;
   owner?: ClipJobOwner;

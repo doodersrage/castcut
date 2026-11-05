@@ -70,6 +70,10 @@ export type ComfyGalleryEntry = {
     | 'finish'
     /** Make more realistic (clip/realism.ts): re-rendered at low strength on WAN 2.2 low-noise. */
     | 'realism'
+    /** Restyle (clip/vace.ts): repainted in a look on WAN VACE, its depth kept. */
+    | 'restyle'
+    /** Remove from clip (clip/vace.ts): a painted area filled from the scene. */
+    | 'remove'
     /** Copy moves (motion-transfer.ts): the still's person doing a driving video's moves. */
     | 'moves'
     /** Dance to music (music-dance.ts): the still's person dancing to a song. */

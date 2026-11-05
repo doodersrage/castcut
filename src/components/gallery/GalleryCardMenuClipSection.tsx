@@ -22,17 +22,33 @@ export function GalleryClipSection({
   const busy = runningGalleryClipTool();
   return (
     <GalleryMenuGroup label="Clip" collapsible>
-      {tools.map(tool => (
-        <GalleryMenuButton
-          key={tool.id}
-          label={busy === tool.id ? tool.busyText : tool.label}
-          data-testid={`gallery-clip-tool-${tool.id}`}
-          onClick={() => {
-            setMenuOpen(false);
-            void runGalleryClipTool(tool, entry, clipUrl);
-          }}
-        />
-      ))}
+      {tools.flatMap(tool =>
+        tool.choices?.length
+          ? // One item per choice (Restyle · Anime, · Film noir…).
+            tool.choices.map(choice => (
+              <GalleryMenuButton
+                key={`${tool.id}-${choice.id}`}
+                label={`${tool.label} · ${choice.label}`}
+                data-testid={`gallery-clip-tool-${tool.id}-${choice.id}`}
+                onClick={() => {
+                  setMenuOpen(false);
+                  void runGalleryClipTool(tool, entry, clipUrl, { choice });
+                }}
+              />
+            ))
+          : [
+              <GalleryMenuButton
+                key={tool.id}
+                label={busy === tool.id ? tool.busyText : tool.label}
+                data-testid={`gallery-clip-tool-${tool.id}`}
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (tool.open) tool.open({ clipUrl, entry });
+                  else void runGalleryClipTool(tool, entry, clipUrl);
+                }}
+              />,
+            ]
+      )}
     </GalleryMenuGroup>
   );
 }

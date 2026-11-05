@@ -178,5 +178,15 @@
   "src/lib/director/video-motion.worker.ts",
   "src/lib/director/video-pose-server.ts",
   "src/app/api/director/video-pose/route.ts",
-  "src/lib/location/empty-photo-client.ts"
+  "src/lib/location/empty-photo-client.ts",
+  "src/components/play/ClipRemoveHost.tsx",
+  "src/lib/clip/sound-effect.ts",
+  "src/lib/clip/sound-effect-server.ts",
+  "src/lib/clip/sound-effect-client.ts",
+  "src/app/api/clip/sound-effect/route.ts",
+  "src/lib/clip/vace.ts",
+  "src/lib/clip/vace-server.ts",
+  "src/app/api/clip/restyle/route.ts",
+  "src/app/api/clip/remove/route.ts",
+  "src/lib/clip/remove-open.ts"
 ]

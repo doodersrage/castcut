@@ -721,7 +721,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2.2-Lightning-low_noise_model.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors',
     bytes: 1226977424,
-    modelIds: ['wan-video-lightning-4', 'wan-video', 'clip-realism'],
+    modelIds: ['wan-video-lightning-4', 'wan-video', 'clip-realism', 'clip-vace'],
     notes:
       'Comfy-Org LightX2V 4-step low-noise LoRA, saved as the filename WAN Lightning scaffolds look up.',
   },
@@ -732,7 +732,7 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     filename: 'Wan2.2-Lightning-high_noise_model.safetensors',
     url: 'https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors',
     bytes: 1226977424,
-    modelIds: ['wan-video-lightning-4', 'wan-video'],
+    modelIds: ['wan-video-lightning-4', 'wan-video', 'clip-vace'],
     notes: 'Pair with the low-noise 4-step LoRA on dual-noise WAN Lightning graphs.',
   },
   {
@@ -1019,6 +1019,27 @@ export const COMFY_ASSET_CATALOG: ComfyCatalogAsset[] = [
     modelIds: ['clip-realism'],
     notes:
       'Make more realistic: a low-strength re-render of a finished clip. Also needs the WAN 2.2 Lightning 4-step T2V low-noise LoRA, the UMT5 text encoder and the WAN 2.1 VAE.',
+  },
+  {
+    id: 'wan-vace-14b-high-fp8',
+    label: 'WAN 2.2 Fun VACE 14B high-noise (fp8)',
+    kind: 'unet',
+    filename: 'wan2.2_fun_vace_high_noise_14B_fp8_scaled.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_fun_vace_high_noise_14B_fp8_scaled.safetensors',
+    bytes: 17346056104,
+    modelIds: ['clip-vace'],
+    notes:
+      'Restyle and Remove from clip (clip/vace.ts), with the low-noise VACE model, both WAN 2.2 Lightning 4-step LoRAs, the UMT5 text encoder and the WAN 2.1 VAE.',
+  },
+  {
+    id: 'wan-vace-14b-low-fp8',
+    label: 'WAN 2.2 Fun VACE 14B low-noise (fp8)',
+    kind: 'unet',
+    filename: 'wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors',
+    url: 'https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_fun_vace_low_noise_14B_fp8_scaled.safetensors',
+    bytes: 17346056104,
+    modelIds: ['clip-vace'],
+    notes: 'The second expert for Restyle and Remove from clip (see the high-noise model).',
   },
   {
     id: 'seedvr2-3b-int8',

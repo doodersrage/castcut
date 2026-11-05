@@ -60,17 +60,91 @@ export function readFrameCount(log: string): number | null {
   return last ? Number(last) : null;
 }
 
-export async function makeClipRealistic(input: {
+/** A finished clip to re-render in chunks, and the job running it. */
+export type ChunkedClipInput = {
   clipUrl: string;
   entryId?: string;
-  strength: ClipRealismStrength;
   comfyUrl?: string;
   requestOrigin?: string;
   userId?: string | null;
   seed?: number;
   /** The background job's signal and progress (clip-jobs-server.ts). */
   job?: ClipJobContext;
-}): Promise<string> {
+};
+
+/**
+ * How a chunked re-render runs (Make more realistic; Restyle and Remove on VACE, vace-server.ts):
+ * the models it needs, its words, and the graph for one chunk.
+ */
+export type ChunkedRerender = {
+  /** Its name in a missing-models message. */
+  label: string;
+  models: Array<{ folder: string; file: string }>;
+  /** "Re-rendering" part 2 of 4. */
+  verb: string;
+  /** Each chunk's upload name, and the result's. */
+  uploadName: string;
+  outName: string;
+  saveNode: string;
+  /**
+   * Once, after the models check (a mask uploaded, the clip described): passed to every chunk's
+   * graph. `source` is the whole clip on disk.
+   */
+  prepare?: (context: {
+    baseUrl: string;
+    source: string;
+    ffmpeg: string;
+    signal?: AbortSignal;
+  }) => Promise<Record<string, string>>;
+  graph: (chunk: {
+    video: string;
+    width: number;
+    height: number;
+    fps: number;
+    /** Frames rendered (4k + 1). */
+    frames: number;
+    seed: number;
+    extra: Record<string, string>;
+  }) => Record<string, unknown>;
+};
+
+export function makeClipRealistic(
+  input: ChunkedClipInput & { strength: ClipRealismStrength }
+): Promise<string> {
+  return rerenderClipInChunks(input, {
+    label: 'Make more realistic',
+    models: [
+      { folder: 'diffusion_models', file: CLIP_REALISM_MODELS.unet },
+      { folder: 'loras', file: CLIP_REALISM_MODELS.lora },
+      { folder: 'text_encoders', file: CLIP_REALISM_MODELS.textEncoder },
+      { folder: 'vae', file: CLIP_REALISM_MODELS.vae },
+    ],
+    verb: 'Re-rendering',
+    uploadName: 'castcut-realism',
+    outName: 'castcut-realistic.mp4',
+    saveNode: CLIP_REALISM_SAVE_NODE,
+    graph: chunk =>
+      buildClipRealismGraph({
+        video: chunk.video,
+        width: chunk.width,
+        height: chunk.height,
+        fps: chunk.fps,
+        denoise: CLIP_REALISM_DENOISE[input.strength],
+        seed: chunk.seed,
+        prefix: 'Castcut-realism-part',
+      }),
+  });
+}
+
+/**
+ * The clip cut into WAN-sized chunks (clipRealismChunks), each re-rendered on ComfyUI by `how`'s
+ * graph (one heavy job at a time), crossfaded back over their shared frames with the clip's own
+ * sound. Returns the new clip's ComfyUI view URL (an input file).
+ */
+export async function rerenderClipInChunks(
+  input: ChunkedClipInput,
+  how: ChunkedRerender
+): Promise<string> {
   const signal = input.job?.signal;
   const progress = input.job?.progress ?? (() => undefined);
   const ffmpeg = await resolveFfmpegBinary();
@@ -106,12 +180,8 @@ export async function makeClipRealistic(input: {
     progress({ total: chunks.length + 1, note: 'Checking the models…' });
 
     const baseUrl = comfyBaseUrl(input.comfyUrl);
-    await requireComfyModels(baseUrl, 'Make more realistic', [
-      { folder: 'diffusion_models', file: CLIP_REALISM_MODELS.unet },
-      { folder: 'loras', file: CLIP_REALISM_MODELS.lora },
-      { folder: 'text_encoders', file: CLIP_REALISM_MODELS.textEncoder },
-      { folder: 'vae', file: CLIP_REALISM_MODELS.vae },
-    ]);
+    await requireComfyModels(baseUrl, how.label, how.models);
+    const extra = how.prepare ? await how.prepare({ baseUrl, source, ffmpeg, signal }) : {};
 
     // One seed for every chunk, so the shared frames match where they crossfade.
     const seed = input.seed ?? Math.floor(Math.random() * 1_000_000);
@@ -122,8 +192,8 @@ export async function makeClipRealistic(input: {
         done: index,
         note:
           chunks.length > 1
-            ? `Re-rendering part ${index + 1} of ${chunks.length}`
-            : 'Re-rendering the clip',
+            ? `${how.verb} part ${index + 1} of ${chunks.length}`
+            : `${how.verb} the clip`,
       });
       const part = file(`chunk-${index}.mp4`);
       const pad = chunk.rendered - chunk.frames;
@@ -156,7 +226,7 @@ export async function makeClipRealistic(input: {
       const uploaded = await uploadComfyInputContent({
         baseUrl,
         bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ part)),
-        filename: `castcut-realism-${index}.mp4`,
+        filename: `${how.uploadName}-${index}.mp4`,
         mimeType: 'video/mp4',
       });
       const result = await runHeavyComfyGraph<ComfyImageRef>({
@@ -167,18 +237,17 @@ export async function makeClipRealistic(input: {
         // One 81-frame chunk on WAN 14B takes a few minutes; leave room for a cold model load.
         timeoutMs: 20 * 60_000,
         signal,
-        prompt: buildClipRealismGraph({
+        prompt: how.graph({
           video: uploaded.name,
           ...size,
           fps,
-          denoise: CLIP_REALISM_DENOISE[input.strength],
+          frames: chunk.rendered,
           seed,
-          prefix: 'Castcut-realism-part',
+          extra,
         }),
         read: entry => {
-          const out = (
-            entry.outputs?.[CLIP_REALISM_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined
-          )?.images?.[0];
+          const out = (entry.outputs?.[how.saveNode] as { images?: ComfyImageRef[] } | undefined)
+            ?.images?.[0];
           return out?.filename ? out : undefined;
         },
       });
@@ -234,7 +303,7 @@ export async function makeClipRealistic(input: {
     const uploaded = await uploadComfyInputContent({
       baseUrl,
       bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ joined)),
-      filename: 'castcut-realistic.mp4',
+      filename: how.outName,
       mimeType: 'video/mp4',
     });
     const view = new URLSearchParams({

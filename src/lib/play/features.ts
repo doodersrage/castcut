@@ -4,6 +4,9 @@
  * app does not, so the shared code never imports Play.
  */
 
+import { sharedLlmRequestBody } from '../llm/request-options';
+import { CLIP_STYLES, type ClipStyleId } from '../clip/vace';
+import { openClipRemove } from '../clip/remove-open';
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
 import { registerCastChangeScrubber, loadSettingsCache } from '../settings/cache';
 import { registerJobCompletedHook } from '../gallery/comfyui-gallery';
@@ -185,6 +188,34 @@ registerGalleryClipTool({
   busyText: 'Making the clip more realistic…',
   keepKind: 'realism',
   job: 'realism',
+});
+// Restyle (clip/vace.ts): one item per look; the clip's depth keeps its scene and motion.
+registerGalleryClipTool({
+  id: 'restyle',
+  label: 'Restyle',
+  title: 'Repaint the clip in a look on WAN VACE — its scene and motion kept. Several minutes.',
+  busyText: 'Restyling the clip…',
+  keepKind: 'restyle',
+  job: 'restyle',
+  choices: (Object.keys(CLIP_STYLES) as ClipStyleId[]).map(id => ({
+    id,
+    label: CLIP_STYLES[id].label,
+  })),
+  // The vision model describes the clip's colours first (depth carries none).
+  body: ({ choice }) => ({
+    style: choice?.id,
+    ...sharedLlmRequestBody(loadSettingsCache().shared),
+  }),
+});
+// Remove from clip (clip/vace.ts): paint what goes (ClipRemoveHost), VACE fills it.
+registerGalleryClipTool({
+  id: 'remove',
+  label: 'Remove something…',
+  title: 'Paint over something that stays put; it is filled from the scene on every frame.',
+  busyText: 'Removing it from the clip…',
+  keepKind: 'remove',
+  job: 'remove',
+  open: openClipRemove,
 });
 
 // Gallery ⋯ → Make it move → Direct a move…: the Director on any finished still.

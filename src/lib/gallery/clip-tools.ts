@@ -9,7 +9,7 @@
  */
 
 import { pushAppToast } from '../app/toast';
-import { ClipJobBusyError, type ClipJobTool } from '../clip/clip-jobs';
+import { ClipJobBusyError, type KeptClipJobTool } from '../clip/clip-jobs';
 import { runClipJob, runningTrackedClipJob } from '../clip/clip-jobs-tracker';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 
@@ -22,12 +22,22 @@ export type GalleryClipTool = {
   /** Toast while it runs ("Sharpening…"). */
   busyText: string;
   /** How the new clip is filed (its derived kind and file name). */
-  keepKind: 'finish' | 'realism';
+  keepKind: 'finish' | 'realism' | 'restyle' | 'remove';
   /** The background clip job it runs (clip-jobs.ts). */
-  job: ClipJobTool;
-  /** Extra request fields (e.g. a strength). */
-  body?: (input: { clipUrl: string; entry: ComfyGalleryEntry }) => Record<string, unknown>;
+  job: KeptClipJobTool;
+  /** Extra request fields (e.g. a strength, or the choice picked). */
+  body?: (input: {
+    clipUrl: string;
+    entry: ComfyGalleryEntry;
+    choice?: GalleryClipToolChoice;
+  }) => Record<string, unknown>;
+  /** One menu item per choice ("Restyle · Anime"), the choice going to `body`. */
+  choices?: readonly GalleryClipToolChoice[];
+  /** Opens the feature's own dialog instead of starting the job (Remove: paint what goes). */
+  open?: (input: { clipUrl: string; entry: ComfyGalleryEntry }) => void;
 };
+
+export type GalleryClipToolChoice = { id: string; label: string };
 
 const tools: GalleryClipTool[] = [];
 
@@ -59,6 +69,8 @@ export async function runGalleryClipTool(
   deps: {
     run?: typeof runClipJob;
     toast?: typeof pushAppToast;
+    /** The choice picked, for a tool with `choices`. */
+    choice?: GalleryClipToolChoice;
   } = {}
 ): Promise<string | null> {
   const toast = deps.toast ?? pushAppToast;
@@ -67,6 +79,7 @@ export async function runGalleryClipTool(
     toast({ text: message, tone: 'warning' });
     return message;
   }
+  const label = deps.choice ? `${tool.label} · ${deps.choice.label}` : tool.label;
   toast({
     text: `${tool.busyText} It takes a few minutes — follow it in the jobs tray.`,
     tone: 'info',
@@ -75,20 +88,20 @@ export async function runGalleryClipTool(
   try {
     await (deps.run ?? runClipJob)({
       tool: tool.job,
-      body: { clipUrl, entryId: entry.id, ...tool.body?.({ clipUrl, entry }) },
+      body: { clipUrl, entryId: entry.id, ...tool.body?.({ clipUrl, entry, choice: deps.choice }) },
       keep: {
         kind: tool.keepKind,
-        prompt: `${tool.label}${entry.prompt ? ` · ${entry.prompt.slice(0, 120)}` : ''}`,
+        prompt: `${label}${entry.prompt ? ` · ${entry.prompt.slice(0, 120)}` : ''}`,
         tool: entry.tool || 'gallery',
         sourceEntryId: entry.id,
       },
       owner: { feature: 'gallery', ref: entry.id },
-      label: `${tool.label}${entry.prompt ? ` · ${entry.prompt.slice(0, 60)}` : ''}`,
+      label: `${label}${entry.prompt ? ` · ${entry.prompt.slice(0, 60)}` : ''}`,
     });
     return null;
   } catch (error) {
     // The tracker has already said why (with Retry) — a busy server is the one case it doesn't.
     if (error instanceof ClipJobBusyError) toast({ text: error.message, tone: 'warning' });
-    return error instanceof Error ? error.message : `${tool.label} failed.`;
+    return error instanceof Error ? error.message : `${label} failed.`;
   }
 }

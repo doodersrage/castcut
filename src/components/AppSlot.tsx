@@ -24,6 +24,8 @@ export type AppSlotProps = {
   'queue.top': Record<never, never>;
   /** App-wide, once the shell is ready: a feature's first-run welcome (Play: goal chooser). */
   'shell.welcome': Record<never, never>;
+  /** App-wide, once the shell is ready: a feature's dialogs opened from shared menus (Play: Remove from clip). */
+  'shell.overlays': Record<never, never>;
   'gallery.empty': GalleryEmptySlotProps;
   /** Settings → Connection first run: feature checks, re-read when `refreshKey` changes. */
   'settings.firstRunChecks': { refreshKey: string };

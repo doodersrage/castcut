@@ -13,16 +13,27 @@ import {
   type ClipJobKeep,
   type KeptClip,
 } from '@/lib/clip/clip-jobs-tracker';
-import { CLIP_JOB_LABEL, type ClipJobTool } from '@/lib/clip/clip-jobs';
+import { CLIP_JOB_LABEL, type KeptClipJobTool } from '@/lib/clip/clip-jobs';
 import { copyMovesForm, danceForm, lipSyncForm, requestRelight } from '@/lib/media/actions-client';
 
 export type DaySlotMediaTool =
-  'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'sketch' | 'upscale';
+  | 'finish'
+  | 'realism'
+  | 'restyle'
+  | 'remove'
+  | 'moves'
+  | 'dance'
+  | 'lip-sync'
+  | 'relight'
+  | 'sketch'
+  | 'upscale';
 
 /** What each tool says while it works (the board shows it on the card's menu item). */
 export const DAY_SLOT_MEDIA_BUSY: Record<DaySlotMediaTool, string> = {
   finish: 'Sharpening…',
   realism: 'Making it more realistic…',
+  restyle: 'Restyling…',
+  remove: 'Removing it…',
   moves: 'Copying moves…',
   dance: 'Dancing…',
   'lip-sync': 'Lip-syncing…',
@@ -60,7 +71,7 @@ function shownStill(still: DaySlotStill, needsTake = false): string {
 }
 
 /** How a job's result is filed in the Gallery: Upscale a still, the rest a clip. */
-function dayJobKeep(tool: ClipJobTool, still: DaySlotStill, prompt: string): ClipJobKeep {
+function dayJobKeep(tool: KeptClipJobTool, still: DaySlotStill, prompt: string): ClipJobKeep {
   return tool === 'upscale'
     ? { media: 'still', kind: 'upscale', prompt, tool: 'day', sourcePromptId: still.promptId }
     : { kind: tool, prompt, tool: 'day', sourcePromptId: still.clipPromptId ?? still.promptId };
@@ -68,7 +79,7 @@ function dayJobKeep(tool: ClipJobTool, still: DaySlotStill, prompt: string): Cli
 
 /** A job's result on the slot: an upscale is the shown still for this take, a clip its clip. */
 function dayJobPatch(
-  tool: ClipJobTool,
+  tool: KeptClipJobTool,
   still: DaySlotStill,
   kept: KeptClip
 ): Partial<DaySlotStill> {
@@ -127,7 +138,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const slotJob = useCallback(
     (
       slot: DaySlot,
-      tool: ClipJobTool,
+      tool: KeptClipJobTool,
       build: (still: DaySlotStill) => { body: ClipJobBody; source: string }
     ) =>
       run(slot, tool, async still => {

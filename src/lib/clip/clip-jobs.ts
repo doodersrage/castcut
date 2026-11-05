@@ -6,7 +6,19 @@
  * reload picks them back up) is clip-jobs-tracker.ts.
  */
 
-export type ClipJobTool = 'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'upscale';
+export type ClipJobTool =
+  | 'finish'
+  | 'realism'
+  | 'moves'
+  | 'dance'
+  | 'lip-sync'
+  | 'upscale'
+  | 'restyle'
+  | 'remove'
+  | 'sound-effect';
+
+/** A job whose result is kept in the Gallery (a clip or a still) — all but Make a sound. */
+export type KeptClipJobTool = Exclude<ClipJobTool, 'sound-effect'>;
 
 export type ClipJobStatus = 'running' | 'completed' | 'error' | 'cancelled';
 
@@ -36,6 +48,9 @@ export const CLIP_JOB_LABEL: Record<ClipJobTool, string> = {
   dance: 'Dance to music',
   'lip-sync': 'Lip-sync',
   upscale: 'Upscale to 4K',
+  restyle: 'Restyle',
+  remove: 'Remove from clip',
+  'sound-effect': 'Make a sound',
 };
 
 export const CLIP_JOB_ENDPOINT: Record<ClipJobTool, string> = {
@@ -45,6 +60,9 @@ export const CLIP_JOB_ENDPOINT: Record<ClipJobTool, string> = {
   dance: '/api/clip/dance',
   'lip-sync': '/api/clip/lip-sync',
   upscale: '/api/still/upscale',
+  restyle: '/api/clip/restyle',
+  remove: '/api/clip/remove',
+  'sound-effect': '/api/clip/sound-effect',
 };
 
 /** Thrown when another clip job holds the GPU (the server runs one at a time). */

@@ -126,6 +126,7 @@ export default function DeferredShellClient() {
           <CommandPalette />
           <GalleryPwaRegister />
           <AppSlot name="shell.welcome" />
+          <AppSlot name="shell.overlays" />
           <FirstQueueSetupModal />
           <AppUpdateWatcher />
           <WorkflowLibraryWatcher />

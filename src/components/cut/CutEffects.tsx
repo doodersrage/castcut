@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { OptionSlider } from '@/components/cut/CutOptionParts';
 import { formatCutTime } from '@/hooks/useCutPreview';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film/audio-bed';
+import { makeSoundEffectForCut } from '@/lib/clip/sound-effect-client';
+import { SOUND_EFFECT_DEFAULT_SEC } from '@/lib/clip/sound-effect';
 import {
   normalizeEffectAt,
   normalizeEffectLevel,
@@ -18,7 +20,7 @@ const FIELD =
 /**
  * The effects track (M10 T4): sounds placed at a time in the film — a door slam, a phone buzz —
  * each with its level and mute, played in the monitor and mixed by the encode. **+ Sound here**
- * places a file at the playhead.
+ * places a file at the playhead; **Make a sound** writes one from words on LTX-2.5 (sound-effect.ts).
  */
 export default function CutEffects({
   sound,
@@ -37,7 +39,25 @@ export default function CutEffects({
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [words, setWords] = useState('');
+  const [seconds, setSeconds] = useState(SOUND_EFFECT_DEFAULT_SEC);
+  const [making, setMaking] = useState<string | null>(null);
   const effects = sound?.effects ?? [];
+  const newId = () => `fx-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+  const makeSound = () => {
+    const said = words.trim();
+    if (!said) return;
+    const at = normalizeEffectAt(time);
+    setMaking('Starting…');
+    setError(null);
+    void makeSoundEffectForCut({ words: said, seconds, onProgress: setMaking })
+      .then(made => {
+        onChange(newId(), { url: made.url, name: made.label, atSec: at }, true);
+        setWords('');
+      })
+      .catch(err => setError(err instanceof Error ? err.message : 'Could not make that sound.'))
+      .finally(() => setMaking(null));
+  };
   return (
     <div className="space-y-1.5" data-testid="cut-effects">
       <div className="flex flex-wrap items-center gap-2">
@@ -57,6 +77,52 @@ export default function CutEffects({
         >
           {busy ? 'Adding…' : `+ Sound at ${formatCutTime(time)}`}
         </Button>
+      </div>
+      {/* A sound from words, placed at the playhead when it's made (about a minute). */}
+      <div className="flex flex-wrap items-center gap-2" data-testid="cut-effect-make">
+        <input
+          type="text"
+          value={words}
+          maxLength={200}
+          placeholder="Make a sound: a door slams, rain on a window…"
+          aria-label="The sound to make"
+          className="min-w-[14rem] flex-1 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-2 py-1 text-sm"
+          disabled={disabled || making !== null}
+          onChange={event => setWords(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter') makeSound();
+          }}
+          data-testid="cut-effect-make-words"
+        />
+        <select
+          value={seconds}
+          aria-label="How long the sound is"
+          className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 text-sm"
+          disabled={disabled || making !== null}
+          onChange={event => setSeconds(Number(event.target.value))}
+          data-testid="cut-effect-make-seconds"
+        >
+          {[1, 2, 4, 6, 8].map(value => (
+            <option key={value} value={value}>
+              {value} s
+            </option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={disabled || making !== null || !words.trim()}
+          title={`Make it on LTX-2.5 (about a minute) and place it at ${formatCutTime(time)}`}
+          onClick={makeSound}
+          data-testid="cut-effect-make-go"
+        >
+          {making ? 'Making…' : 'Make it'}
+        </Button>
+        {making ? (
+          <span className="type-caption text-[var(--text-muted)]" role="status">
+            {making}
+          </span>
+        ) : null}
       </div>
       {effects.length ? (
         <ul className="space-y-1">
@@ -151,11 +217,7 @@ export default function CutEffects({
           setError(null);
           void resolveFilmAudioBedFromFile(file)
             .then(resolved =>
-              onChange(
-                `fx-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
-                { url: resolved.url, name: resolved.label, atSec: at },
-                true
-              )
+              onChange(newId(), { url: resolved.url, name: resolved.label, atSec: at }, true)
             )
             .catch(err =>
               setError(err instanceof Error ? err.message : 'Could not use that audio file.')

@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { buildClipVaceGraph, CLIP_STYLES, CLIP_VACE_MODELS, normalizeClipStyle } from './vace';
+
+type Node = { class_type: string; inputs: Record<string, unknown> };
+const ofType = (graph: Record<string, unknown>, type: string) =>
+  Object.values(graph as Record<string, Node>).filter(node => node.class_type === type);
+
+const base = { video: 'chunk.mp4', width: 720, height: 960, fps: 24, frames: 81, seed: 3, prefix: 'x' };
+
+describe('Restyle and Remove on VACE', () => {
+  it('restyles from the clip’s depth, in the look’s words, on both experts', () => {
+    const graph = buildClipVaceGraph({ ...base, mode: { kind: 'restyle', style: 'noir' } });
+    const vace = ofType(graph, 'WanVaceToVideo')[0]!;
+    assert.deepEqual(vace.inputs.control_video, ['30', 0]);
+    assert.equal(vace.inputs.control_masks, undefined);
+    assert.equal(vace.inputs.length, 81);
+    assert.equal((graph['30'] as Node).class_type, 'DepthAnythingV2Preprocessor');
+    const texts = ofType(graph, 'CLIPTextEncode').map(node => node.inputs.text as string);
+    assert.match(texts[0]!, /Black-and-white film noir/);
+    assert.match(texts[1]!, /colour/);
+    const units = ofType(graph, 'UNETLoader').map(node => node.inputs.unet_name);
+    assert.deepEqual(units, [CLIP_VACE_MODELS.high, CLIP_VACE_MODELS.low]);
+    const [high, low] = ofType(graph, 'KSamplerAdvanced');
+    assert.equal(high!.inputs.end_at_step, 2);
+    assert.equal(low!.inputs.start_at_step, 2);
+    assert.deepEqual(low!.inputs.latent_image, ['41', 0]);
+    // VACE's reference frames are trimmed off before the decode.
+    assert.deepEqual(ofType(graph, 'TrimVideoLatent')[0]!.inputs.trim_amount, ['38', 3]);
+  });
+
+  it('removes a painted area: the frames greyed there, the area as the mask, on every frame', () => {
+    const graph = buildClipVaceGraph({ ...base, mode: { kind: 'remove', mask: 'mask.png' } });
+    const vace = ofType(graph, 'WanVaceToVideo')[0]!;
+    assert.deepEqual(vace.inputs.control_video, ['37', 0]);
+    assert.deepEqual(vace.inputs.control_masks, ['35', 0]);
+    assert.equal(ofType(graph, 'RepeatImageBatch')[0]!.inputs.amount, 81);
+    assert.equal(ofType(graph, 'EmptyImage')[0]!.inputs.color, 0x7f7f7f);
+    assert.equal(ofType(graph, 'LoadImage')[0]!.inputs.image, 'mask.png');
+    assert.equal(ofType(graph, 'DepthAnythingV2Preprocessor').length, 0);
+  });
+
+  it('knows its looks', () => {
+    assert.equal(normalizeClipStyle('anime'), 'anime');
+    assert.equal(normalizeClipStyle('toString'), null);
+    assert.equal(normalizeClipStyle(undefined), null);
+    assert.equal(Object.keys(CLIP_STYLES).length, 6);
+  });
+});

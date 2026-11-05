@@ -2976,3 +2976,34 @@ The user asked whether the UI should be more consistent with similar apps; an au
 Checked: unit 9,127 pass, `tsc`, lint, import boundaries, core; screenshots after each step. Not
 run locally: e2e (the user's dev server holds :47832, and reusing it would run against their real
 data) — CI runs them.
+
+# Part 17 — Parity: restyle, remove from a clip, sounds from words (2026-11-04)
+
+Checked against similar apps: planning, consistent people, longer clips, lip-sync, finishing, an
+editor-style Cut, review links and delivery were already in. The gaps the user asked for ("do all"):
+
+**T1 — Make a sound.** Cut's effects track: words and a length → LTX-2.5 holds a few seconds of
+plain grey (its video frozen, buildLtx25DubGraph) and makes that one sound (sound-effect.ts,
+/api/clip/sound-effect, a clip job). Live: door slam (a sharp hit, then silence), glass (bright,
+~3.5 kHz), rain (a steady bed), a phone buzz in 32 s end to end; Whisper heard no speech in any.
+Counts aren't followed ("buzzes twice" → once).
+
+**T2 — Restyle.** First tried on Make more realistic's path (WAN 2.2 low-noise): 0.45–0.8 left
+a photograph, 0.9 made another video — no setting changes the look and keeps the scene. Built on
+WAN 2.2 Fun VACE instead (vace.ts): the clip's depth (Depth Anything V2) as the control video, two
+experts with Lightning (2 + 2 steps), chunks as realism (rerenderClipInChunks, now shared). Depth
+carries no colour — a red dress came out blue; the first frame as VACE's reference pulled it back
+to a photograph; the vision model's one-sentence description of the first frame (colours named)
+kept the dress, shoes and walls (live, anime and watercolour). Six looks; Gallery ⋯ → Clip, one
+item per look.
+
+**T3 — Remove from a clip.** Gallery ⋯ → Clip → Remove something… paints on the first frame
+(the Fix area brush, ClipRemoveHost in the new `shell.overlays` slot); the frames greyed there and
+the area as VACE's mask. Live: the coffee maker gone from the counter, the rest unchanged. The
+mask is the same on every frame (no tracking: SAM 2 isn't installed).
+
+Models: both Fun VACE experts (17.3 GB each, fp8) and the WAN 2.2 Lightning high-noise LoRA, in
+the model catalog (`clip-vace`). Memory: the two experts with everything else open took the
+machine to 3 GB free once; with less open, a run peaked fine.
+
+Not done: motion brush (needs a different approach on these models).

@@ -144,6 +144,8 @@ export type DaySlotBoardProps = {
 const MEDIA_DONE: Record<DaySlotMediaTool, string> = {
   finish: 'Done — the clip is sharper and smoother.',
   realism: 'Done — the clip looks more real (the original is in the Gallery).',
+  restyle: 'Done — the clip is in its new look (the original is in the Gallery).',
+  remove: 'Done — it is gone from the clip (the original is in the Gallery).',
   moves: 'Done — the clip now has the copied moves.',
   dance: 'Done — the clip now dances to your song.',
   'lip-sync': 'Done — the clip now says your recording.',

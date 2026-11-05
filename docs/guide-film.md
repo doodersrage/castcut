@@ -1,7 +1,7 @@
 # Cut a film
 
 **Cut** is the film's own step — the **Cut** tab, after Day and Story (`/cut`, on a phone
-`/m/cut`). Day's *Ready to cut* section and Story's **Cut film →** open it with their shots
+`/m/cut`). Day's _Ready to cut_ section and Story's **Cut film →** open it with their shots
 picked.
 
 The monitor and the timeline sit together, with one panel beside them — **Shots**, **Options**,
@@ -9,25 +9,25 @@ The monitor and the timeline sit together, with one panel beside them — **Shot
 so watching, arranging and setting up the film happen on one screen (on a narrow screen the panel
 comes under the timeline). **Your films**, **Versions** and **Package** are tabs below.
 
-| Part of the page | What it does |
-| --- | --- |
-| **What's in it** | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them. With Scenes or the animatic in, each script's coverage shows under them (*5 planned · 3 made · 1 kept · 1 in the Cut*), linking to the script |
-| **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change |
-| **Timeline** | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option) |
-| **Shots** | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim), **Bridge to next** renders a short clip that moves from the end of the shot under the playhead into the next shot — she moves and the place turns into the next one, instead of a cut or a fade (MiniMax-H3, a few minutes; it joins the film when ready, its sound muted). Added shots have **Remove** |
-| **Options** | **Made for** (a profile), shape, size, length, music, subtitles, titles — kept between visits — and **Before cutting**, the checks |
-| **Subtitles** | Each shot's subtitle and when it shows, the checks, **Export .srt** / **Import .srt…** (see [Subtitles](#subtitles)) |
-| **Missing** | Shown when a shot's file is gone: **Relink** it (see [Missing media](#missing-media)) |
-| **Continuity** | What the checks found on the shots (face, pose, outfit jumps between shots…), each decided **It's fine** or **It's real** |
-| **Versions** | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again |
-| **Package** | The cut, its versions and (with media) its files in one .zip for another machine — and **Import a package…** (see [Package a cut](#package-a-cut)) |
-| **Your films** | Every film of this Cast: re-cut in another shape, export for an editor, share, **Measure loudness** |
+| Part of the page  | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What's in it**  | Tick **Day**, **Story**, **Scenes** (each Scene's kept take) — one film can mix them. With Scenes or the animatic in, each script's coverage shows under them (_5 planned · 3 made · 1 kept · 1 in the Cut_), linking to the script                                                                                                                                                                                                                                                                                                                                                                             |
+| **Watch the cut** | The cut as it will come out, before anything is encoded — it updates a moment after each change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Timeline**      | Every shot as long as it plays: click to jump, drag a shot to move it, drag a still's edge to hold it, a clip's edges to trim it; drag on the ruler to scrub. Under the shots, the **sound lane** shows the music's waveform against the cut (and says when the track runs out early or runs over), the spoken lines and the narration. The round badge on each join picks how the next shot comes in — **Cut**, **Crossfade**, **Fade through black**, **Flash of white** or **Slide** (default: the Crossfade option)                                                                                         |
+| **Shots**         | One card per shot, with its picture and what happens in it — **drag** to reorder. **+ From Gallery** adds any still or clip of this Cast, **+ Text card** a line of words on black, **Duplicate** the shot under the playhead again, **Split at playhead** cuts a clip in two (each half its own trim), **Bridge to next** renders a short clip that moves from the end of the shot under the playhead into the next shot — she moves and the place turns into the next one, instead of a cut or a fade (MiniMax-H3, a few minutes; it joins the film when ready, its sound muted). Added shots have **Remove** |
+| **Options**       | **Made for** (a profile), shape, size, length, music, subtitles, titles — kept between visits — and **Before cutting**, the checks                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Subtitles**     | Each shot's subtitle and when it shows, the checks, **Export .srt** / **Import .srt…** (see [Subtitles](#subtitles))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Missing**       | Shown when a shot's file is gone: **Relink** it (see [Missing media](#missing-media))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Continuity**    | What the checks found on the shots (face, pose, outfit jumps between shots…), each decided **It's fine** or **It's real**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Versions**      | Save the edit under a name (a long cut, a 30 s one for Reels) and open it again                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Package**       | The cut, its versions and (with media) its files in one .zip for another machine — and **Import a package…** (see [Package a cut](#package-a-cut))                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Your films**    | Every film of this Cast: re-cut in another shape, export for an editor, share, **Measure loudness**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 After a cut: **Watch on Cast**, **Start tomorrow on Day** or **Continue as a story**.
 
 !!! tip "Keys"
-    **Space** play / pause · **← →** previous / next shot · **Alt+← →** move the shot ·
-    **Delete** leave it out (again: put it back) · **Ctrl+Z** undo · **Ctrl+Shift+Z** redo
+**Space** play / pause · **← →** previous / next shot · **Alt+← →** move the shot ·
+**Delete** leave it out (again: put it back) · **Ctrl+Z** undo · **Ctrl+Shift+Z** redo
 **Stitch a season** is on the **Cast page → Film & media → Seasons**.
 
 The film saves to the Gallery and to the Cast as an episode.
@@ -39,30 +39,30 @@ the shots, missing media, subtitles (when on), whether there is anything to hear
 picture size, whether the server can encode, and its free disk space for the film. It also says
 what is left for the cut itself.
 
-When you cut, every shot is checked first (*Checking the shots…*): missing, black, a talking clip
+When you cut, every shot is checked first (_Checking the shots…_): missing, black, a talking clip
 with no sound, or a still that missed its pose or face. Then choose **Retry them first**,
 **Leave them out** or **Cut anyway**. After a server encode, **The film as cut** reads the
 finished file back — its size, length, frame rate, sound and loudness — against the profile.
 
 ## Cut options
 
-| Option | Choices |
-| --- | --- |
-| **Made for** | **Review copy** (720p, subtitles burned in) · **Widescreen master** (1080p, clean) · **Vertical social** (1080×1920) · **Square social** (1080×1080) — each sets shape, size, subtitles and a loudness target; **Export for an editor** is the handoff |
-| **Shape** | Widescreen 16:9 · Vertical 9:16 · Square 1:1 |
-| **Size** | 720p · 1080p |
-| **Length** | As the shots hold · Fit to the music · 15 / 30 / 60 s |
-| **Music** | Upload, paste a link, or **Score this film** (an original track) |
-| **Levels** | Music and Lines — the music ducks under speech |
-| **Music shape** | Music from (start partway in) · Fade in · Fade out |
-| **Ambience** | A room tone / rain / café track looped under the whole film, with its own level |
-| **Smooth motion** | Clips made at 16 / 24 fps get the frames in between drawn (RIFE), so motion is smooth |
-| **Sharpen** | A light sharpen over the finished film |
-| **Follow faces** | Vertical / square cuts: each wide shot's crop follows the face instead of the centre (on by default) |
-| **Look** | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider |
-| **Match shots** *(on)* | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night) |
-| **Polish** | Crossfade · Slow zoom on stills · Title & captions |
-| **Subtitles** *(on)* | Each shot's subtitle — what is said in its talking clip, else its narration, or what you set in **Subtitles** — burned in at the bottom |
+| Option                 | Choices                                                                                                                                                                                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Made for**           | **Review copy** (720p, subtitles burned in) · **Widescreen master** (1080p, clean) · **Vertical social** (1080×1920) · **Square social** (1080×1080) — each sets shape, size, subtitles and a loudness target; **Export for an editor** is the handoff |
+| **Shape**              | Widescreen 16:9 · Vertical 9:16 · Square 1:1                                                                                                                                                                                                           |
+| **Size**               | 720p · 1080p                                                                                                                                                                                                                                           |
+| **Length**             | As the shots hold · Fit to the music · 15 / 30 / 60 s                                                                                                                                                                                                  |
+| **Music**              | Upload, paste a link, or **Score this film** (an original track)                                                                                                                                                                                       |
+| **Levels**             | Music and Lines — the music ducks under speech                                                                                                                                                                                                         |
+| **Music shape**        | Music from (start partway in) · Fade in · Fade out                                                                                                                                                                                                     |
+| **Ambience**           | A room tone / rain / café track looped under the whole film, with its own level                                                                                                                                                                        |
+| **Smooth motion**      | Clips made at 16 / 24 fps get the frames in between drawn (RIFE), so motion is smooth                                                                                                                                                                  |
+| **Sharpen**            | A light sharpen over the finished film                                                                                                                                                                                                                 |
+| **Follow faces**       | Vertical / square cuts: each wide shot's crop follows the face instead of the centre (on by default)                                                                                                                                                   |
+| **Look**               | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider                                                                                                                                                      |
+| **Match shots** _(on)_ | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)                                                                                                              |
+| **Polish**             | Crossfade · Slow zoom on stills · Title & captions                                                                                                                                                                                                     |
+| **Subtitles** _(on)_   | Each shot's subtitle — what is said in its talking clip, else its narration, or what you set in **Subtitles** — burned in at the bottom                                                                                                                |
 
 ## Shots
 
@@ -74,38 +74,38 @@ the **poster**, set a still's **move** (push in, pull out, hold still) and a cli
 
 ## Editing keys
 
-| Key | Does |
-| --- | --- |
-| Space · K / L | Pause / play |
-| J | Back a shot |
-| ← → · , . | Previous / next shot · one frame back / on |
-| S | Split the clip at the playhead |
-| I / O | Trim the clip's in / out point to the playhead |
-| F | Freeze frame — the clip's frame held 2 s after it |
-| D | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
+| Key           | Does                                                                  |
+| ------------- | --------------------------------------------------------------------- |
+| Space · K / L | Pause / play                                                          |
+| J             | Back a shot                                                           |
+| ← → · , .     | Previous / next shot · one frame back / on                            |
+| S             | Split the clip at the playhead                                        |
+| I / O         | Trim the clip's in / out point to the playhead                        |
+| F             | Freeze frame — the clip's frame held 2 s after it                     |
+| D             | Duplicate · Alt+← → move the shot · Delete leave it out · Ctrl+Z undo |
 
 **Make longer…** carries the clip under the playhead on in the same shot (+4, +8 or +15 s); the longer clip takes its place when it has rendered.
 
 **New take** renders the picked shot again with a new seed; the take replaces it when ready (Remove or Ctrl+Z brings the old one back).
 
-**Make a reel…** turns the edit into a 15 / 30 / 60 s vertical reel (shots spread across the film, clips trimmed to their middle, hard cuts, faces followed, subtitles on); the full edit is saved first as the *Full cut* version.
+**Make a reel…** turns the edit into a 15 / 30 / 60 s vertical reel (shots spread across the film, clips trimmed to their middle, hard cuts, faces followed, subtitles on); the full edit is saved first as the _Full cut_ version.
 
 **Overlay…** on a shot adds a lower third (a name or place, and a smaller line) or a picture in a corner. **Add a logo** (in Options) puts a watermark over the whole film. A still's move can be **from… to…**: pick where the frame starts and ends.
 
 **Export for an editor** downloads a .zip for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline, the music and the subtitles. After a cut, **Subtitles (.srt)** downloads the film's subtitles on their own.
 
-**Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it. With Phantom installed (Models: *Phantom 14B* and its step-distill LoRA, about 16 GB), **With <Cast>** makes it a clip of her straight from her pictures — her face lock and reference — in about 1½ minutes, no picture drawn first: a shot of her that was never rendered. It has no sound worth keeping (muted, as generated clips are).
+**Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it. With Phantom installed (Models: _Phantom 14B_ and its step-distill LoRA, about 16 GB), **With <Cast>** makes it a clip of her straight from her pictures — her face lock and reference — in about 1½ minutes, no picture drawn first: a shot of her that was never rendered. It has no sound worth keeping (muted, as generated clips are).
 
-Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, and **J / L cuts** in the shot list — *sound in early* (hear it before it is seen; needs a trimmed start) and *sound runs on* (keep hearing it over the next shot; needs a trimmed end).
+Each clip has a **speed** (0.25×–4×, slow motion is smooth), **reverse**, and **J / L cuts** in the shot list — _sound in early_ (hear it before it is seen; needs a trimmed start) and _sound runs on_ (keep hearing it over the next shot; needs a trimmed end).
 
 ## Sound
 
-| Sound | Where it comes from |
-| --- | --- |
-| **Lines** | Talking clips — the Cast's voice |
-| **Narration** | Each slot's (or Story scene's) Narration, recorded when the film is cut |
-| **Room sound** | Under talking clips, and **Add sound** on silent ones |
-| **Music** | Your track or **Score this film** |
+| Sound          | Where it comes from                                                     |
+| -------------- | ----------------------------------------------------------------------- |
+| **Lines**      | Talking clips — the Cast's voice                                        |
+| **Narration**  | Each slot's (or Story scene's) Narration, recorded when the film is cut |
+| **Room sound** | Under talking clips, and **Add sound** on silent ones                   |
+| **Music**      | Your track or **Score this film**                                       |
 
 **Tracks**, under the timeline: **M** mutes a track — clip sound (talking clips' lines with it),
 narration, music, ambience or effects — silent in the monitor and the mix preview, and left out
@@ -117,6 +117,11 @@ where the playhead is; each sound has its start (**at**, seconds into the film),
 its own **M**, and **×** removes it (Ctrl+Z puts it back). Clicking its name moves the playhead
 there. The monitor plays them and the encode mixes them on top of everything else — they don't
 duck the music. They stay at their film time: if the shots before one change length, move it.
+
+**Make a sound** writes one from words instead of a file: type it ("a door slams shut", "rain on a
+window"), pick how long (1–8 s) and **Make it** — about half a minute on LTX-2.5, then it's placed
+where the playhead was, like any other effect. It makes one sound at a time; "buzzes twice" may
+come out once.
 
 **Measure loudness** on a film in **Your films** reads its loudness (LUFS), range and true peak
 and says how it sits against the web's −14 LUFS or broadcast's −23 (EBU R128): what to turn up or
@@ -163,7 +168,7 @@ keeps no files. Anything it can't find shows under Missing media.
 
 The edit saves as you work, and Ctrl+Z works after a reload. Saved versions are kept per version
 across devices. If two devices edit the same cut, the newer edit stays and the other is kept as a
-version, *Edit from another device (time)* — neither is lost.
+version, _Edit from another device (time)_ — neither is lost.
 
 ## Dub into another language
 
@@ -175,21 +180,21 @@ Spanish, French, German, Italian, Portuguese, Japanese, Korean and Chinese.
 - **As written** puts the original lines back.
 
 !!! tip "Use a capable LLM"
-    An 8B model translated well in testing; a 3B one changed the meaning of some lines.
+An 8B model translated well in testing; a 3B one changed the meaning of some lines.
 
 ## After the cut
 
 On the **Cast page → Film & media → Films**, under each film:
 
-| Button | What it does |
-| --- | --- |
-| **Re-cut** | The same film at another shape (vertical, square, widescreen) or size |
+| Button                   | What it does                                                            |
+| ------------------------ | ----------------------------------------------------------------------- |
+| **Re-cut**               | The same film at another shape (vertical, square, widescreen) or size   |
 | **Export for an editor** | A zip with FCPXML (Resolve, Final Cut), an EDL, subtitles and the clips |
-| **Share for review** | A read-only link that expires — anyone can watch it without an account |
+| **Share for review**     | A read-only link that expires — anyone can watch it without an account  |
 
 !!! note
-    These need a film cut in **2.6 or later** (it keeps the recipe). For an older film, cut
-    the Day again.
+These need a film cut in **2.6 or later** (it keeps the recipe). For an older film, cut
+the Day again.
 
 ## When a shot gets a new take
 

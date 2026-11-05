@@ -14,13 +14,21 @@ import {
   type ClipJobKeep,
   type KeptClip,
 } from '@/lib/clip/clip-jobs-tracker';
-import { CLIP_JOB_LABEL, type ClipJobTool } from '@/lib/clip/clip-jobs';
+import { CLIP_JOB_LABEL, type KeptClipJobTool } from '@/lib/clip/clip-jobs';
 import { patchRoleplayStoryBeat, type RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { addRoleplayFixedTakePatch } from '@/lib/story/roleplay-gallery-takes';
 import { loadSettingsCache } from '@/lib/settings/cache';
 
 export type StoryMediaTool =
-  'finish' | 'realism' | 'moves' | 'dance' | 'lip-sync' | 'relight' | 'upscale';
+  | 'finish'
+  | 'realism'
+  | 'restyle'
+  | 'remove'
+  | 'moves'
+  | 'dance'
+  | 'lip-sync'
+  | 'relight'
+  | 'upscale';
 
 export type StoryBeatMediaTools = {
   busy: { key: string; tool: StoryMediaTool } | null;
@@ -65,7 +73,11 @@ function finishedClipOf(latest: RoleplayStoryBeat): string {
 }
 
 /** How a job's result is filed in the Gallery: Upscale a still, the rest a clip. */
-function storyJobKeep(tool: ClipJobTool, latest: RoleplayStoryBeat, prompt: string): ClipJobKeep {
+function storyJobKeep(
+  tool: KeptClipJobTool,
+  latest: RoleplayStoryBeat,
+  prompt: string
+): ClipJobKeep {
   return tool === 'upscale'
     ? { media: 'still', kind: 'upscale', prompt, tool: 'roleplay', sourcePromptId: latest.promptId }
     : {
@@ -78,7 +90,7 @@ function storyJobKeep(tool: ClipJobTool, latest: RoleplayStoryBeat, prompt: stri
 
 /** A job's result on the scene: an upscale joins its takes, pinned; a clip becomes its clip. */
 function storyJobPatch(
-  tool: ClipJobTool,
+  tool: KeptClipJobTool,
   latest: RoleplayStoryBeat,
   kept: KeptClip
 ): Partial<RoleplayStoryBeat> {
@@ -150,7 +162,7 @@ export function useStoryBeatMediaTools({
   const sceneJob = useCallback(
     (
       beat: RoleplayStoryBeat,
-      tool: ClipJobTool,
+      tool: KeptClipJobTool,
       build: (latest: RoleplayStoryBeat) => { body: ClipJobBody; source: string }
     ) =>
       run(beat, tool, async latest => {
