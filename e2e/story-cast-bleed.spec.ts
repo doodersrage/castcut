@@ -158,7 +158,8 @@ test('story: a Cast switched on another page never inherits the previous lead’
   await seedNoraReelTomasActive(page);
   await gotoStable(page, '/story');
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('story-continue-cast')).toContainText('Tomas', {
+  // Who the Story follows is named on its Cast chip (the Continue panel is in the chip's sheet).
+  await expect(page.getByTestId('story-cast-chip')).toContainText('Tomas', {
     timeout: 30_000,
   });
   // The library save runs on a short debounce.
@@ -173,7 +174,8 @@ test('story: a Cast switched on another page never inherits the previous lead’
 
   await page.reload();
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('story-continue-cast')).toContainText('Tomas', {
+  // Who the Story follows is named on its Cast chip (the Continue panel is in the chip's sheet).
+  await expect(page.getByTestId('story-cast-chip')).toContainText('Tomas', {
     timeout: 30_000,
   });
   await page.waitForTimeout(2_000);

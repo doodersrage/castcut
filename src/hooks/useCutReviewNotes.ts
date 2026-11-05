@@ -54,6 +54,22 @@ export function useCutReviewNotes(
   const notes = useMemo(() => cutReviewNotes(reviews), [reviews]);
   const setResolved = useCallback(async (note: CutReviewNote, resolved: boolean) => {
     setError(null);
+    // Ticked at once, put back if the save fails (it waited for the server: the box lagged).
+    const mark = (value: boolean) =>
+      setLoaded(previous => ({
+        ...previous,
+        reviews: previous.reviews.map(review =>
+          review.token !== note.token
+            ? review
+            : {
+                ...review,
+                comments: review.comments.map(comment =>
+                  comment.id === note.id ? { ...comment, resolved: value } : comment
+                ),
+              }
+        ),
+      }));
+    mark(resolved);
     const response = await fetch('/api/film/review', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -61,22 +77,9 @@ export function useCutReviewNotes(
       body: JSON.stringify({ token: note.token, commentId: note.id, resolved }),
     }).catch(() => null);
     if (!response?.ok) {
+      mark(!resolved);
       setError('That comment could not be updated.');
-      return;
     }
-    setLoaded(previous => ({
-      ...previous,
-      reviews: previous.reviews.map(review =>
-        review.token !== note.token
-          ? review
-          : {
-              ...review,
-              comments: review.comments.map(comment =>
-                comment.id === note.id ? { ...comment, resolved } : comment
-              ),
-            }
-      ),
-    }));
   }, []);
   return { notes, loading, error, setResolved };
 }

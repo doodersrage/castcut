@@ -1309,13 +1309,22 @@ test('subtitle look: picked in the options and shown on the monitor', async ({ p
   await page.getByTestId('cut-tab-options').click();
   // The look is in "Text & logo" (folded by default).
   await page.locator('details.cut-opt-group summary').filter({ hasText: 'Text & logo' }).click();
+  // Subtitles on, whatever an earlier test left stored (it sets them to none).
+  const subtitlesOn = page.locator('[data-testid$="-subtitles"][role="switch"]').first();
+  if ((await subtitlesOn.getAttribute('aria-checked')) !== 'true') await subtitlesOn.click();
   const look = page.locator('[data-testid$="-subtitle-style"]').first();
   await look.scrollIntoViewIfNeeded();
   await look.selectOption('words');
   // Into the middle of the morning shot, where its subtitle shows.
   const block = (await page.getByTestId('cut-timeline-shot-day:morning').boundingBox())!;
   const ruler = (await page.getByTestId('cut-timeline-ruler').boundingBox())!;
-  await page.mouse.click(block.x + block.width * 0.45, ruler.y + ruler.height / 2);
+  // Through the ruler element (it scrolls into view first; a page-coordinate click below the
+  // fold hit nothing when the options above had grown).
+  await page.getByTestId('cut-timeline-ruler').click({
+    position: { x: block.x - ruler.x + block.width * 0.45, y: ruler.height / 2 },
+  });
+  const cc = page.getByTestId('cut-preview-cc');
+  if ((await cc.getAttribute('aria-pressed')) !== 'true') await cc.click();
   const subtitle = page.getByTestId('cut-preview-subtitle');
   await expect(subtitle).toHaveAttribute('data-style', 'words', { timeout: 15_000 });
   // Word by word: a few words at a time, never the whole line.
@@ -1388,9 +1397,8 @@ test('notes: review comments on this cut’s film, a jump to the moment, ticked 
   await page.getByTestId('cut-review-note-resolve').first().check();
   await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 1');
   expect(patched[0]).toMatchObject({ commentId: 'c1', resolved: true });
-  // The jump put the playhead on the commented shot (the shot list is on its own tab).
-  await page.getByTestId('cut-tab-shots').click();
-  await expect(page.getByTestId('cut-shot-day:afternoon')).toHaveAttribute('data-active', 'true');
+  // The jump put the playhead at the comment's moment (3 s).
+  await expect(page.getByTestId('cut-preview-time')).toContainText(/^0:03/);
 });
 
 // 2026-11-05: your own markers — M at the playhead, a note, on the ruler, kept after a reload.
@@ -1418,6 +1426,11 @@ test('markers: M drops one at the playhead, a note, kept after a reload', async 
 
 // 2026-11-05: a picture dropped on the timeline from the computer — into the Gallery and the cut.
 test('a picture dropped on the timeline is added to the end of the cut', async ({ page }) => {
+  // No ComfyUI in CI: the import's ComfyUI upload (its fallback when the app can't keep the
+  // original itself) answers as ComfyUI would.
+  await page.route('**/api/comfyui/upload', route =>
+    route.fulfill({ json: { name: 'dropped.webp', subfolder: '', type: 'input' } })
+  );
   await seed(page, false);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);

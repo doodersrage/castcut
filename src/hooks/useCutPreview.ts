@@ -958,9 +958,16 @@ export function useCutPreview(input: {
     clock.current = null;
     syncMedia(timeRef.current, false);
   }, [syncMedia]);
+  // A seek before the preview has loaded (a review comment's time clicked right after opening
+  // Cut) is kept and made once it has — it was clamped to 0 and lost.
+  const pendingSeekRef = useRef<number | null>(null);
   const seek = useCallback(
     (t: number) => {
-      const total = loaded?.timeline.totalSec ?? 0;
+      if (!loaded) {
+        pendingSeekRef.current = t;
+        return;
+      }
+      const total = loaded.timeline.totalSec ?? 0;
       const at = Math.max(0, Math.min(total, t));
       timeRef.current = at;
       setTime(at);
@@ -972,6 +979,12 @@ export function useCutPreview(input: {
     },
     [draw, loaded, syncMedia]
   );
+  useEffect(() => {
+    if (!loaded || pendingSeekRef.current == null) return;
+    const at = pendingSeekRef.current;
+    pendingSeekRef.current = null;
+    seek(at);
+  }, [loaded, seek]);
   /**
    * Show the frame at `t` without moving the playhead (skimming over the timeline); null puts the
    * playhead's frame back. Ignored while playing.
