@@ -118,4 +118,23 @@ describe('Restyle and Remove on VACE', () => {
     assert.deepEqual(first!.inputs.model, ['22', 0]);
     assert.deepEqual(second!.inputs.model, ['22', 0]);
   });
+
+  it('keeps noir free of colour words, and names the look for the whole frame', () => {
+    const noir = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'restyle', style: 'noir' },
+      scene: 'a woman in a red dress',
+    });
+    const text = ofType(noir, 'CLIPTextEncode')[0]!.inputs.text as string;
+    assert.doesNotMatch(text, /red dress/);
+    assert.match(text, /The whole frame — people, clothes and place — is a black-and-white film still/);
+    const anime = buildClipVaceGraph({
+      ...base,
+      mode: { kind: 'restyle', style: 'anime' },
+      scene: 'a woman in a red dress',
+    });
+    assert.match(ofType(anime, 'CLIPTextEncode')[0]!.inputs.text as string, /red dress/);
+    assert.equal(CLIP_STYLES.anime.approximate, undefined);
+    assert.equal(CLIP_STYLES.watercolour.approximate, true);
+  });
 });

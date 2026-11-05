@@ -28,45 +28,75 @@ export type ClipStyleId =
   'anime' | 'noir' | 'claymation' | 'watercolour' | 'vintage' | 'animated3d';
 
 /** The looks Restyle offers: each one's words (the depth keeps the scene; these paint it). */
-export const CLIP_STYLES: Record<ClipStyleId, { label: string; prompt: string; negative: string }> =
+/**
+ * `whole`: the look named once more for the whole frame, after the scene's words (the scene's
+ * colours otherwise won: on one expert watercolour stayed a photograph). `monochrome`: no colour
+ * words for it — "a red dress" kept noir in colour.
+ */
+export const CLIP_STYLES: Record<
+  ClipStyleId,
   {
-    anime: {
-      label: 'Anime',
-      prompt:
-        '2D anime film, hand-drawn cel animation, clean line art, flat cel shading, painted backgrounds, vibrant colours.',
-      negative: 'photorealistic, photograph, live action, 3d render, realistic skin, film grain',
-    },
-    noir: {
-      label: 'Film noir',
-      prompt:
-        'Black-and-white film noir, high-contrast hard light, deep shadows, 1940s cinema, silver film grain, monochrome.',
-      negative: 'colour, color, saturated, vibrant, cartoon, painting, 3d render',
-    },
-    claymation: {
-      label: 'Claymation',
-      prompt:
-        'Stop-motion claymation, handmade plasticine figures and miniature set, visible fingerprints in the clay, soft studio light.',
-      negative: 'photorealistic, photograph, live action, realistic skin, anime, drawing',
-    },
-    watercolour: {
-      label: 'Watercolour',
-      prompt:
-        'Animated watercolour painting, soft colour washes, visible paper texture, loose brushstrokes, gentle bleeding edges.',
-      negative: 'photorealistic, photograph, live action, 3d render, sharp digital, film grain',
-    },
-    vintage: {
-      label: 'Vintage film',
-      prompt:
-        '1970s 16mm film footage, warm faded colours, heavy film grain, soft halation around lights, slight gate weave.',
-      negative: 'digital, clean, sharp, oversaturated, cartoon, painting, 3d render',
-    },
-    animated3d: {
-      label: '3D animated',
-      prompt:
-        'Stylised 3D animated feature film, soft rounded features, smooth stylised skin, big expressive eyes, warm cinematic lighting.',
-      negative: 'photorealistic, photograph, live action, film grain, anime, drawing, painting',
-    },
-  };
+    label: string;
+    prompt: string;
+    negative: string;
+    whole: string;
+    monochrome?: boolean;
+    /**
+     * Not reached on this model (live, 2026-11-05, one and both experts, long and short colour
+     * words): it comes out as a painted illustration rather than its name. Anime and film noir
+     * come through; the picker says so for the rest.
+     */
+    approximate?: boolean;
+  }
+> = {
+  anime: {
+    whole: 'a hand-drawn 2D anime frame',
+    label: 'Anime',
+    prompt:
+      '2D anime film, hand-drawn cel animation, clean line art, flat cel shading, painted backgrounds, vibrant colours.',
+    negative: 'photorealistic, photograph, live action, 3d render, realistic skin, film grain',
+  },
+  noir: {
+    whole: 'a black-and-white film still',
+    monochrome: true,
+    label: 'Film noir',
+    prompt:
+      'Black-and-white film noir, high-contrast hard light, deep shadows, 1940s cinema, silver film grain, monochrome.',
+    negative: 'colour, color, saturated, vibrant, cartoon, painting, 3d render',
+  },
+  claymation: {
+    approximate: true,
+    whole: 'a stop-motion claymation frame — every person and thing made of plasticine',
+    label: 'Claymation',
+    prompt:
+      'Stop-motion claymation, handmade plasticine figures and miniature set, visible fingerprints in the clay, soft studio light.',
+    negative: 'photorealistic, photograph, live action, realistic skin, anime, drawing',
+  },
+  watercolour: {
+    approximate: true,
+    whole: 'a watercolour painting on paper, washes and brushstrokes everywhere',
+    label: 'Watercolour',
+    prompt:
+      'Animated watercolour painting, soft colour washes, visible paper texture, loose brushstrokes, gentle bleeding edges.',
+    negative: 'photorealistic, photograph, live action, 3d render, sharp digital, film grain',
+  },
+  vintage: {
+    approximate: true,
+    whole: 'grainy, faded 1970s 16mm film',
+    label: 'Vintage film',
+    prompt:
+      '1970s 16mm film footage, warm faded colours, heavy film grain, soft halation around lights, slight gate weave.',
+    negative: 'digital, clean, sharp, oversaturated, cartoon, painting, 3d render',
+  },
+  animated3d: {
+    approximate: true,
+    whole: 'a stylised 3D animated film frame, everything a smooth CG model',
+    label: '3D animated',
+    prompt:
+      'Stylised 3D animated feature film, soft rounded features, smooth stylised skin, big expressive eyes, warm cinematic lighting.',
+    negative: 'photorealistic, photograph, live action, film grain, anime, drawing, painting',
+  },
+};
 
 export function normalizeClipStyle(value: unknown): ClipStyleId | null {
   return typeof value === 'string' && Object.hasOwn(CLIP_STYLES, value)
@@ -149,10 +179,14 @@ export function buildClipVaceGraph(input: {
             prompt: `The whole clip redrawn in this look: ${cleanClipLook(mode.look)}.`,
             negative: 'flat, unchanged photograph, blurry',
           };
-  const scene = input.scene?.trim().replace(/[.\s]+$/, '');
+  const scene =
+    look && 'monochrome' in look && look.monochrome
+      ? ''
+      : input.scene?.trim().replace(/[.\s]+$/, '');
   const words = mode.kind === 'remove' ? cleanClipLook(mode.words) : '';
+  const whole = look && 'whole' in look ? look.whole : '';
   const positive = look
-    ? `${look.prompt}${scene ? ` The scene, its colours as they are: ${scene}.` : ''}`
+    ? `${look.prompt}${scene ? ` The scene, its colours as they are: ${scene}.` : ''}${whole ? ` The whole frame — people, clothes and place — is ${whole}, not a photograph.` : ''}`
     : words
       ? `In the masked area: ${words} — part of the same scene, in the same light and camera, sitting naturally where it is.`
       : CLIP_REMOVE_PROMPT;

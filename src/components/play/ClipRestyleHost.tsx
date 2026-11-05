@@ -133,6 +133,12 @@ export default function ClipRestyleHost() {
           Your own look
         </Button>
       </div>
+      {style !== 'own' && CLIP_STYLES[style].approximate ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="clip-restyle-approximate">
+          This look comes out closer to a painted illustration than its name. Anime and Film noir
+          come through best.
+        </p>
+      ) : null}
       {style === 'own' ? (
         <input
           type="text"
