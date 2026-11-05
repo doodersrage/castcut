@@ -2995,7 +2995,7 @@ export function roleplayQueueBlockReason(input: {
     return 'Add a look plate on Cast (From photo) before queuing stills.';
   }
   if (input.playAsPhoto && input.isolateSubject && input.isolatePending) {
-    return 'Wait for plate isolate on white to finish.';
+    return 'Waiting for the plate’s cut-out to finish.';
   }
   return null;
 }

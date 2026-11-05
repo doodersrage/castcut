@@ -192,7 +192,7 @@ export function fittingQueueBlockReason(input: {
     return 'Wait for the plate upload to finish.';
   }
   if (input.isolateSubject && input.isolatePending) {
-    return 'Wait for plate isolate on white to finish.';
+    return 'Waiting for the plate’s cut-out to finish.';
   }
   if (input.garmentUploading) {
     return 'Wait for the clothing upload to finish.';

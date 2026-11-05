@@ -2104,7 +2104,7 @@ describe('day-planner', () => {
         isolateSubject: true,
         isolatePending: true,
       }),
-      'Wait for plate isolate on white to finish.'
+      'Waiting for the plate’s cut-out to finish.'
     );
     assert.equal(
       dayQueueBlockReason({

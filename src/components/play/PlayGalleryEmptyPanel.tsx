@@ -16,7 +16,7 @@ import type { GalleryEmptySlotProps } from '@/components/AppSlot';
 export default function PlayGalleryEmptyPanel({
   filtered,
   onClearFilters,
-  onUpload,
+  onUpload: _onUpload,
   derivedKind,
   characterId,
 }: GalleryEmptySlotProps) {
@@ -83,7 +83,7 @@ export default function PlayGalleryEmptyPanel({
         branded
         icon="inbox"
         title="No gallery outputs yet"
-        description="Start a film to queue Day stills, generate a surprise still, or upload your own."
+        description="Start a film to queue Day stills, or upload your own pictures."
         // The film's next step, once (the header's button says it too): on the phone, Film's
         // starter film is started at once.
         action={
@@ -122,11 +122,7 @@ export default function PlayGalleryEmptyPanel({
           </li>
         </ul>
         <div className="mt-4 flex flex-wrap gap-2">
-          {onUpload ? (
-            <button type="button" className="ui-btn-secondary ui-btn-sm" onClick={onUpload}>
-              Upload images
-            </button>
-          ) : null}
+          {/* Upload images is in the Gallery's own toolbar above. */}
           <ButtonLink href={href('/day')} variant="ghost" size="sm">
             Open Day
           </ButtonLink>
