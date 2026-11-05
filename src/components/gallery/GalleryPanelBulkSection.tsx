@@ -1,6 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { storyboardHtml } from '@/lib/print/print-sheets';
+import { openPrintSheet } from '@/lib/print/print-sheets-client';
+import { contactSheetFrames } from '@/lib/gallery/contact-sheet';
+import {
+  galleryEntryPrimaryThumbUrl,
+  galleryEntryPrimaryViewUrl,
+} from '@/lib/gallery/comfyui-gallery';
 import GalleryExperimentPanel from '@/components/gallery/GalleryExperimentPanel';
 import type { GalleryBulkExperimentHandlers } from '@/hooks/useGalleryPanelActions';
 import type { ComfyGalleryEntry, ComfyGalleryFilter } from '@/lib/gallery/comfyui-gallery';
@@ -30,6 +37,23 @@ type GalleryPanelBulkSectionProps = {
   setLoraExportOpen: (open: boolean) => void;
   selectAllVisible: () => void;
 };
+
+/** The entries as a contact sheet in a new tab. */
+function openContactSheet(entries: readonly ComfyGalleryEntry[]) {
+  if (!entries.length) return;
+  openPrintSheet(
+    storyboardHtml({
+      title: 'Contact sheet',
+      subtitle: `${entries.length} picture${entries.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString()}`,
+      shape: 'square',
+      origin: window.location.origin,
+      frames: contactSheetFrames(
+        entries,
+        entry => galleryEntryPrimaryThumbUrl(entry) ?? galleryEntryPrimaryViewUrl(entry)
+      ),
+    })
+  );
+}
 
 export default function GalleryPanelBulkSection({
   leanGallery,
@@ -80,10 +104,32 @@ export default function GalleryPanelBulkSection({
             <button type="button" onClick={selectAllVisible} className="ui-btn-ghost ui-btn-sm">
               Select visible ({visibleEntries.length})
             </button>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="gallery-contact-sheet"
+              title="The shown pictures numbered on a page, with tool, date, model and prompt — print or save as PDF"
+              onClick={() => openContactSheet(visibleEntries.slice(0, 120))}
+            >
+              Contact sheet
+            </Button>
           </div>
         </div>
       ) : null}
 
+      {selectedIds.length > 0 ? (
+        <div className="flex justify-end px-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            data-testid="gallery-contact-sheet-selected"
+            title="The selected pictures numbered on a page — print or save as PDF"
+            onClick={() => openContactSheet(selectedEntries)}
+          >
+            Contact sheet ({selectedIds.length})
+          </Button>
+        </div>
+      ) : null}
       {bulkEnabled ? (
         <GalleryExperimentPanel
           lean={leanGallery}

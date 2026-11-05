@@ -1,8 +1,8 @@
 'use client';
 
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
-import { scriptFountain, scriptHtml, storyboardHtml } from '@/lib/film/print-sheets';
-import { downloadText, openPrintSheet, sheetFilename } from '@/lib/film/print-sheets-client';
+import { scriptFountain, scriptHtml, storyboardHtml } from '@/lib/print/print-sheets';
+import { downloadText, openPrintSheet, sheetFilename } from '@/lib/print/print-sheets-client';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
 import { storyScriptBlocks, storyStoryboardFrames } from '@/lib/story/story-sheets';
 

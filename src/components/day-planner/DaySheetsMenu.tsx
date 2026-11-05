@@ -4,8 +4,8 @@ import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { getCharacter, type CharacterRecord } from '@/lib/character/os';
 import { dayCallSheetRows, dayStoryboardFrames, type DaySheetInput } from '@/lib/day/day-sheets';
 import type { DaySlot, DaySlotStill } from '@/lib/day/planner';
-import { callSheetHtml, storyboardHtml } from '@/lib/film/print-sheets';
-import { openPrintSheet } from '@/lib/film/print-sheets-client';
+import { callSheetHtml, storyboardHtml } from '@/lib/print/print-sheets';
+import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import { getCachedClothingLabel, humanizeClothingId } from '@/lib/wardrobe/clothing-catalog-client';
 
 /**

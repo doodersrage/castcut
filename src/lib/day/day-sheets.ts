@@ -4,7 +4,7 @@
  * the camera, and whether it is shot. Pure: the page gives it the outfit names and the Cast.
  */
 
-import type { CallSheetRow, StoryboardFrame } from '../film/print-sheets';
+import type { CallSheetRow, StoryboardFrame } from '../print/print-sheets';
 import { cameraChoiceSummary } from '../pose/camera-shot';
 import { dayStillShownImage, type DaySlot, type DaySlotStill } from './planner';
 

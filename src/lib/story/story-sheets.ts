@@ -4,7 +4,7 @@
  * lead's voice-over — and its storyboard, each scene's still with its notes. Pure.
  */
 
-import type { ScriptBlock, StoryboardFrame } from '../film/print-sheets';
+import type { ScriptBlock, StoryboardFrame } from '../print/print-sheets';
 import { cameraChoiceSummary } from '../pose/camera-shot';
 import { lastCompletedRoleplayStillUrl, type RoleplayStoryBeat } from './roleplay';
 

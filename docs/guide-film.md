@@ -250,6 +250,23 @@ always keeps whole phrases.
 line on the shot it falls in (a shot with several keeps each as a timed cue), and shows the result
 before **Use these subtitles** (one Ctrl+Z takes it back).
 
+## Continuity and reports
+
+**Continuity** (a tab beside the shots) lists what the checks find on the film's shots: an outfit
+that jumps at the same place and time, a shot made in another look, a plate that drifted,
+something carried that goes missing, and — when two shots of the same two people at the same place
+put her on opposite sides of the frame — **crosses the line** (the 180° rule: their eyelines
+cross). Above it:
+
+- **Colour script** — each shot's colour as the film shows it, as long as it runs: the film's
+  colour arc, and the shot that doesn't belong. Click one to pick it.
+- **Continuity report** — every shot's who, wearing, where and when, what she carries and how she
+  has changed, then the open findings and a **prop list** (each thing and the shots it is in): a
+  page to print or save as PDF.
+
+**Shot report** (under **Cut film**) lists what made each shot — tool, model, seed, size and steps,
+LoRAs, prompt — from its Gallery record, to remake or credit it.
+
 ## Missing media
 
 Each shot's file is checked as the edit loads — a byte each, nothing downloaded. A shot whose file

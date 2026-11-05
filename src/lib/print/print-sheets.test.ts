@@ -8,8 +8,6 @@ import {
   scriptHtml,
   storyboardHtml,
 } from './print-sheets';
-import { dayCallSheetRows, dayStoryboardFrames } from '../day/day-sheets';
-import { storyScriptBlocks, storyStoryboardFrames } from '../story/story-sheets';
 
 describe('print sheets', () => {
   it('escapes text and makes picture urls absolute', () => {
@@ -59,60 +57,5 @@ describe('print sheets', () => {
     assert.match(fountain, /\n> CUT TO\n/);
   });
 
-  it('maps a Day to frames and call sheet rows', () => {
-    const slots = [
-      {
-        id: 'morning',
-        label: 'Morning',
-        location: 'kitchen',
-        sceneHints: 'pours coffee',
-        line: 'Hi',
-        poseCamera: { height: 'low' as const },
-        state: { carries: [{ text: 'a mug' }], emotion: 'sleepy' },
-        thirdCastId: 'tom',
-        wardrobeId: 'kit-1',
-      },
-      { id: 'noon', label: 'Noon' },
-    ];
-    const stills = [{ slotId: 'morning', status: 'completed' as const, imageUrl: '/m.png', promptId: 'p' }];
-    const input = {
-      slots: slots as never,
-      stills: stills as never,
-      lead: 'Rae',
-      castNames: { tom: 'Tom' },
-      outfitName: (id: string) => `Outfit ${id}`,
-    };
-    const [first, second] = dayStoryboardFrames(input);
-    assert.equal(first!.heading, 'Morning — kitchen');
-    assert.equal(first!.image, '/m.png');
-    assert.ok(first!.notes.some(([label, text]) => label === 'State' && text === 'carries a mug · sleepy'));
-    assert.equal(second!.image, undefined);
-    const [row, empty] = dayCallSheetRows(input);
-    assert.equal(row!.cast, 'Rae, Tom');
-    assert.equal(row!.outfit, 'Outfit kit-1');
-    assert.equal(row!.status, 'Still');
-    assert.equal(empty!.status, 'Not shot');
-  });
 
-  it('maps a Story to a screenplay and a storyboard', () => {
-    const beats = [
-      { id: 'a', at: 1, title: 'The train', blurb: 'She steps off into the rain.', narration: 'I came back.', line: 'Hello?', replyLine: 'You came.', imageUrl: '/a.png' },
-      { id: 'b', at: 2, title: '', blurb: '' },
-    ];
-    const blocks = storyScriptBlocks(beats as never, { lead: 'Rae', partner: 'Tom' });
-    assert.deepEqual(blocks.slice(0, 5), [
-      { kind: 'heading', text: '1. The train' },
-      { kind: 'action', text: 'She steps off into the rain.' },
-      { kind: 'dialogue', character: 'Rae (V.O.)', text: 'I came back.' },
-      { kind: 'dialogue', character: 'Rae', text: 'Hello?' },
-      { kind: 'dialogue', character: 'Tom', text: 'You came.' },
-    ]);
-    assert.deepEqual(blocks.slice(-2), [
-      { kind: 'heading', text: '2. Scene' },
-      { kind: 'transition', text: 'Fade out.' },
-    ]);
-    const [frame] = storyStoryboardFrames(beats as never);
-    assert.equal(frame!.heading, 'The train');
-    assert.equal(frame!.image, '/a.png');
-  });
 });

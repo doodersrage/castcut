@@ -1,5 +1,7 @@
 'use client';
 
+import { storyboardHtml } from '@/lib/print/print-sheets';
+import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import { lookPlateDrifted } from '@/lib/character/look-plate-guard';
 import CastVoiceSection from '@/components/character/CastVoiceSection';
 import CastLikenessSection from '@/components/character/CastLikenessSection';
@@ -29,7 +31,7 @@ import CharacterBibleSection from '@/components/character/CharacterBibleSection'
 import CharacterHomeActionRow from '@/components/character/CharacterHomeActionRow';
 import CharacterLookPacksSection from '@/components/character/CharacterLookPacksSection';
 import CharacterLookPlateSection from '@/components/character/CharacterLookPlateSection';
-import { activeLook } from '@/lib/character/os';
+import { activeLook, looksOf } from '@/lib/character/os';
 import CastSeasonsSection from '@/components/character/CastSeasonsSection';
 import CharacterMediaSection from '@/components/character/CharacterMediaSection';
 import CharacterPersonaSection from '@/components/character/CharacterPersonaSection';
@@ -107,13 +109,50 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
           ) : null
         }
         actions={
-          <CharacterHomeActionRow
-            character={character}
-            go={props.go}
-            playCampaignHref={props.playCampaignHref}
-            removeFromCast={props.removeFromCast}
-            continueRoleplay={props.continueRoleplay}
-          />
+          <>
+            <CharacterHomeActionRow
+              character={character}
+              go={props.go}
+              playCampaignHref={props.playCampaignHref}
+              removeFromCast={props.removeFromCast}
+              continueRoleplay={props.continueRoleplay}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="cast-character-sheet"
+              title="Every look's plate and outfit, the voice and the description on one page — print or save as PDF"
+              onClick={() =>
+                openPrintSheet(
+                  storyboardHtml({
+                    title: `${character.name} — character sheet`,
+                    subtitle: [
+                      props.castStatus.statusLine,
+                      castVoiceLine(character) ?? 'no voice yet',
+                    ]
+                      .filter(Boolean)
+                      .join(' · '),
+                    shape: 'vertical',
+                    origin: window.location.origin,
+                    frames: props.plateTiles.map((tile, index) => {
+                      const look = looksOf(character).find(entry => entry.id === tile.id);
+                      return {
+                        number: String(index + 1),
+                        image: tile.thumb,
+                        heading: tile.label,
+                        notes: [
+                          ['Wearing', tile.outfit],
+                          ['Looks like', look?.descriptor ?? character.descriptor],
+                        ],
+                      };
+                    }),
+                  })
+                )
+              }
+            >
+              Character sheet
+            </Button>
+          </>
         }
       />
       <CastStatusStrip plateStatus={props.plateStatus} plateError={props.castStatus.plateError} />

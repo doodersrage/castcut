@@ -1177,6 +1177,39 @@ export function useCutPreview(input: {
   );
 
   /**
+   * Each shot's colour as the film shows it (its measured average through its grade): the colour
+   * script. Null where a shot couldn't be read.
+   */
+  const shotColours = useMemo(() => {
+    if (!loaded) return [] as Array<[number, number, number] | null>;
+    const matrices = shotGradeMatrices({
+      stats: loaded.stats,
+      look,
+      lookStrength,
+      matchShots,
+      grades: handGrades,
+      lut: lutMatrix,
+      matchTo: matchToIndex,
+    });
+    return loaded.stats.map((stats, index) => {
+      if (!stats) return null;
+      const m = matrices[index]!;
+      const [r, g, b] = stats.mean;
+      const channel = (row: number) =>
+        Math.round(
+          Math.min(
+            1,
+            Math.max(
+              0,
+              m[row * 4]! * r + m[row * 4 + 1]! * g + m[row * 4 + 2]! * b + m[row * 4 + 3]!
+            )
+          ) * 255
+        );
+      return [channel(0), channel(1), channel(2)] as [number, number, number];
+    });
+  }, [handGrades, loaded, look, lookStrength, lutMatrix, matchShots, matchToIndex]);
+
+  /**
    * The frame at the playhead as a PNG, at its source picture's own size (in the film's shape),
    * graded as the monitor shows it — no text over it. Null on a title card or before it loads.
    */
@@ -1211,6 +1244,7 @@ export function useCutPreview(input: {
 
   return {
     exportFrame,
+    shotColours,
     canvasRef,
     size,
     shape,

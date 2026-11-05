@@ -3398,3 +3398,19 @@ and what turns Castcut's work into documents people outside it can use.
 
 Units 9212 green. e2e: day-layout all pass (with the storyboard test), scene-layout 3/4 — the one
 failure (scene-layout:69, a disabled button) fails the same on HEAD in the isolated copy (CI passes).
+
+### Part 18 R2 / R3 (first parts) — done
+
+- **Shared sheet builder moved to `src/lib/print/`** (the Gallery is shared code and may not import
+  Play's `lib/film` — the architecture test caught it). `tableSheetHtml` added for reports.
+- **R2:** the "what's missing" list and approvals already existed (Film Director `/production`
+  next actions; Scene Good / Reject), so only the new parts were built: `crossed-line` continuity
+  rule (180°: same two people, same place and time, lead's side flips; `ShotState.leadSide` from
+  `poseLead`), the printable **continuity report** (continuity-report.ts: shot by shot, open
+  findings, prop list `filmPropList`).
+- **R3:** **colour script** (`useCutPreview().shotColours`: each shot's measured mean through its
+  grade; `CutColourScript` on the Continuity tab).
+- **Along the way:** **shot report** (provenance-report.ts: tool, model, seed, size, LoRAs, prompt
+  from the Gallery record), **character sheet** (Cast actions), **Gallery contact sheet**.
+- Still to do in R3+: style lock per film, mood board, lighting plan, outfit locks per scene —
+  these change every page's render prompts and need live renders to judge; then R4–R7.

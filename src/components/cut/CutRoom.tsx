@@ -9,6 +9,13 @@
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
 import { STILL_MOTION_FPS } from '@/lib/video/polish';
 import CutPartRender from '@/components/cut/CutPartRender';
+import CutColourScript from '@/components/cut/CutColourScript';
+import { CONTINUITY_RULE_LABELS } from '@/lib/checks/check-quality';
+import { continuityReportSections } from '@/lib/film/continuity-report';
+import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import { SHOT_PROVENANCE_COLUMNS, shotProvenanceRows } from '@/lib/film/provenance-report';
+import { tableSheetHtml } from '@/lib/print/print-sheets';
+import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import CutRenderQueue from '@/components/cut/CutRenderQueue';
 import { formatCutTimecode } from '@/lib/film/cut-preview';
 import { srtToVtt } from '@/lib/video/film-finish';
@@ -1244,6 +1251,45 @@ export default function CutRoom() {
                             onRender={part => void vm.cutPart(part)}
                             onMaster={() => void vm.cutMaster()}
                           />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="justify-self-start"
+                            data-testid="cut-shot-report"
+                            title="What made each shot — tool, model, seed, size, LoRAs, prompt — to remake or credit it; print or save as PDF"
+                            onClick={() =>
+                              openPrintSheet(
+                                tableSheetHtml({
+                                  title: 'Shot report',
+                                  subtitle: new Date().toLocaleDateString(),
+                                  sections: [
+                                    {
+                                      heading: 'What made each shot',
+                                      note: 'From each shot’s Gallery record — enough to make it again.',
+                                      columns: [...SHOT_PROVENANCE_COLUMNS],
+                                      rows: shotProvenanceRows(
+                                        ordered
+                                          .filter(
+                                            shot =>
+                                              vm.options.shotEdits?.shots?.[shot.key]?.include !==
+                                              false
+                                          )
+                                          .map(shot => ({
+                                            key: shot.key,
+                                            title: shot.title,
+                                            kind: shot.kind,
+                                            entryId: shot.entryId,
+                                          })),
+                                        loadComfyGallery()
+                                      ),
+                                    },
+                                  ],
+                                })
+                              )
+                            }
+                          >
+                            Shot report
+                          </Button>
                           <CutRenderQueue
                             queue={vm.renderQueue}
                             disabled={!preview.loaded}
@@ -1375,6 +1421,52 @@ export default function CutRoom() {
                   ) : null}
                   {panel === 'continuity' ? (
                     <div id="cut-continuity-section" data-testid="cut-continuity-section">
+                      <div className="mb-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          data-testid="cut-continuity-report"
+                          title="Every shot's outfit, place, time, what she carries and how she has changed, the open findings and a prop list — to print or save as PDF"
+                          onClick={() => {
+                            const shots = ordered
+                              .filter(
+                                shot => vm.options.shotEdits?.shots?.[shot.key]?.include !== false
+                              )
+                              .map(shot => ({
+                                key: shot.key,
+                                title: shot.title,
+                                state: vm.shotStates[shot.key],
+                              }));
+                            const findings = vm.continuity
+                              .filter(item => item.decision?.decision !== 'dismissed')
+                              .map(item => ({
+                                shotTitle: item.shotTitle,
+                                label:
+                                  CONTINUITY_RULE_LABELS[item.finding.rule] ?? item.finding.rule,
+                                evidence: item.finding.evidence,
+                                suggestion: item.finding.suggestion,
+                              }));
+                            openPrintSheet(
+                              tableSheetHtml({
+                                title: 'Continuity report',
+                                subtitle: new Date().toLocaleDateString(),
+                                facts: [
+                                  ['Shots', String(shots.length)],
+                                  ['Open findings', String(findings.length)],
+                                ],
+                                sections: continuityReportSections({ shots, findings }),
+                              })
+                            );
+                          }}
+                        >
+                          Continuity report
+                        </Button>
+                      </div>
+                      <CutColourScript
+                        loaded={preview.loaded}
+                        colours={preview.shotColours}
+                        onPick={pick}
+                      />
                       <CutContinuity
                         items={vm.continuity}
                         disabled={busy}

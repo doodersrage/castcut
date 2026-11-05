@@ -228,3 +228,57 @@ export function scriptFountain(input: {
   });
   return `${head.join('\n')}\n${body.join('\n')}`;
 }
+
+/** A sheet of tables: a title, facts, then sections each a heading and a table (or a list). */
+export function tableSheetHtml(input: {
+  title: string;
+  subtitle?: string;
+  facts?: Array<[string, string | undefined]>;
+  sections: ReadonlyArray<{
+    heading: string;
+    /** A note under the heading (what to do, why it matters). */
+    note?: string;
+    columns: readonly string[];
+    rows: ReadonlyArray<ReadonlyArray<string | undefined>>;
+    /** Shown instead of an empty table. */
+    empty?: string;
+  }>;
+}): string {
+  const css = `
+    .facts { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-bottom: 14px; font-size: 10pt; }
+    .facts b { color: #555; font-weight: 600; margin-right: 4px; }
+    h2 { font-size: 12.5pt; margin: 22px 0 4px; }
+    .note { color: #555; font-size: 9.5pt; margin: 0 0 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+    th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; color: #555; border-bottom: 1.5px solid #111; padding: 4px 6px; }
+    td { border-bottom: 1px solid #ddd; padding: 5px 6px; vertical-align: top; }
+    tr { break-inside: avoid; }
+    .empty { color: #666; font-style: italic; }
+  `;
+  const facts = (input.facts ?? [])
+    .filter(([, value]) => value?.trim())
+    .map(([label, value]) => `<span><b>${escapeHtml(label)}</b>${escapeHtml(value!.trim())}</span>`)
+    .join('');
+  const sections = input.sections
+    .map(section => {
+      const body = section.rows.length
+        ? `<table><thead><tr>${section.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead><tbody>${section.rows
+            .map(
+              row =>
+                `<tr>${row.map(cell => `<td>${escapeHtml(cell?.trim() ?? '')}</td>`).join('')}</tr>`
+            )
+            .join('')}</tbody></table>`
+        : `<p class="empty">${escapeHtml(section.empty ?? 'Nothing.')}</p>`;
+      return `<h2>${escapeHtml(section.heading)}</h2>${
+        section.note ? `<p class="note">${escapeHtml(section.note)}</p>` : ''
+      }${body}`;
+    })
+    .join('');
+  return page(
+    input.title,
+    css,
+    `<header><h1>${escapeHtml(input.title)}</h1><div class="meta">${escapeHtml(
+      input.subtitle ?? ''
+    )}</div></header>${facts ? `<div class="facts">${facts}</div>` : ''}${sections}`
+  );
+}

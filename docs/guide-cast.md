@@ -17,6 +17,11 @@ Day · Scene · Story** · **More**. The tabs stay in reach as you scroll; **Bib
 each of its sections; **Film & media** opens on the newest film, playing, with the others as
 posters to pick.
 
+## Character sheet
+
+**Character sheet** (beside the Cast's actions) opens every look's plate with its outfit and
+description, and the voice, on one page to print or save as PDF.
+
 ## What a Cast keeps
 
 | Part | What it does | Where |
