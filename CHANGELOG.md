@@ -9,6 +9,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.6.0] - 2026-11-05
+
+- CI: skip onnxruntime-node's CUDA download (its nuget fetch kept timing out)
+- Cut: a seek before the preview loads is kept; review comments tick at once
+- Polish: phone and sticky bars, shared Cast chip, "?" shortcuts, Gallery and Story fixes
+- Parity round 2, Story fixes and the UI rounds for every page
+- IMPLEMENTATION_PLAN.md Part 17 T5: the overnight results
+- Restyle: noir really black and white; the look named for the whole frame; honest about weak looks
+- e2e: the motion brush's Gallery still is a .png (a .webp reads as a clip, with no still menu)
+- Restyle and Remove run on one VACE expert when ComfyUI is short of RAM
+- Restyle holds over long clips: smoothed depth, each chunk referenced to the one before
+- Motion brush: draw where things go on a still, WAN-Move animates it
+- e2e: Restyle from a Day card (a preset and your own words) and Make a sound in Cut
+- Replace in a clip, tracked with SAM 3; Restyle in your own words and on Day, Scene and Story
+- Restyle and Remove from a clip on WAN VACE; Make a sound from words in Cut
+- Phone: Day's phase strip on one line, an empty Queue in one line
+- Gallery's empty state without a second upload button; plain words for the plate's cut-out
+- Tighter still: one action row on Cast, Film's pills and actions together, slimmer empties
+- Tighter pages: header chips on the title row, less padding, cards that say it once
+- UI consistency: one next step, one width, one step language, Cut laid out like an editor
+- M12: chunked Sharpen & smooth, two-person face check that waits, failed keyframes as findings, replay docs
+
 ## [v3.5.0] - 2026-11-04
 
 - Qwen-Image 2.1 stills: a candid phone photo, lit by the scene's own time and place
