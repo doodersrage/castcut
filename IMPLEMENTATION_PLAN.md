@@ -3016,4 +3016,19 @@ machine to 3 GB free once; with less open, a run peaked fine.
   Day, Scene and Story's card menus (the result on the card).
 - Memory: VACE jobs unload ComfyUI's models when done (`freeAfter`): ComfyUI 30 GB → 2 GB.
 
-Not done yet: motion brush (WAN-Move; core `WanMoveTrackToVideo` is there, its model downloading).
+**T5 — Overnight (2026-11-04/05, "do it").**
+- Motion brush (Gallery still ⋯ → Make it move): strokes → WAN-Move tracks (motionTracks, an even
+  pace per stroke; one click = a pin), 4 LightX2V steps. Live: a mug carried up to her lips along
+  the drawn path, feet pinned, 81 frames in ~1 min. WAN-Move fp8 (16.4 GB) downloaded, catalogued.
+- Restyle over 30 s (10 chunks, 28 min): contour lines on skin from the depth map's steps, and the
+  walls redrawn per chunk. Fixed: the depth blurred; each later chunk referenced to the chunk
+  before's restyled frame. The first 12 s again: no banding, the same room throughout.
+- Memory: VACE on the low-noise expert alone when ComfyUI has under 40 GB free (116 s vs 140 s;
+  the person as stylised, the place more faithful, less stylised).
+- Looks (six, one expert and both, long and short colour words): noir was in colour — monochrome
+  looks get no colour words now. Anime and noir come through; claymation, watercolour, vintage
+  and 3D animated come out as a painted illustration — the picker says so.
+- e2e: Day Restyle (preset, own words), Cut Make a sound, the motion brush, Remove or replace.
+- Colour drift on a 30 s two-person chain: under ±2.5% per channel, saturation −6% at 24 s, partly
+  the picture's own change — a correction was not worth its risk; not shipped. Keyframes from the
+  first frame (two-person degradation) left for a session with the user (live 30 s chains).
