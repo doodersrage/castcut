@@ -741,6 +741,61 @@ test('effects: a sound placed at the playhead, moved, muted, removed and back wi
   await expect(row.locator('[data-testid^="cut-effect-at-"]')).toHaveValue('1.5');
 });
 
+// Parity (2026-11-04): Make a sound — words in, a sound placed at the playhead.
+test('effects: Make a sound from words places it at the playhead', async ({ page }) => {
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/clip/sound-effect', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      json: {
+        job: {
+          id: 'e2e-sound',
+          tool: 'sound-effect',
+          status: 'running',
+          done: 0,
+          total: 2,
+          note: 'Making the sound on ComfyUI',
+          startedAt: Date.now(),
+        },
+      },
+    });
+  });
+  await page.route('**/api/clip/jobs**', route =>
+    route.fulfill({
+      json: {
+        job: {
+          id: 'e2e-sound',
+          tool: 'sound-effect',
+          status: 'completed',
+          done: 2,
+          total: 2,
+          note: 'Done',
+          startedAt: Date.now(),
+          url: '/e2e-sound.m4a',
+        },
+      },
+    })
+  );
+  await page.route('**/e2e-sound.m4a', route =>
+    route.fulfill({ contentType: 'audio/wav', body: silentWav(0.5) })
+  );
+  await seed(page, false);
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const effects = page.getByTestId('cut-effects');
+  await expect(effects).toContainText('placed where the playhead is', { timeout: 30_000 });
+  await page.getByTestId('cut-preview-scrub').fill('1');
+  await expect(page.getByTestId('cut-effect-make-go')).toBeDisabled();
+  await page.getByTestId('cut-effect-make-words').fill('a door slams shut');
+  await page.getByTestId('cut-effect-make-seconds').selectOption('4');
+  await page.getByTestId('cut-effect-make-go').click();
+  const row = effects.locator('li');
+  await expect(row).toHaveCount(1, { timeout: 30_000 });
+  await expect(row).toContainText('a door slams shut');
+  await expect(row.locator('[data-testid^="cut-effect-at-"]')).toHaveValue('1');
+  expect(posts[0]).toMatchObject({ words: 'a door slams shut', seconds: 4 });
+});
+
 // M4 F6: a profile sets the film up for where it goes; the preflight says what's checked now.
 test('export: a profile sets the shape, and the preflight flags too little disk space', async ({
   page,

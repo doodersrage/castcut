@@ -126,6 +126,58 @@ test('Sharpen & smooth: the finished clip replaces the slot clip', async ({ page
   expect(posts[0]?.clipUrl).toBe('/e2e-clip-morning.mp4');
 });
 
+// Parity (2026-11-04): Restyle from the card — a preset look or your own words, via the picker.
+test('Restyle: a look picked on the card restyles the slot clip', async ({ page }) => {
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/clip/restyle', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: { ...clipJob('running'), tool: 'restyle' } }),
+    });
+  });
+  await mockClipJobDone(page, '/e2e-restyled.mp4');
+  await openDay(page);
+  await page.getByTestId('day-progress-restyle-morning').click();
+  const dialog = page.getByTestId('clip-restyle-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByTestId('clip-restyle-noir').click();
+  await dialog.getByTestId('clip-restyle-go').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'in its new look',
+    { timeout: 30_000 }
+  );
+  expect(posts[0]?.clipUrl).toBe('/e2e-clip-morning.mp4');
+  expect(posts[0]?.style).toBe('noir');
+});
+
+test('Restyle: your own look in words', async ({ page }) => {
+  const posts: Array<Record<string, unknown>> = [];
+  await page.route('**/api/clip/restyle', route => {
+    posts.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ job: { ...clipJob('running'), tool: 'restyle' } }),
+    });
+  });
+  await mockClipJobDone(page, '/e2e-restyled.mp4');
+  await openDay(page);
+  await page.getByTestId('day-progress-restyle-morning').click();
+  const dialog = page.getByTestId('clip-restyle-dialog');
+  await dialog.getByTestId('clip-restyle-own').click();
+  await expect(dialog.getByTestId('clip-restyle-go')).toBeDisabled();
+  await dialog.getByTestId('clip-restyle-look').fill('1980s VHS');
+  await dialog.getByTestId('clip-restyle-go').click();
+  await expect(page.getByTestId('day-progress-media-note-morning')).toContainText(
+    'in its new look',
+    { timeout: 30_000 }
+  );
+  expect(posts[0]?.look).toBe('1980s VHS');
+  expect(posts[0]?.style).toBeUndefined();
+});
+
 test('Copy moves: a picked video goes up with the still and the Cast look', async ({ page }) => {
   let body = '';
   await page.route('**/api/clip/moves', route => {
