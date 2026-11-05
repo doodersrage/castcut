@@ -14,7 +14,11 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # onnxruntime-node's postinstall downloads its CUDA binaries from nuget, which timed out
+      # or reset three pushes running (2026-11-05); CI never runs CUDA.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
       - run: npm run lint
       - run: npm test
       - run: npm run build
@@ -30,7 +34,11 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # onnxruntime-node's postinstall downloads its CUDA binaries from nuget, which timed out
+      # or reset three pushes running (2026-11-05); CI never runs CUDA.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
       - run: npm run check:core
 
   e2e:
@@ -41,7 +49,11 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # onnxruntime-node's postinstall downloads its CUDA binaries from nuget, which timed out
+      # or reset three pushes running (2026-11-05); CI never runs CUDA.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
       - run: npx playwright install --with-deps chromium
       # Gallery reliability specs first for clearer CI signal on exact-replay regressions.
       - run: npm run test:e2e:gallery

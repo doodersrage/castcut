@@ -72,7 +72,11 @@ jobs:
           fi
           node scripts/ci-status.mjs --sha "$SHA" --wait 45
 
+      # The CUDA binaries' nuget download flakes, and this job only checks and tags (Docker and the
+      # desktop builds install their own).
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
       - run: npm run lint
       - run: npm test
       - run: npm run build
