@@ -57,11 +57,12 @@ finished file back — its size, length, frame rate, sound and loudness — agai
 | **Length**             | As the shots hold · Fit to the music · 15 / 30 / 60 s                                                                                                                                                                                                  |
 | **Music**              | Upload, paste a link, or **Score this film** (an original track)                                                                                                                                                                                       |
 | **Levels**             | Music and Lines — the music ducks under speech                                                                                                                                                                                                         |
-| **Music shape**        | Music from (start partway in) · Fade in · Fade out                                                                                                                                                                                                     |
+| **Music shape**        | Music from (start partway in) · Fade in · Fade out · level points (see [Sound](#sound))                                                                                                                                                                                                    |
 | **Ambience**           | A room tone / rain / café track looped under the whole film, with its own level                                                                                                                                                                        |
 | **Smooth motion**      | Clips made at 16 / 24 fps get the frames in between drawn (RIFE), so motion is smooth                                                                                                                                                                  |
 | **Sharpen**            | A light sharpen over the finished film                                                                                                                                                                                                                 |
 | **Follow faces**       | Vertical / square cuts: each wide shot's crop follows the face instead of the centre (on by default)                                                                                                                                                   |
+| **LUT**                | A colour grade from a `.cube` file (Resolve, Premiere, a LUT pack), after the look. Kept with the cut; the film applies it exactly, the monitor closely (its nearest colour matrix) |
 | **Look**               | As shot · Natural · Warm · Cool · Filmic · Vivid · Faded · Black & white — with a strength slider                                                                                                                                                      |
 | **Match shots** _(on)_ | Each shot's colour and exposure moved toward the film's own, so shots made separately cut together as one film (a night shot stays night)                                                                                                              |
 | **Polish**             | Crossfade · Slow zoom on stills · Title & captions                                                                                                                                                                                                     |
@@ -73,7 +74,13 @@ Each shot is a card with its still (or the clip's first frame — hover to play 
 what is said. **Drag** a card by its ⠿ grip to move it (or ↑ ↓), untick to leave it out, edit
 its caption, hold a still longer, **frame** a still (waist up, chest up), **trim** a clip, pick
 the **poster**, set a still's **move** (push in, pull out, hold still) and a clip's
-**sound** (as recorded, louder, quieter, muted).
+**sound** (as recorded, louder, quieter, muted). **colour** opens the shot's own correction —
+exposure, contrast, saturation and warmth — under the film's look; the monitor shows it as you
+drag, the film is rendered with the same numbers, and **As shot** clears it (double-click a
+slider to reset just that one). **Copy** a shot's colour and **Paste** it on another, or
+**Paste to all shots**; **Match the others to this shot** makes _Match shots_ move every other
+shot toward that one instead of the film's middle (it stays as shot). A clip's **move** is a slow
+**push in** or **pull back** over it (about 15%, the frame cropped).
 
 ## Editing keys
 
@@ -97,6 +104,22 @@ Moving the pointer over the shots **skims**: the monitor shows that moment and t
 put. A clip block shows frames along it, and the clip-sound and narration lanes show their
 waveforms.
 
+The monitor's time is timecode — hours:minutes:seconds:frames at 30 frames a second, the film's
+rate — so **,** and **.** step one frame of it. Beside it, a **level meter** shows the sound as it
+plays: left and right loudness bars, a peak mark that holds, the loudest peak in dB, and a light
+that stays red once the sound clips (click it to clear). Keep peaks under −1 dB.
+
+**Frame** under the monitor saves the frame at the playhead as a PNG — at its picture's own size,
+in the film's shape, graded as you see it, without text over it.
+
+**Scopes** under the monitor shows a waveform (each column's brightness, black at the bottom,
+white at the top) and a vectorscope (hue and saturation, with the skin-tone line) of the frame on
+the monitor — look, LUT and shot colour included — and how much of it is crushed or blown.
+
+**Speed from here…** (beside Split): a speed ramp — from the playhead the clip eases over a second
+into ½×, ¼× (smooth slow motion) or 2× and plays on at it: two half-second pieces at the speeds in
+between, then the rest — one Undo takes it all back. With less than 1½ s left it changes at once.
+
 Under the monitor: **Safe** shows where Shorts, Reels and TikTok put their own buttons and
 captions (vertical; a feed's bars on square; the title-safe frame on widescreen), **Loop** repeats
 the shot under the playhead, the **speed** plays at 0.5×–2×, and **⛶** goes full screen.
@@ -107,9 +130,40 @@ the shot under the playhead, the **speed** plays at 0.5×–2×, and **⛶** goe
 
 **Make a reel…** turns the edit into a 15 / 30 / 60 s vertical reel (shots spread across the film, clips trimmed to their middle, hard cuts, faces followed, subtitles on); the full edit is saved first as the _Full cut_ version.
 
-**Overlay…** on a shot adds a lower third (a name or place, and a smaller line) or a picture in a corner. **Add a logo** (in Options) puts a watermark over the whole film. A still's move can be **from… to…**: pick where the frame starts and ends.
+**Overlay…** on a shot adds a lower third (a name or place, and a smaller line) or a picture — in a corner for the whole shot, or **Full frame (a cutaway)** from and to a second of the shot: the picture covers it there while the shot's sound carries on (an insert over someone talking). A shot has one picture, corner or cutaway. **Clip from Gallery…** makes it a moving cutaway: a
+clip from the Gallery plays full frame over that window (muted — the shot's sound carries on). **Add a logo** (in Options) puts a watermark over the whole film. A still's move can be **from… to…**: pick where the frame starts and ends.
 
 **Export for an editor** downloads a .zip for Final Cut, DaVinci Resolve or Premiere: the media, an FCPXML and an EDL timeline, the music and the subtitles. After a cut, **Subtitles (.srt)** downloads the film's subtitles on their own.
+
+**Render a ProRes master** (under **Cut film**) renders the whole film as ProRes 422 HQ (10-bit
+4:2:2) with 24-bit sound in a `.mov` — for a colourist, a broadcaster or a festival copy. It is
+large, downloaded and not kept on the Cast.
+
+**End credits** (Options → Text & logo): type them one line each (a blank line is a gap) and they
+roll up over black after the last shot — about 0.7 s a line, 5–30 s — with the music running on
+under them. The monitor and the timeline show them too.
+
+**Subtitle track** (Options → Text & logo): the subtitles also go into the MP4 as a track a
+player's CC button turns on and off. On its own (with **Subtitles** off) the picture stays clean.
+After a cut, **.vtt** downloads the subtitles as WebVTT beside **Subtitles (.srt)**.
+
+**REVIEW timecode** (Options → Text & logo; the _Review copy_ profile turns it on): REVIEW and the
+film's running timecode burned in at the top left, so reviewers can quote the exact frame — and a
+copy that gets out is marked. A ProRes master never carries it.
+
+**Render queue** (under **Cut film**): add a version per profile (**+ Review copy**, **+ Vertical
+social**, …) and **+ ProRes master**; they render one after another with the cut as it is when each
+starts, and download as they finish — not kept on the Cast. Keep the page open while it runs.
+
+**Render just a part** (under **Cut film**): set **From the playhead** and **To the playhead**, or
+use **The loop**, and **Render this part** — the same mix, look and subtitles, as a quick review
+copy of one scene. It is downloaded, not kept on the Cast, and has no "Previously on". It needs
+the server encode (ffmpeg).
+
+**Chapters**: tick **Chapter** on a marker (Notes → Your markers) and its note becomes a chapter
+title written into the film (MP4 chapter marks; a marker without a note is "Chapter 1", …). The
+film starts with an _Opening_ chapter if none is at 0, and a _Previously_ chapter covers a recap.
+After the cut, **Copy the chapter list** gives the `0:00 Title` lines a video description takes.
 
 **Generate a shot…** makes a missing shot or B-roll from words: a picture, or a moving clip (~5 s), in the film's shape, placed after the picked shot. It renders in the background and joins the film when ready; leaving the page doesn't lose it. With Phantom installed (Models: _Phantom 14B_ and its step-distill LoRA, about 16 GB), **With <Cast>** makes it a clip of her straight from her pictures — her face lock and reference — in about 1½ minutes, no picture drawn first: a shot of her that was never rendered. It has no sound worth keeping (muted, as generated clips are).
 
@@ -139,6 +193,32 @@ duck the music. They stay at their film time: if the shots before one change len
 window"), pick how long (1–8 s) and **Make it** — about half a minute on LTX-2.5, then it's placed
 where the playhead was, like any other effect. It makes one sound at a time; "buzzes twice" may
 come out once.
+
+**Music level points**: double-click the music lane to add a point; drag it sideways (time) or up
+and down (level — 0 at the bottom, as set in the middle, twice at the top). The music follows a
+line through them, on top of its level, fades and ducking — up under one moment, back down after.
+A point is a slider: ↑ / ↓ change it, Delete (or Alt-click) removes it. **Clear** under _Music
+start, fades & level_ removes them all. The monitor plays it (it can't go above the track's own
+level there; the film can).
+
+**Clip level points** work the same way on each clip's block in the clip-sound lane: double-click
+to add a point, drag it — to dip one clip's sound under a narration and bring it back.
+
+**Hit the loudness target** (Options → Sound, on): the finished film is measured and brought to
+its profile's loudness — −14 LUFS for web and social, −23 for broadcast — with peaks kept under
+−1 dBTP. One gain for the whole film (two-pass loudnorm), so quiet and loud moments keep their
+balance.
+
+**Stems too** (Options → Sound): with the film, a `.zip` of its mix's parts as 24-bit WAVs —
+`dialogue` (clips' sound and narration), `music` (ducked as in the mix), `ambience`, `effects` —
+each as long as the film and at its loudness, so they line up and add up to the mix, for a sound
+mixer.
+
+**Even out voices** (Options → Sound): a gentle compressor on the dialogue — clips' lines and
+narration — so a quiet line and a loud one sit closer; in the film, not the monitor.
+
+**Clean up voices** (Options → Sound): on the clips' sound and the narration, a low cut under the
+voice, noise reduction and a gentle de-esser — applied in the film, not the monitor.
 
 **Measure loudness** on a film in **Your films** reads its loudness (LUFS), range and true peak
 and says how it sits against the web's −14 LUFS or broadcast's −23 (EBU R128): what to turn up or

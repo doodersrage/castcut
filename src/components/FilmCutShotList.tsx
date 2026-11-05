@@ -2,6 +2,8 @@
 
 import { CUT_FRAMINGS, type CutFraming } from '@/lib/video/cut-move';
 import { CutShotOverlayEditor } from '@/components/cut/CutOverlayControls';
+import CutShotColour from '@/components/cut/CutShotColour';
+import type { ShotGrade } from '@/lib/video/cut-look';
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import ShotCardMenu, {
   SHOT_CARD_MENU_ITEM_CLASS,
@@ -44,6 +46,9 @@ export default function FilmCutShotList({
   activeKey,
   onPick,
   renderExtra,
+  onPickCutawayClip,
+  matchToKey,
+  onMatchTo,
 }: {
   shots: KeyedShot[];
   edits?: CutShotEdits;
@@ -52,6 +57,11 @@ export default function FilmCutShotList({
   disabled?: boolean;
   testIdPrefix: string;
   onChange: (next: CutShotEdits) => void;
+  /** Cut: pick a Gallery clip as a shot's moving cutaway (unset: pictures only). */
+  onPickCutawayClip?: (key: string) => void;
+  /** Cut: the shot Match shots matches the others to, and setting it. */
+  matchToKey?: string;
+  onMatchTo?: (key: string | undefined) => void;
   /** Face match mark per shot (identity-mark.ts), when measured. */
   identityFor?: (shot: KeyedShot) => IdentityMark | null;
   /** A small tag per shot — where it came from (Cut: "Day" / "Story") when the film mixes them. */
@@ -78,6 +88,8 @@ export default function FilmCutShotList({
   const known = new Set(shots.map(shot => shot.key));
   const ordered = orderedCutShots(shots, edits);
   const keys = ordered.map(shot => shot.key);
+  // A shot's colour copied (Copy in its colour panel), to paste on another or on all.
+  const [copiedGrade, setCopiedGrade] = useState<ShotGrade | null>(null);
   const patchShot = (key: string, patch: NonNullable<CutShotEdits['shots']>[string]) =>
     onChange({
       ...edits,
@@ -389,6 +401,27 @@ export default function FilmCutShotList({
                         </select>
                       </label>
                       <label className="flex items-center gap-1 text-[var(--text-muted)]">
+                        move
+                        <select
+                          disabled={disabled || !included}
+                          aria-label={`Move over ${shot.title}`}
+                          title="A slow punch-in or pull-back over the clip (the frame is cropped, about 15%)"
+                          className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
+                          value={edit?.clipMove ?? ''}
+                          data-testid={`${testIdPrefix}-shot-clip-move-${shot.key}`}
+                          onChange={event =>
+                            patchShot(shot.key, {
+                              clipMove: (event.target.value || undefined) as
+                                'in' | 'out' | undefined,
+                            })
+                          }
+                        >
+                          <option value="">none</option>
+                          <option value="in">push in</option>
+                          <option value="out">pull back</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-1 text-[var(--text-muted)]">
                         <input
                           type="checkbox"
                           disabled={disabled || !included}
@@ -470,6 +503,33 @@ export default function FilmCutShotList({
                       onChange={patch => patchShot(shot.key, patch)}
                     />
                   ) : null}
+                  <CutShotColour
+                    title={shot.title}
+                    grade={edit?.grade}
+                    disabled={disabled || !included}
+                    testId={`${testIdPrefix}-shot-colour-${shot.key}`}
+                    onChange={grade => patchShot(shot.key, { grade })}
+                    copied={copiedGrade}
+                    onCopy={grade => setCopiedGrade(grade)}
+                    onPasteAll={() =>
+                      onChange({
+                        ...edits,
+                        order: keys,
+                        shots: Object.fromEntries(
+                          keys.map(key => [
+                            key,
+                            { ...edits?.shots?.[key], grade: copiedGrade ?? undefined },
+                          ])
+                        ),
+                      })
+                    }
+                    {...(onMatchTo
+                      ? {
+                          matchedTo: matchToKey === shot.key,
+                          onMatchTo: (on: boolean) => onMatchTo(on ? shot.key : undefined),
+                        }
+                      : {})}
+                  />
                   {isPoster ? <span className={SHOT_STATE_BADGE_CLASS}>Poster</span> : null}
                   {edit?.lowerThird || edit?.pipUrl ? (
                     <span className={SHOT_STATE_BADGE_CLASS}>Overlay</span>
@@ -523,6 +583,9 @@ export default function FilmCutShotList({
                         disabled={disabled}
                         testId={`${testIdPrefix}-shot-overlay-editor-${shot.key}`}
                         onPatch={patch => patchShot(shot.key, patch)}
+                        {...(onPickCutawayClip
+                          ? { onPickClip: () => onPickCutawayClip(shot.key) }
+                          : {})}
                       />
                     </div>
                   ) : null}

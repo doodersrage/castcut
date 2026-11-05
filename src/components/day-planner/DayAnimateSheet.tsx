@@ -198,7 +198,10 @@ export default function DayAnimateSheet({
     try {
       const written = await requestClipBeats(
         {
-          scene: direction.trim() || slot.sceneHints?.trim() || slot.label,
+          // The still's beat is where it starts; the top field is the whole clip, split in order
+          // over Part 1 and the parts after it.
+          scene: slot.sceneHints?.trim() || slot.label,
+          whole: direction.trim() || undefined,
           setting: slot.location,
           count: parts + 1,
         },
@@ -290,7 +293,7 @@ export default function DayAnimateSheet({
           <span className="flex items-center justify-between type-caption text-[var(--text-muted)]">
             <span>
               {inParts
-                ? 'Every part starts from this. Give each part its own beat below — or Write the beats.'
+                ? 'The whole clip, start to end. Write the beats splits it over the parts in order — or give each part its own beat below.'
                 : edited
                   ? 'Your direction — formatted for the engine when you Animate.'
                   : 'The slot’s beat. Write what should happen instead, in plain words.'}

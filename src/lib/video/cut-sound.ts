@@ -23,7 +23,95 @@ export type CutSoundOptions = {
   mutedTracks?: CutTrack[];
   /** The effects track (M10 T4): sounds placed at a time in the film. */
   effects?: CutEffect[];
+  /**
+   * The music's level over time (film seconds): points it moves between, in a line — up under
+   * a moment, back down after. On top of the Music level, fades and ducking. None: flat.
+   */
+  musicKeys?: CutLevelKey[];
+  /** Clean up the voices — low cut, noise reduction, de-ess — on clips' sound and narration. */
+  voiceCleanup?: boolean;
+  /** Even out the voices: a gentle compressor on the dialogue, so quiet and loud lines sit closer. */
+  evenVoices?: boolean;
 };
+
+/** A level point: at this film second the track is at `level` (0–2, 1 = as set). */
+export type CutLevelKey = { atSec: number; level: number };
+
+export const CUT_LEVEL_KEYS_MAX = 40;
+
+/** Level points from untrusted input: in range, sorted, one per moment. */
+export function normalizeCutLevelKeys(value: unknown): CutLevelKey[] {
+  if (!Array.isArray(value)) return [];
+  const out: CutLevelKey[] = [];
+  for (const raw of value) {
+    const item = raw as Partial<CutLevelKey> | null;
+    if (!item || typeof item.atSec !== 'number' || !Number.isFinite(item.atSec)) continue;
+    out.push({
+      atSec: Math.round(clamp(item.atSec, 0, 3600, 0) * 100) / 100,
+      level: Math.round(clamp(item.level, 0, 2, 1) * 100) / 100,
+    });
+  }
+  out.sort((a, b) => a.atSec - b.atSec);
+  return out
+    .filter((key, index) => index === 0 || key.atSec - out[index - 1]!.atSec >= 0.1)
+    .slice(0, CUT_LEVEL_KEYS_MAX);
+}
+
+/** The level at film time `t` from the points: in a line between them, held before and after. */
+export function levelKeyGainAt(keys: readonly CutLevelKey[], t: number): number {
+  if (!keys.length) return 1;
+  if (t <= keys[0]!.atSec) return keys[0]!.level;
+  for (let i = 1; i < keys.length; i += 1) {
+    const b = keys[i]!;
+    if (t <= b.atSec) {
+      const a = keys[i - 1]!;
+      const span = b.atSec - a.atSec;
+      return span > 0 ? a.level + ((b.level - a.level) * (t - a.atSec)) / span : b.level;
+    }
+  }
+  return keys[keys.length - 1]!.level;
+}
+
+/** A point at `atSec` (replacing one within a tenth of a second). */
+export function withCutLevelKey(keys: unknown, atSec: number, level: number): CutLevelKey[] {
+  const list = normalizeCutLevelKeys(keys).filter(key => Math.abs(key.atSec - atSec) >= 0.1);
+  return normalizeCutLevelKeys([...list, { atSec, level }]);
+}
+
+/**
+ * The same line as an ffmpeg `volume` expression of `t` (evaluated per frame), or '' for none:
+ * nested ifs, one span per pair of points.
+ */
+export function levelKeysExpr(keys: readonly CutLevelKey[]): string {
+  if (!keys.length) return '';
+  const n = (value: number) => Number(value.toFixed(4)).toString();
+  let expr = n(keys[keys.length - 1]!.level);
+  for (let i = keys.length - 1; i >= 1; i -= 1) {
+    const a = keys[i - 1]!;
+    const b = keys[i]!;
+    const span = b.atSec - a.atSec;
+    const line =
+      span > 0
+        ? `${n(a.level)}+(${n(b.level - a.level)})*(t-${n(a.atSec)})/${n(span)}`
+        : n(b.level);
+    expr = `if(lt(t,${n(b.atSec)}),${line},${expr})`;
+  }
+  return `if(lt(t,${n(keys[0]!.atSec)}),${n(keys[0]!.level)},${expr})`;
+}
+
+/**
+ * The voice cleanup chain (comma-terminated, for a filter_complex): a low cut under the voice,
+ * FFT noise reduction that tracks the noise floor, and a gentle de-esser.
+ */
+export const VOICE_CLEANUP_FILTERS = 'highpass=f=80,afftdn=nf=-25:tn=1,deesser=i=0.4,';
+
+/**
+ * Even out the voices (comma-terminated): a gentle compressor on the whole dialogue — 3:1 above
+ * about −22 dB, slow enough not to pump — with make-up gain, so a whispered line and a shouted one
+ * sit closer. The loudness pass sets the film's level afterwards.
+ */
+export const EVEN_VOICES_FILTERS =
+  'acompressor=threshold=0.08:ratio=3:attack=15:release=300:knee=4:makeup=2,';
 
 /** A sound placed on the effects track: a door slam at 12.4 s, at its own level. */
 export type CutEffect = {
@@ -237,6 +325,10 @@ export function normalizeCutSound(value: unknown): CutSoundOptions | null {
   if (v.ambienceLevel !== undefined) out.ambienceLevel = normalizeAmbienceLevel(v.ambienceLevel);
   const effects = normalizeCutEffects(v.effects);
   if (effects.length) out.effects = effects;
+  const musicKeys = normalizeCutLevelKeys(v.musicKeys);
+  if (musicKeys.length) out.musicKeys = musicKeys;
+  if (v.voiceCleanup === true) out.voiceCleanup = true;
+  if (v.evenVoices === true) out.evenVoices = true;
   const muted = Array.isArray(v.mutedTracks)
     ? CUT_TRACKS.filter(track => (v.mutedTracks as unknown[]).includes(track))
     : [];

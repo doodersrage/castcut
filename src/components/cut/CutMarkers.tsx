@@ -15,6 +15,7 @@ export default function CutMarkers({
   onAdd,
   onSeek,
   onNote,
+  onChapter,
   onRemove,
 }: {
   markers: CutMarker[];
@@ -23,6 +24,8 @@ export default function CutMarkers({
   onAdd: () => void;
   onSeek: (timeSec: number) => void;
   onNote: (id: string, note: string) => void;
+  /** Make a marker a chapter (a chapter mark in the film, its note the title). */
+  onChapter: (id: string, chapter: boolean) => void;
   onRemove: (id: string) => void;
 }) {
   return (
@@ -70,6 +73,19 @@ export default function CutMarkers({
                   if (event.target.value !== marker.note) onNote(marker.id, event.target.value);
                 }}
               />
+              <label
+                className="type-caption flex shrink-0 items-center gap-1 text-[var(--text-muted)]"
+                title="A chapter mark in the film — its note is the chapter's title"
+              >
+                <input
+                  type="checkbox"
+                  checked={marker.chapter === true}
+                  disabled={disabled}
+                  data-testid="cut-marker-chapter"
+                  onChange={event => onChapter(marker.id, event.target.checked)}
+                />
+                Chapter
+              </label>
               <Button
                 size="sm"
                 variant="ghost"

@@ -5,6 +5,8 @@
  */
 
 import type { CutFraming } from '../video/cut-move';
+import type { ShotGrade } from '../video/cut-look';
+import type { CutLevelKey } from '../video/cut-sound';
 import type { CutTransitionIn } from '../video/cut-timeline';
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery-entry';
 import { isHtmlVideoViewUrl, isMotionViewUrl } from '../comfyui/outputs';
@@ -92,6 +94,12 @@ export type FilmPlaylistShot = {
   moveTo?: CutFraming;
   /** Clips: playback speed (1 = as shot; under 1 = smooth slow motion). */
   speed?: number;
+  /** Its own colour correction, under the film's look (cut-look.ts ShotGrade). */
+  grade?: ShotGrade;
+  /** Clips: a slow punch-in (in) or pull-back (out) over the clip. */
+  clipMove?: 'in' | 'out';
+  /** Clips: the sound's level over the shot (shot seconds as it plays; cut-sound.ts). */
+  volumeKeys?: CutLevelKey[];
   /** Clips: played backwards. */
   reverse?: boolean;
   /** Clips: J cut — the sound starts this many seconds before the picture (cut-sound.ts). */
@@ -104,6 +112,12 @@ export type FilmPlaylistShot = {
   /** Picture-in-picture: a picture in a corner of the shot. */
   pipUrl?: string;
   pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
+  /** The picture full frame from `pipFromSec` to `pipToSec` (shot seconds): a cutaway. */
+  pipFull?: boolean;
+  /** The cutaway is a clip (it plays over its window), not a picture. */
+  pipKind?: 'still' | 'clip';
+  pipFromSec?: number;
+  pipToSec?: number;
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */

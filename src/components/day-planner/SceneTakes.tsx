@@ -93,7 +93,7 @@ export function SceneTakeCard({
  * buttons (the phone); else a wrapping grid.
  */
 export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boolean }) {
-  const { active, still, showTake, keepTake, reviewTake, removeTake, restoreTake } = page;
+  const { active, still, showTake, keepTake, reviewTake, noteTake, removeTake, restoreTake } = page;
   const [madeIndex, setMadeIndex] = useState<number | null>(null);
   const [showRejected, setShowRejected] = useState(false);
   const [comparing, setComparing] = useState(false);
@@ -151,173 +151,184 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
               data-on-card={onCard ? 'true' : 'false'}
               data-review={take.review ?? 'candidate'}
             >
-              <button
-                type="button"
-                className="ui-btn-ghost relative block w-full !p-0"
-                title={onCard ? 'On the card' : 'Show this take on the card'}
-                aria-label={`Take ${index + 1}${onCard ? ' (on the card)' : ''}${
-                  isRejected ? ', rejected' : take.review === 'approved' ? ', good' : ''
-                }`}
-                aria-pressed={onCard}
-                data-testid={`scene-take-show-${index}`}
-                onClick={() => showTake(take)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URL */}
-                <img
-                  src={take.imageUrl}
-                  alt=""
-                  className={`aspect-[3/4] w-full object-cover ${isRejected ? 'opacity-40' : ''}`}
-                  loading="lazy"
-                />
-                {isRejected || take.review === 'approved' ? (
-                  <span
-                    className={`type-caption pointer-events-none absolute bottom-1 left-1 rounded bg-[var(--bg-base)]/85 px-1 ${
-                      isRejected ? 'text-[var(--text-muted)]' : 'text-[var(--tint-success-text)]'
-                    }`}
-                  >
-                    {isRejected ? 'Rejected' : '✓ Good'}
+              {/* The picture and what sits over it (badges, hover actions); the notes go under it. */}
+              <div className="relative">
+                <button
+                  type="button"
+                  className="ui-btn-ghost relative block w-full !p-0"
+                  title={onCard ? 'On the card' : 'Show this take on the card'}
+                  aria-label={`Take ${index + 1}${onCard ? ' (on the card)' : ''}${
+                    isRejected ? ', rejected' : take.review === 'approved' ? ', good' : ''
+                  }`}
+                  aria-pressed={onCard}
+                  data-testid={`scene-take-show-${index}`}
+                  onClick={() => showTake(take)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- ComfyUI view URL */}
+                  <img
+                    src={take.imageUrl}
+                    alt=""
+                    className={`aspect-[3/4] w-full object-cover ${isRejected ? 'opacity-40' : ''}`}
+                    loading="lazy"
+                  />
+                  {isRejected || take.review === 'approved' ? (
+                    <span
+                      className={`type-caption pointer-events-none absolute bottom-1 left-1 rounded bg-[var(--bg-base)]/85 px-1 ${
+                        isRejected ? 'text-[var(--text-muted)]' : 'text-[var(--tint-success-text)]'
+                      }`}
+                    >
+                      {isRejected ? 'Rejected' : '✓ Good'}
+                    </span>
+                  ) : null}
+                </button>
+                {onCard ? (
+                  <span className="type-caption pointer-events-none absolute left-1 top-1 rounded bg-[var(--bg-base)]/85 px-1 text-[var(--accent-text)]">
+                    On card
                   </span>
                 ) : null}
-              </button>
-              {onCard ? (
-                <span className="type-caption pointer-events-none absolute left-1 top-1 rounded bg-[var(--bg-base)]/85 px-1 text-[var(--accent-text)]">
-                  On card
-                </span>
-              ) : null}
-              {isKept ? (
-                <span
-                  className="type-caption pointer-events-none absolute right-1 top-1 rounded bg-[var(--accent)] px-1.5 font-medium text-[var(--on-accent)]"
-                  data-testid={`scene-take-kept-badge-${index}`}
-                >
-                  ★ Kept
-                </span>
-              ) : null}
-              {/* Quick actions on hover (or keyboard focus): keep it or reject it from the picture. */}
-              {!strip && !isRejected ? (
+                {isKept ? (
+                  <span
+                    className="type-caption pointer-events-none absolute right-1 top-1 rounded bg-[var(--accent)] px-1.5 font-medium text-[var(--on-accent)]"
+                    data-testid={`scene-take-kept-badge-${index}`}
+                  >
+                    ★ Kept
+                  </span>
+                ) : null}
+                {/* Quick actions on hover (or keyboard focus): keep it or reject it from the picture. */}
+                {!strip && !isRejected ? (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 top-[calc(100%-5.5rem)] z-10 flex justify-center gap-1 opacity-0 transition-opacity group-hover/take:pointer-events-auto group-hover/take:opacity-100 group-focus-within/take:pointer-events-auto group-focus-within/take:opacity-100"
+                    data-testid={`scene-take-quick-${index}`}
+                  >
+                    {!isKept ? (
+                      <Button
+                        size="sm"
+                        variant="overlay"
+                        title="Keep this take (K)"
+                        data-testid={`scene-take-quick-keep-${index}`}
+                        onClick={() => keepTake(take.id)}
+                      >
+                        ★ Keep
+                      </Button>
+                    ) : null}
+                    {!isKept ? (
+                      <Button
+                        size="sm"
+                        variant="overlay"
+                        title="Reject — hide it from the takes (X)"
+                        data-testid={`scene-take-quick-reject-${index}`}
+                        onClick={() => reviewTake(take.id, 'rejected')}
+                      >
+                        Reject
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div
-                  className="pointer-events-none absolute inset-x-1 top-[calc(100%-5.5rem)] z-10 flex justify-center gap-1 opacity-0 transition-opacity group-hover/take:pointer-events-auto group-hover/take:opacity-100 group-focus-within/take:pointer-events-auto group-focus-within/take:opacity-100"
-                  data-testid={`scene-take-quick-${index}`}
+                  className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 py-0.5'}`}
                 >
-                  {!isKept ? (
-                    <Button
-                      size="sm"
-                      variant="overlay"
-                      title="Keep this take (K)"
-                      data-testid={`scene-take-quick-keep-${index}`}
-                      onClick={() => keepTake(take.id)}
-                    >
-                      ★ Keep
-                    </Button>
-                  ) : null}
-                  {!isKept ? (
-                    <Button
-                      size="sm"
-                      variant="overlay"
-                      title="Reject — hide it from the takes (X)"
-                      data-testid={`scene-take-quick-reject-${index}`}
-                      onClick={() => reviewTake(take.id, 'rejected')}
-                    >
-                      Reject
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null}
-              <div
-                className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 py-0.5'}`}
-              >
-                <button
-                  type="button"
-                  className={
-                    strip
-                      ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center font-medium no-underline'
-                      : 'ui-text-link type-caption rounded px-1 py-0.5 hover:bg-[var(--bg-hover)]'
-                  }
-                  aria-pressed={isKept}
-                  data-testid={`scene-take-keep-${index}`}
-                  title={isKept ? 'Kept — tap to let it go' : 'Keep this take'}
-                  onClick={() => keepTake(take.id)}
-                >
-                  {isKept ? '★ Kept' : '☆ Keep'}
-                </button>
-                <button
-                  type="button"
-                  className={
-                    strip
-                      ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
-                      : 'ui-text-link type-caption'
-                  }
-                  aria-label={`How take ${index + 1} was made`}
-                  title="How this take was made"
-                  data-testid={`scene-take-made-${index}`}
-                  onClick={() => setMadeIndex(index)}
-                >
-                  i
-                </button>
-                <button
-                  type="button"
-                  className={
-                    strip
-                      ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
-                      : 'ui-text-link type-caption'
-                  }
-                  aria-label={`Remove take ${index + 1}`}
-                  title="Remove from the scene (it stays in the Gallery)"
-                  data-testid={`scene-take-remove-${index}`}
-                  onClick={() => void removeTake(take.id)}
-                >
-                  ×
-                </button>
-              </div>
-              <div
-                className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 pb-0.5'}`}
-              >
-                {isRejected ? (
                   <button
                     type="button"
-                    className={linkButton}
-                    data-testid={`scene-take-restore-${index}`}
-                    title="Put it back with the other takes"
-                    onClick={() => reviewTake(take.id, null)}
+                    className={
+                      strip
+                        ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center font-medium no-underline'
+                        : 'ui-text-link type-caption rounded px-1 py-0.5 hover:bg-[var(--bg-hover)]'
+                    }
+                    aria-pressed={isKept}
+                    data-testid={`scene-take-keep-${index}`}
+                    title={isKept ? 'Kept — tap to let it go' : 'Keep this take'}
+                    onClick={() => keepTake(take.id)}
                   >
-                    Restore
+                    {isKept ? '★ Kept' : '☆ Keep'}
                   </button>
-                ) : (
-                  <>
+                  <button
+                    type="button"
+                    className={
+                      strip
+                        ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
+                        : 'ui-text-link type-caption'
+                    }
+                    aria-label={`How take ${index + 1} was made`}
+                    title="How this take was made"
+                    data-testid={`scene-take-made-${index}`}
+                    onClick={() => setMadeIndex(index)}
+                  >
+                    i
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      strip
+                        ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
+                        : 'ui-text-link type-caption'
+                    }
+                    aria-label={`Remove take ${index + 1}`}
+                    title="Remove from the scene (it stays in the Gallery)"
+                    data-testid={`scene-take-remove-${index}`}
+                    onClick={() => void removeTake(take.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div
+                  className={`flex items-center justify-between ${strip ? '' : 'gap-1 px-1 pb-0.5'}`}
+                >
+                  {isRejected ? (
                     <button
                       type="button"
                       className={linkButton}
-                      aria-pressed={take.review === 'approved'}
-                      aria-label={`Take ${index + 1} is good`}
-                      data-testid={`scene-take-approve-${index}`}
-                      title={
-                        take.review === 'approved'
-                          ? 'Marked good — tap to make it a candidate again'
-                          : 'Good — a take you could use'
-                      }
-                      onClick={() =>
-                        reviewTake(take.id, take.review === 'approved' ? null : 'approved')
-                      }
+                      data-testid={`scene-take-restore-${index}`}
+                      title="Put it back with the other takes"
+                      onClick={() => reviewTake(take.id, null)}
                     >
-                      Good
+                      Restore
                     </button>
-                    <button
-                      type="button"
-                      className={`${linkButton} disabled:cursor-not-allowed disabled:opacity-40`}
-                      aria-label={`Reject take ${index + 1}`}
-                      data-testid={`scene-take-reject-${index}`}
-                      disabled={isKept}
-                      title={
-                        isKept
-                          ? 'Keep another take first — Cut uses this one'
-                          : 'Reject — hide it from the takes (it stays in the Gallery)'
-                      }
-                      onClick={() => reviewTake(take.id, 'rejected')}
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={linkButton}
+                        aria-pressed={take.review === 'approved'}
+                        aria-label={`Take ${index + 1} is good`}
+                        data-testid={`scene-take-approve-${index}`}
+                        title={
+                          take.review === 'approved'
+                            ? 'Marked good — tap to make it a candidate again'
+                            : 'Good — a take you could use'
+                        }
+                        onClick={() =>
+                          reviewTake(take.id, take.review === 'approved' ? null : 'approved')
+                        }
+                      >
+                        Good
+                      </button>
+                      <button
+                        type="button"
+                        className={`${linkButton} disabled:cursor-not-allowed disabled:opacity-40`}
+                        aria-label={`Reject take ${index + 1}`}
+                        data-testid={`scene-take-reject-${index}`}
+                        disabled={isKept}
+                        title={
+                          isKept
+                            ? 'Keep another take first — Cut uses this one'
+                            : 'Reject — hide it from the takes (it stays in the Gallery)'
+                        }
+                        onClick={() => reviewTake(take.id, 'rejected')}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
+              {!strip ? (
+                <SceneTakeNotes
+                  index={index}
+                  stars={take.stars}
+                  note={take.note}
+                  onChange={patch => noteTake(take.id, patch)}
+                />
+              ) : null}
             </li>
           );
         })}
@@ -426,6 +437,64 @@ export function SceneKeptPreview({
           </Button>
         )
       ) : null}
+    </div>
+  );
+}
+
+/** A take's stars (1–5; the same star again clears) and a short note, under its picture. */
+function SceneTakeNotes({
+  index,
+  stars,
+  note,
+  onChange,
+}: {
+  index: number;
+  stars?: number;
+  note?: string;
+  onChange: (patch: { stars?: number | null; note?: string }) => void;
+}) {
+  return (
+    <div className="space-y-1 px-1 pb-1 pt-0.5">
+      <div
+        className="flex items-center gap-0.5"
+        role="radiogroup"
+        aria-label={`Rating for take ${index + 1}`}
+        data-testid={`scene-take-stars-${index}`}
+      >
+        {[1, 2, 3, 4, 5].map(value => (
+          <Button
+            key={value}
+            variant="quiet"
+            role="radio"
+            aria-checked={stars === value}
+            aria-label={`${value} star${value === 1 ? '' : 's'}`}
+            title={stars === value ? 'Clear the rating' : `${value} of 5`}
+            className={`!min-h-0 !p-0 text-sm leading-none ${
+              (stars ?? 0) >= value ? 'text-[var(--tint-warning-text)]' : 'text-[var(--text-muted)]'
+            } hover:text-[var(--tint-warning-text)]`}
+            data-testid={`scene-take-star-${index}-${value}`}
+            onClick={() => onChange({ stars: stars === value ? null : value })}
+          >
+            {(stars ?? 0) >= value ? '★' : '☆'}
+          </Button>
+        ))}
+      </div>
+      <input
+        type="text"
+        maxLength={200}
+        defaultValue={note ?? ''}
+        key={note ?? ''}
+        placeholder="A note — hands wrong, best face…"
+        aria-label={`Note for take ${index + 1}`}
+        className="ui-input h-6 w-full min-w-0 px-1.5 text-xs"
+        data-testid={`scene-take-note-${index}`}
+        onBlur={event => {
+          if (event.target.value.trim() !== (note ?? '')) onChange({ note: event.target.value });
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Enter') event.currentTarget.blur();
+        }}
+      />
     </div>
   );
 }

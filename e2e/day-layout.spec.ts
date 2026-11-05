@@ -97,3 +97,19 @@ test('Day keys: arrows pick a slot, Enter edits it, arrows step the sheet, A ani
   await page.keyboard.press('a');
   await expect(page.getByTestId('day-animate-sheet')).toBeVisible();
 });
+
+test('Day sheets: the storyboard opens as a printable page of the slots', async ({ page }) => {
+  await seed(page);
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-sheets-menu-trigger').click();
+  const [sheet] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.getByTestId('day-sheet-storyboard').click(),
+  ]);
+  await sheet.waitForLoadState();
+  await expect(sheet.locator('h1')).toContainText('storyboard');
+  await expect(sheet.locator('.frame').first()).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Print / save as PDF' })).toBeVisible();
+  await sheet.close();
+});

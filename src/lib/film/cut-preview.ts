@@ -12,11 +12,11 @@ import {
 } from '../video/cut-timeline';
 import { clipTrimWindow } from '../clip/trim';
 import { DEFAULT_STILL_HOLD_SEC, type FilmPlaylistShot } from '../media/kind';
-import { filmShotCaption, TITLE_CARD_SEC } from '../video/polish';
+import { filmShotCaption, STILL_MOTION_FPS, TITLE_CARD_SEC } from '../video/polish';
 
 export type PreviewItem = {
   kind: 'title' | 'still' | 'clip';
-  /** Index in the cut's shots (−1 for the title card). */
+  /** Index in the cut's shots (−1 for the title card, −2 for the end credits). */
   shot: number;
   /** Position among all pieces (title included): the push-in / pull-out direction. */
   stillIndex: number;
@@ -32,6 +32,9 @@ export type PreviewItem = {
   transition: CutTransitionKind;
 };
 
+/** The end credits' place in `PreviewItem.shot`. */
+export const CREDITS_SHOT = -2;
+
 export type PreviewTimeline = { items: PreviewItem[]; totalSec: number; crossfadeSec: number };
 
 export function previewTimeline(input: {
@@ -41,6 +44,8 @@ export function previewTimeline(input: {
   crossfadeSec: number;
   titleCard: boolean;
   captions: boolean;
+  /** End credits after the last shot, this long (0 / unset: none). */
+  creditsSec?: number;
 }): PreviewTimeline {
   const pieces: Array<Omit<PreviewItem, 'startSec' | 'inSec' | 'transition'>> = [];
   const transitions: Array<CutTransitionIn | undefined> = [];
@@ -89,6 +94,17 @@ export function previewTimeline(input: {
     });
     transitions.push(shot.transitionIn);
   });
+  if (input.creditsSec && input.creditsSec > 0) {
+    pieces.push({
+      kind: 'title',
+      shot: CREDITS_SHOT,
+      stillIndex: -1,
+      durSec: input.creditsSec,
+      fromSec: 0,
+      caption: '',
+    });
+    transitions.push(undefined);
+  }
   const joins = cutJoins({
     count: pieces.length,
     crossfadeSec: input.crossfadeSec,
@@ -137,4 +153,15 @@ export function previewFrameAt(
       ...(index > 0 && item.inSec > 0 ? { progress } : {}),
     };
   });
+}
+
+/**
+ * Timecode at the film's frame rate (30 fps, the render's): hours:minutes:seconds:frames — what
+ * `,` and `.` step through.
+ */
+export function formatCutTimecode(sec: number, fps = STILL_MOTION_FPS): string {
+  const frames = Math.max(0, Math.round(sec * fps));
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const total = Math.floor(frames / fps);
+  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}:${pad(frames % fps)}`;
 }

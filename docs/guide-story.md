@@ -55,6 +55,16 @@ Grouped in the order a scene is worked on, like Day's:
 Each item shows only when it can be used, and a group with nothing in it is left out. The
 finishing tools are described in [Finishing tools](finishing-tools.md).
 
+## Sheets
+
+**Sheets** (beside the Cast chip) once the story has a scene:
+
+- **Script** — the story as a screenplay: each scene a heading, its words the action, narration
+  as her voice-over (V.O.), her line and the answer as dialogue. Print it or save it as PDF.
+- **Script (.fountain)** — the same as a Fountain file, which Highland, Fade In, WriterSolo and
+  Final Draft open.
+- **Storyboard** — every scene's still with what happens and its line.
+
 ## It keeps track
 
 - **Continuity** — the next still keeps the outfit, hair, place and light unless the scene changes them.

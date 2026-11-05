@@ -10,6 +10,8 @@ import {
   isIdentityMatrix,
   lookMatrix,
   shotGradeMatrices,
+  normalizeShotGrade,
+  shotCorrectionMatrix,
   shotMatchMatrix,
   type ShotColourStats,
 } from './cut-look';
@@ -79,5 +81,48 @@ describe('cut look', () => {
     assert.ok(apply(grades[2]!, [0.7, 0.7, 0.7])[0]! < 0.7);
     const off = shotGradeMatrices({ stats: [s(0.3), s(0.5)], look: 'none', matchShots: false });
     assert.ok(off.every(isIdentityMatrix));
+  });
+
+  it('a shot’s own correction: exposure, contrast, saturation, warmth', () => {
+    assert.equal(normalizeShotGrade({ exposure: 0, contrast: 1 }), null);
+    assert.deepEqual(normalizeShotGrade({ exposure: 3, saturation: -1, warmth: 'x' }), {
+      exposure: 1,
+      saturation: 0,
+    });
+    assert.ok(isIdentityMatrix(shotCorrectionMatrix(undefined)));
+    const brighter = apply(shotCorrectionMatrix({ exposure: 1 }), [0.2, 0.2, 0.2]);
+    assert.ok(Math.abs(brighter[0]! - 0.4) < 1e-6);
+    const grey = apply(shotCorrectionMatrix({ saturation: 0 }), [0.8, 0.2, 0.2]);
+    assert.ok(Math.abs(grey[0]! - grey[2]!) < 1e-6);
+    const warm = apply(shotCorrectionMatrix({ warmth: 1 }), [0.5, 0.5, 0.5]);
+    assert.ok(warm[0]! > 0.5 && warm[2]! < 0.5);
+    const flat = apply(shotCorrectionMatrix({ contrast: 0.5 }), [0.9, 0.9, 0.9]);
+    assert.ok(flat[0]! < 0.9 && flat[0]! > 0.5);
+  });
+
+  it('the hand grade sits between the shot match and the film look', () => {
+    const s = (v: number) => ({ mean: [v, v, v] as [number, number, number], std: [0.2, 0.2, 0.2] as [number, number, number] });
+    const [graded, plain] = shotGradeMatrices({
+      stats: [s(0.5), s(0.5)],
+      look: 'none',
+      matchShots: false,
+      grades: [{ exposure: 0.5 }, null],
+    });
+    assert.ok(!isIdentityMatrix(graded!));
+    assert.ok(isIdentityMatrix(plain!));
+  });
+
+  it('matches every shot to a chosen one, which stays as shot', () => {
+    const s = (v: number) => ({ mean: [v, v, v] as [number, number, number], std: [0.2, 0.2, 0.2] as [number, number, number] });
+    const [dark, mid, bright] = shotGradeMatrices({
+      stats: [s(0.3), s(0.5), s(0.7)],
+      look: 'none',
+      matchShots: true,
+      matchTo: 2,
+    });
+    assert.ok(isIdentityMatrix(bright!));
+    // Both others move up toward the bright one (not toward the middle).
+    assert.ok(apply(dark!, [0.3, 0.3, 0.3])[0]! > 0.3);
+    assert.ok(apply(mid!, [0.5, 0.5, 0.5])[0]! > 0.5);
   });
 });

@@ -248,6 +248,18 @@ describe('Make it 30 s', () => {
     assert.doesNotMatch(buildExtendBeatsMessages({ scene: 'x', count: 2 })[0]!.content, /follow that/);
   });
 
+  it('splits the whole clip the player wrote over the beats, in order', () => {
+    const whole = 'She wakes and stretches. She sits up and smiles. She reaches for the lamp.';
+    const [system, user] = buildExtendBeatsMessages({ scene: 'in bed at dawn', count: 4, whole });
+    assert.match(system!.content, /^Plan a short video shot from its first second/);
+    assert.match(system!.content, /Split all of it over the 4 beats in the order it is written/);
+    assert.match(user!.content, /The shot so far: in bed at dawn/);
+    assert.match(user!.content, new RegExp(`The whole clip, start to end: ${whole}`));
+    const [plain] = buildExtendBeatsMessages({ scene: 'x', count: 2 });
+    assert.match(plain!.content, /^Continue a short video shot/);
+    assert.doesNotMatch(plain!.content, /whole clip/);
+  });
+
   it('a talking clip’s beats keep the speaker in place, never moving toward the camera', () => {
     const [system] = buildExtendBeatsMessages({ scene: 'x', count: 3, heat: 'sensual', talking: true });
     assert.match(system!.content, /never stepping, leaning or moving toward it/);

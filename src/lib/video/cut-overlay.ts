@@ -70,3 +70,23 @@ export function lowerThirdAlphaExpr(hold: number): string {
     `if(gt(t,${f(end)}),0,if(gt(t,${f(end - fade)}),(${f(end)}-t)/${fade},1))))`
   );
 }
+
+/**
+ * A cutaway: the shot's overlay picture full frame over part of it (shot seconds), while the
+ * shot's own sound carries on — an insert over a talking clip, without a second picture track.
+ * Null when the window is missing or too short; `holdSec` clamps it to the shot.
+ */
+export function normalizeCutaway(
+  fromSec: unknown,
+  toSec: unknown,
+  holdSec?: number
+): { fromSec: number; toSec: number } | null {
+  const num = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+  const from = num(fromSec);
+  let to = num(toSec);
+  if (from == null || to == null) return null;
+  if (holdSec != null && holdSec > 0) to = Math.min(to, holdSec);
+  if (to - from < 0.3) return null;
+  return { fromSec: Math.round(from * 100) / 100, toSec: Math.round(to * 100) / 100 };
+}

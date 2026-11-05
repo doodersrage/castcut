@@ -8,7 +8,12 @@
 import { useRef, useState } from 'react';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { Button } from '@/components/ui/Button';
-import { OptionRow, OptionSlider, optionSelectClass } from '@/components/cut/CutOptionParts';
+import {
+  OptionRow,
+  OptionSlider,
+  OptionSwitch,
+  optionSelectClass,
+} from '@/components/cut/CutOptionParts';
 import {
   normalizeAmbienceLevel,
   normalizeMusicFadeInSec,
@@ -16,6 +21,7 @@ import {
   normalizeMusicStartSec,
   type CutSoundOptions,
 } from '@/lib/video/cut-sound';
+import { cutLoudnessTarget } from '@/lib/film/export-profiles';
 import { FILM_AUDIO_BED_ACCEPT, resolveFilmAudioBedFromFile } from '@/lib/film/audio-bed';
 
 export default function CutSoundControls({
@@ -41,7 +47,8 @@ export default function CutSoundControls({
     () =>
       (sound.musicStartSec ?? 0) > 0 ||
       (sound.musicFadeInSec ?? 0) > 0 ||
-      (sound.musicFadeOutSec ?? 1) !== 1
+      (sound.musicFadeOutSec ?? 1) !== 1 ||
+      Boolean(sound.musicKeys?.length)
   );
   const seconds = (
     label: string,
@@ -80,7 +87,7 @@ export default function CutSoundControls({
             onClick={() => setShapeOpen(open => !open)}
             data-testid={`${testIdPrefix}-music-shape-toggle`}
           >
-            {shapeOpen ? '▾' : '▸'} Music start &amp; fades
+            {shapeOpen ? '▾' : '▸'} Music start, fades &amp; level
           </Button>
           {shapeOpen ? (
             <div className="grid gap-2">
@@ -108,10 +115,65 @@ export default function CutSoundControls({
                 8,
                 normalizeMusicFadeOutSec
               )}
+              <OptionRow
+                label="Level points"
+                hint="Double-click the music lane on the timeline to add a point; drag it up or down — the music follows the line"
+              >
+                <span className="min-w-0 flex-1 type-caption text-[var(--text-muted)]">
+                  {sound.musicKeys?.length
+                    ? `${sound.musicKeys.length} point${sound.musicKeys.length === 1 ? '' : 's'}`
+                    : 'None — double-click the music lane'}
+                </span>
+                {sound.musicKeys?.length ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={disabled}
+                    onClick={() => patch({ musicKeys: undefined })}
+                    data-testid={`${testIdPrefix}-music-keys-clear`}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </OptionRow>
             </div>
           ) : null}
         </>
       ) : null}
+      <OptionSwitch
+        label="Hit the loudness target"
+        note={cutLoudnessTarget(value).label}
+        hint="The finished film is measured and brought to its profile's loudness (Made for), peaks kept under the limit — one gain for the whole film, so quiet and loud moments keep their balance"
+        checked={value.normalizeLoudness !== false}
+        disabled={disabled}
+        onChange={next => onChange({ ...value, normalizeLoudness: next ? undefined : false })}
+        testId={`${testIdPrefix}-normalize-loudness`}
+      />
+      <OptionSwitch
+        label="Stems too"
+        hint="With the film, a .zip of the mix's parts as WAVs — dialogue, music, ambience, effects — lined up with it and at its level, for a sound mixer"
+        checked={value.stems === true}
+        disabled={disabled}
+        onChange={next => onChange({ ...value, stems: next || undefined })}
+        testId={`${testIdPrefix}-stems`}
+      />
+      <OptionSwitch
+        label="Even out voices"
+        hint="A gentle compressor on the dialogue — clips' lines and narration — so quiet and loud lines sit closer together, in the film (not the monitor)"
+        checked={sound.evenVoices === true}
+        disabled={disabled}
+        onChange={next => patch({ evenVoices: next || undefined })}
+        testId={`${testIdPrefix}-even-voices`}
+      />
+      <OptionSwitch
+        label="Clean up voices"
+        hint="On the clips' sound and the narration: a low cut under the voice, noise reduction and a gentle de-esser — in the film, not the monitor"
+        checked={sound.voiceCleanup === true}
+        disabled={disabled}
+        onChange={next => patch({ voiceCleanup: next || undefined })}
+        testId={`${testIdPrefix}-voice-cleanup`}
+      />
       <OptionRow
         label="Ambience"
         hint="Room tone, rain, a café, the sea — looped quietly under the whole film"

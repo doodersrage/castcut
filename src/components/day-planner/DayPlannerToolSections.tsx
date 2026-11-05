@@ -23,6 +23,9 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ToolSetupBanner from '@/components/ToolSetupBanner';
 import ScenePromptResultPanel from '@/components/scene-tool/ScenePromptResultPanel';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
+import DaySheetsMenu from '@/components/day-planner/DaySheetsMenu';
+import { dayMoodFlavor } from '@/lib/day/mood-flavor';
+import { dayThemeOf } from '@/lib/day/themes';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
 import DayScriptImport from '@/components/day-planner/DayScriptImport';
@@ -701,11 +704,19 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         title="Day"
         description={description}
         headerActions={
-          <DaySetupChip
-            character={character}
-            hasPlate={hasPlate}
-            onClick={() => setSetupOpen(true)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <DaySetupChip
+              character={character}
+              hasPlate={hasPlate}
+              onClick={() => setSetupOpen(true)}
+            />
+            <DaySheetsMenu
+              character={character}
+              slots={slots}
+              stills={stills}
+              moodLabel={dayThemeOf(dayMoodFlavor(toolSettings))?.label}
+            />
+          </div>
         }
         sidebarPersistKey="day"
         sidebar={engineControls}

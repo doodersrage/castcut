@@ -6,6 +6,7 @@
  * it longer, a clip's edges to trim it; click or drag on the ruler to scrub.
  */
 
+import { CREDITS_SHOT } from '@/lib/film/cut-preview';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import CutSoundLane, {
@@ -13,7 +14,12 @@ import CutSoundLane, {
   CUT_LANES_HEIGHT,
   CUT_LANES_TOP,
 } from '@/components/cut/CutSoundLane';
-import { CUT_TRACKS, type CutSoundOptions, type CutTrack } from '@/lib/video/cut-sound';
+import {
+  CUT_TRACKS,
+  type CutLevelKey,
+  type CutSoundOptions,
+  type CutTrack,
+} from '@/lib/video/cut-sound';
 import type { ReactNode } from 'react';
 import { MAX_STILL_HOLD_SEC, MIN_STILL_HOLD_SEC } from '@/lib/film/character-film';
 import { CUT_TRANSITIONS, type CutTransitionKind } from '@/lib/video/cut-timeline';
@@ -128,6 +134,7 @@ export default function CutTimeline({
   onSeek,
   onPick,
   onChange,
+  onMusicKeys,
 }: {
   loaded: CutPreviewLoaded | null;
   /** Every shot key in the shown order (left-out shots included) — reorders keep them. */
@@ -171,6 +178,8 @@ export default function CutTimeline({
   onSeek: (t: number) => void;
   onPick: (key: string) => void;
   onChange: (next: CutShotEdits) => void;
+  /** The music's level points (the line on the music lane, cut-sound.ts). */
+  onMusicKeys?: (keys: CutLevelKey[]) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
@@ -454,9 +463,9 @@ export default function CutTimeline({
                     key={`title-${index}`}
                     className="absolute top-6 flex h-[5.5rem] items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-black px-1 text-center text-3xs text-white/80"
                     style={{ left, width: blockWidth }}
-                    title="Title card"
+                    title={item.shot === CREDITS_SHOT ? 'End credits' : 'Title card'}
                   >
-                    Title
+                    {item.shot === CREDITS_SHOT ? 'Credits' : 'Title'}
                   </div>
                 );
               }
@@ -667,6 +676,19 @@ export default function CutTimeline({
               bedLabel={bedLabel}
               sound={sound}
               audible={audible}
+              disabled={disabled}
+              onMusicKeys={onMusicKeys}
+              clipKeys={key => edits?.shots?.[key]?.volumeKeys}
+              onClipKeys={(key, keys) =>
+                onChange({
+                  ...edits,
+                  order,
+                  shots: {
+                    ...edits?.shots,
+                    [key]: { ...edits?.shots?.[key], volumeKeys: keys.length ? keys : undefined },
+                  },
+                })
+              }
             />
             {/* Playhead. */}
             <div

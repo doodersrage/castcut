@@ -1,10 +1,16 @@
 import fs from 'node:fs/promises';
+import {
+  normalizeFilmChapters,
+  normalizeFilmLoudnessTarget,
+  normalizeFilmRange,
+} from '@/lib/video/film-finish';
 import { normalizeSubtitleStyle } from '@/lib/video/subtitle-style';
 import { NextResponse } from 'next/server';
 import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
 import { normalizeCutSound } from '@/lib/video/cut-sound';
-import { normalizeFilmTitleCard } from '@/lib/video/polish';
+import { normalizeFilmCredits, normalizeFilmTitleCard } from '@/lib/video/polish';
+import { loadStoredLut, type StoredLut } from '@/lib/video/cut-lut';
 import { normalizeMusicLevel, normalizeVoiceLevel } from '@/lib/audio/mix-levels';
 import { apiError, apiJson, apiMethodNotAllowed, apiOptions } from '@/lib/api/response';
 import { resolveRequestUser } from '@/lib/auth/access';
@@ -13,6 +19,7 @@ import { parseFilmPlaylistShots } from '@/lib/video/film-shot-parse';
 import {
   getFilmAssembleJob,
   readFilmAssembleOutput,
+  readFilmAssembleStems,
   startFilmAssembleJob,
 } from '@/lib/video/assemble-jobs';
 import { isServerFilmEncodeAvailable } from '@/lib/video/server-encode';
@@ -46,6 +53,19 @@ export async function GET(request: Request) {
     if (!job) {
       return apiError('Film job not found.', 404);
     }
+    if (url.searchParams.get('download') === 'stems') {
+      const zip = readFilmAssembleStems(jobId);
+      if (!zip) return apiError('No stems for that film.', 404);
+      return new NextResponse(new Uint8Array(zip), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Length': String(zip.byteLength),
+          'Content-Disposition': `attachment; filename="stems-${jobId.slice(0, 8)}.zip"`,
+          'Cache-Control': 'private, no-store',
+        },
+      });
+    }
     if (url.searchParams.get('download') === '1') {
       if (job.status !== 'completed') {
         return apiError('Film is not ready.', 409, { job });
@@ -59,7 +79,7 @@ export async function GET(request: Request) {
         headers: {
           'Content-Type': job.mimeType || 'video/mp4',
           'Content-Length': String(buffer.byteLength),
-          'Content-Disposition': `attachment; filename="film-${jobId.slice(0, 8)}.mp4"`,
+          'Content-Disposition': `attachment; filename="film-${jobId.slice(0, 8)}.${job.extension || 'mp4'}"`,
           'Cache-Control': 'private, no-store',
         },
       });
@@ -123,6 +143,29 @@ export async function POST(request: Request) {
             }
           : null,
       sound: normalizeCutSound(body.sound),
+      range: normalizeFilmRange(body.range),
+      chapters: normalizeFilmChapters(body.chapters),
+      leadShots:
+        typeof body.leadShots === 'number' && Number.isInteger(body.leadShots) && body.leadShots > 0
+          ? Math.min(50, body.leadShots)
+          : 0,
+      loudness: normalizeFilmLoudnessTarget(body.loudness),
+      stems: body.stems === true,
+      subtitleTrack: body.subtitleTrack === true,
+      master: body.master === true,
+      reviewBurnIn: body.reviewBurnIn === true,
+      matchTo:
+        typeof body.matchTo === 'number' && Number.isInteger(body.matchTo) && body.matchTo >= 0
+          ? body.matchTo
+          : null,
+      // A LUT that doesn't read is dropped, not an error (the film renders without it).
+      lut:
+        loadStoredLut(body.lut) && typeof (body.lut as { name?: unknown }).name === 'string'
+          ? (body.lut as StoredLut)
+          : null,
+      credits: normalizeFilmCredits(
+        Array.isArray(body.credits) ? body.credits.map(String).join('\n') : ''
+      ),
       requestOrigin: new URL(request.url).origin,
       userId: isAuthEnabled() ? (resolveRequestUser(request)?.id ?? null) : null,
     });

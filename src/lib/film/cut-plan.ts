@@ -5,7 +5,7 @@
  */
 
 import { normalizeCutFraming, type CutFraming } from '../video/cut-move';
-import { cleanLowerThird, normalizeOverlayCorner } from '../video/cut-overlay';
+import { cleanLowerThird, normalizeCutaway, normalizeOverlayCorner } from '../video/cut-overlay';
 import {
   CUT_TRANSITION_SEC,
   CUT_TRANSITIONS,
@@ -20,6 +20,8 @@ import {
 } from './character-film';
 import { TITLE_CARD_SEC } from '../video/polish';
 import { cleanSubtitleCues } from '../video/cut-subtitle-track';
+import { normalizeShotGrade, type ShotGrade } from '../video/cut-look';
+import { normalizeCutLevelKeys, type CutLevelKey } from '../video/cut-sound';
 import type { ShotSubtitleCue } from '../media/kind';
 import { clipIsTrimmed, clipTrimWindow, MIN_CLIP_TRIM_SEC } from '../clip/trim';
 
@@ -52,6 +54,12 @@ export type CutShotEdit = {
   speed?: number;
   /** Clips: play backwards. */
   reverse?: boolean;
+  /** Its own colour correction (cut-look.ts): exposure, contrast, saturation, warmth. */
+  grade?: ShotGrade;
+  /** Clips: a slow punch-in (in) or pull-back (out) over the clip (polish.ts clipMoveZoom). */
+  clipMove?: 'in' | 'out';
+  /** Clips: the sound's level over the shot (shot seconds as it plays), on top of `volume`. */
+  volumeKeys?: CutLevelKey[];
   /** Clips: J cut — the sound starts this many seconds before the picture (cut-sound.ts). */
   soundLeadSec?: number;
   /** Clips: L cut — the sound carries on this many seconds after the picture. */
@@ -62,6 +70,12 @@ export type CutShotEdit = {
   /** Picture-in-picture: a picture in a corner of the shot. */
   pipUrl?: string;
   pipCorner?: 'tl' | 'tr' | 'bl' | 'br';
+  /** A cutaway: the picture full frame from / to these shot seconds, the shot's sound going on. */
+  pipFull?: boolean;
+  /** The overlay is a clip (a moving cutaway, from the Gallery), not a picture. */
+  pipKind?: 'still' | 'clip';
+  pipFromSec?: number;
+  pipToSec?: number;
   /**
    * The shot's subtitle as you set it (M4 F5): over its line or narration; '' = none. Unset: the
    * line or narration, as before.
@@ -249,6 +263,21 @@ const subtitleSec = (value: unknown) =>
     ? Math.round(Math.min(600, value) * 1000) / 1000
     : undefined;
 
+/** A shot's cutaway fields (full-frame picture over a window of it), when it has one. */
+function cutawayFields(
+  edit: Pick<CutShotEdit, 'pipFull' | 'pipFromSec' | 'pipToSec' | 'pipKind'>
+): Pick<FilmPlaylistShot, 'pipFull' | 'pipFromSec' | 'pipToSec' | 'pipKind'> {
+  const window = edit.pipFull ? normalizeCutaway(edit.pipFromSec, edit.pipToSec) : null;
+  return window
+    ? {
+        pipFull: true,
+        pipFromSec: window.fromSec,
+        pipToSec: window.toSec,
+        ...(edit.pipKind === 'clip' ? { pipKind: 'clip' as const } : {}),
+      }
+    : {};
+}
+
 export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | null): KeyedShot[] {
   const order = edits?.order ?? [];
   const rank = new Map(order.map((key, index) => [key, index]));
@@ -287,6 +316,13 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           ? { speed: clipSpeed(edit?.speed) }
           : {}),
         ...(shot.kind === 'clip' && edit?.reverse === true ? { reverse: true } : {}),
+        ...(normalizeShotGrade(edit?.grade) ? { grade: normalizeShotGrade(edit?.grade)! } : {}),
+        ...(shot.kind === 'clip' && (edit?.clipMove === 'in' || edit?.clipMove === 'out')
+          ? { clipMove: edit.clipMove }
+          : {}),
+        ...(shot.kind === 'clip' && normalizeCutLevelKeys(edit?.volumeKeys).length
+          ? { volumeKeys: normalizeCutLevelKeys(edit?.volumeKeys) }
+          : {}),
         ...(shot.kind === 'clip' && (edit?.soundLeadSec ?? 0) > 0
           ? { soundLeadSec: Math.min(3, edit!.soundLeadSec!) }
           : {}),
@@ -317,6 +353,7 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
           ? {
               pipUrl: edit.pipUrl.trim(),
               pipCorner: normalizeOverlayCorner(edit.pipCorner, 'tr'),
+              ...cutawayFields(edit),
             }
           : {}),
         ...(shot.kind === 'still' &&

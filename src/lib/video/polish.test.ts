@@ -61,7 +61,7 @@ describe('ffmpeg cut graph', () => {
       musicLevel: 0.6,
       voiceLevel: 1.5,
     });
-    assert.match(filter, /\[0:a\][^;]*volume=1\.5,adelay=/);
+    assert.match(filter, /\[0:a\][^;]*volume=1\.5,(?:afade=[^,;]*,)*adelay=/);
     assert.match(filter, /\[1:a\][^;]*asetpts=PTS-STARTPTS,volume=0\.6/);
     // As recorded: no volume filter at all.
     const { filter: plain } = buildFilterComplex({
@@ -87,7 +87,7 @@ describe('ffmpeg cut graph', () => {
       trimStarts: [null, 1.5],
     });
     assert.match(filter, /\[1:v\]trim=start=1\.500:end=4\.000,setpts=PTS-STARTPTS,scale=/);
-    assert.match(filter, /\[1:a\][^;]*atrim=1\.5:4,asetpts=PTS-STARTPTS,adelay=3000/);
+    assert.match(filter, /\[1:a\][^;]*atrim=1\.5:4,asetpts=PTS-STARTPTS,(?:afade=[^,;]*,)*adelay=3000/);
     // An untrimmed clip keeps its whole length.
     const { filter: whole } = buildFilterComplex({
       ...base,

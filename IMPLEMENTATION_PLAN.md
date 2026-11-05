@@ -3260,3 +3260,141 @@ first", then "close the gaps").**
   floating day label on long (virtualised) lists; headings span the grid row; phone toggle renamed
   "Options"; lean Filters summary. Story: with a locked outfit the scene writer no longer names
   clothes. Removed the unused GalleryFiltersRatingModelRow.
+
+### Fix (2026-11-05, after v3.6.0): Animate "Write the beats" covers the whole scene
+
+Since d09311ec the Day Animate sheet sent its scene field as the beats' "shot so far", and the
+writer continued from it — every part came out as its last sentence. The field now goes as
+`whole` (`buildExtendBeatsMessages`): "Plan a short video shot from its first second … split all
+of it over the beats in the order it is written", with the slot's own beat as the shot so far.
+Live on qwen3-vl-8b: old run gave five coffee-sipping beats for a window → coffee → bed scene;
+new run walked window, curtains, coffee, bed, laugh in order. Unit test in extend.test.ts.
+
+### Cut, professional round (2026-11-05, after v3.6.0)
+
+All eight are uncommitted; units 9185 green, Cut e2e 39/40 on the isolated copy (the one failure is
+the other agent's uncommitted ShotCardMenu portal change — passes with that file at HEAD).
+
+1. **Shot colour** — `ShotGrade` (exposure, contrast, saturation, warmth) in cut-look.ts, between the
+   shot match and the film look in `shotGradeMatrices`; `CutShotColour` in the shot list. The monitor
+   reads grades live from the edits (left out of the rebuild signature), the encode via
+   film-shot-parse → server-encode. Real encode: flat grey 94 → 145/134/118 at +0.5 stop, warm 1.
+2. **Timecode** — `formatCutTimecode` (cut-preview.ts) at STILL_MOTION_FPS (30, the render's); `,`/`.`
+   step 1/30 (was a literal 30).
+3. **Level meter** — cut-meter.ts: one Web Audio bus with L/R analysers; `playMetered` wraps the
+   monitor's six `.play()` calls. Only taps readable elements (same origin / CORS) and only once the
+   bus runs (resumed on Play; earlier plays queue until `statechange`), so playback can't go silent.
+   `CutLevelMeter` beside the time.
+4. **Render just a part** — film-finish.ts + `finishFilmFile` in server-encode: re-encoded cut from
+   the range, .srt cut to it; times are monitor seconds, moved past a recap by `leadShots` (the part
+   itself skips the recap). `assembleAndStampFilm({ range })` downloads without stamping; `cutNow(…,
+   part)` pins nothing. UI: `CutPartRender` under Cut film.
+5. **Music level points** — `sound.musicKeys` (cut-sound.ts: normalize, `levelKeyGainAt`,
+   `levelKeysExpr` → `volume='…':eval=frame` on the bed); the monitor multiplies the same line.
+   `CutMusicLevelLine` on the music lane. Real encode: music band −35 → −49 dB from 2 s to 8 s.
+6. **Clean up voices** — `sound.voiceCleanup`: `highpass=f=80,afftdn=nf=-25:tn=1,deesser=i=0.4` on each
+   clip's sound and narration (film only).
+7. **Chapters** — `CutMarker.chapter`; `cutMarkerChapters` → `chapters` → ffmetadata via
+   `-map_chapters` (stream copy when there's no range); `chapterListText` for "Copy the chapter list".
+8. **Cutaways** — no second picture track: the shot's overlay picture can be full frame over a window
+   of the shot (`pipFull`, `pipFromSec`, `pipToSec`; `normalizeCutaway` in cut-overlay.ts), its sound
+   going on. Encode: cover-scaled `overlay=0:0:enable='between(t,a,b)'` in the pip slot (input
+   numbering unchanged); monitor draws it full frame in the window. One picture per shot (corner or
+   cutaway); a still picture only, not a clip. Real encode: red cutaway 1–3 s, sound unchanged.
+
+### Cut, delivery and finishing round (2026-11-05, after the pro round; uncommitted)
+
+1. **Loudness** — `finishFilmFile` ends with a two-pass loudnorm (film-finish.ts `loudnormFilters`,
+   `parseLoudnormMeasure`) to the profile's target (`cutLoudnessTarget`), linear, video copied;
+   option `normalizeLoudness` (unset = on). Real encode: −13.8 LUFS for −14.
+2. **Stems** — `buildFilterComplex({ stems })` splits the speech bus, the ducked music, ambience and
+   effects (`stemTap`) into second outputs (24-bit WAV); `zipStems` cuts them to a range and applies
+   the loudness gain (`gainDb`); job `?download=stems`. Real encode: dialogue + music, film length.
+3. **Subtitle track / .vtt** — mov_text stream from the (range-cut) .srt; cues are timed when only
+   the track is wanted (no burn-in, no font needed). `srtToVtt` for the .vtt button.
+4. **End credits** — polish.ts `normalizeFilmCredits`, `creditsDurationSec`, `creditsRollTop`; a
+   `CREDITS_SHOT` (−2) piece last on the preview timeline; the encode draws each line centred on its
+   own drawtext on the same roll. Option `credits` (text).
+5. **Speed ramps** — "Speed from here…": `split(key, at, { speed })`, the second half at ½×, ¼× or 2×
+   (a step, not an eased ramp).
+6. **LUT** — cut-lut.ts: .cube parse, resample to 17³, 16-bit base64 in the cut (`lut`); encode
+   `lut3d` per shot after its grade; monitor uses `lutFitMatrix` (least squares) via
+   `shotGradeMatrices({ lut })`.
+7. **Scopes** — cut-scopes.ts (luma waveform, Cb/Cr vectorscope, skin line, clipped shares);
+   `CutScopes` behind the monitor's Scopes button.
+8. **Clip level points** — `volumeKeys` per clip (shot seconds), `volume='…':eval=frame` after
+   the pace in its sound chain (moved past a J cut); monitor reads them live; drawn on each clip's
+   block in the clip lane (`CutMusicLevelLine`, generalised). Real encode: dialogue stem −41 → −91 dB.
+9. **ProRes master** — film-finish.ts `filmCodec(master)`: prores_ks HQ 10-bit 4:2:2 + pcm_s24le
+   .mov through the encode and every finishing re-encode; job writes `<id>.mov`, sweep covers .mov;
+   download-only like a part.
+10. **Moving cutaways** — `pipKind: 'clip'`: fetched with writeClipSource, `-an -i`, `trim,setpts=…+from/TB`
+    and `overlay=…:eof_action=pass:enable=between(t,a,b)`; the monitor plays a muted player in the
+    window. Picked from the Gallery (clips only).
+
+Units 9202 green. Cut e2e 39/40 in the parallel run; the one failure (cut-room:180, undo after
+Duplicate went back two steps) passes 3/3 alone — a timing flake.
+
+### Cut, third round (2026-11-05; uncommitted)
+
+0. **Clicks at hard cuts (bug)** — each clip's piece of sound had no fades, so a cut mid-waveform
+   clicked. Now `afade` 8 ms in and out (`EDGE_FADE_SEC`) on every piece; tests loosened to allow it.
+1. **Copy / paste colour, match to a shot** — `CutShotColour` Copy / Paste / Paste to all (state in
+   FilmCutShotList); `matchToKey` → `shotGradeMatrices({ matchTo })`: the chosen shot's stats are the
+   reference and it stays as shot; the encode gets its index after the recap.
+2. **Frame** — `useCutPreview().exportFrame`: the top shot's source at its own height in the film's
+   shape, through the shot's SVG grade, as PNG.
+3. **REVIEW timecode** — two drawtexts over the final picture (`REVIEW`, then ffmpeg's `timecode`
+   at 30 fps); `reviewBurnIn`, set by the Review profile, never on a master. Real encode: 7.5 s →
+   00:00:07:15.
+4. **Even out voices** — `sound.evenVoices`: `acompressor` (3:1 over ~−22 dB, makeup 2) on the speech bus.
+5. **Eased speed ramps** — `ramp(key, at, end, speed)`: one commit, pieces of 0.5 s at ⅓ and ⅔ of
+   the way, then the rest at the speed (0.5 s is the shortest trim); a plain split when < 1.5 s left.
+6. **Clip punch-in** — `clipMove: 'in' | 'out'`: `scale=…:eval=frame,crop` over what plays (1 → 1.15);
+   monitor draws it with `clipMoveZoom`. Real encode: visibly zoomed at the clip's end.
+7. **Render queue** — `enqueueRender` (profile via `applyExportProfile`, or the ProRes master):
+   `cutNow(…, over)` renders hand-off files (`keep: false`), one at a time; client-run.
+
+Units 9206 green; Cut e2e 40/40 on the isolated copy.
+
+## Part 18 — Studio features beyond Cut (asked 2026-11-05: "do all the things")
+
+One round at a time, each tested before the next. Ordered by what saves the most wasted renders
+and what turns Castcut's work into documents people outside it can use.
+
+- **R1 — Documents and choosing takes:** Day storyboard + call sheet (print / PDF), Story script view
+  (screenplay layout, print / PDF, Fountain), Scene compare takes (side by side / flick) and take
+  notes + ratings.
+- **R2 — Catch problems before rendering:** film continuity report (outfits, props, state per scene),
+  film-wide "what's missing" checklist, approval states (Cut warns on unapproved shots), face /
+  outfit drift across a film, eyeline / 180° checks on conversations.
+- **R3 — Consistency:** style lock per film, mood board, outfit continuity locks per scene, prop list,
+  lighting plan per scene, colour script.
+- **R4 — Sound:** dialogue pass page (every line, voice, audio state, re-record), foley suggestions
+  from beats, temp music per scene mood, ADR (re-record a line, keep the lip-sync).
+- **R5 — Writing:** beat board with timing estimates, act-structure overlay, AI coverage notes,
+  branching versions, logline / synopsis.
+- **R6 — Delivery and sheets:** press kit, trailer from story beats, episode pack, lookbook, character
+  and expression sheets, Gallery compare / collections / contact sheets, locations and set / prop
+  sheets.
+- **R7 — Workflow:** project archive, reproducibility report, film content rating, C2PA provenance
+  (needs a signing library — a dependency to agree first), templates, version history, film render
+  view ("render everything still needed"), share storyboard / script for comments, change log,
+  audio description track, multi-language page, blocking diagrams, emotion arc, coverage per slot.
+
+### Part 18 R1 — done (uncommitted)
+
+- **Day storyboard + call sheet:** print-sheets.ts (`storyboardHtml`, `callSheetHtml`; self-contained
+  HTML, Print → PDF, no dependency), day-sheets.ts (`dayStoryboardFrames`, `dayCallSheetRows`),
+  `DaySheetsMenu` in the Day header.
+- **Story script + storyboard:** `scriptHtml` (screenplay layout), `scriptFountain`, story-sheets.ts
+  (`storyScriptBlocks`: heading, action, V.O., line + reply), `StorySheetsMenu` beside the cast chip.
+- **Scene:** compare already existed (`SceneTakeCompareDialog`); added take `stars` + `note`
+  (`setSceneTakeNotes`), shown under each take and in Compare, 1–5 keys rate the take on the card.
+  Fixed on the way: the take's hover actions sat over the notes (anchored to the picture now).
+- **Scene overflow (user report):** content-sized textareas ([field-sizing:content]) widened the
+  slot editor's implicit grid column to a long placeholder; `grid-cols-[minmax(0,1fr)]` + `max-w-full`.
+  e2e: scene-layout "the shot form stays in its column".
+
+Units 9212 green. e2e: day-layout all pass (with the storyboard test), scene-layout 3/4 — the one
+failure (scene-layout:69, a disabled button) fails the same on HEAD in the isolated copy (CI passes).

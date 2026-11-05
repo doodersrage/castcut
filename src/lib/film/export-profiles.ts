@@ -28,7 +28,7 @@ export const EXPORT_PROFILES: readonly ExportProfile[] = [
   {
     id: 'review',
     label: 'Review copy',
-    hint: '720p with subtitles burned in — quick to send round',
+    hint: '720p with subtitles and a REVIEW timecode burned in — quick to send round',
     quality: '720p',
     subtitles: true,
     loudness: 'web',
@@ -81,6 +81,8 @@ export function applyExportProfile(
     vertical: shape === 'vertical',
     quality: profile.quality,
     subtitles: profile.subtitles,
+    // A review copy carries REVIEW and the timecode; every other profile is clean.
+    reviewBurnIn: profile.id === 'review' ? true : undefined,
     ...(shape !== 'wide' ? { followFaces: true } : {}),
   };
 }

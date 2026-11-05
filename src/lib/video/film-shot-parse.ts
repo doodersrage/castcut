@@ -6,9 +6,11 @@
  */
 import type { FilmPlaylistShot } from '../media/kind';
 import { normalizeCutFraming } from './cut-move';
-import { cleanLowerThird, normalizeOverlayCorner } from './cut-overlay';
+import { cleanLowerThird, normalizeCutaway, normalizeOverlayCorner } from './cut-overlay';
 import { normalizeCutTransition } from './cut-timeline';
 import { cleanSubtitleCues } from './cut-subtitle-track';
+import { normalizeShotGrade } from './cut-look';
+import { normalizeCutLevelKeys } from './cut-sound';
 
 const TEXT_MAX = 300;
 
@@ -98,10 +100,25 @@ export function parseFilmPlaylistShots(raw: unknown): FilmPlaylistShot[] {
       ...(clip && trimEndSec != null ? { trimEndSec } : {}),
       ...(clip && speed != null && speed !== 1 ? { speed } : {}),
       ...(clip && record.reverse === true ? { reverse: true } : {}),
+      ...(normalizeShotGrade(record.grade) ? { grade: normalizeShotGrade(record.grade)! } : {}),
+      ...(clip && (record.clipMove === 'in' || record.clipMove === 'out')
+        ? { clipMove: record.clipMove }
+        : {}),
+      ...(clip && normalizeCutLevelKeys(record.volumeKeys).length
+        ? { volumeKeys: normalizeCutLevelKeys(record.volumeKeys) }
+        : {}),
       ...(clip && soundLeadSec ? { soundLeadSec } : {}),
       ...(clip && soundTailSec ? { soundTailSec } : {}),
       ...(lowerThird ? { lowerThird, ...(lowerThirdSub ? { lowerThirdSub } : {}) } : {}),
       ...(pipUrl ? { pipUrl, pipCorner: normalizeOverlayCorner(record.pipCorner, 'br') } : {}),
+      ...(pipUrl && record.pipFull === true && normalizeCutaway(record.pipFromSec, record.pipToSec)
+        ? {
+            pipFull: true,
+            ...(record.pipKind === 'clip' ? { pipKind: 'clip' as const } : {}),
+            pipFromSec: normalizeCutaway(record.pipFromSec, record.pipToSec)!.fromSec,
+            pipToSec: normalizeCutaway(record.pipFromSec, record.pipToSec)!.toSec,
+          }
+        : {}),
     });
   }
   return shots;

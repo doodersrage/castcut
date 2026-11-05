@@ -23,6 +23,7 @@ import {
   drawCornerPicture,
   drawCover,
   drawLowerThird,
+  drawCredits,
   drawTitleCard,
 } from '@/lib/video/cut-canvas-draw';
 import {
@@ -32,11 +33,14 @@ import {
   normalizeFilmLook,
   normalizeLookStrength,
   shotGradeMatrices,
+  type ShotGrade,
   type ShotColourStats,
 } from '@/lib/video/cut-look';
 import {
   cutTrackGain,
+  levelKeyGainAt,
   musicFadeGainAt,
+  normalizeCutLevelKeys,
   normalizeAmbienceLevel,
   normalizeEffectLevel,
   normalizeMusicStartSec,
@@ -45,9 +49,23 @@ import {
 } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from '@/lib/film/cut-media';
 import { applyCutShotEdits, type KeyedShot } from '@/lib/film/cut-plan';
-import { previewFrameAt, previewTimeline, type PreviewTimeline } from '@/lib/film/cut-preview';
+import {
+  CREDITS_SHOT,
+  previewFrameAt,
+  previewTimeline,
+  type PreviewTimeline,
+} from '@/lib/film/cut-preview';
 import type { FilmPlaylistShot } from '@/lib/media/kind';
-import { captionOpacity, stillMotionZoom, type FilmTitleCard } from '@/lib/video/polish';
+import { playMetered, resumeCutMeter } from '@/lib/film/cut-meter';
+import { loadStoredLut, lutFitMatrix } from '@/lib/video/cut-lut';
+import {
+  captionOpacity,
+  clipMoveZoom,
+  creditsDurationSec,
+  normalizeFilmCredits,
+  stillMotionZoom,
+  type FilmTitleCard,
+} from '@/lib/video/polish';
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 
@@ -122,7 +140,7 @@ function setMediaRate(
 /** A looped track at a volume, playing or paused with the monitor. */
 function syncLoopedAudio(audio: HTMLAudioElement, volume: number, play: boolean) {
   audio.volume = volume;
-  if (play && audio.paused) void audio.play().catch(() => undefined);
+  if (play && audio.paused) void playMetered(audio).catch(() => undefined);
   if (!play && !audio.paused) audio.pause();
 }
 
@@ -178,11 +196,23 @@ function buildSignature(shots: KeyedShot[], value: FilmCutOptionsValue, titles: 
       shot.caption,
       shot.narrationUrl,
     ]),
-    edits: value.shotEdits,
+    // A shot's colour is drawn live from the edits (handGrades) — dragging it rebuilds nothing.
+    edits: value.shotEdits
+      ? {
+          ...value.shotEdits,
+          shots: Object.fromEntries(
+            Object.entries(value.shotEdits.shots ?? {}).map(([key, edit]) => [
+              key,
+              { ...edit, grade: undefined, volumeKeys: undefined },
+            ])
+          ),
+        }
+      : value.shotEdits,
     length: value.length,
     beatSnap: value.beatSnap,
     bed: value.audioBedUrl,
     crossfade: value.crossfadeSec,
+    credits: value.credits,
     titles,
   });
 }
@@ -215,6 +245,8 @@ export function useCutPreview(input: {
   const [loop, setLoopState] = useState<{ from: number; to: number } | null>(null);
   // Skimming: the frame under the pointer, the playhead kept where it was.
   const skimRef = useRef<number | null>(null);
+  // Moving cutaways' players (one per clip url), muted — the shot's own sound plays on.
+  const cutawayVideos = useRef(new Map<string, HTMLVideoElement>());
   const mediaRef = useRef<Media>({
     images: new Map(),
     videos: new Map(),
@@ -301,6 +333,7 @@ export function useCutPreview(input: {
           crossfadeSec: value.crossfadeSec,
           titleCard: titles,
           captions: titles,
+          creditsSec: creditsDurationSec(normalizeFilmCredits(value.credits)),
         });
         const bedUrl = value.audioBedUrl.trim();
         if (bedRef.current?.url !== bedUrl) {
@@ -489,18 +522,40 @@ export function useCutPreview(input: {
   const look = normalizeFilmLook(value.look);
   const lookStrength = normalizeLookStrength(value.lookStrength);
   const matchShots = value.matchShots !== false;
+  // Each shot's own colour, from the edits as they are now (not the last rebuild).
+  const handGradesKey = JSON.stringify(
+    loaded?.keys.map(key => (key ? (value.shotEdits?.shots?.[key]?.grade ?? null) : null)) ?? []
+  );
+  const handGrades = useMemo(
+    () => JSON.parse(handGradesKey) as Array<ShotGrade | null>,
+    [handGradesKey]
+  );
+  // The film's LUT as the matrix closest to it (cut-lut.ts) — the render applies the cube itself.
+  const lutKey = value.lut?.data ?? '';
+  const lutMatrix = useMemo(() => {
+    const lut = lutKey ? loadStoredLut(value.lut) : null;
+    return lut ? lutFitMatrix(lut) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lutKey]);
+  // "Match the others to this shot": its place among the loaded shots.
+  const matchToIndex = value.matchToKey && loaded ? loaded.keys.indexOf(value.matchToKey) : -1;
   const gradeIds = useMemo(() => {
-    if (!loaded || (look === 'none' && !matchShots)) return [] as Array<string | null>;
+    if (!loaded || (look === 'none' && !matchShots && !handGrades.some(Boolean) && !lutMatrix)) {
+      return [] as Array<string | null>;
+    }
     const matrices = shotGradeMatrices({
       stats: loaded.stats,
       look,
       lookStrength,
       matchShots,
+      grades: handGrades,
+      lut: lutMatrix,
+      matchTo: matchToIndex,
     });
     return matrices.map((matrix, index) =>
       isIdentityMatrix(matrix) ? null : `${filterPrefix}-${index}`
     );
-  }, [filterPrefix, loaded, look, lookStrength, matchShots]);
+  }, [filterPrefix, handGrades, loaded, look, lookStrength, lutMatrix, matchShots, matchToIndex]);
   useEffect(() => {
     if (!loaded || gradeIds.every(id => id === null)) return;
     const matrices = shotGradeMatrices({
@@ -508,6 +563,9 @@ export function useCutPreview(input: {
       look,
       lookStrength,
       matchShots,
+      grades: handGrades,
+      lut: lutMatrix,
+      matchTo: matchToIndex,
     });
     const svgNs = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNs, 'svg');
@@ -528,7 +586,7 @@ export function useCutPreview(input: {
     }
     document.body.appendChild(svg);
     return () => svg.remove();
-  }, [gradeIds, loaded, look, lookStrength, matchShots]);
+  }, [gradeIds, handGrades, loaded, look, lookStrength, lutMatrix, matchShots, matchToIndex]);
 
   const draw = useCallback(
     (t: number) => {
@@ -558,7 +616,16 @@ export function useCutPreview(input: {
         if (progress !== undefined && item.transition === 'slide') {
           context.translate(Math.round((1 - progress) * canvas.width), 0);
         }
-        if (item.kind === 'title') {
+        if (item.kind === 'title' && item.shot === CREDITS_SHOT) {
+          drawCredits(
+            context,
+            normalizeFilmCredits(value.credits),
+            local,
+            item.durSec,
+            canvas.width,
+            canvas.height
+          );
+        } else if (item.kind === 'title') {
           drawTitleCard(
             context,
             titleCard?.title?.trim() ? titleCard : { title: 'Your film' },
@@ -625,7 +692,8 @@ export function useCutPreview(input: {
               video.videoHeight,
               canvas.width,
               canvas.height,
-              1,
+              // A clip's punch-in / pull-back, as the encode scales it.
+              clipMoveZoom(loaded.shots[item.shot]?.clipMove, local, item.durSec),
               path ? reframeXAt(path, local * (item.speed ?? 1)) : null
             );
             context.filter = 'none';
@@ -643,7 +711,67 @@ export function useCutPreview(input: {
           );
         }
         const pip = overlayShot?.pipUrl ? overlayImages.get(overlayShot.pipUrl) : undefined;
-        if (pip) {
+        if (overlayShot?.pipFull && overlayShot.pipKind === 'clip' && overlayShot.pipUrl) {
+          // A moving cutaway: its own muted player, kept at the window's time.
+          const from = overlayShot.pipFromSec ?? 0;
+          const to = overlayShot.pipToSec ?? 0;
+          let cutaway = cutawayVideos.current.get(overlayShot.pipUrl);
+          if (!cutaway) {
+            cutaway = document.createElement('video');
+            cutaway.crossOrigin = 'anonymous';
+            cutaway.muted = true;
+            cutaway.playsInline = true;
+            cutaway.preload = 'auto';
+            cutaway.src = overlayShot.pipUrl;
+            cutawayVideos.current.set(overlayShot.pipUrl, cutaway);
+          }
+          if (local >= from && local <= to) {
+            const target = local - from;
+            if (clock.current) {
+              if (cutaway.paused) {
+                cutaway.currentTime = target;
+                void cutaway.play().catch(() => undefined);
+              } else if (Math.abs(cutaway.currentTime - target) > 0.3) {
+                cutaway.currentTime = target;
+              }
+            } else {
+              if (!cutaway.paused) cutaway.pause();
+              if (Math.abs(cutaway.currentTime - target) > 0.05) cutaway.currentTime = target;
+            }
+            if (cutaway.readyState >= 2) {
+              context.save();
+              context.globalAlpha = alpha;
+              drawCover(
+                context,
+                cutaway,
+                cutaway.videoWidth,
+                cutaway.videoHeight,
+                canvas.width,
+                canvas.height
+              );
+              context.restore();
+            }
+          } else if (!cutaway.paused) {
+            cutaway.pause();
+          }
+        } else if (pip && overlayShot?.pipFull) {
+          // A cutaway: full frame over its window of the shot (the shot's sound goes on).
+          const from = overlayShot.pipFromSec ?? 0;
+          const to = overlayShot.pipToSec ?? 0;
+          if (local >= from && local <= to) {
+            context.save();
+            context.globalAlpha = alpha;
+            drawCover(
+              context,
+              pip,
+              pip.naturalWidth,
+              pip.naturalHeight,
+              canvas.width,
+              canvas.height
+            );
+            context.restore();
+          }
+        } else if (pip) {
           drawCornerPicture(
             context,
             pip,
@@ -687,6 +815,7 @@ export function useCutPreview(input: {
     },
     [
       gradeIds,
+      value.credits,
       loaded,
       overlayImages,
       reframes,
@@ -743,13 +872,24 @@ export function useCutPreview(input: {
         if (video.playbackRate !== speed) video.playbackRate = speed;
         // The clip's own level (Cut's shot list) on top of the Lines level; 0 = muted.
         const own = loaded.shots[item.shot]?.volume ?? 1;
+        // Its level points, from the edits as they are now (dragging one rebuilds nothing).
+        const shotKey = loaded.keys[item.shot];
+        const keyed = levelKeyGainAt(
+          normalizeCutLevelKeys(
+            shotKey ? value.shotEdits?.shots?.[shotKey]?.volumeKeys : undefined
+          ),
+          local
+        );
         // A J / L clip's sound comes from its own player (below), so the picture plays silent.
         video.volume = overlapOf(item)
           ? 0
-          : Math.min(1, Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own * gain.clips));
+          : Math.min(
+              1,
+              Math.max(0, normalizeVoiceLevel(value.voiceLevel) * own * keyed * gain.clips)
+            );
         if (Math.abs(video.currentTime - target) > 0.3) video.currentTime = target;
         if (running && video.paused && t < loaded.timeline.totalSec)
-          void video.play().catch(() => undefined);
+          void playMetered(video).catch(() => undefined);
         if (!running && !video.paused) video.pause();
       }
       for (const [index, video] of mediaRef.current.videos) {
@@ -780,7 +920,7 @@ export function useCutPreview(input: {
           );
           const target = item.fromSec + (t - item.startSec);
           if (Math.abs(audio.currentTime - target) > 0.3) audio.currentTime = target;
-          if (running && audio.paused) void audio.play().catch(() => undefined);
+          if (running && audio.paused) void playMetered(audio).catch(() => undefined);
           if (!running && !audio.paused) audio.pause();
         } else if (!audio.paused) {
           audio.pause();
@@ -798,7 +938,7 @@ export function useCutPreview(input: {
           narrating = true;
           voice.volume = Math.min(1, normalizeVoiceLevel(value.voiceLevel)) * gain.narration;
           if (Math.abs(voice.currentTime - local) > 0.3) voice.currentTime = local;
-          if (running && voice.paused) void voice.play().catch(() => undefined);
+          if (running && voice.paused) void playMetered(voice).catch(() => undefined);
           if (!running && !voice.paused) voice.pause();
         } else if (!voice.paused) {
           voice.pause();
@@ -807,7 +947,12 @@ export function useCutPreview(input: {
       const fade = musicFadeGainAt(t, loaded.timeline.totalSec, value.sound);
       const bed = mediaRef.current.bed;
       if (bed) {
-        const music = Math.min(1, normalizeMusicLevel(value.musicLevel)) * fade * gain.music;
+        // The music's level points follow the same line as the encode's (cut-sound.ts).
+        const keyed = levelKeyGainAt(normalizeCutLevelKeys(value.sound?.musicKeys), t);
+        const music = Math.min(
+          1,
+          Math.min(1, normalizeMusicLevel(value.musicLevel)) * fade * gain.music * keyed
+        );
         // The music ducks under what is heard: a muted clip or voice doesn't duck it.
         const ducked =
           (gain.clips > 0 && (playingClips.size > 0 || overlapping)) ||
@@ -819,7 +964,7 @@ export function useCutPreview(input: {
           bed.pause();
         } else {
           if (Math.abs(bed.currentTime - at) > 0.4) bed.currentTime = at;
-          if (running && bed.paused) void bed.play().catch(() => undefined);
+          if (running && bed.paused) void playMetered(bed).catch(() => undefined);
           if (!running && !bed.paused) bed.pause();
         }
       }
@@ -867,14 +1012,14 @@ export function useCutPreview(input: {
         if (!effect.muted && local >= 0 && local < length && t < loaded.timeline.totalSec) {
           audio.volume = Math.min(1, normalizeEffectLevel(effect.level)) * gain.effects;
           if (Math.abs(audio.currentTime - local) > 0.3) audio.currentTime = local;
-          if (running && audio.paused) void audio.play().catch(() => undefined);
+          if (running && audio.paused) void playMetered(audio).catch(() => undefined);
           if (!running && !audio.paused) audio.pause();
         } else if (!audio.paused) {
           audio.pause();
         }
       }
     },
-    [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound, solo]
+    [loaded, overlapOf, value.musicLevel, value.voiceLevel, value.sound, value.shotEdits, solo]
   );
 
   /** Every playing medium at the monitor's speed (pitch kept). */
@@ -951,6 +1096,8 @@ export function useCutPreview(input: {
           ? 0
           : timeRef.current;
     clock.current = { startedAt: performance.now(), from };
+    // The live meters' audio bus starts on this click (browsers wait for a gesture).
+    resumeCutMeter();
     setPlaying(true);
   }, [loaded]);
   const pause = useCallback(() => {
@@ -1029,7 +1176,41 @@ export function useCutPreview(input: {
     [loaded]
   );
 
+  /**
+   * The frame at the playhead as a PNG, at its source picture's own size (in the film's shape),
+   * graded as the monitor shows it — no text over it. Null on a title card or before it loads.
+   */
+  const exportFrame = useCallback(async (): Promise<Blob | null> => {
+    if (!loaded) return null;
+    const on = previewFrameAt(loaded.timeline, timeRef.current);
+    const top = on[on.length - 1];
+    if (!top || top.item.kind === 'title') return null;
+    const image =
+      top.item.kind === 'still' ? mediaRef.current.images.get(top.item.shot) : undefined;
+    const video = top.item.kind === 'clip' ? mediaRef.current.videos.get(top.item.shot) : undefined;
+    const source = image ?? video;
+    const sourceW = image?.naturalWidth ?? video?.videoWidth ?? 0;
+    const sourceH = image?.naturalHeight ?? video?.videoHeight ?? 0;
+    if (!source || !sourceW || !sourceH) return null;
+    // The film's shape at the source's height (no taller than 4K).
+    const height = Math.min(2160, sourceH);
+    const width = Math.round((height * size.width) / size.height / 2) * 2;
+    const out = document.createElement('canvas');
+    out.width = width;
+    out.height = height;
+    const context = out.getContext('2d');
+    if (!context) return null;
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, width, height);
+    const grade = gradeIds[top.item.shot];
+    if (grade) context.filter = `url(#${grade})`;
+    (shape === 'wide' ? drawContain : drawCover)(context, source, sourceW, sourceH, width, height);
+    context.filter = 'none';
+    return new Promise(resolve => out.toBlob(blob => resolve(blob), 'image/png'));
+  }, [gradeIds, loaded, shape, size.height, size.width]);
+
   return {
+    exportFrame,
     canvasRef,
     size,
     shape,
@@ -1051,6 +1232,8 @@ export function useCutPreview(input: {
     skim,
   };
 }
+
+export { formatCutTimecode } from '@/lib/film/cut-preview';
 
 export function formatCutTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec));

@@ -13,6 +13,8 @@ import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from 
 import type { FilmResolutionPreset } from '../video/resolution';
 import type { FilmTitleCard } from '../video/polish';
 import { cutRecipeFrom, type CutRecipe } from '../video/cut-recipe';
+import type { FilmChapter, FilmRange } from '../video/film-finish';
+import type { StoredLut } from '../video/cut-lut';
 
 export * from '../video/assemble';
 
@@ -56,6 +58,30 @@ export async function assembleAndStampFilm(input: {
   source?: CutRecipe['source'];
   /** Film this one re-cuts (its parent in the Gallery). */
   parentGalleryEntryId?: string;
+  /** Just this part (the Cut monitor's seconds): a review copy, downloaded and not kept. */
+  range?: FilmRange | null;
+  /** Chapter marks (Cut's chapter markers, monitor seconds). */
+  chapters?: FilmChapter[];
+  /** Shots before the ones the monitor shows (a "Previously on" recap). */
+  leadShots?: number;
+  /** Bring the film to this loudness (the export profile's target; film-finish.ts). */
+  loudness?: { lufs: number; peakDbtp: number } | null;
+  /** Also write the mix's stems — dialogue, music, ambience, effects — as WAVs in a .zip. */
+  stems?: boolean;
+  /** The subtitles as a track in the MP4 too (players turn it on and off). */
+  subtitleTrack?: boolean;
+  /** A master: ProRes .mov — a download, not kept (the Gallery plays MP4s). */
+  master?: boolean;
+  /** false: a hand-off render (the render queue) — downloaded, not kept on the Cast. */
+  keep?: boolean;
+  /** "REVIEW" and the film's running timecode burned into the picture, top left. */
+  reviewBurnIn?: boolean;
+  /** Match every shot's colour to this one (its index in the shots) instead of the film's middle. */
+  matchTo?: number | null;
+  /** End credits, one line each, rolled after the last shot (polish.ts). */
+  credits?: string[];
+  /** The film's LUT as the cut keeps it (cut-lut.ts). */
+  lut?: StoredLut | null;
   onProgress?: (progress: AssembleFilmProgress) => void;
 }): Promise<{
   filename: string;
@@ -71,6 +97,10 @@ export async function assembleAndStampFilm(input: {
   subtitlesSrt?: string;
   /** The finished file read back on the server (M4 F6). */
   outputProbe?: FilmOutputProbe;
+  /** The chapters written into the file (file seconds). */
+  chapters?: FilmChapter[];
+  /** The stems .zip, when asked for. */
+  stemsZip?: Blob;
 }> {
   input.onProgress?.({ ratio: 0.01, label: 'Timing the cut…' });
   const prepared = await prepareCutShots(input.shots, {
@@ -105,7 +135,25 @@ export async function assembleAndStampFilm(input: {
     subtitleStyle: input.subtitleStyle,
     logo: input.logo,
     sound: input.sound,
+    ...(input.range ? { range: input.range } : {}),
+    ...(input.chapters?.length ? { chapters: input.chapters } : {}),
+    ...(input.leadShots ? { leadShots: input.leadShots } : {}),
+    ...(input.loudness ? { loudness: input.loudness } : {}),
+    ...(input.stems ? { stems: true } : {}),
+    ...(input.subtitleTrack ? { subtitleTrack: true } : {}),
+    ...(input.master ? { master: true } : {}),
+    ...(input.reviewBurnIn ? { reviewBurnIn: true } : {}),
+    ...(input.matchTo != null ? { matchTo: input.matchTo } : {}),
+    ...(input.credits?.length ? { credits: input.credits } : {}),
+    ...(input.lut ? { lut: input.lut } : {}),
   });
+  if ((input.range || input.master) && assembled.encodePath !== 'server') {
+    throw new Error(
+      input.master
+        ? 'A ProRes master needs the server encode (ffmpeg).'
+        : 'Rendering just a part needs the server encode (ffmpeg).'
+    );
+  }
   // The browser recorder draws pictures only: say what the server encode would have added.
   if (assembled.encodePath === 'browser') {
     const lost = [
@@ -119,7 +167,32 @@ export async function assembleAndStampFilm(input: {
       );
     }
   }
-  const filename = filmDownloadFilename(input.characterName, assembled.extension);
+  const filename = input.range
+    ? filmDownloadFilename(input.characterName, assembled.extension).replace(
+        /(\.[a-z0-9]+)$/i,
+        `-part-${Math.round(input.range.fromSec)}s-${Math.round(input.range.toSec)}s$1`
+      )
+    : input.master
+      ? filmDownloadFilename(input.characterName, assembled.extension).replace(
+          /(\.[a-z0-9]+)$/i,
+          '-master$1'
+        )
+      : filmDownloadFilename(input.characterName, assembled.extension);
+  // A part is a review copy, a master a handoff file: downloaded, not kept on the Cast or in the
+  // Gallery.
+  if (input.range || input.master || input.keep === false) {
+    return {
+      filename,
+      blob: assembled.blob,
+      encodePath: assembled.encodePath,
+      cutNotes: prepared.notes,
+      persisted: false,
+      ...(assembled.subtitlesSrt ? { subtitlesSrt: assembled.subtitlesSrt } : {}),
+      ...(assembled.outputProbe ? { outputProbe: assembled.outputProbe } : {}),
+      ...(assembled.chapters?.length ? { chapters: assembled.chapters } : {}),
+      ...(assembled.stemsZip ? { stemsZip: assembled.stemsZip } : {}),
+    };
+  }
   const stamped = await stampAssembledFilm({
     blob: assembled.blob,
     filename,
@@ -162,6 +235,8 @@ export async function assembleAndStampFilm(input: {
     cutNotes: prepared.notes,
     ...(assembled.subtitlesSrt ? { subtitlesSrt: assembled.subtitlesSrt } : {}),
     ...(assembled.outputProbe ? { outputProbe: assembled.outputProbe } : {}),
+    ...(assembled.chapters?.length ? { chapters: assembled.chapters } : {}),
+    ...(assembled.stemsZip ? { stemsZip: assembled.stemsZip } : {}),
     ...stamped,
   };
 }

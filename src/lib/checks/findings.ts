@@ -40,7 +40,9 @@ export type ContinuityRule =
   /** A place two or more planned shots go to, with no location record (M8 T4). */
   | 'location-unset'
   /** A shot drops what an earlier shot at the same story time carries over (M8 T6). */
-  | 'state-dropped';
+  | 'state-dropped'
+  /** Two shots of the same two people, same place and time: the lead swaps sides (180° rule). */
+  | 'crossed-line';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

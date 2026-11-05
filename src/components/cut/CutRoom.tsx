@@ -7,6 +7,11 @@
  */
 
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
+import { STILL_MOTION_FPS } from '@/lib/video/polish';
+import CutPartRender from '@/components/cut/CutPartRender';
+import CutRenderQueue from '@/components/cut/CutRenderQueue';
+import { formatCutTimecode } from '@/lib/film/cut-preview';
+import { srtToVtt } from '@/lib/video/film-finish';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
@@ -36,6 +41,7 @@ import CutMarkers from '@/components/cut/CutMarkers';
 import {
   addCutMarker,
   editCutMarker,
+  setCutMarkerChapter,
   normalizeCutMarkers,
   removeCutMarker,
 } from '@/lib/film/cut-markers';
@@ -58,7 +64,11 @@ import {
 import { useCutRoom } from '@/hooks/useCutRoom';
 import { useCommandActions } from '@/hooks/useCommandActions';
 import { PLAY_COMMAND_ACTION_IDS } from '@/lib/play/command-actions';
-import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
+import {
+  galleryEntryPrimaryMediaKind,
+  galleryEntryPrimaryViewUrl,
+} from '@/lib/gallery/comfyui-gallery';
+import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { CUT_SOURCES, cutSourceFromParam, splitCutRoomKey } from '@/lib/film/cut-room';
 import { useDayShotIdentity } from '@/hooks/useDayPlannerShotIdentity';
 import {
@@ -91,6 +101,8 @@ export default function CutRoom() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   /** Relink from Gallery (M4 F3): the shot the picker relinks. */
   const [relinkKey, setRelinkKey] = useState<string | null>(null);
+  // The shot a moving cutaway is being picked for (its overlay editor's "Clip from Gallery…").
+  const [cutawayKey, setCutawayKey] = useState<string | null>(null);
   // Pictures dropped on the timeline from the computer: into the Gallery, then onto the cut.
   const [dropping, setDropping] = useState(false);
   const [dropNote, setDropNote] = useState<string | null>(null);
@@ -217,7 +229,12 @@ export default function CutRoom() {
     const local = preview.time - item.startSec;
     if (local < 0.4 || local > item.durSec - 0.4) return null;
     // A sped-up / slowed clip moves `speed` file seconds per cut second.
-    return { key: activeKey, fileSec: item.fromSec + local * (item.speed ?? 1) };
+    return {
+      key: activeKey,
+      fileSec: item.fromSec + local * (item.speed ?? 1),
+      // Where the clip stops playing (file seconds): how much is left for a ramp.
+      endFileSec: item.fromSec + item.durSec * (item.speed ?? 1),
+    };
   })();
   // Where the playhead is in the clip under it (for I / O: trim in / out there).
   const clipPoint = (() => {
@@ -394,7 +411,7 @@ export default function CutRoom() {
         if (key === ',' || key === '.') {
           event.preventDefault();
           preview.pause();
-          preview.seek(Math.max(0, preview.time + (key === ',' ? -1 : 1) / 30));
+          preview.seek(Math.max(0, preview.time + (key === ',' ? -1 : 1) / STILL_MOTION_FPS));
           return;
         }
         if (key === 'f' && clipPoint) {
@@ -784,6 +801,17 @@ export default function CutRoom() {
                     onRate={preview.setRate}
                     looping={preview.loop !== null}
                     onLoop={() => preview.setLoop(preview.loop ? null : shotRange)}
+                    onExportFrame={() =>
+                      void preview.exportFrame().then(blob => {
+                        if (!blob) return;
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `frame-${formatCutTimecode(preview.time).replace(/:/g, '.')}.png`;
+                        link.click();
+                        window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                      })
+                    }
                     onPrev={() => step(-1)}
                     onNext={() => step(1)}
                     subtitle={(() => {
@@ -921,6 +949,25 @@ export default function CutRoom() {
                           >
                             Split at playhead
                           </Button>
+                          <select
+                            aria-label="Change speed from the playhead"
+                            title="A speed ramp: from the playhead the clip eases over a second into another speed — slowed (smooth slow motion) or sped up — and plays on at it"
+                            disabled={busy || !splitAt}
+                            className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
+                            value=""
+                            data-testid="cut-ramp"
+                            onChange={event => {
+                              const speed = Number(event.target.value);
+                              if (splitAt && speed > 0) {
+                                vm.ramp(splitAt.key, splitAt.fileSec, splitAt.endFileSec, speed);
+                              }
+                            }}
+                          >
+                            <option value="">Speed from here…</option>
+                            <option value="0.5">½× slow from here</option>
+                            <option value="0.25">¼× slow from here</option>
+                            <option value="2">2× fast from here</option>
+                          </select>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1062,6 +1109,16 @@ export default function CutRoom() {
                         disabled={busy}
                         testIdPrefix="cut"
                         onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
+                        onPickCutawayClip={setCutawayKey}
+                        matchToKey={vm.options.matchToKey}
+                        onMatchTo={key =>
+                          vm.setOptions({
+                            ...vm.options,
+                            matchToKey: key,
+                            // Matching to a shot needs Match shots on.
+                            ...(key ? { matchShots: true } : {}),
+                          })
+                        }
                         activeKey={activeKey}
                         onPick={pick}
                         tagFor={
@@ -1175,6 +1232,25 @@ export default function CutRoom() {
                         </div>
                         <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
                           {cutButton}
+                          <CutPartRender
+                            time={preview.time}
+                            total={preview.total}
+                            loop={preview.loop}
+                            chapters={vm.lastChapters}
+                            chapterMarkers={
+                              normalizeCutMarkers(vm.options.markers).filter(m => m.chapter).length
+                            }
+                            disabled={busy || !preview.loaded}
+                            onRender={part => void vm.cutPart(part)}
+                            onMaster={() => void vm.cutMaster()}
+                          />
+                          <CutRenderQueue
+                            queue={vm.renderQueue}
+                            disabled={!preview.loaded}
+                            onQueue={vm.enqueueRender}
+                            onRemove={vm.removeQueuedRender}
+                            onClear={vm.clearFinishedRenders}
+                          />
                           <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
                             <select
                               aria-label="Make a reel"
@@ -1238,6 +1314,30 @@ export default function CutRoom() {
                                 }}
                               >
                                 Subtitles (.srt)
+                              </Button>
+                            ) : null}
+                            {vm.lastSubtitles ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                data-testid="cut-subtitles-vtt"
+                                title="The same subtitles as WebVTT — for a web player (<track>) or a site that takes .vtt"
+                                onClick={() => {
+                                  const blob = new Blob([srtToVtt(vm.lastSubtitles!.srt)], {
+                                    type: 'text/vtt',
+                                  });
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = vm.lastSubtitles!.filename.replace(
+                                    /\.srt$/i,
+                                    '.vtt'
+                                  );
+                                  link.click();
+                                  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+                                }}
+                              >
+                                .vtt
                               </Button>
                             ) : null}
                           </div>
@@ -1304,6 +1404,12 @@ export default function CutRoom() {
                           vm.setOptions({
                             ...vm.options,
                             markers: editCutMarker(vm.options.markers, id, note),
+                          })
+                        }
+                        onChapter={(id, chapter) =>
+                          vm.setOptions({
+                            ...vm.options,
+                            markers: setCutMarkerChapter(vm.options.markers, id, chapter),
                           })
                         }
                         onRemove={id =>
@@ -1437,6 +1543,12 @@ export default function CutRoom() {
                   onSeek={preview.seek}
                   onPick={pick}
                   onChange={shotEdits => vm.setOptions({ ...vm.options, shotEdits })}
+                  onMusicKeys={keys =>
+                    vm.setOptions({
+                      ...vm.options,
+                      sound: { ...vm.options.sound, musicKeys: keys.length ? keys : undefined },
+                    })
+                  }
                 />
                 {selected.length > 1 ? (
                   <div
@@ -1677,6 +1789,32 @@ export default function CutRoom() {
         onAdd={entry => {
           if (relinkKey) void vm.relinkFromGallery(relinkKey, entry);
           setRelinkKey(null);
+        }}
+      />
+      <CutGalleryPicker
+        open={cutawayKey !== null}
+        onClose={() => setCutawayKey(null)}
+        entries={vm.castMedia.filter(entry =>
+          isGalleryClipEntry({ ...entry, mediaKind: galleryEntryPrimaryMediaKind(entry) })
+        )}
+        title="A cutaway clip"
+        description="It plays full frame over part of the shot (from / to in its overlay), while the shot's own sound carries on."
+        onAdd={entry => {
+          const url = galleryEntryPrimaryViewUrl(entry);
+          if (cutawayKey && url) {
+            const own = vm.options.shotEdits?.shots?.[cutawayKey];
+            vm.setOptions({
+              ...vm.options,
+              shotEdits: withCutShotEdit(vm.options.shotEdits, order, cutawayKey, {
+                pipUrl: url,
+                pipKind: 'clip',
+                pipFull: true,
+                pipFromSec: own?.pipFromSec ?? 1,
+                pipToSec: own?.pipToSec ?? 3,
+              }),
+            });
+          }
+          setCutawayKey(null);
         }}
       />
     </>

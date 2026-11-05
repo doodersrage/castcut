@@ -1,5 +1,6 @@
 'use client';
 
+import StorySheetsMenu from '@/components/roleplay/StorySheetsMenu';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import ClipEngineNote from '@/components/ClipEngineNote';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
@@ -377,6 +378,15 @@ export default function RoleplayToolSections({
                 plate={reference.displayReferenceUrl || null}
                 testId="story-cast-chip"
                 onOpen={() => setCastSheetOpen(true)}
+              />
+            ) : null}
+            {story.length > 0 ? (
+              <StorySheetsMenu
+                story={story}
+                lead={bio?.name || castCharacterName}
+                title={
+                  bio?.name || castCharacterName ? `${bio?.name || castCharacterName}'s story` : ''
+                }
               />
             ) : null}
             {!film.firstCutCelebrate ? (

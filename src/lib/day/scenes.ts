@@ -49,8 +49,15 @@ export type SceneTake = {
    * kept take — or rejected: hidden from the strip until you restore it. Unset: a candidate.
    */
   review?: SceneTakeReview;
+  /** Your rating, 1–5 stars (unset: not rated). */
+  stars?: number;
+  /** Your note on it: "hands wrong", "best face". */
+  note?: string;
   at: number;
 };
+
+/** A take note's longest length. */
+export const SCENE_TAKE_NOTE_MAX = 200;
 
 export type SceneTakeReview = 'approved' | 'rejected';
 
@@ -311,6 +318,10 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
     ...(clipUrl ? { clipUrl } : {}),
     ...(clipUrl && clipPromptId ? { clipPromptId } : {}),
     ...(take.review === 'approved' || take.review === 'rejected' ? { review: take.review } : {}),
+    ...(typeof take.stars === 'number' && take.stars >= 1 && take.stars <= 5
+      ? { stars: Math.round(take.stars) }
+      : {}),
+    ...(text(take.note, SCENE_TAKE_NOTE_MAX) ? { note: text(take.note, SCENE_TAKE_NOTE_MAX) } : {}),
     at: time(take.at, now),
   };
 }
@@ -773,6 +784,36 @@ export function setSceneTakeReview(
   if ((take.review ?? null) === review) return scene;
   const { review: _old, ...rest } = take;
   const next: SceneTake = review ? { ...rest, review } : rest;
+  return {
+    ...scene,
+    takes: scene.takes.map((entry, at) => (at === index ? next : entry)),
+    updatedAt: now,
+  };
+}
+
+/** Rate a take (1–5, null clears) and / or set its note ('' clears). Cut is untouched. */
+export function setSceneTakeNotes(
+  scene: SavedScene,
+  takeId: string,
+  patch: { stars?: number | null; note?: string },
+  now = Date.now()
+): SavedScene {
+  const index = scene.takes.findIndex(take => take.id === takeId);
+  if (index < 0) return scene;
+  const take = scene.takes[index]!;
+  const { stars: oldStars, note: oldNote, ...rest } = take;
+  const stars =
+    patch.stars === undefined
+      ? oldStars
+      : patch.stars && patch.stars >= 1 && patch.stars <= 5
+        ? Math.round(patch.stars)
+        : undefined;
+  const note =
+    patch.note === undefined
+      ? oldNote
+      : patch.note.replace(/\s+/g, ' ').trim().slice(0, SCENE_TAKE_NOTE_MAX) || undefined;
+  if (stars === oldStars && note === oldNote) return scene;
+  const next: SceneTake = { ...rest, ...(stars ? { stars } : {}), ...(note ? { note } : {}) };
   return {
     ...scene,
     takes: scene.takes.map((entry, at) => (at === index ? next : entry)),

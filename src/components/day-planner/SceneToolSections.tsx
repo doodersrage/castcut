@@ -111,7 +111,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   const scenesInOrder = [...castScenes].sort((a, b) => a.createdAt - b.createdAt);
   // Keys (not while typing, nor over a dialog): ← → the take before / after onto the card, K keeps
   // it, X rejects it, N another take, [ ] the scene before / after.
-  const { showTake, keepTake, reviewTake, still: cardStill } = page;
+  const { showTake, keepTake, reviewTake, noteTake, still: cardStill } = page;
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -162,6 +162,11 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
       } else if (key === 'x' && take && take.id !== active.keptTakeId) {
         event.preventDefault();
         reviewTake(take.id, 'rejected');
+      } else if (/^[1-5]$/.test(key) && take) {
+        // 1–5 rates the take on the card (the same number again clears it).
+        event.preventDefault();
+        const value = Number(key);
+        noteTake(take.id, { stars: take.stars === value ? null : value });
       } else if (key === 'n' && !busy && !queueBlocked && !inFlight) {
         event.preventDefault();
         void queueSlot(slot, { byPlayer: true });
@@ -175,6 +180,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
     cardStill?.promptId,
     inFlight,
     keepTake,
+    noteTake,
     openScene,
     queueBlocked,
     queueSlot,

@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  levelKeyGainAt,
+  levelKeysExpr,
+  normalizeCutLevelKeys,
+  withCutLevelKey,
   heardEffects,
   musicFadeGainAt,
   normalizeCutEffects,
@@ -97,11 +101,125 @@ describe('cut sound', () => {
         { input: 3, atSec: 30 },
       ],
     });
-    assert.match(graph.filter, /\[1:a\][^;]*volume=0\.5,adelay=12400:all=1\[fx0\]/);
+    assert.match(graph.filter, /\[1:a\][^;]*volume=0\.5,(?:afade=[^,;]*,)*adelay=12400:all=1\[fx0\]/);
     assert.match(graph.filter, /\[2:a\][^;]*adelay=3000:all=1\[fx1\]/);
     // Past the film's end: left out.
     assert.doesNotMatch(graph.filter, /\[3:a\]/);
     assert.match(graph.filter, /\[fx0\]\[fx1\]amix=inputs=2[^;]*apad=whole_dur=20,atrim=0:20/);
     assert.equal(graph.audioLabel, 'fx');
+  });
+
+  it('music level points: a line between them, held before and after', () => {
+    const keys = normalizeCutLevelKeys([
+      { atSec: 10, level: 0.5 },
+      { atSec: 4, level: 1 },
+      { atSec: 4.05, level: 2 },
+      { atSec: 'x', level: 1 },
+      { atSec: 20, level: 9 },
+    ]);
+    assert.deepEqual(keys, [
+      { atSec: 4, level: 1 },
+      { atSec: 10, level: 0.5 },
+      { atSec: 20, level: 2 },
+    ]);
+    assert.equal(levelKeyGainAt([], 3), 1);
+    assert.equal(levelKeyGainAt(keys, 0), 1);
+    assert.equal(levelKeyGainAt(keys, 7), 0.75);
+    assert.equal(levelKeyGainAt(keys, 15), 1.25);
+    assert.equal(levelKeyGainAt(keys, 99), 2);
+    assert.deepEqual(withCutLevelKey(keys, 10.05, 0.2)[1], { atSec: 10.05, level: 0.2 });
+    assert.equal(withCutLevelKey(keys, 10.05, 0.2).length, 3);
+  });
+
+  it('the level line as an ffmpeg expression gives the same numbers', () => {
+    const keys = [
+      { atSec: 2, level: 1 },
+      { atSec: 6, level: 0.5 },
+    ];
+    const expr = levelKeysExpr(keys);
+    assert.equal(levelKeysExpr([]), '');
+    // Evaluate the expression the way ffmpeg would (if / lt / arithmetic only).
+    const evaluate = (t: number) =>
+      Function(
+        'iff',
+        'lt',
+        't',
+        `return ${expr.replace(/if\(/g, 'iff(')};`
+      )((c: boolean, a: number, b: number) => (c ? a : b), (a: number, b: number) => a < b, t);
+    for (const t of [0, 2, 3, 4, 5.9, 6, 10]) {
+      assert.ok(Math.abs(evaluate(t) - levelKeyGainAt(keys, t)) < 1e-9, `t=${t}`);
+    }
+  });
+
+  it('the encode follows the music line and cleans up the voices when asked', () => {
+    const graph = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [8],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+      clipAudioInputs: [2],
+      speech: [true],
+      sound: { voiceCleanup: true, musicKeys: [{ atSec: 1, level: 0.5 }] },
+    });
+    assert.match(graph.filter, /\[2:a\][^;]*highpass=f=80,afftdn=nf=-25:tn=1,deesser=i=0\.4,/);
+    assert.match(graph.filter, /\[1:a\][^;]*volume='if\(lt\(t,1\),0\.5,0\.5\)':eval=frame/);
+    const plain = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [8],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+    });
+    assert.doesNotMatch(plain.filter, /afftdn|eval=frame/);
+  });
+
+  it('stems: the dialogue, ducked music, ambience and effects tapped out of the mix', () => {
+    const graph = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [8],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: true,
+      clipAudioInputs: [3],
+      speech: [true],
+      ambienceInput: 2,
+      effectInputs: [{ input: 4, atSec: 1 }],
+      stems: true,
+    });
+    assert.deepEqual(
+      graph.stems?.map(stem => stem.name),
+      ['dialogue', 'music', 'ambience', 'effects']
+    );
+    assert.match(graph.filter, /\[speech0\]asplit=2\[speech\]\[st_dialogue_raw\]/);
+    assert.match(graph.filter, /\[ducked0\]asplit=2\[ducked\]\[st_music_raw\]/);
+    assert.match(graph.filter, /\[st_music_raw\]apad=whole_dur=8,atrim=0:8,afade=t=out/);
+    // The mix itself is built as before.
+    assert.match(graph.filter, /\[ducked\]\[sp2\]amix/);
+    assert.equal(buildFilterComplex({ shotCount: 1, kinds: ['still'], holdSecs: [3], width: 64, height: 36, crossfadeSec: 0, hasAudioBed: false }).stems, undefined);
+  });
+
+  it("a clip's own level points follow its sound, moved past a J cut's early start", () => {
+    const graph = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['clip'],
+      holdSecs: [6],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      clipAudioInputs: [1],
+      speech: [true],
+      soundLeads: [0.5],
+      trimStarts: [1],
+      volumeKeys: [[{ atSec: 2, level: 0.2 }]],
+    });
+    assert.match(graph.filter, /\[1:a\][^;]*volume='if\(lt\(t,2\.5\),0\.2,0\.2\)':eval=frame,afade=t=in[^;]*,adelay/);
   });
 });

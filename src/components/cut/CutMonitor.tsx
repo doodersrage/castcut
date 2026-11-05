@@ -8,7 +8,9 @@
 import { useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import type { SubtitleStyle } from '@/lib/video/subtitle-style';
 import { Button } from '@/components/ui/Button';
-import { formatCutTime, type CutPreviewLoaded } from '@/hooks/useCutPreview';
+import CutLevelMeter from '@/components/cut/CutLevelMeter';
+import CutScopes from '@/components/cut/CutScopes';
+import { formatCutTime, formatCutTimecode, type CutPreviewLoaded } from '@/hooks/useCutPreview';
 
 /** The monitor's subtitle in each look (server-encode draws the film's the same way). */
 const SUBTITLE_LOOK_CLASS: Record<SubtitleStyle, string> = {
@@ -82,6 +84,7 @@ export default function CutMonitor({
   onRate,
   looping,
   onLoop,
+  onExportFrame,
 }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   size: { width: number; height: number };
@@ -110,11 +113,15 @@ export default function CutMonitor({
   /** Looping the shot under the playhead, and the switch. */
   looping?: boolean;
   onLoop?: () => void;
+  /** Save the frame at the playhead as a PNG. */
+  onExportFrame?: () => void;
 }) {
   const [captionsOn, setCaptionsOn] = useState(true);
   // Safe areas: where a phone's own buttons and captions sit (vertical / square), or the title-safe
   // frame (widescreen) — so a subtitle or a face isn't put under them.
   const [safeOn, setSafeOn] = useState(false);
+  // Scopes (waveform + vectorscope) of the frame on the monitor.
+  const [scopesOn, setScopesOn] = useState(false);
   const pictureRef = useRef<HTMLDivElement>(null);
   const transportButton =
     'inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] disabled:opacity-40';
@@ -209,9 +216,11 @@ export default function CutMonitor({
         <span
           className="type-caption tabular-nums text-[var(--text-muted)]"
           data-testid="cut-preview-time"
+          title="Hours:minutes:seconds:frames, at 30 frames a second — , and . step one frame"
         >
-          {formatCutTime(time)} / {formatCutTime(total)}
+          {formatCutTimecode(time)} / {formatCutTimecode(total)}
         </span>
+        <CutLevelMeter playing={playing} />
         <Button
           size="sm"
           variant="ghost"
@@ -237,6 +246,28 @@ export default function CutMonitor({
           onClick={() => setSafeOn(value => !value)}
         >
           Safe
+        </Button>
+        {onExportFrame ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!loaded}
+            title="Save the frame at the playhead as a PNG — full size, graded as you see it, no text"
+            data-testid="cut-preview-frame"
+            onClick={onExportFrame}
+          >
+            Frame
+          </Button>
+        ) : null}
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-pressed={scopesOn}
+          title="Waveform and vectorscope of the frame on the monitor — exposure and skin tones at a glance"
+          data-testid="cut-preview-scopes"
+          onClick={() => setScopesOn(value => !value)}
+        >
+          Scopes
         </Button>
         {onLoop ? (
           <Button
@@ -291,6 +322,7 @@ export default function CutMonitor({
           {loaded.notes.length ? ` · ${loaded.notes.join(' · ')}` : ''}
         </p>
       ) : null}
+      {scopesOn ? <CutScopes canvasRef={canvasRef} time={time} playing={playing} /> : null}
       {timeline}
     </div>
   );

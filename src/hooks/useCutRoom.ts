@@ -7,6 +7,10 @@
  * card — and keeps the film on the Cast.
  */
 
+import type { FilmChapter, FilmRange } from '@/lib/video/film-finish';
+import { formatCutTimecode } from '@/lib/film/cut-preview';
+import { cutMarkerChapters } from '@/lib/film/cut-markers';
+import { normalizeFilmCredits } from '@/lib/video/polish';
 import type { ShotSubtitleCue } from '@/lib/media/kind';
 import { planReel, type ReelLength } from '@/lib/video/cut-reel';
 import { requeueComfyJobFromEntry } from '@/lib/comfyui/requeue';
@@ -122,9 +126,12 @@ import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
+  clipSpeed,
+  type CutShotEdits,
   withShotSubtitle,
   orderedCutShots,
   cutShotProblems,
+  type CutShotEdit,
   type CutShotProblem,
   type KeyedShot,
 } from '@/lib/film/cut-plan';
@@ -172,6 +179,7 @@ import { packageAsVersion, packageVersions } from '@/lib/film/cut-package';
 import {
   applyExportProfile,
   cutHasSound,
+  cutLoudnessTarget,
   verifyFilmOutput,
   type ExportProfileId,
 } from '@/lib/film/export-profiles';
@@ -233,6 +241,13 @@ function subscribeGallery(onStoreChange: () => void): () => void {
 function unprefixed(shots: KeyedShot[]): KeyedShot[] {
   return shots.map(shot => ({ ...shot, key: splitCutRoomKey(shot.key).key }));
 }
+
+/** A render waiting in Cut's render queue (useCutRoom enqueueRender). */
+export type QueuedRender = {
+  id: string;
+  label: string;
+  status: 'waiting' | 'running' | 'done' | 'error';
+};
 
 export function useCutRoom() {
   const cut = useCachedSettings('cut', DEFAULT_CUT_TOOL_CACHE);
@@ -696,7 +711,11 @@ export function useCutRoom() {
   );
   /** Split a clip at `atSec` (seconds into the file): it ends there, a copy plays from there. */
   const split = useCallback(
-    (key: string, atSec: number) => {
+    /**
+     * `after`: the second half's own settings too — a speed ramp is a split whose second half
+     * plays at another speed, straight on from the same frame ("Slow from here").
+     */
+    (key: string, atSec: number, after?: Partial<CutShotEdit>) => {
       const keys = orderNow();
       const copy = cutCopyKey(key, new Set(keys));
       const original = stateRef.current.extras.find(extra => extra.key === key);
@@ -720,6 +739,7 @@ export function useCutRoom() {
                   trimStartSec: at,
                   // The second half comes straight in.
                   transition: 'cut',
+                  ...after,
                 },
               },
             },
@@ -730,6 +750,63 @@ export function useCutRoom() {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [commitEdit, shots]
+  );
+  /**
+   * A speed ramp from the playhead (one undo step): the clip eases into `speed` — two half-second
+   * pieces at in-between speeds, then the rest at `speed` — each piece straight on from the last
+   * frame. Too little clip left for the ease: one split at `speed`.
+   */
+  const ramp = useCallback(
+    (key: string, atSec: number, endSec: number, speed: number) => {
+      const at = Math.round(atSec * 10) / 10;
+      const step = 0.5;
+      if (endSec - at < step * 3) {
+        split(key, at, { speed });
+        return;
+      }
+      let keys = orderNow();
+      const original = stateRef.current.extras.find(extra => extra.key === key);
+      const of = original?.kind === 'copy' ? original.of : key;
+      const edits = stateRef.current.options.shotEdits;
+      const own = edits?.shots?.[key] ?? {};
+      const ownSpeed = clipSpeed(own.speed);
+      const pieces = [
+        { from: at, to: at + step, speed: ownSpeed + (speed - ownSpeed) / 3 },
+        { from: at + step, to: at + step * 2, speed: ownSpeed + ((speed - ownSpeed) * 2) / 3 },
+        { from: at + step * 2, to: own.trimEndSec, speed },
+      ];
+      const extras = [...stateRef.current.extras];
+      const shotEdits: NonNullable<CutShotEdits['shots']> = {
+        ...edits?.shots,
+        [key]: { ...own, trimEndSec: at },
+      };
+      let after = key;
+      for (const piece of pieces) {
+        const copy = cutCopyKey(key, new Set(keys));
+        extras.push({ key: copy, kind: 'copy', of });
+        keys = orderWith(keys, copy, after);
+        shotEdits[copy] = {
+          ...own,
+          trimStartSec: Math.round(piece.from * 10) / 10,
+          ...(piece.to !== undefined ? { trimEndSec: Math.round(piece.to * 10) / 10 } : {}),
+          speed: Math.round(piece.speed * 100) / 100,
+          transition: 'cut',
+        };
+        after = copy;
+      }
+      commitEdit(
+        {
+          extras,
+          options: {
+            ...stateRef.current.options,
+            shotEdits: { ...edits, order: keys, shots: shotEdits },
+          },
+        },
+        true
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commitEdit, shots, split]
   );
   /** Take an added shot (or copy) out of the film for good. */
   const removeAdded = useCallback(
@@ -1249,6 +1326,8 @@ export function useCutRoom() {
   const [lastSubtitles, setLastSubtitles] = useState<{ srt: string; filename: string } | null>(
     null
   );
+  /** The last cut's chapters as written into the file (file seconds), for a description. */
+  const [lastChapters, setLastChapters] = useState<FilmChapter[] | null>(null);
   const waitingExtends = useRef(new Set<string>());
   const settleExtend = useCallback(
     (key: string, patch: { status: CutGeneratedStatus; url?: string }) => {
@@ -2080,10 +2159,17 @@ export function useCutRoom() {
   }, [bySource.day, dayCast, day.toolSettings.stillsCharacterId, slots, updateDay]);
 
   const cutNow = useCallback(
-    async (excludeKeys: string[] = []) => {
+    /** `part`: just that part of the film (monitor seconds) — a review copy, not kept. */
+    async (
+      excludeKeys: string[] = [],
+      part?: FilmRange,
+      master = false,
+      /** The options for this render only (a queued profile); the cut keeps its own. */
+      over?: FilmCutOptionsValue
+    ) => {
       // Muted tracks (M4 F4) are left out of the encode, and the status says so.
       const { options: cutOptions, left: mutedLeft } = withMutedTracksLeftOut(
-        options,
+        over ?? options,
         shots.filter(shot => shot.kind === 'clip').map(shot => shot.key)
       );
       const edits = cutOptions.shotEdits;
@@ -2112,7 +2198,8 @@ export function useCutRoom() {
         now.shotEdits,
         shotsRef.current.filter(shot => inFilm.has(shot.key))
       );
-      if (pinnedEdits !== now.shotEdits) {
+      // A part (a review copy), a master or a queued render pins nothing: the cut stays as it is.
+      if (!part && !master && !over && pinnedEdits !== now.shotEdits) {
         commitEdit({ options: { ...now, shotEdits: pinnedEdits } }, true, false);
       }
       const withDay = sources.includes('day');
@@ -2216,8 +2303,9 @@ export function useCutRoom() {
             };
         }
         // "Previously on": the season's last Day episode, else the Cast's last Story.
+        // A part is timed as the monitor shows the cut: no recap in front of it.
         const recap =
-          cast && cutOptions.previouslyOn !== false
+          !part && cast && cutOptions.previouslyOn !== false
             ? withDay
               ? previouslyOnShots(loadPlaySeriesStore(), cast.id, name)
               : storyPreviouslyOnShots(loadRoleplayLibrary(), {
@@ -2262,9 +2350,62 @@ export function useCutRoom() {
             : null,
           length: cutOptions.length,
           beatSnap: cutOptions.beatSnap,
+          // Chapter markers (Notes → Your markers), moved past the recap on the server.
+          chapters: cutMarkerChapters(cutOptions.markers),
+          leadShots: recap.length,
+          ...(cutOptions.stems === true ? { stems: true } : {}),
+          ...(cutOptions.subtitleTrack === true ? { subtitleTrack: true } : {}),
+          ...(cutOptions.lut ? { lut: cutOptions.lut } : {}),
+          // A master is never a review copy.
+          ...(cutOptions.reviewBurnIn === true && !master ? { reviewBurnIn: true } : {}),
+          // "Match the others to this shot": its place in what is rendered (after a recap).
+          ...(cutOptions.matchToKey && picked.some(shot => shot.key === cutOptions.matchToKey)
+            ? {
+                matchTo:
+                  recap.length + picked.findIndex(shot => shot.key === cutOptions.matchToKey),
+              }
+            : {}),
+          ...(normalizeFilmCredits(cutOptions.credits).length
+            ? { credits: normalizeFilmCredits(cutOptions.credits) }
+            : {}),
+          // The profile's loudness target, met in the render (unset = on).
+          ...(cutOptions.normalizeLoudness !== false
+            ? {
+                loudness: {
+                  lufs: cutLoudnessTarget(cutOptions).lufs,
+                  peakDbtp: cutLoudnessTarget(cutOptions).peakDbtp,
+                },
+              }
+            : {}),
+          ...(part ? { range: part } : {}),
+          ...(master ? { master: true } : {}),
+          ...(over ? { keep: false } : {}),
           onProgress: progress => setStatus(progress.label),
         });
         downloadFilmBlob(result.blob, result.filename);
+        if (result.stemsZip) {
+          downloadFilmBlob(
+            result.stemsZip,
+            result.filename.replace(/\.[a-z0-9]+$/i, '') + '-stems.zip'
+          );
+        }
+        setLastChapters(result.chapters ?? null);
+        if (over && !master && !part) {
+          setStatus(`Downloaded ${result.filename} — a queued render, not kept on the Cast.`);
+          return true;
+        }
+        if (master && !part) {
+          setStatus(
+            `Downloaded ${result.filename} — the ProRes 422 HQ master (24-bit sound), not kept on the Cast.`
+          );
+          return true;
+        }
+        if (part) {
+          setStatus(
+            `Downloaded ${result.filename} — ${formatCutTimecode(part.fromSec)} to ${formatCutTimecode(part.toSec)}, a review copy (not kept on the Cast).`
+          );
+          return true;
+        }
         setLastFilmEntryId(result.entryId);
         setLastOutput({
           ...(result.outputProbe ? { probe: result.outputProbe } : {}),
@@ -2350,6 +2491,7 @@ export function useCutRoom() {
             });
           }
         }
+        return true;
       } catch (err) {
         const playbook = resolveFilmFailurePlaybook(
           err instanceof Error ? err.message : 'Could not assemble the film.'
@@ -2381,6 +2523,55 @@ export function useCutRoom() {
       updateDay,
     ]
   );
+
+  /**
+   * The render queue: exports lined up to run one after another — a profile's version, the
+   * ProRes master, a part — while you work on. Each is a hand-off file, downloaded, not kept on
+   * the Cast; it renders with the cut as it is when its turn comes.
+   */
+  const [renderQueue, setRenderQueue] = useState<QueuedRender[]>([]);
+  const queueRuns = useRef(new Map<string, () => Promise<boolean | undefined>>());
+  const enqueueRender = useCallback(
+    (item: { label: string; profile?: ExportProfileId; master?: boolean; part?: FilmRange }) => {
+      const id = `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+      queueRuns.current.set(id, () => {
+        const now = stateRef.current.options;
+        return cutNow(
+          [],
+          item.part,
+          item.master === true,
+          item.profile ? applyExportProfile(now, item.profile) : now
+        );
+      });
+      setRenderQueue(list => [...list, { id, label: item.label, status: 'waiting' }]);
+    },
+    [cutNow]
+  );
+  const removeQueuedRender = useCallback((id: string) => {
+    queueRuns.current.delete(id);
+    setRenderQueue(list => list.filter(entry => entry.id !== id || entry.status === 'running'));
+  }, []);
+  const clearFinishedRenders = useCallback(() => {
+    setRenderQueue(list =>
+      list.filter(entry => entry.status === 'waiting' || entry.status === 'running')
+    );
+  }, []);
+  // One at a time: the next waiting render starts when nothing else is cutting.
+  useEffect(() => {
+    if (assembling || renderQueue.some(entry => entry.status === 'running')) return;
+    const next = renderQueue.find(entry => entry.status === 'waiting');
+    const run = next ? queueRuns.current.get(next.id) : undefined;
+    if (!next || !run) return;
+    const mark = (status: QueuedRender['status']) =>
+      setRenderQueue(list =>
+        list.map(entry => (entry.id === next.id ? { ...entry, status } : entry))
+      );
+    mark('running');
+    void run()
+      .then(ok => mark(ok ? 'done' : 'error'))
+      .catch(() => mark('error'))
+      .finally(() => queueRuns.current.delete(next.id));
+  }, [assembling, renderQueue]);
 
   /** Cut film: the pre-cut check first (flagged / missed stills, then the files themselves). */
   const cutFilm = useCallback(async () => {
@@ -2773,6 +2964,14 @@ export function useCutRoom() {
     extendClip,
     extendBusy,
     lastSubtitles,
+    lastChapters,
+    cutPart: (part: FilmRange) => cutNow([], part),
+    cutMaster: () => cutNow([], undefined, true),
+    renderQueue,
+    enqueueRender,
+    removeQueuedRender,
+    clearFinishedRenders,
+    ramp,
     newTake,
     takeBusy,
     versions,

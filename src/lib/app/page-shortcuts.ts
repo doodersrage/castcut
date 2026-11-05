@@ -38,6 +38,7 @@ const PAGES: Array<{ match: RegExp; page: string; keys: PageShortcut[] }> = [
     keys: [
       { keys: '← →', does: 'The take before / after' },
       { keys: 'K · X', does: 'Keep the take · reject it' },
+      { keys: '1–5', does: 'Rate the take on the card (again clears)' },
       { keys: 'N', does: 'Another take' },
       { keys: '[ ]', does: 'The scene before / after' },
     ],

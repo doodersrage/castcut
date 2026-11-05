@@ -3,6 +3,8 @@
  */
 
 import type { SubtitleStyle } from './subtitle-style';
+import type { FilmChapter, FilmRange } from './film-finish';
+import type { StoredLut } from './cut-lut';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { normalizeFilmTitleCard, type FilmTitleCard } from './polish';
 import fs from 'node:fs/promises';
@@ -43,10 +45,16 @@ export type FilmAssembleJob = {
   outputRelativePath?: string;
   /** The film's subtitles as an .srt (cut-subtitles.ts), when there were any. */
   subtitlesSrt?: string;
+  /** The chapters written into the file (file seconds), when there were any. */
+  chapters?: FilmChapter[];
+  /** Its stems .zip can be downloaded (?download=stems). */
+  hasStems?: boolean;
 };
 
 type InternalJob = FilmAssembleJob & {
   buffer?: Buffer;
+  /** The stems .zip (in memory only, like a fresh film's buffer). */
+  stemsZip?: Buffer;
 };
 
 // On globalThis like the clip jobs (clip-jobs-server.ts): a dev reload of this module, or a
@@ -77,7 +85,7 @@ export const FILM_OUTPUT_KEEP_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Finished films left in `film-output/` by jobs this process no longer remembers (a restart
- * forgets them, and pruneJobs only removes the ones it knows — H4). Only that folder's `.mp4`
+ * forgets them, and pruneJobs only removes the ones it knows — H4). Only that folder's `.mp4` / `.mov`
  * files past `keepMs`, never one a job still holds. Returns how many went.
  */
 export async function sweepStaleFilmOutputs(input: {
@@ -96,7 +104,7 @@ export async function sweepStaleFilmOutputs(input: {
   }
   let removed = 0;
   for (const name of names) {
-    if (!/^[A-Za-z0-9-]+\.mp4$/.test(name) || input.held?.has(name)) continue;
+    if (!/^[A-Za-z0-9-]+\.(mp4|mov)$/.test(name) || input.held?.has(name)) continue;
     const file = path.join(input.dir, name);
     try {
       const stat = await fs.stat(file);
@@ -147,8 +155,14 @@ function pruneJobs(): void {
 export function getFilmAssembleJob(id: string): FilmAssembleJob | null {
   const job = jobs.get(id.trim());
   if (!job) return null;
-  const { buffer: _buffer, ...publicJob } = job;
-  return publicJob;
+  const { buffer: _buffer, stemsZip, ...publicJob } = job;
+  return { ...publicJob, ...(stemsZip ? { hasStems: true } : {}) };
+}
+
+/** A finished job's stems .zip, while it is held (null: none, or gone). */
+export function readFilmAssembleStems(id: string): Buffer | null {
+  const job = jobs.get(id.trim());
+  return job?.status === 'completed' ? (job.stemsZip ?? null) : null;
 }
 
 export async function readFilmAssembleOutput(id: string): Promise<Buffer | null> {
@@ -197,6 +211,28 @@ export type StartFilmAssembleInput = {
   logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
+  /** Just this part of the film, in the Cut monitor's seconds (film-finish.ts). */
+  range?: FilmRange | null;
+  /** Chapter marks from Cut's markers, in the monitor's seconds: written into the MP4. */
+  chapters?: FilmChapter[];
+  /** Shots before the ones the monitor shows (a "Previously on" recap). */
+  leadShots?: number;
+  /** Also write the mix's stems — dialogue, music, ambience, effects — as WAVs in a .zip. */
+  stems?: boolean;
+  /** The subtitles as a track in the MP4 too (players turn it on and off). */
+  subtitleTrack?: boolean;
+  /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (film-finish.ts filmCodec). */
+  master?: boolean;
+  /** "REVIEW" and the film's running timecode burned into the picture, top left. */
+  reviewBurnIn?: boolean;
+  /** Match every shot's colour to this one (its index in the shots) instead of the film's middle. */
+  matchTo?: number | null;
+  /** End credits, one line each, rolled after the last shot (polish.ts). */
+  credits?: string[];
+  /** The film's LUT as the cut keeps it (cut-lut.ts). */
+  lut?: StoredLut | null;
+  /** Bring the film to this loudness (the export profile's target; film-finish.ts). */
+  loudness?: { lufs: number; peakDbtp: number } | null;
   requestOrigin?: string;
   userId?: string | null;
 };
@@ -258,6 +294,17 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         subtitleStyle: input.subtitleStyle,
         logo: input.logo,
         sound: input.sound,
+        range: input.range ?? null,
+        chapters: input.chapters ?? [],
+        leadShots: input.leadShots ?? 0,
+        loudness: input.loudness ?? null,
+        stems: input.stems === true,
+        subtitleTrack: input.subtitleTrack === true,
+        master: input.master === true,
+        reviewBurnIn: input.reviewBurnIn === true,
+        matchTo: input.matchTo ?? null,
+        credits: input.credits ?? [],
+        lut: input.lut ?? null,
         userId: input.userId,
         onProgress: (ratio, label) => {
           const current = jobs.get(id);
@@ -270,7 +317,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
       input.requestOrigin
     );
 
-    const relative = path.join('film-output', `${id}.mp4`);
+    const relative = path.join('film-output', `${id}.${result.extension}`);
     const written = path.join(/* turbopackIgnore: true */ resolvePromptDataDir(), relative);
     try {
       await fs.mkdir(/* turbopackIgnore: true */ outputDir(), { recursive: true });
@@ -304,8 +351,10 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
     current.height = result.height;
     current.outputRelativePath = relative;
     if (result.subtitlesSrt) current.subtitlesSrt = result.subtitlesSrt;
+    if (result.chapters?.length) current.chapters = result.chapters;
     if (outputProbe) current.outputProbe = outputProbe;
     current.buffer = result.buffer;
+    if (result.stemsZip) current.stemsZip = result.stemsZip;
     current.updatedAt = Date.now();
   } catch (error) {
     const current = jobs.get(id);

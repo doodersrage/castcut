@@ -11,7 +11,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { CutPreviewLoaded } from '@/hooks/useCutPreview';
 import { audioPeaks } from '@/lib/audio/peaks-client';
-import { CUT_TRACKS, type CutSoundOptions, type CutTrack } from '@/lib/video/cut-sound';
+import CutMusicLevelLine from '@/components/cut/CutMusicLevelLine';
+import {
+  CUT_TRACKS,
+  type CutLevelKey,
+  type CutSoundOptions,
+  type CutTrack,
+} from '@/lib/video/cut-sound';
 
 /** Where the lanes start under the shots, and each lane's height (px). */
 export const CUT_LANES_TOP = 118;
@@ -92,6 +98,10 @@ export default function CutSoundLane({
   bedLabel,
   sound,
   audible,
+  disabled,
+  onMusicKeys,
+  clipKeys,
+  onClipKeys,
 }: {
   loaded: CutPreviewLoaded | null;
   /** Pixels per second (the timeline's scale). */
@@ -103,6 +113,12 @@ export default function CutSoundLane({
   sound?: CutSoundOptions | null;
   /** Whether each track is heard (mute and solo); unset tracks are. */
   audible?: Partial<Record<CutTrack, boolean>>;
+  disabled?: boolean;
+  /** The music's level points changed (the line on the music lane); unset: not editable. */
+  onMusicKeys?: (keys: CutLevelKey[]) => void;
+  /** A clip's own level points (shot seconds), by its key; and their change. */
+  clipKeys?: (key: string) => CutLevelKey[] | undefined;
+  onClipKeys?: (key: string, keys: CutLevelKey[]) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // The waveform of the track it was read from (a changed track shows nothing until read).
@@ -196,6 +212,30 @@ export default function CutSoundLane({
               />
             </span>
           ))}
+          {onClipKeys
+            ? clipSound.map(item => {
+                const key = loaded?.keys[item.shot];
+                if (!key) return null;
+                return (
+                  <span
+                    key={`k${item.shot}`}
+                    className="absolute top-0 z-[1]"
+                    style={{ left: item.startSec * pps, width: Math.max(4, item.durSec * pps - 2) }}
+                  >
+                    <CutMusicLevelLine
+                      keys={clipKeys?.(key)}
+                      pps={pps}
+                      totalSec={item.durSec}
+                      height={CUT_LANE_HEIGHT}
+                      disabled={disabled}
+                      what={loaded?.shots[item.shot]?.title || 'Clip'}
+                      testId={`cut-clip-keys-${key}`}
+                      onChange={keys => onClipKeys(key, keys)}
+                    />
+                  </span>
+                );
+              })
+            : null}
           {lines.map(item => (
             <span
               key={`l${item.shot}`}
@@ -250,6 +290,16 @@ export default function CutSoundLane({
             {lines.length ? ` · ${lines.length} line${lines.length === 1 ? '' : 's'}` : ''}
             {narrated.length ? ` · ${narrated.length} narrated` : ''}
           </span>
+          {bedUrl && onMusicKeys ? (
+            <CutMusicLevelLine
+              keys={sound?.musicKeys}
+              pps={pps}
+              totalSec={total}
+              height={CUT_LANE_HEIGHT}
+              disabled={disabled}
+              onChange={onMusicKeys}
+            />
+          ) : null}
         </>
       )}
       {lane(

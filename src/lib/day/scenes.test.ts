@@ -21,6 +21,7 @@ import {
   removeSceneTake,
   restoreSceneTake,
   setSceneTakeReview,
+  setSceneTakeNotes,
   resolveSceneChecks,
   renderingTakeIdsOf,
   SCENE_TAKE_LIMIT,
@@ -320,6 +321,23 @@ describe('scenes: the open scene follows the engine', () => {
     const other = restoreSceneTake(keepSceneTake(removed, 'p3', 9), scene.takes[1], { keep: true });
     assert.equal(other?.scene.keptTakeId, 'p3');
     assert.equal(restoreSceneTake(removed, { nope: true }), null);
+  });
+
+  it('rates and notes a take; the same rating or an empty note clears it', () => {
+    const scene = {
+      ...kitchen(),
+      takes: [{ id: 'p1', imageUrl: '/1.png', at: 1 }],
+      updatedAt: 1,
+    };
+    const rated = setSceneTakeNotes(scene, 'p1', { stars: 4, note: '  best   face ' }, 5);
+    assert.equal(rated.takes[0]!.stars, 4);
+    assert.equal(rated.takes[0]!.note, 'best face');
+    assert.equal(rated.updatedAt, 5);
+    assert.equal(setSceneTakeNotes(rated, 'p1', { stars: 4 }, 6), rated, 'nothing changed');
+    const cleared = setSceneTakeNotes(rated, 'p1', { stars: null, note: '' }, 7);
+    assert.equal(cleared.takes[0]!.stars, undefined);
+    assert.equal(cleared.takes[0]!.note, undefined);
+    assert.equal(setSceneTakeNotes(scene, 'nope', { stars: 3 }), scene);
   });
 
   // M7 T3: a verdict on a take, set without rendering it again.

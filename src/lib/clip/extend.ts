@@ -73,14 +73,25 @@ export function buildExtendBeatsMessages(input: {
   shows?: string;
   /** People in view (shotInventory): two write beats for both (M11 T21). */
   people?: number;
+  /**
+   * The whole clip, start to end, as the player wrote it (the Animate sheet's scene field): split
+   * in order over the beats, beat 1 opening the clip. As the "shot so far" it was continued from
+   * its last sentence, and every part came out as that sentence (2026-11-05).
+   */
+  whole?: string;
 }) {
+  const whole = input.whole?.trim();
   const two = (input.people ?? 1) >= 2;
   const held = (input.held ?? []).filter(item => item.trim()).slice(0, 3);
   const direction = input.direction?.trim();
   const heat = input.heat ?? 'clean';
   const system = [
-    `Continue a short video shot. Write ${input.count} beats, numbered 1-${input.count}, one per line.`,
-    'Each beat is what happens in the next 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.',
+    whole
+      ? `Plan a short video shot from its first second. Write ${input.count} beats, numbered 1-${input.count}, one per line.`
+      : `Continue a short video shot. Write ${input.count} beats, numbered 1-${input.count}, one per line.`,
+    whole
+      ? 'Each beat is what happens in its part of the clip, about 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.'
+      : 'Each beat is what happens in the next 4 seconds, carrying on from the one before it: one simple, physical action in present tense, 8 to 20 words.',
     'Same people, same clothes, same place; the camera does not move or cut. No new people, no dialogue, no time skips, nobody leaves the frame or the room.',
     // M11: "picking something up" brought a glass and a phone, and the room grew a TV.
     'Only what is already in the shot: no new objects — no phone, drink, screen or prop that the shot so far does not name.',
@@ -90,7 +101,7 @@ export function buildExtendBeatsMessages(input: {
     // Live: "the torch beam centred on hanging string lamps above" hung a chandelier.
     'Whatever they look at, point at or light up is already in the picture — never name a new thing to look at.',
     // Live (v3.4.6): a sip from a glass left the same glass standing on the table.
-    direction
+    direction || whole
       ? ''
       : 'Nobody picks anything up, puts anything down or drinks from anything that is not already in their hand.',
     // Live (2026-10-31): a beat put sunglasses on her that the first frame never showed, and a
@@ -121,6 +132,9 @@ export function buildExtendBeatsMessages(input: {
     direction
       ? 'The player said where it should go: follow that, spread over the beats in small steps so the last beat gets there.'
       : '',
+    whole
+      ? `The player wrote the whole clip, start to end. Split all of it over the ${input.count} beats in the order it is written: beat 1 is how the clip opens, the last beat is how it ends. Every part of what they wrote lands in a beat — nothing skipped, nothing repeated; where they wrote less than ${input.count} actions, fill the gaps with small steps between them.`
+      : '',
     'Reply with the numbered beats only.',
   ]
     .filter(Boolean)
@@ -133,6 +147,7 @@ export function buildExtendBeatsMessages(input: {
       : '',
     input.setting?.trim() ? `Where: ${input.setting.trim().slice(0, 200)}` : '',
     direction ? `Where it should go: ${direction.slice(0, 300)}` : '',
+    whole ? `The whole clip, start to end: ${whole.slice(0, 600)}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -788,6 +803,8 @@ export async function requestClipBeats(
     setting?: string;
     heat?: SpokenLineHeat;
     direction?: string;
+    /** The whole clip, start to end: split in order over the beats (see buildExtendBeatsMessages). */
+    whole?: string;
     count: number;
   },
   llmBody?: Record<string, unknown>

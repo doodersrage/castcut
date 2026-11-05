@@ -82,7 +82,7 @@ describe('per-shot motion and sound', () => {
     assert.doesNotMatch(chains.find(chain => chain.startsWith('[0:v]'))!, /zoompan/);
     // Shot 1 (odd: it would pull out) pushes in — the even curve.
     assert.match(chains.find(chain => chain.startsWith('[1:v]'))!, /zoompan=z='1\+/);
-    assert.match(graph.filter, /\[2:a\][^;]*volume=0\.5,adelay/);
+    assert.match(graph.filter, /\[2:a\][^;]*volume=0\.5,afade=t=in[^;]*,adelay/);
   });
 
   it('the shot list passes motion (stills) and level (clips) to the shots', () => {

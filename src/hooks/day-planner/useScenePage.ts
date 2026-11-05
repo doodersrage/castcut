@@ -29,6 +29,7 @@ import {
   sceneSlotAt,
   scenesForCast,
   setSceneTakeReview,
+  setSceneTakeNotes,
   scenesWithWorking,
   swapSceneForCast,
   takeAsStill,
@@ -417,6 +418,16 @@ export function useScenePage(vm: DayEngineView) {
     [active, scenes, write]
   );
 
+  /** Rate a take or note it ("hands wrong", "best face"). */
+  const noteTake = useCallback(
+    (takeId: string, patch: { stars?: number | null; note?: string }) => {
+      if (!active) return;
+      const next = setSceneTakeNotes(active, takeId, patch);
+      if (next !== active) write({ scenes: upsertScene(scenes, next) });
+    },
+    [active, scenes, write]
+  );
+
   /** What deleting this scene, or letting its kept take go, does to Cut (R7). */
   const cutNoteFor = useCallback(
     (scene: Pick<SavedScene, 'id' | 'keptTakeId'> | null | undefined) =>
@@ -550,6 +561,7 @@ export function useScenePage(vm: DayEngineView) {
     showTake,
     keepTake,
     reviewTake,
+    noteTake,
     removeTake,
     restoreTake,
     cutNoteFor,

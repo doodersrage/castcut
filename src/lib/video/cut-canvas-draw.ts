@@ -4,7 +4,7 @@
  * the caption box, the title card. Client-safe, no imports beyond the title-card type.
  */
 
-import { TITLE_CARD_SEC, type FilmTitleCard } from './polish';
+import { creditsRollTop, creditsTypeSize, TITLE_CARD_SEC, type FilmTitleCard } from './polish';
 
 /**
  * Letterbox a shot inside the canvas (black bars), the way the server encode fits a landscape
@@ -121,6 +121,31 @@ export function drawTitleCard(
     context.font = `${subtitleSize}px sans-serif`;
     context.fillText(card.subtitle, canvasWidth / 2, canvasHeight / 2 + subtitleSize * 1.4);
   }
+  context.restore();
+}
+
+/** The end credits rolling up over black (the encode rolls the same lines the same way). */
+export function drawCredits(
+  context: CanvasRenderingContext2D,
+  lines: readonly string[],
+  elapsed: number,
+  durSec: number,
+  canvasWidth: number,
+  canvasHeight: number
+): void {
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, canvasWidth, canvasHeight);
+  const { size, gap } = creditsTypeSize(canvasWidth, canvasHeight);
+  const textHeight = lines.length * (size + gap) - gap;
+  const top = creditsRollTop(elapsed, durSec, canvasHeight, textHeight);
+  context.save();
+  context.fillStyle = '#fff';
+  context.textAlign = 'center';
+  context.textBaseline = 'top';
+  context.font = `${size}px sans-serif`;
+  lines.forEach((line, index) => {
+    if (line) context.fillText(line, canvasWidth / 2, top + index * (size + gap));
+  });
   context.restore();
 }
 

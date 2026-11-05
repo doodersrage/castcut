@@ -201,7 +201,10 @@ export default function DaySlotEditor({
             }}
           />
         ) : null}
-        <div className="grid gap-3" data-testid="day-active-plan">
+        {/* One column no wider than the editor: the Beat / Narration boxes size to their text
+            ([field-sizing:content]), and an implicit grid column grew to a long placeholder —
+            every field ran under the Takes column beside it (2026-11-05). */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3" data-testid="day-active-plan">
           <div className="space-y-1.5">
             {/* The presets at the top, beside the field they fill. */}
             <div
@@ -238,7 +241,7 @@ export default function DaySlotEditor({
               rows={2}
               data-testid="day-slot-location"
               value={slot.location ?? ''}
-              className="min-h-[3.5rem] max-h-60 [field-sizing:content]"
+              className="min-h-[3.5rem] max-h-60 max-w-full [field-sizing:content]"
               placeholder="e.g. sunlit café terrace, rainy commute, rooftop at dusk"
               onChange={event => updateSlot(slot.id, { location: event.target.value })}
             />
@@ -292,7 +295,7 @@ export default function DaySlotEditor({
               rows={2}
               data-testid="day-slot-beat"
               value={slot.sceneHints ?? ''}
-              className="min-h-[3.5rem] max-h-60 [field-sizing:content]"
+              className="min-h-[3.5rem] max-h-60 max-w-full [field-sizing:content]"
               placeholder="What happens in this part of the day?"
               onChange={event => updateSlot(slot.id, typedDayBeatPatch(slot, event.target.value))}
             />

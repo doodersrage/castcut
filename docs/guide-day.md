@@ -190,6 +190,17 @@ nothing to offer yet is left out. See [Finishing tools](finishing-tools.md).
 | **Qwen Rapid AIO** | ~20 s | Fastest; keeps the exact outfit with two people |
 | **Qwen-Image 2.1** | ~20 s | Closest likeness |
 
+## Sheets
+
+**Sheets** (beside the Cast chip at the top) opens the day as a page to print or save as PDF:
+
+- **Storyboard** — every slot's still, numbered, with its beat, line, narration, camera and story
+  state.
+- **Call sheet** — one row a slot: when, where, who (with anyone added), what happens, the line,
+  what she wears, the camera, and whether it is shot.
+
+Each opens in a new tab with a **Print / save as PDF** button; nothing is uploaded.
+
 ## When it's done
 
 **Open Cut →** — the film is cut on its own page, see [Cut a film](guide-film.md). **Same look, new Day** starts tomorrow.

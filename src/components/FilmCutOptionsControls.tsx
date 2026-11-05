@@ -1,5 +1,7 @@
 'use client';
 
+import CutLutControl from '@/components/cut/CutLutControl';
+import type { StoredLut } from '@/lib/video/cut-lut';
 import type { CutMarker } from '@/lib/film/cut-markers';
 import {
   normalizeSubtitleStyle,
@@ -103,6 +105,20 @@ export type FilmCutOptionsValue = {
   logoCorner?: 'tl' | 'tr' | 'bl' | 'br';
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions;
+  /** Bring the film to its profile's loudness target in the render (unset = on). */
+  normalizeLoudness?: boolean;
+  /** Also download the mix's stems (dialogue, music, ambience, effects WAVs) with the film. */
+  stems?: boolean;
+  /** The subtitles as a track in the MP4 too — players turn it on and off. */
+  subtitleTrack?: boolean;
+  /** End credits rolling after the last shot, one line each (polish.ts normalizeFilmCredits). */
+  credits?: string;
+  /** "REVIEW" and the running timecode burned into the picture (a review copy). */
+  reviewBurnIn?: boolean;
+  /** Match shots: every shot's colour toward this shot's (its key) instead of the film's middle. */
+  matchToKey?: string;
+  /** A colour LUT for the whole film, from a .cube (cut-lut.ts), after the look. */
+  lut?: StoredLut;
   /** The export profile last applied (film/export-profiles.ts, M4 F6). */
   exportProfile?: 'review' | 'master' | 'vertical' | 'square';
 };
@@ -307,7 +323,8 @@ export default function FilmCutOptionsControls({
           value.matchShots !== false && 'matched',
           value.stillMotion !== false && 'slow zoom',
           value.smoothMotion && 'smooth',
-          value.sharpen && 'sharpened'
+          value.sharpen && 'sharpened',
+          value.lut && 'LUT'
         )}
         persistKey={groupKey('picture')}
         testId={`${testIdPrefix}-options-picture`}
@@ -328,6 +345,12 @@ export default function FilmCutOptionsControls({
             ))}
           </select>
         </OptionRow>
+        <CutLutControl
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          testIdPrefix={testIdPrefix}
+        />
         {look !== 'none' ? (
           <OptionRow label="Strength">
             <OptionSlider
@@ -579,6 +602,24 @@ export default function FilmCutOptionsControls({
           onChange={next => onChange({ ...value, subtitles: next })}
           testId={`${testIdPrefix}-subtitles`}
         />
+        <OptionSwitch
+          label="REVIEW timecode"
+          note="Burned in, top left — a review copy"
+          hint="REVIEW and the running timecode over the picture, so reviewers can quote the exact frame — and a copy that gets out is marked. The Review copy profile turns it on"
+          checked={value.reviewBurnIn === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, reviewBurnIn: next || undefined })}
+          testId={`${testIdPrefix}-review-burn-in`}
+        />
+        <OptionSwitch
+          label="Subtitle track"
+          note="In the MP4, for players to turn on"
+          hint="The subtitles also go into the film as a track — a player's CC button shows or hides them. On its own (Subtitles off) the picture stays clean"
+          checked={value.subtitleTrack === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, subtitleTrack: next || undefined })}
+          testId={`${testIdPrefix}-subtitle-track`}
+        />
         {value.subtitles !== false ? (
           <OptionRow label="Subtitle look" htmlFor={`${testIdPrefix}-subtitle-style`}>
             <select
@@ -612,6 +653,21 @@ export default function FilmCutOptionsControls({
           onChange={next => onChange({ ...value, titles: next })}
           testId={`${testIdPrefix}-titles`}
         />
+        <label className="grid gap-1">
+          <span className="type-caption text-[var(--text-muted)]">
+            End credits — one line each, rolled after the last shot (empty: none)
+          </span>
+          <textarea
+            rows={3}
+            maxLength={3000}
+            disabled={disabled}
+            placeholder={'Starring\nRae\n\nMusic\nYour track\n\nMade with Castcut'}
+            className={`${optionSelectClass} !h-auto min-h-[4.5rem] w-full py-1.5`}
+            value={value.credits ?? ''}
+            onChange={event => onChange({ ...value, credits: event.target.value || undefined })}
+            data-testid={`${testIdPrefix}-credits`}
+          />
+        </label>
         <CutLogoControl
           value={value}
           onChange={onChange}

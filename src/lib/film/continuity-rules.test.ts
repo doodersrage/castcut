@@ -91,4 +91,18 @@ describe('cross-shot continuity rules (M2 C4)', () => {
       ['scenes:8a:state-dropped', 'the red umbrella (from “scenes:6a”) — not in this shot, at the same story time'],
     ]);
   });
+
+  it('the 180° rule: the same two, same place and time, the lead swaps sides', () => {
+    const base = { castName: 'Rae', others: ['Tom'], place: 'kitchen', time: 'morning' as const, props: [] };
+    const found = crossShotFindings([
+      shot('a', { ...base, leadSide: 'left' }),
+      shot('b', { ...base, leadSide: 'right' }),
+    ]);
+    assert.deepEqual(found.map(f => f.finding.rule), ['crossed-line']);
+    assert.match(found[0]!.finding.evidence, /on the left in “.*”, on the right here/);
+    // Another place, someone else, or a side not set: nothing.
+    assert.equal(crossShotFindings([shot('a', { ...base, leadSide: 'left' }), shot('b', { ...base, place: 'park', leadSide: 'right' })]).length, 0);
+    assert.equal(crossShotFindings([shot('a', { ...base, leadSide: 'left' }), shot('b', { ...base, others: ['Sam'], leadSide: 'right' })]).length, 0);
+    assert.equal(crossShotFindings([shot('a', { ...base, leadSide: 'left' }), shot('b', { ...base })]).length, 0);
+  });
 });

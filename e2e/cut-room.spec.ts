@@ -1398,7 +1398,7 @@ test('notes: review comments on this cut’s film, a jump to the moment, ticked 
   await expect(page.getByTestId('cut-tab-notes')).toContainText('Notes · 1');
   expect(patched[0]).toMatchObject({ commentId: 'c1', resolved: true });
   // The jump put the playhead at the comment's moment (3 s).
-  await expect(page.getByTestId('cut-preview-time')).toContainText(/^0:03/);
+  await expect(page.getByTestId('cut-preview-time')).toContainText(/^00:00:03/);
 });
 
 // 2026-11-05: your own markers — M at the playhead, a note, on the ruler, kept after a reload.
@@ -1461,11 +1461,11 @@ test('editor round: keys, safe areas, loop, speed, several shots picked, skimmin
   // Home / End and Shift+→ (a second).
   await page.locator('body').click({ position: { x: 5, y: 5 } });
   await page.keyboard.press('End');
-  await expect(time).not.toHaveText(/^0:00 \//);
+  await expect(time).not.toHaveText(/^00:00:00:00 \//);
   await page.keyboard.press('Home');
-  await expect(time).toHaveText(/^0:00 \//);
+  await expect(time).toHaveText(/^00:00:00:00 \//);
   await page.keyboard.press('Shift+ArrowRight');
-  await expect(time).toHaveText(/^0:01 \//);
+  await expect(time).toHaveText(/^00:00:01:00 \//);
   // + zooms the timeline in (the block gets wider), \ fits it again.
   const before = (await morning.boundingBox())!.width;
   await page.keyboard.press('+');

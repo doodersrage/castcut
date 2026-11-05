@@ -60,7 +60,7 @@ export default function NarrationField({
         maxLength={140}
         data-testid={testId}
         value={draft}
-        className="min-h-[3.5rem] [field-sizing:content]"
+        className="min-h-[3.5rem] max-w-full [field-sizing:content]"
         placeholder="Voice-over for the film, e.g. Some mornings the city feels like it was made for me."
         onChange={event => setDraft(event.target.value)}
         onBlur={() => onSave(draft.replace(/\s+/g, ' ').trim())}

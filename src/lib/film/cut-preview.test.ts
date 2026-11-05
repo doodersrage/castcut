@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { previewFrameAt, previewTimeline } from './cut-preview';
+import {
+  CREDITS_SHOT,
+  formatCutTimecode,
+  previewFrameAt,
+  previewTimeline,
+} from './cut-preview';
+import { creditsDurationSec, creditsRollTop, normalizeFilmCredits } from '../video/polish';
 
 const shots = [
   { title: 'Morning', url: '/m.png', kind: 'still' as const, holdSec: 3 },
@@ -70,5 +76,41 @@ describe('preview timeline with clip speed', () => {
     });
     assert.equal(timeline.items[0]?.durSec, 3);
     assert.equal(timeline.items[0]?.speed, 2);
+  });
+});
+
+describe('formatCutTimecode', () => {
+  it('reads hours:minutes:seconds:frames at 30 fps', () => {
+    assert.equal(formatCutTimecode(0), '00:00:00:00');
+    assert.equal(formatCutTimecode(1), '00:00:01:00');
+    assert.equal(formatCutTimecode(83.4), '00:01:23:12');
+    assert.equal(formatCutTimecode(3725.5), '01:02:05:15');
+    assert.equal(formatCutTimecode(1 / 30), '00:00:00:01');
+    assert.equal(formatCutTimecode(-2), '00:00:00:00');
+  });
+});
+
+describe('end credits', () => {
+  it('reads the lines, times the roll and puts it last on the timeline', () => {
+    const lines = normalizeFilmCredits('\n Starring \nRae\n\nMade with Castcut\n\n');
+    assert.deepEqual(lines, ['Starring', 'Rae', '', 'Made with Castcut']);
+    assert.equal(creditsDurationSec([]), 0);
+    assert.equal(creditsDurationSec(lines), 5.8);
+    assert.equal(creditsDurationSec(Array(60).fill('x')), 30);
+    assert.equal(creditsRollTop(0, 6, 720, 200), 720);
+    assert.equal(creditsRollTop(6, 6, 720, 200), -200);
+    const timeline = previewTimeline({
+      shots,
+      clipSecs: [null, 4, null],
+      crossfadeSec: 0,
+      titleCard: false,
+      captions: false,
+      creditsSec: 6,
+    });
+    const last = timeline.items[timeline.items.length - 1]!;
+    assert.equal(last.shot, CREDITS_SHOT);
+    assert.equal(last.kind, 'title');
+    assert.equal(last.durSec, 6);
+    assert.equal(timeline.totalSec, last.startSec + 6);
   });
 });

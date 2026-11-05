@@ -8,6 +8,8 @@
  * - `look-mismatch`: a shot rendered in another look than the one its slot or scene uses now
  *   (the Cast's active look switched after it was made).
  * - `plate-drift`: the look a shot uses has a plate the likeness guard flagged.
+ * - `crossed-line`: the same two people at the same place and time, the lead on the left in one
+ *   shot and the right in the next — the 180° rule broken (their eyelines cross).
  * - `state-dropped` (M8 T6): an earlier shot of the same Cast at the same story time — the same
  *   story day and time of day — carries something over (her red umbrella, a bandaged hand) that
  *   this shot doesn't have. Story time, not the edit's order, decides "the same time"; the edit's
@@ -125,6 +127,27 @@ export function crossShotFindings(
           'Wear the same here, or pick the change in the slot so it is meant.'
         );
       }
+    }
+    // The 180° rule: the same two people, the same place and time, and the lead on the other side
+    // of the frame — the eyelines cross, and they read as having swapped places.
+    if (
+      previous &&
+      state.leadSide &&
+      previous.state.leadSide &&
+      state.leadSide !== previous.state.leadSide &&
+      state.others.length &&
+      previous.state.others.length &&
+      state.others.some(name => previous.state.others.some(other => same(other, name))) &&
+      same(previous.state.castName, state.castName) &&
+      (!state.place || !previous.state.place || same(previous.state.place, state.place)) &&
+      (!state.time || !previous.state.time || previous.state.time === state.time)
+    ) {
+      add(
+        shot,
+        'crossed-line',
+        `She is on the ${previous.state.leadSide} in “${previous.title}”, on the ${state.leadSide} here — the eyelines cross (180° rule)`,
+        `Put her on the ${previous.state.leadSide} here too (the slot's “stands on”), or cut in a shot that moves the camera across.`
+      );
     }
     if (shot.renderedLookId && state.lookId && shot.renderedLookId !== state.lookId) {
       add(

@@ -574,6 +574,7 @@ export async function writeClipBeats(input: {
   count: number;
   heat: SpokenLineHeat;
   direction?: string;
+  whole?: string;
   llm?: LlmRequestOptions;
 }): Promise<string[]> {
   return writeBeats(input);
@@ -585,6 +586,8 @@ async function writeBeats(input: {
   count: number;
   heat: SpokenLineHeat;
   direction?: string;
+  /** The whole clip, start to end (the Animate sheet's scene). */
+  whole?: string;
   /** A talking clip: who speaks (the beats keep them in place). */
   talking?: { speaker: 'She' | 'He' };
   /** What the first frame shows them holding. */

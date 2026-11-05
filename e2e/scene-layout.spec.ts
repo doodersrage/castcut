@@ -110,3 +110,43 @@ test('Scene keys: arrows pick a take, K keeps it, X rejects, ] opens the next sc
   await page.keyboard.press(']');
   await expect(page.getByTestId('scene-name')).toHaveValue('Garden');
 });
+
+test('Scene: the shot form stays in its column (no field runs under the takes)', async ({
+  page,
+}) => {
+  await seed(page);
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(3, { timeout: 60_000 });
+  // The Beat / Narration boxes size to their text: a long placeholder widened the whole column.
+  const shot = (await page.getByTestId('scene-shot').boundingBox())!;
+  const overflow = await page.evaluate(`(() => {
+    const shot = document.querySelector('[data-testid="scene-shot"]');
+    const right = shot.getBoundingClientRect().right;
+    return [...shot.querySelectorAll('input, textarea, select, [data-testid="day-slot-group"]')]
+      .map(el => el.getBoundingClientRect().right - right)
+      .filter(over => over > 1).length;
+  })()`);
+  expect(overflow).toBe(0);
+  const results = (await page.getByTestId('scene-results').boundingBox())!;
+  expect(shot.x + shot.width).toBeLessThanOrEqual(results.x + 1);
+});
+
+test('Scene: rate a take with 1–5 and note it', async ({ page }) => {
+  await seed(page);
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-take')).toHaveCount(3, { timeout: 60_000 });
+  // 4 rates the take on the card (the first); the same key again clears it.
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('4');
+  await expect(page.getByTestId('scene-take-star-0-4')).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('4');
+  await expect(page.getByTestId('scene-take-star-0-4')).toHaveAttribute('aria-checked', 'false');
+  // A click rates another; its note is kept.
+  await page.getByTestId('scene-take-star-1-2').click();
+  await expect(page.getByTestId('scene-take-star-1-2')).toHaveAttribute('aria-checked', 'true');
+  await page.getByTestId('scene-take-note-1').fill('hands wrong');
+  await page.getByTestId('scene-take-note-1').press('Enter');
+  await expect(page.getByTestId('scene-take-note-1')).toHaveValue('hands wrong');
+});

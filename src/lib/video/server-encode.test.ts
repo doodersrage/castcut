@@ -113,7 +113,7 @@ describe('music shaping, ambience and J / L cuts in the graph', () => {
     assert.match(graph.filter, /\[2:a\][^;]*atrim=2:8,[^;]*afade=t=in:st=0:d=2/);
     assert.match(graph.filter, /\[3:a\][^;]*volume=0\.35/);
     assert.equal(graph.audioLabel, 'amix');
-    assert.doesNotMatch(graph.filter, /afade=t=out/);
+    assert.doesNotMatch(graph.filter, /afade=t=out:st=[\d.]+:d=(?!0\.008)/);
   });
 });
 

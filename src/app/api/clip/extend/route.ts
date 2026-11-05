@@ -52,6 +52,7 @@ export async function POST(request: Request) {
             ? (body.heat as 'flirty' | 'sensual' | 'explicit')
             : 'clean',
           direction: text(body.direction, 300) || undefined,
+          whole: text(body.whole, 600) || undefined,
           llm: parseLlmRequestOptions(body as Parameters<typeof parseLlmRequestOptions>[0]),
         }),
       });

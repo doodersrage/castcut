@@ -5,6 +5,8 @@
  */
 
 import type { SubtitleStyle } from './subtitle-style';
+import type { FilmChapter, FilmRange } from './film-finish';
+import type { StoredLut } from './cut-lut';
 import type { FilmOutputProbe } from './output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { downloadFilmBlob } from './blob-download';
@@ -85,6 +87,28 @@ export type AssembleFilmOptions = {
   logo?: { url: string; corner?: 'tl' | 'tr' | 'bl' | 'br' } | null;
   /** Music start / fades and the ambience track (cut-sound.ts). */
   sound?: CutSoundOptions | null;
+  /** Just this part of the film, in the Cut monitor's seconds (film-finish.ts). */
+  range?: FilmRange | null;
+  /** Chapter marks from Cut's markers, in the monitor's seconds: written into the MP4. */
+  chapters?: FilmChapter[];
+  /** Shots before the ones the monitor shows (a "Previously on" recap). */
+  leadShots?: number;
+  /** Bring the film to this loudness (the export profile's target; film-finish.ts). */
+  loudness?: { lufs: number; peakDbtp: number } | null;
+  /** Also write the mix's stems — dialogue, music, ambience, effects — as WAVs in a .zip. */
+  stems?: boolean;
+  /** The subtitles as a track in the MP4 too (players turn it on and off). */
+  subtitleTrack?: boolean;
+  /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (server encode only). */
+  master?: boolean;
+  /** "REVIEW" and the film's running timecode burned into the picture, top left. */
+  reviewBurnIn?: boolean;
+  /** Match every shot's colour to this one (its index in the shots) instead of the film's middle. */
+  matchTo?: number | null;
+  /** End credits, one line each, rolled after the last shot (polish.ts). */
+  credits?: string[];
+  /** The film's LUT as the cut keeps it (cut-lut.ts). */
+  lut?: StoredLut | null;
 };
 
 export type AssembledFilmResult = {
@@ -98,6 +122,10 @@ export type AssembledFilmResult = {
   outputProbe?: FilmOutputProbe;
   /** The server encode's job: the film is kept from the server's copy (M6 D16). */
   serverJobId?: string;
+  /** The chapters written into the file (file seconds). */
+  chapters?: FilmChapter[];
+  /** The stems .zip (dialogue, music, ambience, effects), when asked for. */
+  stemsZip?: Blob;
 };
 
 function even(value: number): number {
@@ -399,6 +427,17 @@ async function assembleFilmBlobOnServer(
         subtitleStyle: options?.subtitleStyle,
         logo: options?.logo ?? undefined,
         sound: options?.sound ?? undefined,
+        ...(options?.range ? { range: options.range } : {}),
+        ...(options?.chapters?.length ? { chapters: options.chapters } : {}),
+        ...(options?.leadShots ? { leadShots: options.leadShots } : {}),
+        ...(options?.loudness ? { loudness: options.loudness } : {}),
+        ...(options?.stems ? { stems: true } : {}),
+        ...(options?.subtitleTrack ? { subtitleTrack: true } : {}),
+        ...(options?.master ? { master: true } : {}),
+        ...(options?.reviewBurnIn ? { reviewBurnIn: true } : {}),
+        ...(options?.matchTo != null ? { matchTo: options.matchTo } : {}),
+        ...(options?.credits?.length ? { credits: options.credits } : {}),
+        ...(options?.lut ? { lut: options.lut } : {}),
       }),
     });
     if (!startRes.ok) {
@@ -429,6 +468,9 @@ async function assembleFilmBlobOnServer(
           error?: string;
           subtitlesSrt?: string;
           outputProbe?: FilmOutputProbe;
+          chapters?: FilmChapter[];
+          hasStems?: boolean;
+          extension?: string;
         };
       };
       const job = statusJson.job;
@@ -454,15 +496,25 @@ async function assembleFilmBlobOnServer(
         if (blob.size === 0) {
           throw new Error('Server film encode produced an empty file.');
         }
+        // The stems .zip, when asked for (a second download from the same job).
+        const stemsZip = job.hasStems
+          ? await fetch(`/api/film/assemble?jobId=${encodeURIComponent(jobId)}&download=stems`, {
+              credentials: 'same-origin',
+            })
+              .then(res => (res.ok ? res.blob() : null))
+              .catch(() => null)
+          : null;
         options?.onProgress?.({ ratio: 1, label: 'Server MP4 ready' });
         return {
           blob,
           mimeType: blob.type || 'video/mp4',
-          extension: 'mp4',
+          extension: job.extension === 'mov' ? 'mov' : 'mp4',
           encodePath: 'server',
           serverJobId: jobId,
           ...(job.subtitlesSrt ? { subtitlesSrt: job.subtitlesSrt } : {}),
           ...(job.outputProbe ? { outputProbe: job.outputProbe } : {}),
+          ...(job.chapters?.length ? { chapters: job.chapters } : {}),
+          ...(stemsZip ? { stemsZip } : {}),
         };
       }
     }

@@ -4,7 +4,13 @@
  * Shown beside the review comments (review-notes.ts) in the Notes tab.
  */
 
-export type CutMarker = { id: string; timeSec: number; note: string };
+export type CutMarker = {
+  id: string;
+  timeSec: number;
+  note: string;
+  /** A chapter: written into the film as a chapter mark, its note the title (film-finish.ts). */
+  chapter?: boolean;
+};
 
 export const CUT_MARKERS_MAX = 100;
 const NOTE_MAX = 200;
@@ -21,6 +27,7 @@ export function normalizeCutMarkers(value: unknown): CutMarker[] {
       id: item.id.trim().slice(0, 40),
       timeSec: Math.round(item.timeSec * 100) / 100,
       note: typeof item.note === 'string' ? item.note.slice(0, NOTE_MAX) : '',
+      ...(item.chapter === true ? { chapter: true } : {}),
     });
   }
   return out.sort((a, b) => a.timeSec - b.timeSec).slice(0, CUT_MARKERS_MAX);
@@ -37,6 +44,25 @@ export function editCutMarker(markers: unknown, id: string, note: string): CutMa
   return normalizeCutMarkers(
     normalizeCutMarkers(markers).map(marker => (marker.id === id ? { ...marker, note } : marker))
   );
+}
+
+/** Make a marker a chapter, or not. */
+export function setCutMarkerChapter(markers: unknown, id: string, chapter: boolean): CutMarker[] {
+  return normalizeCutMarkers(
+    normalizeCutMarkers(markers).map(marker =>
+      marker.id === id ? { ...marker, chapter: chapter || undefined } : marker
+    )
+  );
+}
+
+/** The chapter markers as the film's chapters (monitor seconds): a marker without a note is "Chapter n". */
+export function cutMarkerChapters(markers: unknown): Array<{ atSec: number; title: string }> {
+  return normalizeCutMarkers(markers)
+    .filter(marker => marker.chapter)
+    .map((marker, index) => ({
+      atSec: marker.timeSec,
+      title: marker.note.trim() || `Chapter ${index + 1}`,
+    }));
 }
 
 export function removeCutMarker(markers: unknown, id: string): CutMarker[] {

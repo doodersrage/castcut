@@ -169,17 +169,20 @@ export function CutLogoControl({
   );
 }
 
-/** A shot's lower third and picture-in-picture. */
+/** A shot's lower third, and a picture in a corner or full frame over part of it (a cutaway). */
 export function CutShotOverlayEditor({
   edit,
   disabled,
   testId,
   onPatch,
+  onPickClip,
 }: {
   edit: CutShotEdit | undefined;
   disabled?: boolean;
   testId: string;
   onPatch: (patch: Partial<CutShotEdit>) => void;
+  /** A moving cutaway: pick a clip (Cut's Gallery picker). */
+  onPickClip?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   return (
@@ -213,30 +216,107 @@ export function CutShotOverlayEditor({
       </ToolActionRow>
       <ToolActionRow>
         <PictureButton
-          label={edit?.pipUrl ? 'Change corner picture' : 'Picture in a corner'}
+          label={edit?.pipUrl ? 'Change the picture' : 'Picture in a corner or a cutaway'}
           disabled={disabled}
           testId={`${testId}-pip`}
           onError={setError}
           onPicked={url => {
             setError(null);
-            onPatch({ pipUrl: url, pipCorner: edit?.pipCorner ?? 'tr' });
+            // A picture replaces a clip cutaway (and keeps its window).
+            onPatch({ pipUrl: url, pipCorner: edit?.pipCorner ?? 'tr', pipKind: undefined });
           }}
         />
+        {onPickClip ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            title="A moving cutaway: a clip from the Gallery, full frame over part of this shot while its sound carries on"
+            data-testid={`${testId}-pip-clip`}
+            onClick={onPickClip}
+          >
+            {edit?.pipKind === 'clip' ? 'Change the clip' : 'Clip from Gallery…'}
+          </Button>
+        ) : null}
         {edit?.pipUrl ? (
           <>
-            <CornerSelect
-              label="Corner"
-              value={edit.pipCorner ?? 'tr'}
+            <select
+              aria-label="Where the picture shows"
+              title="In a corner for the whole shot, or full frame over part of it (a cutaway — the shot's sound goes on)"
               disabled={disabled}
-              onChange={corner => onPatch({ pipCorner: corner })}
-              testId={`${testId}-pip-corner`}
-            />
+              className={`${field} type-caption`}
+              value={edit.pipFull || edit.pipKind === 'clip' ? 'full' : 'corner'}
+              data-testid={`${testId}-pip-mode`}
+              onChange={event =>
+                onPatch(
+                  event.target.value === 'full'
+                    ? {
+                        pipFull: true,
+                        pipFromSec: edit.pipFromSec ?? 1,
+                        pipToSec: edit.pipToSec ?? 3,
+                      }
+                    : { pipFull: undefined, pipFromSec: undefined, pipToSec: undefined }
+                )
+              }
+            >
+              <option value="corner" disabled={edit.pipKind === 'clip'}>
+                In a corner{edit.pipKind === 'clip' ? ' (pictures only)' : ''}
+              </option>
+              <option value="full">Full frame (a cutaway)</option>
+            </select>
+            {edit.pipFull ? (
+              (['pipFromSec', 'pipToSec'] as const).map(fieldName => (
+                <label
+                  key={fieldName}
+                  className="type-caption flex items-center gap-1 text-[var(--text-muted)]"
+                >
+                  {fieldName === 'pipFromSec' ? 'from' : 'to'}
+                  <input
+                    type="number"
+                    min={0}
+                    max={600}
+                    step={0.1}
+                    disabled={disabled}
+                    aria-label={
+                      fieldName === 'pipFromSec'
+                        ? 'Cutaway starts (seconds into the shot)'
+                        : 'Cutaway ends (seconds into the shot)'
+                    }
+                    className={`${field} type-caption !w-16`}
+                    value={edit[fieldName] ?? (fieldName === 'pipFromSec' ? 1 : 3)}
+                    data-testid={`${testId}-pip-${fieldName === 'pipFromSec' ? 'from' : 'to'}`}
+                    onChange={event =>
+                      onPatch({ [fieldName]: Math.max(0, Number(event.target.value) || 0) })
+                    }
+                  />
+                  s
+                </label>
+              ))
+            ) : (
+              <CornerSelect
+                label="Corner"
+                value={edit.pipCorner ?? 'tr'}
+                disabled={disabled}
+                onChange={corner => onPatch({ pipCorner: corner })}
+                testId={`${testId}-pip-corner`}
+              />
+            )}
             <Button
               type="button"
               size="sm"
               variant="ghost"
               disabled={disabled}
-              onClick={() => onPatch({ pipUrl: undefined, pipCorner: undefined })}
+              onClick={() =>
+                onPatch({
+                  pipUrl: undefined,
+                  pipCorner: undefined,
+                  pipFull: undefined,
+                  pipFromSec: undefined,
+                  pipToSec: undefined,
+                  pipKind: undefined,
+                })
+              }
             >
               Remove picture
             </Button>

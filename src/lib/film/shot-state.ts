@@ -29,6 +29,8 @@ export type ShotState = {
   time?: DayPart;
   /** Her things the shot names ("phone", "dog"). */
   props: string[];
+  /** Two-person shots: which side of the frame the Cast lead stands on, as set (unset: as drawn). */
+  leadSide?: 'left' | 'right';
   line?: string;
   /** The user's story state on the shot (M8 T5): what she carries, what has changed, … */
   carries?: StoryStateItem[];
@@ -107,6 +109,7 @@ export function slotShotState(
     shoes: clean(input.outfit?.footwear),
     place: clean(slot.location),
     time: dayPartOf(slot.id),
+    leadSide: others.length ? slot.poseLead : undefined,
     props: propsIn(castId, `${slot.sceneHints ?? ''} ${slot.location ?? ''}`, resolve),
     line: clean(slot.line),
     carries: slot.state?.carries?.length ? slot.state.carries : undefined,

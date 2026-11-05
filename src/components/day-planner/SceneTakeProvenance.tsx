@@ -204,6 +204,21 @@ export function SceneTakeCompareDialog({
                 alt={`Take ${numberOf(take)}`}
                 className="max-h-[50vh] w-full rounded-[var(--radius-md)] object-contain"
               />
+              {take.stars || take.note ? (
+                <p
+                  className="type-caption text-[var(--text-secondary)]"
+                  data-testid={`scene-take-compare-notes-${side}`}
+                >
+                  {take.stars ? (
+                    <span className="text-[var(--tint-warning-text)]">
+                      {'★'.repeat(take.stars)}
+                      {'☆'.repeat(5 - take.stars)}
+                    </span>
+                  ) : null}
+                  {take.stars && take.note ? ' · ' : ''}
+                  {take.note}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant={isKept ? 'primary' : 'secondary'}

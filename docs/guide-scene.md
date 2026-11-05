@@ -66,6 +66,12 @@ graph is stored. **×** on the kept take asks first, and says what Cut loses wit
 plays it, unless that shot is pinned — see [Film](guide-film.md#when-a-shot-gets-a-new-take)). Deleting a scene says the
 same.
 
+### Rating and notes
+
+Under each take: **stars** (1–5; the same star again clears) and a **note** ("hands wrong", "best
+face"). **1–5** on the keyboard rates the take on the card. **Compare** shows each take's stars and
+note beside it.
+
 ## Locations
 
 A place the film goes back to — the corner café, her sister's flat — described once, so every

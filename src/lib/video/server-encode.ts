@@ -19,6 +19,10 @@ import {
 
 import {
   captionAlphaExpr,
+  clipMoveFilter,
+  creditsDurationSec,
+  creditsTypeSize,
+  normalizeFilmCredits,
   filmShotCaption,
   sanitizeFilmCaption,
   subtitleLines,
@@ -52,6 +56,7 @@ import {
   OVERLAY_MARGIN,
   PIP_WIDTH,
   lowerThirdAlphaExpr,
+  normalizeCutaway,
   normalizeOverlayCorner,
   overlayFfmpegXY,
   type OverlayCorner,
@@ -70,7 +75,12 @@ import {
   normalizeMusicFadeInSec,
   normalizeMusicFadeOutSec,
   normalizeMusicStartSec,
+  levelKeysExpr,
+  normalizeCutLevelKeys,
   soundOverlap,
+  VOICE_CLEANUP_FILTERS,
+  EVEN_VOICES_FILTERS,
+  type CutLevelKey,
   type CutSoundOptions,
 } from './cut-sound';
 import {
@@ -81,6 +91,20 @@ import {
   shotGradeMatrices,
   type ShotColourStats,
 } from './cut-look';
+import { loadStoredLut, lutToCube, type StoredLut } from './cut-lut';
+import type { ZipDiskEntry } from '../gallery/zip-stream';
+import {
+  chaptersFfmetadata,
+  chaptersForFile,
+  filmCodec,
+  loudnormFilters,
+  normalizeFilmRange,
+  parseLoudnormMeasure,
+  srtForRange,
+  type FilmChapter,
+  type FilmRange,
+  type FilmStemName,
+} from './film-finish';
 import {
   buildFilmScaleFilter,
   FILM_PRESET_SIZE,
@@ -131,18 +155,44 @@ export type FilmServerEncodeOptions = {
   smoothMotion?: boolean;
   /** A light sharpen over the finished picture. */
   sharpen?: boolean;
+  /** Just this part of the film, in the Cut monitor's seconds (film-finish.ts). */
+  range?: FilmRange | null;
+  /** Chapter marks (Cut's markers), in the monitor's seconds: written into the MP4. */
+  chapters?: FilmChapter[];
+  /** Shots before the ones the monitor shows (a "Previously on" recap): times move past them. */
+  leadShots?: number;
+  /** Bring the film to this loudness (the export profile's target; film-finish.ts). */
+  loudness?: { lufs: number; peakDbtp: number } | null;
+  /** Also write the mix's stems — dialogue, music, ambience, effects — as WAVs in a .zip. */
+  stems?: boolean;
+  /** The subtitles as a track in the MP4 too (players turn it on and off; mov_text). */
+  subtitleTrack?: boolean;
+  /** End credits, one line each, rolled after the last shot (polish.ts). */
+  credits?: string[];
+  /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (film-finish.ts filmCodec). */
+  master?: boolean;
+  /** "REVIEW" and the film's running timecode burned into the picture, top left. */
+  reviewBurnIn?: boolean;
+  /** Match every shot's colour to this one (its index in the shots) instead of the film's middle. */
+  matchTo?: number | null;
+  /** The film's LUT as the cut keeps it (cut-lut.ts). */
+  lut?: StoredLut | null;
   userId?: string | null;
   onProgress?: (ratio: number, label: string) => void;
 };
 
 export type FilmServerEncodeResult = {
   buffer: Buffer;
-  mimeType: 'video/mp4';
-  extension: 'mp4';
+  mimeType: 'video/mp4' | 'video/quicktime';
+  extension: 'mp4' | 'mov';
   width: number;
   height: number;
   /** The film's subtitles as an .srt (when subtitles are on and anything is spoken). */
   subtitlesSrt?: string;
+  /** The chapters as written into the file (file seconds) — for a video description. */
+  chapters?: FilmChapter[];
+  /** The stems (dialogue, music, ambience, effects WAVs) as a .zip, when asked for. */
+  stemsZip?: Buffer;
 };
 
 let ffmpegCached: string | null | undefined;
@@ -432,12 +482,17 @@ export type FilmGraphText = {
   }>;
   titleFile?: string | null;
   subtitleFile?: string | null;
+  /** End credits: one file per line (empty lines are gaps), rolled up over the card. */
+  creditsLines?: Array<string | null>;
 };
 
 /**
  * Quote a value for a filtergraph option (paths, expressions). ffmpeg treats single-quoted text
  * literally, so callers never pass values containing a quote (see `usableFilterPath`).
  */
+/** The fade at each end of a clip's piece of sound (s): too short to hear, long enough not to click. */
+const EDGE_FADE_SEC = 0.008;
+
 function q(value: string): string {
   return `'${value}'`;
 }
@@ -510,14 +565,42 @@ export function buildFilterComplex(input: {
   /** Per shot: a face-following scale + crop in place of the centre crop (cut-reframe.ts). */
   reframes?: ReadonlyArray<string | null | undefined>;
   /** Per shot: a picture-in-picture (its looped picture's input index and corner). */
-  pips?: ReadonlyArray<{ input: number; corner: OverlayCorner } | null | undefined>;
+  pips?: ReadonlyArray<
+    | {
+        input: number;
+        corner: OverlayCorner;
+        /** Full frame over this window of the shot (its seconds) instead of in a corner. */
+        cutaway?: { fromSec: number; toSec: number } | null;
+        /** The input is a clip: it starts playing at the window's start (not a looped picture). */
+        clip?: boolean;
+      }
+    | null
+    | undefined
+  >;
   /** A logo / watermark over the whole film. */
   logo?: { input: number; corner: OverlayCorner } | null;
   /** A light unsharp mask over the finished picture (before the logo). */
   sharpen?: boolean;
   /** How the subtitles look (subtitle-style.ts). */
   subtitleStyle?: SubtitleStyle;
-}): { filter: string; videoLabel: string; audioLabel: string | null; durationSec: number } {
+  /** Also tap the mix's parts as stems: dialogue, music, ambience, effects (a mixer's handoff). */
+  stems?: boolean;
+  /** A .cube file applied to every shot after its grade (the film's LUT). */
+  lutFile?: string | null;
+  /** Per shot: a clip's sound level points (shot seconds; cut-sound.ts). */
+  volumeKeys?: ReadonlyArray<CutLevelKey[] | undefined>;
+  /** "REVIEW" and the running timecode over the whole film (needs the font). */
+  reviewBurnIn?: boolean;
+  /** Per shot: a clip's punch-in or pull-back. */
+  clipMoves?: ReadonlyArray<'in' | 'out' | undefined>;
+}): {
+  filter: string;
+  videoLabel: string;
+  audioLabel: string | null;
+  durationSec: number;
+  /** With `stems`: each stem's output label, as long as the film (film-finish.ts STEM names). */
+  stems?: Array<{ name: FilmStemName; label: string }>;
+} {
   const { shotCount, kinds, holdSecs, width, height, crossfadeSec, hasAudioBed } = input;
   const centreFit = buildFilmScaleFilter(width, height);
   const font = input.fontFile ? q(input.fontFile) : null;
@@ -548,7 +631,26 @@ export function buildFilterComplex(input: {
     total += hold;
     let chain: string;
     const scalePad = input.reframes?.[i] || centreFit;
-    if (kind === 'title') {
+    if (kind === 'title' && text?.creditsLines?.length) {
+      // End credits: each line centred on its own, the block rolling up (polish.ts creditsRollTop).
+      const { size, gap } = creditsTypeSize(width, height);
+      const lines = text.creditsLines;
+      const blockHeight = lines.length * (size + gap) - gap;
+      const draws = font
+        ? lines.flatMap((file, k) =>
+            file
+              ? [
+                  `drawtext=fontfile=${font}:textfile=${q(file)}:fontcolor=white:fontsize=${size}:x=(w-tw)/2:y=${q(`h-(h+${blockHeight})*t/${hold}+${k * (size + gap)}`)}`,
+                ]
+              : []
+          )
+        : [];
+      chain = [
+        `[${i}:v]format=yuv420p,setsar=1`,
+        ...draws,
+        `fps=${STILL_MOTION_FPS},trim=duration=${hold},setpts=PTS-STARTPTS`,
+      ].join(',');
+    } else if (kind === 'title') {
       const titleSize = Math.round(Math.min(width, height) * 0.075);
       const subtitleSize = Math.round(titleSize * 0.5);
       const draws =
@@ -614,8 +716,14 @@ export function buildFilterComplex(input: {
     } else {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }
+    // A clip's punch-in / pull-back over what plays (the fitted frame scaled, cropped back).
+    const clipMove = kind === 'clip' ? input.clipMoves?.[i] : undefined;
+    if (clipMove) chain += `,${clipMoveFilter(clipMove, hold, width, height)}`;
     // The grade before any text, so captions and subtitles keep their own colour.
     if (kind !== 'title' && input.grades?.[i]) chain += `,${input.grades[i]}`;
+    // The film's LUT (cut-lut.ts), after the shot's grade and the look.
+    if (kind !== 'title' && input.lutFile)
+      chain += `,lut3d=file=${q(input.lutFile)}:interp=tetrahedral`;
     if (kind !== 'title' && font && text?.lowerThirdFile) {
       // Lower third: a name / line at the lower left, a smaller line under it; fades in and out.
       const nameSize = Math.round(Math.min(width, height) * 0.05);
@@ -662,7 +770,21 @@ export function buildFilterComplex(input: {
     // setpts leaves the frame rate unknown, and ffmpeg 7's xfade rejects that ("inputs needs to
     // be a constant frame rate") — so every shot ends on a fixed rate.
     const pip = kind !== 'title' ? input.pips?.[i] : null;
-    if (pip) {
+    if (pip?.cutaway) {
+      // A cutaway: the picture full frame over part of the shot; the shot's sound goes on.
+      parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}b]`);
+      const { fromSec, toSec } = pip.cutaway;
+      // A clip: its first frame at the window's start, stopped at its end, then the shot again.
+      const timing = pip.clip
+        ? `trim=duration=${(toSec - fromSec).toFixed(3)},setpts=PTS-STARTPTS+${fromSec}/TB,`
+        : '';
+      parts.push(
+        `[${pip.input}:v]${timing}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,format=yuv420p[${label}p]`
+      );
+      parts.push(
+        `[${label}b][${label}p]overlay=0:0:${pip.clip ? 'eof_action=pass' : 'shortest=1'}:enable=${q(`between(t,${fromSec},${toSec})`)},fps=${STILL_MOTION_FPS}[${label}]`
+      );
+    } else if (pip) {
       // Picture-in-picture: a framed picture in a corner, for the whole shot.
       const pipWidth = Math.round((width * PIP_WIDTH) / 2) * 2;
       parts.push(`${chain},fps=${STILL_MOTION_FPS}[${label}b]`);
@@ -713,6 +835,16 @@ export function buildFilterComplex(input: {
 
   let audioLabel: string | null = null;
   const end = Math.max(1, total);
+  // Stems (input.stems): a label split in two — one on into the mix, one out as its own track,
+  // padded to the film's length (and faded out with it when the mix fades it later).
+  const stems: Array<{ name: FilmStemName; label: string }> = [];
+  const stemTap = (from: string, mixLabel: string, name: FilmStemName, fade: boolean) => {
+    parts.push(`[${from}]asplit=2[${mixLabel}][st_${name}_raw]`);
+    parts.push(
+      `[st_${name}_raw]apad=whole_dur=${end},atrim=0:${end}${fade ? `,${fadeOut}` : ''}[st_${name}]`
+    );
+    stems.push({ name, label: `st_${name}` });
+  };
   const fadeOutSec = Math.min(normalizeMusicFadeOutSec(input.sound?.musicFadeOutSec), end);
   const fadeOut =
     fadeOutSec > 0
@@ -730,6 +862,11 @@ export function buildFilterComplex(input: {
   const musicLevel = normalizeMusicLevel(input.musicLevel);
   const voiceGain = voiceLevel !== 1 ? `volume=${voiceLevel},` : '';
   const musicGain = musicLevel !== 1 ? `,volume=${musicLevel}` : '';
+  // Voice cleanup (cut-sound.ts): on each clip's sound and each narration, before its level.
+  const cleanup = input.sound?.voiceCleanup === true ? VOICE_CLEANUP_FILTERS : '';
+  // The music's level points: a volume that follows the line through the film (film seconds).
+  const musicKeysExpr = levelKeysExpr(normalizeCutLevelKeys(input.sound?.musicKeys));
+  const musicKeys = musicKeysExpr ? `,volume=${q(musicKeysExpr)}:eval=frame` : '';
   for (const { index, startSec, holdSec } of voiced) {
     const delayMs = Math.round(startSec * 1000);
     const from = input.trimStarts?.[index] ?? 0;
@@ -741,6 +878,21 @@ export function buildFilterComplex(input: {
     // / after (cut-sound.ts soundOverlap already clamped it to what the file has).
     const lead = input.soundLeads?.[index] ?? 0;
     const tail = input.soundTails?.[index] ?? 0;
+    // The clip's own level points (shot seconds), moved past a J cut's early sound.
+    const keyExpr = levelKeysExpr(
+      normalizeCutLevelKeys(input.volumeKeys?.[index]).map(key => ({
+        ...key,
+        atSec: key.atSec + lead,
+      }))
+    );
+    const keyed = keyExpr ? `volume=${q(keyExpr)}:eval=frame,` : '';
+    // A few milliseconds faded in and out at the piece's edges: a hard cut lands mid-waveform,
+    // and without them it clicks.
+    const pieceSec = holdSec + (lead + tail) / speed;
+    const edgeFades =
+      pieceSec > 4 * EDGE_FADE_SEC
+        ? `afade=t=in:st=0:d=${EDGE_FADE_SEC},afade=t=out:st=${(pieceSec - EDGE_FADE_SEC).toFixed(3)}:d=${EDGE_FADE_SEC},`
+        : '';
     // The clip's own level (Cut's shot list) on top of the Lines level.
     const own = input.volumes?.[index];
     const gain =
@@ -748,7 +900,7 @@ export function buildFilterComplex(input: {
         ? `volume=${Number((voiceLevel * own).toFixed(3))},`
         : voiceGain;
     parts.push(
-      `[${input.clipAudioInputs?.[index] ?? index}:a]${stereo},atrim=${Math.max(0, from - lead)}:${from + holdSec * speed + tail},asetpts=PTS-STARTPTS,${paced}${gain}adelay=${Math.max(0, delayMs - Math.round(lead * 1000))}:all=1[s${index}]`
+      `[${input.clipAudioInputs?.[index] ?? index}:a]${stereo},atrim=${Math.max(0, from - lead)}:${from + holdSec * speed + tail},asetpts=PTS-STARTPTS,${cleanup}${paced}${gain}${keyed}${edgeFades}adelay=${Math.max(0, delayMs - Math.round(lead * 1000))}:all=1[s${index}]`
     );
   }
   // Narration: a voice-over from its shot's start, mixed with the lines (it ducks the music too).
@@ -765,7 +917,7 @@ export function buildFilterComplex(input: {
       const start = starts[entry.shot];
       if (start === undefined) continue;
       parts.push(
-        `[${entry.input}:a]${stereo},asetpts=PTS-STARTPTS,${voiceGain}adelay=${Math.round(start * 1000)}:all=1[n${entry.shot}]`
+        `[${entry.input}:a]${stereo},asetpts=PTS-STARTPTS,${cleanup}${voiceGain}adelay=${Math.round(start * 1000)}:all=1[n${entry.shot}]`
       );
       narrationLabels.push(`[n${entry.shot}]`);
     }
@@ -775,8 +927,9 @@ export function buildFilterComplex(input: {
     const speechLabels =
       voiced.map(({ index }) => `[s${index}]`).join('') + narrationLabels.join('');
     parts.push(
-      `${speechLabels}${speechCount > 1 ? `amix=inputs=${speechCount}:duration=longest:normalize=0` : 'anull'},apad=whole_dur=${end}[speech]`
+      `${speechLabels}${speechCount > 1 ? `amix=inputs=${speechCount}:duration=longest:normalize=0` : 'anull'},${input.sound?.evenVoices === true ? EVEN_VOICES_FILTERS : ''}apad=whole_dur=${end}${input.stems ? '[speech0]' : '[speech]'}`
     );
+    if (input.stems) stemTap('speech0', 'speech', 'dialogue', true);
   }
   if (hasAudioBed) {
     const audioIndex = shotCount;
@@ -784,20 +937,23 @@ export function buildFilterComplex(input: {
     const musicStart = normalizeMusicStartSec(input.sound?.musicStartSec);
     const fadeIn = normalizeMusicFadeInSec(input.sound?.musicFadeInSec);
     const bed =
-      `[${audioIndex}:a]${stereo},atrim=${musicStart}:${musicStart + end},asetpts=PTS-STARTPTS${musicGain}` +
+      `[${audioIndex}:a]${stereo},atrim=${musicStart}:${musicStart + end},asetpts=PTS-STARTPTS${musicGain}${musicKeys}` +
       (fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : '');
     if (speechCount > 0) {
       // Duck the music under the lines, then lay the lines on top.
       parts.push(`[speech]asplit=2[sp1][sp2]`);
       parts.push(`${bed},apad=whole_dur=${end}[bed]`);
       parts.push(
-        `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[ducked]`
+        `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400${input.stems ? '[ducked0]' : '[ducked]'}`
       );
+      // The music stem is the music as it is in the mix: ducked under the lines.
+      if (input.stems) stemTap('ducked0', 'ducked', 'music', true);
       parts.push(
         `[ducked][sp2]amix=inputs=2:duration=first:normalize=0,atrim=0:${end},${fadeOut}[aout]`
       );
     } else {
-      parts.push(`${bed},${fadeOut}[aout]`);
+      parts.push(`${bed},${fadeOut}${input.stems ? '[aout0]' : '[aout]'}`);
+      if (input.stems) stemTap('aout0', 'aout', 'music', false);
     }
     audioLabel = 'aout';
   } else if (speechCount > 0) {
@@ -808,8 +964,9 @@ export function buildFilterComplex(input: {
   if (input.ambienceInput != null) {
     const level = normalizeAmbienceLevel(input.sound?.ambienceLevel);
     parts.push(
-      `[${input.ambienceInput}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS,volume=${level},${fadeOut}[amb]`
+      `[${input.ambienceInput}:a]${stereo},atrim=0:${end},asetpts=PTS-STARTPTS,volume=${level},${fadeOut}${input.stems ? '[amb0]' : '[amb]'}`
     );
+    if (input.stems) stemTap('amb0', 'amb', 'ambience', false);
     if (audioLabel) {
       parts.push(`[${audioLabel}][amb]amix=inputs=2:duration=first:normalize=0[amix]`);
       audioLabel = 'amix';
@@ -826,6 +983,12 @@ export function buildFilterComplex(input: {
   });
   if (effects) {
     parts.push(...effects.parts);
+    if (input.stems) {
+      parts.push(`[${effects.label}]asplit=2[fxmix][st_effects_raw]`);
+      parts.push(`[st_effects_raw]apad=whole_dur=${end},atrim=0:${end}[st_effects]`);
+      stems.push({ name: 'effects', label: 'st_effects' });
+      effects.label = 'fxmix';
+    }
     if (audioLabel) {
       parts.push(`[${audioLabel}][${effects.label}]amix=inputs=2:duration=first:normalize=0[afx]`);
       audioLabel = 'afx';
@@ -849,7 +1012,25 @@ export function buildFilterComplex(input: {
     );
     videoLabel = 'vlogo';
   }
-  return { filter: parts.join(';'), videoLabel, audioLabel, durationSec: total };
+  // A review copy: REVIEW and the film's timecode (30 fps, as Cut's monitor counts it), top left,
+  // over everything — reviewers quote the exact frame, and a copy that gets out is marked.
+  if (input.reviewBurnIn && font) {
+    const size = Math.round(Math.min(width, height) * 0.035);
+    const pad = Math.round(Math.min(width, height) * 0.03);
+    parts.push(
+      // Two lines (drawtext drops a trailing space, so "REVIEW " ran into the timecode).
+      `[${videoLabel}]drawtext=fontfile=${font}:text='REVIEW':fontcolor=white@0.9:fontsize=${size}:box=1:boxcolor=black@0.5:boxborderw=${Math.round(size * 0.35)}:x=${pad}:y=${pad},` +
+        `drawtext=fontfile=${font}:timecode='00\\:00\\:00\\:00':timecode_rate=${STILL_MOTION_FPS}:fontcolor=white@0.9:fontsize=${size}:box=1:boxcolor=black@0.5:boxborderw=${Math.round(size * 0.35)}:x=${pad}:y=${pad + Math.round(size * 1.6)}[vreview]`
+    );
+    videoLabel = 'vreview';
+  }
+  return {
+    filter: parts.join(';'),
+    videoLabel,
+    audioLabel,
+    durationSec: total,
+    ...(input.stems ? { stems } : {}),
+  };
 }
 
 /** Paths go into single-quoted filter options, so a quote in one would break the graph. */
@@ -1029,12 +1210,38 @@ export async function encodeFilmPlaylistServer(
         return null;
       }
     };
-    const pipFiles: Array<{ path: string; corner: OverlayCorner } | null> = [];
+    const pipFiles: Array<{
+      path: string;
+      corner: OverlayCorner;
+      cutaway?: { fromSec: number; toSec: number } | null;
+      /** A moving cutaway: the file is a clip, read as it plays (not looped). */
+      clip?: boolean;
+    } | null> = [];
     for (const [index, shot] of shots.entries()) {
       const url = shot.pipUrl?.trim();
-      const file = url ? await fetchOverlay(url, `pip-${index}.png`) : null;
+      const cutaway = shot.pipFull ? normalizeCutaway(shot.pipFromSec, shot.pipToSec) : null;
+      // A clip cutaway is fetched as a clip (an animated WebP made an MP4 first).
+      const clipFile =
+        url && cutaway && shot.pipKind === 'clip'
+          ? await fetchShotBytes(url, requestOrigin, undefined, options.userId)
+              .then(async fetched => {
+                const file = path.join(/* turbopackIgnore: true */ workDir, `pip-${index}.bin`);
+                const { writeClipSource } = await import('../clip/clip-source-server');
+                await writeClipSource(ffmpeg, fetched.buffer, file);
+                return file;
+              })
+              .catch(() => null)
+          : null;
+      const file = clipFile ?? (url ? await fetchOverlay(url, `pip-${index}.png`) : null);
       pipFiles.push(
-        file ? { path: file, corner: normalizeOverlayCorner(shot.pipCorner, 'tr') } : null
+        file
+          ? {
+              path: file,
+              corner: normalizeOverlayCorner(shot.pipCorner, 'tr'),
+              cutaway,
+              ...(clipFile ? { clip: true } : {}),
+            }
+          : null
       );
     }
     const logoFile = options.logo?.url?.trim()
@@ -1090,6 +1297,8 @@ export async function encodeFilmPlaylistServer(
     const wantsText = Boolean(
       options.titleCard?.title?.trim() ||
       options.captions ||
+      options.reviewBurnIn ||
+      options.credits?.some(line => line.trim()) ||
       (options.subtitles && shots.some(shot => filmShotSubtitle(shot))) ||
       shots.some(shot => shot.lowerThird?.trim())
     );
@@ -1132,7 +1341,7 @@ export async function encodeFilmPlaylistServer(
     const graphReverses: boolean[] = [];
     const graphReframes: Array<string | null> = [];
     /** Per graph shot: its picture-in-picture file and corner. */
-    const graphPipFiles: Array<{ path: string; corner: OverlayCorner } | null> = [];
+    const graphPipFiles: Array<(typeof pipFiles)[number]> = [];
     const graphLeads: number[] = [];
     const graphTails: number[] = [];
     const inputArgs: string[][] = [];
@@ -1185,8 +1394,9 @@ export async function encodeFilmPlaylistServer(
         : localFiles.map(() => null);
     // The film look and shot match: each shot's colour read from its picture (a clip's at 40%).
     const look = normalizeFilmLook(options.look);
+    const handGrades = localFiles.map((_, i) => shots[i]?.grade);
     const shotGrades =
-      look !== 'none' || options.matchShots
+      look !== 'none' || options.matchShots || handGrades.some(Boolean)
         ? await (async () => {
             options.onProgress?.(0.44, 'Matching the shots’ colour…');
             const stats = await Promise.all(
@@ -1201,6 +1411,8 @@ export async function encodeFilmPlaylistServer(
               look,
               lookStrength: normalizeLookStrength(options.lookStrength),
               matchShots: options.matchShots === true,
+              matchTo: options.matchTo ?? null,
+              grades: handGrades,
             }).map(colourMatrixFfmpeg);
           })()
         : [];
@@ -1291,8 +1503,12 @@ export async function encodeFilmPlaylistServer(
           ? await writeText(`caption-${i}.txt`, shots[i] ? filmShotCaption(shots[i]) : '')
           : null,
         speechCues: await (async () => {
-          const line = options.subtitles && shots[i] ? filmShotSubtitle(shots[i]) : '';
-          if (!line || !usableFont) return undefined;
+          // Timed for the burned-in subtitles, and for the subtitle track (which needs no font).
+          const line =
+            (options.subtitles || options.subtitleTrack) && shots[i]
+              ? filmShotSubtitle(shots[i])
+              : '';
+          if (!line || (!usableFont && !options.subtitleTrack)) return undefined;
           // When it is spoken in the shot: the narration's own file, else the clip's sound over
           // what plays (shot seconds; a sped-up clip's sound is faster too).
           const hold = holdSecs[i] && holdSecs[i]! > 0 ? holdSecs[i]! : kinds[i] === 'clip' ? 4 : 3;
@@ -1328,6 +1544,8 @@ export async function encodeFilmPlaylistServer(
           const out: Array<{ file: string; from: number; to: number }> = [];
           // Word by word: what the .srt keeps is the whole phrase; the picture shows a few words.
           for (const cue of cues) filmCues.push({ shot: graphKinds.length - 1, cue });
+          // A track only: timed, not drawn.
+          if (!options.subtitles || !usableFont) return undefined;
           const drawn = subtitleStyle === 'words' ? wordChunks(cues) : cues;
           for (const [k, cue] of drawn.entries()) {
             const wrapped = subtitleLines(cue.text, Math.round(width / (subtitleWrapSize * 0.55)));
@@ -1381,6 +1599,41 @@ export async function encodeFilmPlaylistServer(
     }
 
     if (titleAt === localFiles.length) await pushTitle();
+    // End credits: a black card after the last shot, the lines rolling up (the music runs on).
+    const creditLines = normalizeFilmCredits((options.credits ?? []).join('\n'));
+    if (creditLines.length && usableFont) {
+      const creditsSec = creditsDurationSec(creditLines);
+      graphGrades.push('');
+      graphSpeeds.push(1);
+      graphReverses.push(false);
+      graphReframes.push(null);
+      graphPipFiles.push(null);
+      graphLeads.push(0);
+      graphTails.push(0);
+      graphTransitions.push(undefined);
+      graphMotions.push(undefined);
+      graphMoves.push(null);
+      graphVolumes.push(undefined);
+      graphSpeech.push(false);
+      graphTrims.push(null);
+      graphKinds.push('title');
+      graphHolds.push(creditsSec);
+      graphText.push({
+        creditsLines: await Promise.all(
+          creditLines.map((line, k) =>
+            line ? writeRawText(`credits-${k}.txt`, sanitizeFilmCaption(line)) : null
+          )
+        ),
+      });
+      inputArgs.push([
+        '-f',
+        'lavfi',
+        '-t',
+        String(creditsSec),
+        '-i',
+        `color=c=black:s=${even(width)}x${even(height)}:r=30`,
+      ]);
+    }
     /** Graph position of shot i (the title card takes one slot before shot `titleAt`). */
     const graphIndexOf = (i: number) => (titleAt >= 0 && i >= titleAt ? i + 1 : i);
 
@@ -1400,7 +1653,21 @@ export async function encodeFilmPlaylistServer(
           }))
         )
       : undefined;
-    const { filter, videoLabel, audioLabel } = buildFilterComplex({
+    const {
+      filter,
+      videoLabel,
+      audioLabel,
+      stems: stemLabels,
+    } = buildFilterComplex({
+      stems: options.stems === true,
+      reviewBurnIn: options.reviewBurnIn === true,
+      lutFile: await (async () => {
+        const lut = loadStoredLut(options.lut);
+        if (!lut) return null;
+        const file = path.join(/* turbopackIgnore: true */ workDir, 'film.cube');
+        await fs.writeFile(/* turbopackIgnore: true */ file, lutToCube(lut));
+        return usableFilterPath(file) ? file : null;
+      })(),
       shotCount: graphKinds.length,
       kinds: graphKinds,
       holdSecs: graphHolds,
@@ -1417,6 +1684,16 @@ export async function encodeFilmPlaylistServer(
       stillMotions: graphMotions,
       stillMoves: graphMoves,
       volumes: graphVolumes,
+      clipMoves: graphKinds.map((kind, g) => {
+        if (kind === 'title') return undefined;
+        return shots[titleAt >= 0 && g > titleAt ? g - 1 : g]?.clipMove;
+      }),
+      // Each graph shot's level points: a clip's own, none for a title or the credits.
+      volumeKeys: graphKinds.map((kind, g) => {
+        if (kind === 'title') return undefined;
+        const i = titleAt >= 0 && g > titleAt ? g - 1 : g;
+        return shots[i]?.volumeKeys;
+      }),
       grades: graphGrades,
       speeds: graphSpeeds,
       reverses: graphReverses,
@@ -1434,7 +1711,16 @@ export async function encodeFilmPlaylistServer(
       pips: (() => {
         let next =
           graphKinds.length + (audioPath ? 1 : 0) + narrationFiles.length + (ambiencePath ? 1 : 0);
-        return graphPipFiles.map(pip => (pip ? { input: next++, corner: pip.corner } : null));
+        return graphPipFiles.map(pip =>
+          pip
+            ? {
+                input: next++,
+                corner: pip.corner,
+                ...(pip.cutaway ? { cutaway: pip.cutaway } : {}),
+                ...(pip.clip ? { clip: true } : {}),
+              }
+            : null
+        );
       })(),
       logo: logoFile
         ? {
@@ -1486,7 +1772,9 @@ export async function encodeFilmPlaylistServer(
       })),
     });
 
-    const outputPath = path.join(/* turbopackIgnore: true */ workDir, 'out.mp4');
+    // A master (ProRes .mov) or the everyday MP4 (film-finish.ts filmCodec).
+    const codec = filmCodec(options.master === true);
+    const outputPath = path.join(/* turbopackIgnore: true */ workDir, `out.${codec.extension}`);
     const args: string[] = ['-y', '-hide_banner', '-loglevel', 'error'];
     for (const entry of inputArgs) {
       args.push(...entry);
@@ -1501,7 +1789,8 @@ export async function encodeFilmPlaylistServer(
       args.push('-stream_loop', '-1', '-i', ambiencePath);
     }
     for (const pip of graphPipFiles) {
-      if (pip) args.push('-loop', '1', '-i', pip.path);
+      if (pip?.clip) args.push('-an', '-i', pip.path);
+      else if (pip) args.push('-loop', '1', '-i', pip.path);
     }
     if (logoFile) args.push('-loop', '1', '-i', logoFile);
     // Each clip's sound-only inputs, last (no input before them moves), as clipAudioInputs said.
@@ -1512,45 +1801,291 @@ export async function encodeFilmPlaylistServer(
     for (const effect of effectFiles) args.push('-vn', '-i', effect.path);
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {
-      args.push('-map', `[${audioLabel}]`, '-c:a', 'aac', '-b:a', '192k');
+      args.push('-map', `[${audioLabel}]`, ...codec.audio);
     } else {
       args.push('-an');
     }
-    args.push(
-      '-c:v',
-      'libx264',
-      '-preset',
-      'veryfast',
-      '-crf',
-      '20',
-      '-pix_fmt',
-      'yuv420p',
-      '-movflags',
-      '+faststart',
-      outputPath
-    );
+    args.push(...codec.video, ...codec.container, outputPath);
+    // Stems: each part of the mix as its own 24-bit WAV, in the same pass (a second output).
+    const stemsDir = path.join(/* turbopackIgnore: true */ workDir, 'stems');
+    if (stemLabels?.length) {
+      await fs.mkdir(/* turbopackIgnore: true */ stemsDir, { recursive: true });
+      for (const stem of stemLabels) {
+        args.push(
+          '-map',
+          `[${stem.label}]`,
+          '-c:a',
+          'pcm_s24le',
+          '-ar',
+          '48000',
+          path.join(/* turbopackIgnore: true */ stemsDir, `${stem.name}.wav`)
+        );
+      }
+    }
 
     options.onProgress?.(0.55, 'Encoding MP4…');
     await runCapture(ffmpeg, args);
+    // Just a part, and chapter marks (film-finish.ts): times as the monitor showed them, moved
+    // past a recap the monitor doesn't show.
+    const leadShots = Math.max(0, Math.min(localFiles.length, Math.floor(options.leadShots ?? 0)));
+    const offsetSec = leadShots
+      ? (shotStarts[titleAt === leadShots ? titleAt : graphIndexOf(leadShots)] ?? 0)
+      : 0;
+    const finished = await finishFilmFile({
+      ffmpeg,
+      file: outputPath,
+      workDir,
+      range: options.range ?? null,
+      chapters: options.chapters ?? [],
+      offsetSec,
+      hasAudio: Boolean(audioLabel),
+      loudness: options.loudness ?? null,
+      master: options.master === true,
+      onProgress: options.onProgress,
+    });
+    // The subtitle track: the (range-cut) .srt as a soft subtitle stream, the film copied as is.
+    const srtForFile = subtitlesSrt
+      ? finished.range
+        ? srtForRange(subtitlesSrt, finished.range)
+        : subtitlesSrt
+      : '';
+    if (options.subtitleTrack && srtForFile.trim()) {
+      const srtPath = path.join(/* turbopackIgnore: true */ workDir, 'track.srt');
+      const withTrack = path.join(
+        /* turbopackIgnore: true */ workDir,
+        `with-subs.${codec.extension}`
+      );
+      await fs.writeFile(/* turbopackIgnore: true */ srtPath, srtForFile);
+      await runCapture(ffmpeg, [
+        '-y',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        finished.file,
+        '-i',
+        srtPath,
+        '-map',
+        '0',
+        '-map',
+        '1',
+        '-c',
+        'copy',
+        '-c:s',
+        'mov_text',
+        '-metadata:s:s:0',
+        'language=eng',
+        '-metadata:s:s:0',
+        'title=Subtitles',
+        ...codec.container,
+        withTrack,
+      ]);
+      finished.file = withTrack;
+    }
+    const stemsZip = stemLabels?.length
+      ? await zipStems({
+          ffmpeg,
+          dir: stemsDir,
+          names: stemLabels.map(stem => stem.name),
+          range: finished.range,
+          gainDb: finished.gainDb ?? 0,
+        })
+      : null;
     options.onProgress?.(0.95, 'Reading encode…');
-    const buffer = await fs.readFile(/* turbopackIgnore: true */ outputPath);
+    const buffer = await fs.readFile(/* turbopackIgnore: true */ finished.file);
     if (buffer.byteLength === 0) {
       throw new Error('Server encode produced an empty file.');
     }
     options.onProgress?.(1, 'Encode complete');
     return {
       buffer,
-      mimeType: 'video/mp4',
-      extension: 'mp4',
+      mimeType: codec.mimeType,
+      extension: codec.extension,
       width: even(width),
       height: even(height),
-      ...(subtitlesSrt ? { subtitlesSrt } : {}),
+      ...(subtitlesSrt
+        ? {
+            subtitlesSrt: finished.range ? srtForRange(subtitlesSrt, finished.range) : subtitlesSrt,
+          }
+        : {}),
+      ...(finished.chapters.length ? { chapters: finished.chapters } : {}),
+      ...(stemsZip ? { stemsZip } : {}),
     };
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ workDir, { recursive: true, force: true })
       .catch(() => undefined);
   }
+}
+
+/**
+ * The finishing pass (film-finish.ts): cut the encoded film to a range (re-encoded, so it starts
+ * on the exact frame) and/or write chapter marks. The film as it was when there is neither.
+ */
+async function finishFilmFile(input: {
+  ffmpeg: string;
+  file: string;
+  workDir: string;
+  range: FilmRange | null;
+  chapters: FilmChapter[];
+  offsetSec: number;
+  hasAudio: boolean;
+  /** Bring the film to this loudness (two-pass loudnorm, one gain for the whole film). */
+  loudness?: { lufs: number; peakDbtp: number } | null;
+  /** A master (ProRes .mov): every re-encode here keeps its codecs. */
+  master?: boolean;
+  onProgress?: (ratio: number, label: string) => void;
+}): Promise<{
+  file: string;
+  range: FilmRange | null;
+  chapters: FilmChapter[];
+  /** The gain the loudness pass gave the film (dB) — the stems get the same. */
+  gainDb?: number;
+}> {
+  const cut = await cutFilmFile(input);
+  if (!input.loudness || !input.hasAudio) return cut;
+  input.onProgress?.(0.92, 'Setting the loudness…');
+  const measured = parseLoudnormMeasure(
+    (
+      await runCapture(input.ffmpeg, [
+        '-hide_banner',
+        '-nostats',
+        '-i',
+        cut.file,
+        '-vn',
+        '-af',
+        loudnormFilters(input.loudness),
+        '-f',
+        'null',
+        '-',
+      ])
+    ).stderr
+  );
+  // Silence (nothing to measure): left as it is.
+  if (!measured) return cut;
+  const codec = filmCodec(input.master === true);
+  const out = path.join(/* turbopackIgnore: true */ input.workDir, `loud.${codec.extension}`);
+  await runCapture(input.ffmpeg, [
+    '-y',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-i',
+    cut.file,
+    '-map',
+    '0',
+    '-c:v',
+    'copy',
+    '-af',
+    loudnormFilters(input.loudness, measured),
+    '-ar',
+    '48000',
+    ...codec.audio,
+    ...codec.container,
+    out,
+  ]);
+  return { ...cut, file: out, gainDb: input.loudness.lufs - measured.inputI };
+}
+
+/**
+ * The stems as a .zip: cut to the range when there is one, at the film's loudness gain, so they
+ * line up with the film and add up to its mix (a sound mixer's handoff). Null when none was written.
+ */
+async function zipStems(input: {
+  ffmpeg: string;
+  dir: string;
+  names: readonly FilmStemName[];
+  range: FilmRange | null;
+  gainDb: number;
+}): Promise<Buffer | null> {
+  const entries: ZipDiskEntry[] = [];
+  for (const name of input.names) {
+    const raw = path.join(/* turbopackIgnore: true */ input.dir, `${name}.wav`);
+    const ok = await fs
+      .stat(/* turbopackIgnore: true */ raw)
+      .then(stat => stat.size > 0)
+      .catch(() => false);
+    if (!ok) continue;
+    let file = raw;
+    if (input.range || Math.abs(input.gainDb) > 0.05) {
+      file = path.join(/* turbopackIgnore: true */ input.dir, `${name}-final.wav`);
+      await runCapture(input.ffmpeg, [
+        '-y',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        ...(input.range ? ['-ss', input.range.fromSec.toFixed(3)] : []),
+        '-i',
+        raw,
+        ...(input.range ? ['-t', (input.range.toSec - input.range.fromSec).toFixed(3)] : []),
+        ...(Math.abs(input.gainDb) > 0.05 ? ['-af', `volume=${input.gainDb.toFixed(2)}dB`] : []),
+        '-c:a',
+        'pcm_s24le',
+        file,
+      ]);
+    }
+    entries.push({ archivePath: `stems/${name}.wav`, diskPath: file });
+  }
+  if (!entries.length) return null;
+  const zipPath = path.join(/* turbopackIgnore: true */ input.dir, 'stems.zip');
+  // Loaded here: the zip writer is server-only, and the graph builder above is tested in plain node.
+  const { createZipFileFromDiskPaths } = await import('../gallery/zip-stream');
+  await createZipFileFromDiskPaths(zipPath, entries);
+  return fs.readFile(/* turbopackIgnore: true */ zipPath);
+}
+
+/** The range and chapter half of the finishing pass (finishFilmFile). */
+async function cutFilmFile(input: {
+  ffmpeg: string;
+  file: string;
+  workDir: string;
+  range: FilmRange | null;
+  chapters: FilmChapter[];
+  offsetSec: number;
+  hasAudio: boolean;
+  master?: boolean;
+  onProgress?: (ratio: number, label: string) => void;
+}): Promise<{ file: string; range: FilmRange | null; chapters: FilmChapter[] }> {
+  const codec = filmCodec(input.master === true);
+  const totalSec = (await clipDurationSec(input.ffmpeg, input.file)) ?? 0;
+  const range = input.range
+    ? normalizeFilmRange({
+        fromSec: Math.min(totalSec, input.range.fromSec + input.offsetSec),
+        toSec: Math.min(totalSec, input.range.toSec + input.offsetSec),
+      })
+    : null;
+  if (input.range && !range) throw new Error('That part of the film is too short to render.');
+  const chapters = chaptersForFile({
+    chapters: input.chapters,
+    offsetSec: input.offsetSec,
+    range: input.range,
+  });
+  if (!range && !chapters.length) return { file: input.file, range: null, chapters: [] };
+  input.onProgress?.(0.9, range ? 'Cutting out the part…' : 'Writing the chapters…');
+  const out = path.join(/* turbopackIgnore: true */ input.workDir, `finished.${codec.extension}`);
+  const args = ['-y', '-hide_banner', '-loglevel', 'error'];
+  if (range) args.push('-ss', range.fromSec.toFixed(3));
+  args.push('-i', input.file);
+  if (chapters.length) {
+    const meta = path.join(/* turbopackIgnore: true */ input.workDir, 'chapters.txt');
+    const length = range ? range.toSec - range.fromSec : totalSec;
+    await fs.writeFile(/* turbopackIgnore: true */ meta, chaptersFfmetadata(chapters, length));
+    args.push('-i', meta, '-map_metadata', '1', '-map_chapters', '1');
+  }
+  args.push('-map', '0:v', ...(input.hasAudio ? ['-map', '0:a'] : []));
+  if (range) {
+    args.push(
+      '-t',
+      (range.toSec - range.fromSec).toFixed(3),
+      ...codec.video,
+      ...(input.hasAudio ? codec.audio : [])
+    );
+  } else {
+    args.push('-c', 'copy');
+  }
+  args.push(...codec.container, out);
+  await runCapture(input.ffmpeg, args);
+  return { file: out, range, chapters };
 }
 
 /** Stable cache key for identical playlists (optional future use). */

@@ -245,16 +245,80 @@ export function colourMatrixSvgValues(matrix: ColourMatrix): string {
     .join(' ');
 }
 
-/** Each shot's final matrix: its match toward the film, then the film's look. */
+/**
+ * One shot's own correction, set by hand in Cut: exposure in stops (−1…1), contrast and
+ * saturation as factors (0.5…1.5, 0…2), warmth −1 (cool) … 1 (warm). Unset fields are as shot.
+ */
+export type ShotGrade = {
+  exposure?: number;
+  contrast?: number;
+  saturation?: number;
+  warmth?: number;
+};
+
+const clampTo = (value: unknown, min: number, max: number, neutral: number): number =>
+  typeof value === 'number' && Number.isFinite(value)
+    ? Math.round(Math.min(max, Math.max(min, value)) * 100) / 100
+    : neutral;
+
+/** The grade with every field in range; null when it changes nothing. */
+export function normalizeShotGrade(value: unknown): ShotGrade | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, unknown>;
+  const grade: ShotGrade = {};
+  const exposure = clampTo(record.exposure, -1, 1, 0);
+  const contrastValue = clampTo(record.contrast, 0.5, 1.5, 1);
+  const saturationValue = clampTo(record.saturation, 0, 2, 1);
+  const warmth = clampTo(record.warmth, -1, 1, 0);
+  if (exposure !== 0) grade.exposure = exposure;
+  if (contrastValue !== 1) grade.contrast = contrastValue;
+  if (saturationValue !== 1) grade.saturation = saturationValue;
+  if (warmth !== 0) grade.warmth = warmth;
+  return Object.keys(grade).length ? grade : null;
+}
+
+/** The matrix for a shot's own correction (identity when unset). */
+export function shotCorrectionMatrix(value: ShotGrade | null | undefined): number[] {
+  const grade = normalizeShotGrade(value);
+  if (!grade) return [...IDENTITY];
+  const gain = 2 ** (grade.exposure ?? 0);
+  const warmth = grade.warmth ?? 0;
+  return chain(
+    gains(gain, gain, gain),
+    gains(1 + 0.1 * warmth, 1 + 0.015 * warmth, 1 - 0.1 * warmth),
+    contrast(grade.contrast ?? 1),
+    saturation(grade.saturation ?? 1)
+  );
+}
+
+/** Each shot's final matrix: its match toward the film, its own correction, then the film's look. */
 export function shotGradeMatrices(input: {
   stats: ReadonlyArray<ShotColourStats | null>;
   look: FilmLook;
   lookStrength?: number;
   matchShots: boolean;
+  /** Each shot's own correction, by index (cut-plan.ts `grade`). */
+  grades?: ReadonlyArray<ShotGrade | null | undefined>;
+  /** The film's LUT as its closest matrix (cut-lut.ts lutFitMatrix) — the monitor only. */
+  lut?: ColourMatrix | null;
+  /** Match every shot to this one (its index) instead of the film's middle; it stays as shot. */
+  matchTo?: number | null;
 }): number[][] {
-  const look = lookMatrix(input.look, input.lookStrength ?? 1);
-  const reference = input.matchShots ? filmReferenceStats(input.stats) : null;
-  return input.stats.map(stats =>
-    composeMatrices(look, input.matchShots ? shotMatchMatrix(stats, reference) : [...IDENTITY])
+  const look = input.lut
+    ? composeMatrices(input.lut, lookMatrix(input.look, input.lookStrength ?? 1))
+    : lookMatrix(input.look, input.lookStrength ?? 1);
+  const chosen =
+    input.matchTo != null && input.matchTo >= 0 ? (input.stats[input.matchTo] ?? null) : null;
+  const reference = input.matchShots ? (chosen ?? filmReferenceStats(input.stats)) : null;
+  return input.stats.map((stats, index) =>
+    composeMatrices(
+      look,
+      composeMatrices(
+        shotCorrectionMatrix(input.grades?.[index]),
+        input.matchShots && !(chosen && index === input.matchTo)
+          ? shotMatchMatrix(stats, reference)
+          : [...IDENTITY]
+      )
+    )
   );
 }
