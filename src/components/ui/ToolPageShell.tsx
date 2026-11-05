@@ -47,25 +47,30 @@ export const ToolPageHeader = memo(function ToolPageHeader({
 }) {
   return (
     <header className="ui-tool-header">
-      {badge || actions ? (
+      {badge ? (
         <div className="ui-tool-header-top">
-          {badge ? <div className="ui-tool-header-badge">{badge}</div> : <span />}
+          <div className="ui-tool-header-badge">{badge}</div>
           {actions ? <div className="ui-tool-header-actions">{actions}</div> : null}
         </div>
       ) : null}
-      <div className="ui-tool-header-row">
-        <h1 className="type-display min-w-0">{title}</h1>
-        {description ? (
-          typeof description === 'string' ? (
-            <p className="ui-tool-header-desc" title={description}>
-              <span className="line-clamp-1">{description}</span>
-            </p>
-          ) : (
-            <div className="ui-tool-header-desc">
-              <div className="line-clamp-1">{description}</div>
-            </div>
-          )
-        ) : null}
+      {/* No overline (every Film page): the Engine and Cast chips share the title's row — a row of
+          their own above it put the page's content a line lower on every page (2026-11-04). */}
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="ui-tool-header-row min-w-0">
+          <h1 className="type-display min-w-0">{title}</h1>
+          {description ? (
+            typeof description === 'string' ? (
+              <p className="ui-tool-header-desc" title={description}>
+                <span className="line-clamp-1">{description}</span>
+              </p>
+            ) : (
+              <div className="ui-tool-header-desc">
+                <div className="line-clamp-1">{description}</div>
+              </div>
+            )
+          ) : null}
+        </div>
+        {!badge && actions ? <div className="ui-tool-header-actions">{actions}</div> : null}
       </div>
     </header>
   );
@@ -291,7 +296,7 @@ export const ToolPageShell = memo(function ToolPageShell({
   return (
     <div
       // Bottom padding clears the floating Engine pill (~4rem) so the last row isn't under it.
-      className={`page-enter mx-auto flex w-full flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] pt-6 pb-28 sm:pt-8 md:pb-24 lg:pt-9 ${widthClasses[width]} ${className}`.trim()}
+      className={`page-enter mx-auto flex w-full flex-col gap-[var(--section-gap)] px-[var(--page-gutter)] pt-5 pb-28 sm:pt-6 md:pb-24 lg:pt-6 ${widthClasses[width]} ${className}`.trim()}
     >
       {children}
     </div>

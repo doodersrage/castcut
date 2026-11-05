@@ -596,7 +596,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
     return {
       label: 'Save film to Cast',
       href: resolvePlayStepHref('save', characterId, pack),
-      reason: 'Open Day and Save film to Cast to stamp a studio copy.',
+      reason: 'The film is cut — keep a copy with the Cast (on Day).',
     };
   }
 
@@ -673,7 +673,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
       href: characterId
         ? `/characters/${encodeURIComponent(characterId)}?media=films`
         : '/characters',
-      reason: 'Film cut — Save to Cast to stamp a studio copy.',
+      reason: 'The film is cut — keep a copy with the Cast.',
     };
   }
 
@@ -722,7 +722,7 @@ function dayPhaseAction(input: {
     return {
       label: 'Save film to Cast',
       href,
-      reason: 'Cut is ready — Save film to Cast to stamp a studio copy.',
+      reason: 'The film is cut — keep a copy with the Cast.',
     };
   }
   if (input.dayPhase === 'cut') {

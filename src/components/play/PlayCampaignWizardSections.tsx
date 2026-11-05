@@ -125,18 +125,19 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         ) : null}
 
         {midFilm ? (
+          // One row: why, then the step itself on the button — it was an overline, a heading and
+          // a button all naming the same step, and a disclosure for one more button (2026-11-04).
           <div
-            className="rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-4"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent-border)] bg-[var(--accent-muted)] px-4 py-3"
             data-testid="play-campaign-resume-card"
           >
-            <p className="type-overline text-[var(--accent-text)]">Continue</p>
-            <p className="type-heading mt-1 text-[var(--text-primary)]">
-              {props.nextAction?.label ?? `Pick up at ${props.resumeStep!.label}`}
-            </p>
-            <p className="type-caption mt-1 text-[var(--text-muted)]">
-              {props.nextAction?.reason ?? props.resumeStep!.description}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="min-w-0">
+              <p className="type-overline text-[var(--accent-text)]">Continue</p>
+              <p className="type-caption text-[var(--text-secondary)]">
+                {props.nextAction?.reason ?? props.resumeStep!.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               {/* The film's next step, the same one the header and the step strip name. */}
               {props.nextAction ? (
                 <ButtonLink
@@ -165,22 +166,15 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
               >
                 Restart at Day
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                data-testid="play-campaign-jump-starter"
+                onClick={() => runStarter(props.characterId || undefined)}
+              >
+                Starter Day
+              </Button>
             </div>
-            <details className="mt-3">
-              <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
-                More · jump to starter Day
-              </summary>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  data-testid="play-campaign-jump-starter"
-                  onClick={() => runStarter(props.characterId || undefined)}
-                >
-                  Jump to starter Day
-                </Button>
-              </div>
-            </details>
           </div>
         ) : null}
 

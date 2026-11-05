@@ -811,15 +811,15 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="type-overline text-[var(--accent-text)]">Ready to cut</p>
+                {/* One line says it (it was an overline, a heading and a sentence saying the same). */}
                 <p className="type-heading text-[var(--text-primary)]">
-                  Cut film · {completedShotCount} of {slotTotal}
+                  Ready to cut · {completedShotCount} of {slotTotal} stills
                 </p>
-                <p className="type-caption text-[var(--text-muted)]">
-                  {completedShotCount < slotTotal
-                    ? 'Cut with what you have, or wait for the rest of the day.'
-                    : 'All stills ready — open Cut to put the film together.'}
-                </p>
+                {completedShotCount < slotTotal ? (
+                  <p className="type-caption text-[var(--text-muted)]">
+                    Cut with what you have, or wait for the rest of the day.
+                  </p>
+                ) : null}
                 <CutReadinessNotes
                   coverage={cutReadiness.coverage}
                   coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}

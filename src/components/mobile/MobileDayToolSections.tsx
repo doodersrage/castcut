@@ -770,15 +770,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
           data-testid="day-cut-coach"
           role="status"
         >
-          <p className="type-overline text-[var(--accent-text)]">Ready to cut</p>
           <p className="type-heading text-[var(--text-primary)]">
-            Cut film · {completedShotCount} of {slotTotal}
+            Ready to cut · {completedShotCount} of {slotTotal} stills
           </p>
-          <p className="type-caption text-[var(--text-muted)]">
-            {completedShotCount < slotTotal
-              ? 'Cut with what you have, or wait for the rest.'
-              : 'All stills ready — cut the reel.'}
-          </p>
+          {completedShotCount < slotTotal ? (
+            <p className="type-caption text-[var(--text-muted)]">
+              Cut with what you have, or wait for the rest.
+            </p>
+          ) : null}
           <CutReadinessNotes
             coverage={cutReadiness.coverage}
             coverageTitle={`Checked when you cut: ${CUT_TIME_CHECKS}`}

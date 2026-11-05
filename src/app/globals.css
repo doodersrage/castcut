@@ -70,14 +70,14 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  --card-padding: 1.65rem;
-  --card-padding-lg: 1.85rem;
+  --card-padding: 1.35rem;
+  --card-padding-lg: 1.5rem;
   --input-padding-x: var(--space-4);
   --input-padding-y: 0.7rem;
 
   --group-gap: 1rem;
-  --block-gap: 1.75rem;
-  --section-gap: 2rem;
+  --block-gap: 1.4rem;
+  --section-gap: 1.5rem;
 
   --sidebar-width: 17.5rem;
   --page-gutter: var(--space-6);
@@ -593,12 +593,14 @@ html[data-ambient='vivid'] .ambient-bg__orb {
   filter: blur(64px);
 }
 
+/* Comfortable, tightened 2026-11-04 (cards 1.65 → 1.35rem, sections 2 → 1.5rem): the first screen
+   held a header and two half-empty cards. Compact stays tighter still. */
 html[data-density='comfortable'] {
-  --card-padding: 1.65rem;
-  --card-padding-lg: 1.85rem;
+  --card-padding: 1.35rem;
+  --card-padding-lg: 1.5rem;
   --group-gap: 1rem;
-  --block-gap: 1.75rem;
-  --section-gap: 2rem;
+  --block-gap: 1.4rem;
+  --section-gap: 1.5rem;
   --page-gutter: var(--space-6);
   --sidebar-width: 17.5rem;
   --type-display-size: clamp(1.7rem, 3.6vw, 2.1rem);
@@ -607,11 +609,11 @@ html[data-density='comfortable'] {
 }
 
 html[data-density='compact'] {
-  --card-padding: 1.15rem;
-  --card-padding-lg: 1.35rem;
+  --card-padding: 1rem;
+  --card-padding-lg: 1.15rem;
   --group-gap: 0.75rem;
-  --block-gap: 1.35rem;
-  --section-gap: 1.5rem;
+  --block-gap: 1.1rem;
+  --section-gap: 1.15rem;
   --page-gutter: var(--space-4);
   --sidebar-width: 15.25rem;
   --type-display-size: clamp(1.55rem, 3.2vw, 1.9rem);
