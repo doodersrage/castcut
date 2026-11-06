@@ -654,6 +654,8 @@ type V2Run = {
   stopReason?: string;
   current?: unknown;
   outcomes?: Record<string, string>;
+  attempts?: Record<string, number>;
+  flagged?: Record<string, string>;
   log?: Array<{ at: number; event: string; sceneId?: string; promptId?: string; note?: string }>;
 };
 
@@ -3635,8 +3637,9 @@ const phases: Record<string, Phase> = {
       },
       EP_HOURS * 60
     );
-    const log2 = run.log ?? [];
-    const count = (event: string) => log2.filter(entry => entry.event === event).length;
+    // From the run's own records: its log keeps only the latest entries.
+    const flaggedCount = Object.keys(run.flagged ?? {}).length;
+    const redos = Object.values(run.attempts ?? {}).reduce((sum, n) => sum + Math.max(0, n - 1), 0);
     log(
       'episode run',
       run.state,
@@ -3645,11 +3648,11 @@ const phases: Record<string, Phase> = {
       'min ·',
       Object.keys(run.outcomes ?? {}).length,
       'Scenes ·',
-      count('kept'),
+      Object.keys(run.outcomes ?? {}).length - flaggedCount,
       'kept clean ·',
-      count('flagged'),
+      flaggedCount,
       'flagged ·',
-      count('redo'),
+      redos,
       'redos'
     );
     writeFileSync(join(OUT, 'episode-run.json'), JSON.stringify(run, null, 1));
