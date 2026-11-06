@@ -111,6 +111,8 @@ export type FilmCutOptionsValue = {
   stems?: boolean;
   /** The subtitles as a track in the MP4 too — players turn it on and off. */
   subtitleTrack?: boolean;
+  /** Sign the film with Content Credentials (C2PA) — unset = on; false turns it off. */
+  contentCredentials?: boolean;
   /** End credits rolling after the last shot, one line each (polish.ts normalizeFilmCredits). */
   credits?: string;
   /** Read each still's line in its speaker's voice, the still held for it (a stills animatic). */
@@ -318,6 +320,15 @@ export default function FilmCutOptionsControls({
             testId={`${testIdPrefix}-follow-faces`}
           />
         ) : null}
+        <OptionSwitch
+          label="Content Credentials"
+          note="Signed as made with AI, in Castcut"
+          hint="C2PA: a signed record in the MP4 that it was edited in Castcut from AI-made pictures and clips, and with which engines. Apps and sites that read Content Credentials label it — and it shows if the file was changed since. Signed by this install's own certificate (readers call the signer unrecognised)"
+          checked={value.contentCredentials !== false}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, contentCredentials: next ? undefined : false })}
+          testId={`${testIdPrefix}-content-credentials`}
+        />
       </OptionGroup>
 
       <OptionGroup

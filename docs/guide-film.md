@@ -322,6 +322,23 @@ differences: shots are joined with a hard cut where one piece meets the next (cr
 piece are kept), and stems are not made at this length. A 600-shot, 20-minute test film rendered
 in under two minutes on the server (stills and short clips; real clips take longer).
 
+## Content Credentials
+
+A film rendered on the server is signed with **Content Credentials** (C2PA, the standard behind the
+"CR" label on LinkedIn, Adobe and some news sites), unless you turn **Content Credentials** off
+under Format. The signed record inside the MP4 (or master .mov) says the film was edited in
+Castcut from AI-made pictures and clips, names the engines its shots came from, and holds a
+fingerprint of the file: change a single byte and readers report the record no longer matches.
+Check one at [contentcredentials.org/verify](https://contentcredentials.org/verify) or with
+`c2patool`. The status line says when a film was signed, or why it wasn't.
+
+It's signed by this install's own certificate, made the first time it signs and kept in the data
+folder (`c2pa/`). Readers show the signature as valid but the signer as **unrecognised** — it
+proves what the file is and that it wasn't changed, not who you are. To sign as you, set
+`CASTCUT_C2PA_CERT_FILE` (the certificate chain, PEM, yours first) and `CASTCUT_C2PA_KEY_FILE`
+(its private key) to a certificate from an authority on the C2PA trust list. A film made in
+the browser (no server encode), a film over 1.5 GB, and a WebM aren't signed.
+
 ## Missing media
 
 Each shot's file is checked as the edit loads — a byte each, nothing downloaded. A shot whose file

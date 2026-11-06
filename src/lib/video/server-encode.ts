@@ -92,6 +92,8 @@ import {
   type ShotColourStats,
 } from './cut-look';
 import { loadStoredLut, lutToCube, type StoredLut } from './cut-lut';
+import type { ContentCredentialsRequest, ContentCredentialsResult } from './content-credentials';
+import { signFilmWithContentCredentials } from './content-credentials-server';
 import type { ZipDiskEntry } from '../gallery/zip-stream';
 import {
   chaptersFfmetadata,
@@ -170,6 +172,8 @@ export type FilmServerEncodeOptions = {
   stems?: boolean;
   /** The subtitles as a track in the MP4 too (players turn it on and off; mov_text). */
   subtitleTrack?: boolean;
+  /** Sign the film with Content Credentials (C2PA): made with AI, in Castcut, by these engines. */
+  contentCredentials?: ContentCredentialsRequest | null;
   /** End credits, one line each, rolled after the last shot (polish.ts). */
   credits?: string[];
   /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (film-finish.ts filmCodec). */
@@ -192,6 +196,8 @@ export type FilmServerEncodeResult = {
   height: number;
   /** The film's subtitles as an .srt (when subtitles are on and anything is spoken). */
   subtitlesSrt?: string;
+  /** Whether the film was signed with Content Credentials (asked for, and how it went). */
+  contentCredentials?: ContentCredentialsResult;
   /** The chapters as written into the file (file seconds) — for a video description. */
   chapters?: FilmChapter[];
   /** The stems (dialogue, music, ambience, effects WAVs) as a .zip, when asked for. */
@@ -1939,8 +1945,9 @@ export async function encodeFilmPlaylistServer(
           gainDb: finished.gainDb ?? 0,
         })
       : null;
+    const credentials = await filmCredentials(finished.file, codec.extension, options);
     options.onProgress?.(0.95, 'Reading encode…');
-    const buffer = await fs.readFile(/* turbopackIgnore: true */ finished.file);
+    const buffer = await fs.readFile(/* turbopackIgnore: true */ credentials.file);
     if (buffer.byteLength === 0) {
       throw new Error('Server encode produced an empty file.');
     }
@@ -1959,12 +1966,29 @@ export async function encodeFilmPlaylistServer(
       ...(finished.chapters.length ? { chapters: finished.chapters } : {}),
       ...(offsetSec > 0 ? { leadOffsetSec: offsetSec } : {}),
       ...(stemsZip ? { stemsZip } : {}),
+      ...(credentials.result ? { contentCredentials: credentials.result } : {}),
     };
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ workDir, { recursive: true, force: true })
       .catch(() => undefined);
   }
+}
+
+/** The last step before the film is read: signed with Content Credentials, when asked. */
+async function filmCredentials(
+  file: string,
+  extension: string,
+  options: FilmServerEncodeOptions
+): Promise<{ file: string; result?: ContentCredentialsResult }> {
+  if (!options.contentCredentials) return { file };
+  options.onProgress?.(0.94, 'Signing (Content Credentials)…');
+  return signFilmWithContentCredentials({
+    file,
+    extension,
+    title: options.titleCard?.title,
+    request: options.contentCredentials,
+  });
 }
 
 /**
@@ -2191,6 +2215,8 @@ export async function encodeFilmLongFormServer(
           // Kept on so each piece times its subtitles (the last pass keeps only picture and sound).
           subtitleTrack: options.subtitleTrack,
           reviewBurnIn: false,
+          // Signed once, as a whole film.
+          contentCredentials: null,
           onProgress: progress(
             0.02 + (0.78 * index) / chunks.length,
             0.02 + (0.78 * (index + 1)) / chunks.length
@@ -2473,8 +2499,9 @@ export async function encodeFilmLongFormServer(
       ]);
       file = withTrack;
     }
+    const credentials = await filmCredentials(file, codec.extension, options);
     options.onProgress?.(0.97, 'Reading encode…');
-    const buffer = await fs.readFile(/* turbopackIgnore: true */ file);
+    const buffer = await fs.readFile(/* turbopackIgnore: true */ credentials.file);
     const { width, height } = FILM_PRESET_SIZE[normalizeFilmResolution(options.resolution)];
     options.onProgress?.(1, 'Encode complete');
     return {
@@ -2485,6 +2512,7 @@ export async function encodeFilmLongFormServer(
       height: even(height),
       ...(srtForFile ? { subtitlesSrt: srtForFile } : {}),
       ...(finished.chapters.length ? { chapters: finished.chapters } : {}),
+      ...(credentials.result ? { contentCredentials: credentials.result } : {}),
     };
   } finally {
     await fs

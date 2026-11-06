@@ -3480,7 +3480,7 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   character sheet; **episode pack** — the title card with the season's episode, "Previously on" and
   end credits cover it.
 
-### Part 18 R7 — workflow, done (C2PA waits for a dependency OK)
+### Part 18 R7 — workflow, done
 
 - **Templates:** day-templates.ts (`templateFromDay` keeps the plan fields only, `applyDayTemplate`
   puts them on the slots keeping each slot's outfit — Day's Undo covers it; stills stay), kept with
@@ -3499,7 +3499,19 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   project archive (Package a cut), multi-language (Day's Dub), sharing for comments (review links),
   content rating (Story rating, Day mood gating), "render what's needed" (Film Director's next
   actions), the reproducibility report (Cut's shot report).
-- **C2PA provenance:** needs a signing library (a new dependency) — not added without the user's OK.
+- **C2PA provenance — done (2026-11-06, the user OK'd the dependency).** `@contentauth/c2pa-wasm`
+  (the official c2pa-rs as WebAssembly, MIT, no install scripts — the native c2pa-node is a
+  glibc-only 50 MB download that can't run on the Alpine image). Server-rendered films are signed
+  (Cut → Format → Content Credentials, on by default): `c2pa.created`,
+  `compositeWithTrainedAlgorithmicMedia`, Castcut as software agent, the shots' engines named.
+  content-credentials-cert.ts makes the install's identity (its own CA + a P-256 signer, DER by
+  hand on node:crypto; C2PA refuses self-signed signers), kept in `<data>/c2pa/`;
+  `CASTCUT_C2PA_CERT_FILE`/`_KEY_FILE` use a trusted one instead. scripts/c2pa-sign.mjs runs per
+  film as its own process (Wasm memory never shrinks), reads the film in slices (file-backed Blob
+  + a FileReaderSync stand-in) and builds the COSE_Sign1 itself (the Wasm signer hands back the
+  whole COSE). Checked: native c2pa-rs reads the episode film as Valid (signer untrusted), a
+  3-byte change → Invalid (bmffHash mismatch); 290 MB / 20 min signs in 1.4 s, ~1.4 GB peak, so
+  films over 1.5 GB aren't signed. Not signed: browser encodes, WebM, stills.
 
 ## Part 19 — a half-hour episode (user request 2026-11-05: "do all, lets close those gaps")
 

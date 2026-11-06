@@ -72,6 +72,13 @@ const baseConfig = {
   // The Castcut node pack the app serves for copy-install (src/app/api/castcut-nodes/file).
   outputFileTracingIncludes: {
     '/api/castcut-nodes/file': ['./comfyui-nodes/castcut/castcut_nodes.py'],
+    // Content Credentials: films are signed by a script run as its own process
+    // (content-credentials-server.ts), with the C2PA WebAssembly it loads from disk.
+    '/api/film/assemble': [
+      './scripts/c2pa-sign.mjs',
+      './node_modules/@contentauth/c2pa-wasm/package.json',
+      './node_modules/@contentauth/c2pa-wasm/pkg/**/*',
+    ],
   },
 
   compiler: {

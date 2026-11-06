@@ -5,6 +5,7 @@ import {
   normalizeFilmRange,
 } from '@/lib/video/film-finish';
 import { normalizeSubtitleStyle } from '@/lib/video/subtitle-style';
+import { normalizeContentCredentialsRequest } from '@/lib/video/content-credentials';
 import { NextResponse } from 'next/server';
 import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { normalizeOverlayCorner } from '@/lib/video/cut-overlay';
@@ -152,6 +153,7 @@ export async function POST(request: Request) {
       loudness: normalizeFilmLoudnessTarget(body.loudness),
       stems: body.stems === true,
       subtitleTrack: body.subtitleTrack === true,
+      contentCredentials: normalizeContentCredentialsRequest(body.contentCredentials),
       master: body.master === true,
       reviewBurnIn: body.reviewBurnIn === true,
       matchTo:

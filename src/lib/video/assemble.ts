@@ -7,6 +7,7 @@
 import type { SubtitleStyle } from './subtitle-style';
 import type { FilmChapter, FilmRange } from './film-finish';
 import type { StoredLut } from './cut-lut';
+import type { ContentCredentialsRequest, ContentCredentialsResult } from './content-credentials';
 import type { FilmOutputProbe } from './output-probe';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { downloadFilmBlob } from './blob-download';
@@ -99,6 +100,8 @@ export type AssembleFilmOptions = {
   stems?: boolean;
   /** The subtitles as a track in the MP4 too (players turn it on and off). */
   subtitleTrack?: boolean;
+  /** Sign the film with Content Credentials (C2PA), naming the engines that made its shots. */
+  contentCredentials?: ContentCredentialsRequest;
   /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (server encode only). */
   master?: boolean;
   /** "REVIEW" and the film's running timecode burned into the picture, top left. */
@@ -124,6 +127,8 @@ export type AssembledFilmResult = {
   serverJobId?: string;
   /** The chapters written into the file (file seconds). */
   chapters?: FilmChapter[];
+  /** Whether the film was signed with Content Credentials (when asked). */
+  contentCredentials?: ContentCredentialsResult;
   /** The stems .zip (dialogue, music, ambience, effects), when asked for. */
   stemsZip?: Blob;
 };
@@ -433,6 +438,7 @@ async function assembleFilmBlobOnServer(
         ...(options?.loudness ? { loudness: options.loudness } : {}),
         ...(options?.stems ? { stems: true } : {}),
         ...(options?.subtitleTrack ? { subtitleTrack: true } : {}),
+        ...(options?.contentCredentials ? { contentCredentials: options.contentCredentials } : {}),
         ...(options?.master ? { master: true } : {}),
         ...(options?.reviewBurnIn ? { reviewBurnIn: true } : {}),
         ...(options?.matchTo != null ? { matchTo: options.matchTo } : {}),
@@ -470,6 +476,7 @@ async function assembleFilmBlobOnServer(
           outputProbe?: FilmOutputProbe;
           chapters?: FilmChapter[];
           hasStems?: boolean;
+          contentCredentials?: ContentCredentialsResult;
           extension?: string;
         };
       };
@@ -514,6 +521,7 @@ async function assembleFilmBlobOnServer(
           ...(job.subtitlesSrt ? { subtitlesSrt: job.subtitlesSrt } : {}),
           ...(job.outputProbe ? { outputProbe: job.outputProbe } : {}),
           ...(job.chapters?.length ? { chapters: job.chapters } : {}),
+          ...(job.contentCredentials ? { contentCredentials: job.contentCredentials } : {}),
           ...(stemsZip ? { stemsZip } : {}),
         };
       }

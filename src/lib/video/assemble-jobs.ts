@@ -5,6 +5,7 @@
 import type { SubtitleStyle } from './subtitle-style';
 import { LONG_FORM_MIN_SHOTS, type FilmChapter, type FilmRange } from './film-finish';
 import type { StoredLut } from './cut-lut';
+import type { ContentCredentialsRequest, ContentCredentialsResult } from './content-credentials';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { normalizeFilmTitleCard, type FilmTitleCard } from './polish';
 import fs from 'node:fs/promises';
@@ -48,6 +49,8 @@ export type FilmAssembleJob = {
   subtitlesSrt?: string;
   /** The chapters written into the file (file seconds), when there were any. */
   chapters?: FilmChapter[];
+  /** Whether the film was signed with Content Credentials (when asked). */
+  contentCredentials?: ContentCredentialsResult;
   /** Its stems .zip can be downloaded (?download=stems). */
   hasStems?: boolean;
 };
@@ -222,6 +225,8 @@ export type StartFilmAssembleInput = {
   stems?: boolean;
   /** The subtitles as a track in the MP4 too (players turn it on and off). */
   subtitleTrack?: boolean;
+  /** Sign the film with Content Credentials (C2PA). */
+  contentCredentials?: ContentCredentialsRequest | null;
   /** A master: ProRes 422 HQ and 24-bit PCM in a .mov (film-finish.ts filmCodec). */
   master?: boolean;
   /** "REVIEW" and the film's running timecode burned into the picture, top left. */
@@ -306,6 +311,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
         loudness: input.loudness ?? null,
         stems: input.stems === true,
         subtitleTrack: input.subtitleTrack === true,
+        contentCredentials: input.contentCredentials ?? null,
         master: input.master === true,
         reviewBurnIn: input.reviewBurnIn === true,
         matchTo: input.matchTo ?? null,
@@ -361,6 +367,7 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
     if (outputProbe) current.outputProbe = outputProbe;
     current.buffer = result.buffer;
     if (result.stemsZip) current.stemsZip = result.stemsZip;
+    if (result.contentCredentials) current.contentCredentials = result.contentCredentials;
     current.updatedAt = Date.now();
   } catch (error) {
     const current = jobs.get(id);

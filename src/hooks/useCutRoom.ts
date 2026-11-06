@@ -226,6 +226,8 @@ import { REALISM_MISS_REASON } from '@/lib/still/realism';
 import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
 import { resolveStoryFilmCast, storyFilmName } from '@/lib/story/film-cast';
 import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
+import { filmEngineNames } from '@/lib/video/content-credentials';
+import { COMFY_MODEL_IDS, comfyModelLabel, type ComfyImageModel } from '@/lib/comfy-models';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 
 const EMPTY_GALLERY: ComfyGalleryEntry[] = [];
@@ -2478,6 +2480,16 @@ export function useCutRoom() {
           leadShots: recap.length,
           ...(cutOptions.stems === true ? { stems: true } : {}),
           ...(cutOptions.subtitleTrack === true ? { subtitleTrack: true } : {}),
+          // Content Credentials (C2PA, on unless turned off): made with AI, in Castcut, by these.
+          ...(cutOptions.contentCredentials !== false
+            ? {
+                contentCredentials: {
+                  engines: filmEngineNames(picked, loadComfyGallery(), model =>
+                    COMFY_MODEL_IDS.has(model) ? comfyModelLabel(model as ComfyImageModel) : null
+                  ),
+                },
+              }
+            : {}),
           ...(cutOptions.lut ? { lut: cutOptions.lut } : {}),
           // A master is never a review copy.
           ...(cutOptions.reviewBurnIn === true && !master ? { reviewBurnIn: true } : {}),
@@ -2569,6 +2581,13 @@ export function useCutRoom() {
         }
         const notes = [
           ...result.cutNotes,
+          ...(result.contentCredentials
+            ? [
+                result.contentCredentials.signed
+                  ? 'signed with Content Credentials'
+                  : `not signed: ${result.contentCredentials.note ?? 'Content Credentials failed'}`,
+              ]
+            : []),
           ...(mutedLeft.length
             ? [
                 `left out (muted): ${mutedLeft.map(track => CUT_TRACK_LABELS[track].toLowerCase()).join(', ')}`,

@@ -5,6 +5,10 @@
 
 import type { SubtitleStyle } from '../video/subtitle-style';
 import type { FilmOutputProbe } from '../video/output-probe';
+import type {
+  ContentCredentialsRequest,
+  ContentCredentialsResult,
+} from '../video/content-credentials';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from './cut-media';
 import type { FilmCutLength } from './cut-plan';
@@ -70,6 +74,8 @@ export async function assembleAndStampFilm(input: {
   stems?: boolean;
   /** The subtitles as a track in the MP4 too (players turn it on and off). */
   subtitleTrack?: boolean;
+  /** Sign the film with Content Credentials (C2PA). */
+  contentCredentials?: ContentCredentialsRequest;
   /** A master: ProRes .mov — a download, not kept (the Gallery plays MP4s). */
   master?: boolean;
   /** false: a hand-off render (the render queue) — downloaded, not kept on the Cast. */
@@ -101,6 +107,8 @@ export async function assembleAndStampFilm(input: {
   chapters?: FilmChapter[];
   /** The stems .zip, when asked for. */
   stemsZip?: Blob;
+  /** Whether the film was signed with Content Credentials (when asked). */
+  contentCredentials?: ContentCredentialsResult;
 }> {
   input.onProgress?.({ ratio: 0.01, label: 'Timing the cut…' });
   const prepared = await prepareCutShots(input.shots, {
@@ -141,6 +149,7 @@ export async function assembleAndStampFilm(input: {
     ...(input.loudness ? { loudness: input.loudness } : {}),
     ...(input.stems ? { stems: true } : {}),
     ...(input.subtitleTrack ? { subtitleTrack: true } : {}),
+    ...(input.contentCredentials ? { contentCredentials: input.contentCredentials } : {}),
     ...(input.master ? { master: true } : {}),
     ...(input.reviewBurnIn ? { reviewBurnIn: true } : {}),
     ...(input.matchTo != null ? { matchTo: input.matchTo } : {}),
@@ -191,6 +200,7 @@ export async function assembleAndStampFilm(input: {
       ...(assembled.outputProbe ? { outputProbe: assembled.outputProbe } : {}),
       ...(assembled.chapters?.length ? { chapters: assembled.chapters } : {}),
       ...(assembled.stemsZip ? { stemsZip: assembled.stemsZip } : {}),
+      ...(assembled.contentCredentials ? { contentCredentials: assembled.contentCredentials } : {}),
     };
   }
   const stamped = await stampAssembledFilm({
@@ -237,6 +247,7 @@ export async function assembleAndStampFilm(input: {
     ...(assembled.outputProbe ? { outputProbe: assembled.outputProbe } : {}),
     ...(assembled.chapters?.length ? { chapters: assembled.chapters } : {}),
     ...(assembled.stemsZip ? { stemsZip: assembled.stemsZip } : {}),
+    ...(assembled.contentCredentials ? { contentCredentials: assembled.contentCredentials } : {}),
     ...stamped,
   };
 }
