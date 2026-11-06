@@ -4,7 +4,10 @@ import {
   chapterListText,
   chaptersFfmetadata,
   chaptersForFile,
+  longFormChunks,
   loudnormFilters,
+  mergeSrt,
+  shiftSrt,
   normalizeFilmChapters,
   normalizeFilmLoudnessTarget,
   parseLoudnormMeasure,
@@ -105,6 +108,23 @@ describe('film finish', () => {
     assert.equal(
       srtToVtt('1\n00:00:01,000 --> 00:00:03,250\nHello\nthere\n\n2\n00:01:02,500 --> 00:01:04,000\nBye\n'),
       'WEBVTT\n\n00:00:01.000 --> 00:00:03.250\nHello\nthere\n\n00:01:02.500 --> 00:01:04.000\nBye\n'
+    );
+  });
+
+  it('cuts a long film into pieces, the first long enough for its title card', () => {
+    assert.deepEqual(longFormChunks(70), [[0, 30], [30, 60], [60, 70]]);
+    assert.deepEqual(longFormChunks(62), [[0, 30], [30, 62]], 'a tail of two folds in');
+    assert.deepEqual(longFormChunks(70, 34)[0], [0, 35]);
+    assert.deepEqual(longFormChunks(10), [[0, 10]]);
+  });
+
+  it('moves and merges .srt pieces into film time', () => {
+    const a = '1\n00:00:01,000 --> 00:00:02,000\nHi\n';
+    const b = '1\n00:00:00,500 --> 00:00:01,500\nBye\n';
+    assert.equal(shiftSrt(b, 60), '1\n00:01:00,500 --> 00:01:01,500\nBye\n');
+    assert.equal(
+      mergeSrt([a, shiftSrt(b, 60)]),
+      '1\n00:00:01,000 --> 00:00:02,000\nHi\n\n2\n00:01:00,500 --> 00:01:01,500\nBye\n'
     );
   });
 });

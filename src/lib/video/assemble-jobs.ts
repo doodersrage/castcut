@@ -3,7 +3,7 @@
  */
 
 import type { SubtitleStyle } from './subtitle-style';
-import type { FilmChapter, FilmRange } from './film-finish';
+import { LONG_FORM_MIN_SHOTS, type FilmChapter, type FilmRange } from './film-finish';
 import type { StoredLut } from './cut-lut';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { normalizeFilmTitleCard, type FilmTitleCard } from './polish';
@@ -15,6 +15,7 @@ import { MAX_SERVER_GALLERY_FILM_BYTES, type FilmPlaylistShot } from '../media/k
 import type { FilmOutputProbe } from './output-probe';
 import { probeFilmOutput } from './output-probe-server';
 import {
+  encodeFilmLongFormServer,
   encodeFilmPlaylistServer,
   isServerFilmEncodeAvailable,
   resolveFfmpegBinary,
@@ -273,7 +274,12 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
   job.updatedAt = Date.now();
 
   try {
-    const result: FilmServerEncodeResult = await encodeFilmPlaylistServer(
+    // A long film (a half-hour episode) is rendered in pieces and joined (server-encode.ts).
+    const encode =
+      input.shots.length > LONG_FORM_MIN_SHOTS
+        ? encodeFilmLongFormServer
+        : encodeFilmPlaylistServer;
+    const result: FilmServerEncodeResult = await encode(
       input.shots,
       {
         resolution: normalizeFilmResolution(input.resolution),

@@ -98,7 +98,10 @@ import {
   chaptersForFile,
   filmCodec,
   loudnormFilters,
+  longFormChunks,
+  mergeSrt,
   normalizeFilmRange,
+  shiftSrt,
   parseLoudnormMeasure,
   srtForRange,
   type FilmChapter,
@@ -193,6 +196,8 @@ export type FilmServerEncodeResult = {
   chapters?: FilmChapter[];
   /** The stems (dialogue, music, ambience, effects WAVs) as a .zip, when asked for. */
   stemsZip?: Buffer;
+  /** Where the shots the monitor shows start, after a recap (seconds). */
+  leadOffsetSec?: number;
 };
 
 let ffmpegCached: string | null | undefined;
@@ -1877,10 +1882,16 @@ export async function encodeFilmPlaylistServer(
         finished.file,
         '-i',
         srtPath,
+        // Picture, sound and the new subtitles; the chapters carried as chapters (a plain
+        // -map 0 copied their text track over as a stray data stream).
         '-map',
-        '0',
+        '0:v',
+        '-map',
+        '0:a?',
         '-map',
         '1',
+        '-map_chapters',
+        '0',
         '-c',
         'copy',
         '-c:s',
@@ -1921,6 +1932,7 @@ export async function encodeFilmPlaylistServer(
           }
         : {}),
       ...(finished.chapters.length ? { chapters: finished.chapters } : {}),
+      ...(offsetSec > 0 ? { leadOffsetSec: offsetSec } : {}),
       ...(stemsZip ? { stemsZip } : {}),
     };
   } finally {
@@ -2098,6 +2110,334 @@ async function cutFilmFile(input: {
   args.push(...codec.container, out);
   await runCapture(input.ffmpeg, args);
   return { file: out, range, chapters };
+}
+
+/**
+ * A long film (more than LONG_FORM_MIN_SHOTS shots, a half-hour episode) in pieces (Part 19): each
+ * run of shots rendered on its own — the pictures, the clips' sound, the narration, its subtitles;
+ * the title card on the first, the credits on the last — then joined as they are, then one pass
+ * over the whole film lays the music (ducked under the lines), the ambience and the effects, and
+ * the usual finish (a part, chapters, loudness, the subtitle track). One ffmpeg graph of hundreds
+ * of inputs would hold too much at once; a piece at a time never does. Joins are hard cuts.
+ * Stems are not made at this length.
+ */
+export async function encodeFilmLongFormServer(
+  shots: FilmPlaylistShot[],
+  options: FilmServerEncodeOptions = {},
+  requestOrigin?: string
+): Promise<FilmServerEncodeResult> {
+  const ffmpeg = await resolveFfmpegBinary();
+  if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
+  const workDir = path.join(/* turbopackIgnore: true */ filmWorkRoot(), `long-${randomUUID()}`);
+  await ensureDir(workDir);
+  const codec = filmCodec(options.master === true);
+  const chunks = longFormChunks(shots.length, options.titleCard?.afterShots ?? 0);
+  const progress = (from: number, to: number) => (ratio: number, label: string) =>
+    options.onProgress?.(from + (to - from) * ratio, label);
+  try {
+    const pieces: Array<{ file: string; seconds: number; srt?: string }> = [];
+    let leadOffsetSec = 0;
+    for (const [index, [start, end]] of chunks.entries()) {
+      const first = index === 0;
+      const last = index === chunks.length - 1;
+      const piece = await encodeFilmPlaylistServer(
+        shots.slice(start, end),
+        {
+          ...options,
+          // The whole-film layers wait for the last pass.
+          audioBedUrl: undefined,
+          sound: options.sound
+            ? {
+                ...options.sound,
+                effects: [],
+                ambienceUrl: undefined,
+                musicFadeOutSec: 0,
+                musicKeys: undefined,
+              }
+            : { musicFadeOutSec: 0 },
+          titleCard: first ? options.titleCard : null,
+          credits: last ? options.credits : [],
+          logo: null,
+          leadShots: first ? options.leadShots : 0,
+          range: null,
+          chapters: [],
+          loudness: null,
+          stems: false,
+          // Kept on so each piece times its subtitles (the last pass keeps only picture and sound).
+          subtitleTrack: options.subtitleTrack,
+          reviewBurnIn: false,
+          onProgress: progress(
+            0.02 + (0.78 * index) / chunks.length,
+            0.02 + (0.78 * (index + 1)) / chunks.length
+          ),
+        },
+        requestOrigin
+      );
+      if (first) leadOffsetSec = piece.leadOffsetSec ?? 0;
+      const file = path.join(
+        /* turbopackIgnore: true */ workDir,
+        `piece-${index}.${codec.extension}`
+      );
+      await fs.writeFile(/* turbopackIgnore: true */ file, piece.buffer);
+      // Every piece needs a sound track for the join (a piece of stills alone has none).
+      const hasAudio = /Audio:/.test(
+        (
+          await runCapture(ffmpeg, ['-hide_banner', '-i', file]).catch(error => ({
+            stderr: String((error as Error).message),
+          }))
+        ).stderr
+      );
+      let joinable = file;
+      if (!hasAudio) {
+        joinable = path.join(
+          /* turbopackIgnore: true */ workDir,
+          `piece-${index}-sound.${codec.extension}`
+        );
+        await runCapture(ffmpeg, [
+          '-y',
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-i',
+          file,
+          '-f',
+          'lavfi',
+          '-i',
+          'anullsrc=channel_layout=stereo:sample_rate=48000',
+          '-map',
+          '0:v',
+          '-map',
+          '1:a',
+          '-c:v',
+          'copy',
+          ...codec.audio,
+          '-shortest',
+          ...codec.container,
+          joinable,
+        ]);
+      }
+      pieces.push({
+        file: joinable,
+        seconds: (await clipDurationSec(ffmpeg, joinable)) ?? 0,
+        ...(piece.subtitlesSrt ? { srt: piece.subtitlesSrt } : {}),
+      });
+    }
+
+    options.onProgress?.(0.82, 'Joining the pieces…');
+    const list = path.join(/* turbopackIgnore: true */ workDir, 'pieces.txt');
+    await fs.writeFile(
+      /* turbopackIgnore: true */ list,
+      pieces.map(piece => `file '${piece.file.replace(/'/g, "'\\''")}'`).join('\n')
+    );
+    const joined = path.join(/* turbopackIgnore: true */ workDir, `joined.${codec.extension}`);
+    await runCapture(ffmpeg, [
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-f',
+      'concat',
+      '-safe',
+      '0',
+      '-i',
+      list,
+      '-c',
+      'copy',
+      ...codec.container,
+      joined,
+    ]);
+    const total = pieces.reduce((sum, piece) => sum + piece.seconds, 0);
+
+    // The whole-film sound: music ducked under what the pieces say, ambience, effects, the fade.
+    options.onProgress?.(0.86, 'Mixing the music and sound…');
+    const fetchTo = async (url: string | undefined, name: string) => {
+      if (!url?.trim()) return null;
+      const fetched = await fetchShotBytes(url.trim(), requestOrigin, undefined, options.userId);
+      const file = path.join(/* turbopackIgnore: true */ workDir, name);
+      await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
+      return file;
+    };
+    const bed = await fetchTo(options.audioBedUrl, 'bed.audio').catch(() => null);
+    const ambience = await fetchTo(options.sound?.ambienceUrl, 'ambience.audio').catch(() => null);
+    const effects: Array<{ path: string; atSec: number; level?: number; lengthSec?: number }> = [];
+    for (const [k, effect] of heardEffects(options.sound).entries()) {
+      const file = await fetchTo(effect.url, `effect-${k}.audio`).catch(() => null);
+      if (file) {
+        effects.push({
+          path: file,
+          atSec: effect.atSec,
+          level: effect.level,
+          ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
+        });
+      }
+    }
+    const stereo = 'aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo';
+    const endSec = Math.max(1, total);
+    const fadeOutSec = Math.min(normalizeMusicFadeOutSec(options.sound?.musicFadeOutSec), endSec);
+    const fadeOut =
+      fadeOutSec > 0
+        ? `afade=t=out:st=${Math.max(0, endSec - fadeOutSec).toFixed(3)}:d=${fadeOutSec}`
+        : 'anull';
+    const inputs: string[] = ['-i', joined];
+    const parts: string[] = [`[0:a]${stereo},apad=whole_dur=${endSec},atrim=0:${endSec}[speech]`];
+    let label = 'speech';
+    let next = 1;
+    if (bed) {
+      inputs.push('-i', bed);
+      const at = next++;
+      const musicStart = normalizeMusicStartSec(options.sound?.musicStartSec);
+      const fadeIn = normalizeMusicFadeInSec(options.sound?.musicFadeInSec);
+      const level = normalizeMusicLevel(options.musicLevel);
+      const keys = levelKeysExpr(normalizeCutLevelKeys(options.sound?.musicKeys));
+      parts.push(
+        `[${at}:a]${stereo},atrim=${musicStart}:${musicStart + endSec},asetpts=PTS-STARTPTS` +
+          `${level !== 1 ? `,volume=${level}` : ''}${keys ? `,volume=${q(keys)}:eval=frame` : ''}` +
+          `${fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : ''},apad=whole_dur=${endSec}[bed]`,
+        `[speech]asplit=2[sp1][sp2]`,
+        `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[ducked]`,
+        `[ducked][sp2]amix=inputs=2:duration=first:normalize=0[withbed]`
+      );
+      label = 'withbed';
+    }
+    if (ambience) {
+      inputs.push('-stream_loop', '-1', '-i', ambience);
+      const at = next++;
+      parts.push(
+        `[${at}:a]${stereo},atrim=0:${endSec},asetpts=PTS-STARTPTS,volume=${normalizeAmbienceLevel(options.sound?.ambienceLevel)}[amb]`,
+        `[${label}][amb]amix=inputs=2:duration=first:normalize=0[withamb]`
+      );
+      label = 'withamb';
+    }
+    if (effects.length) {
+      const placed = effects.map(effect => {
+        inputs.push('-vn', '-i', effect.path);
+        return {
+          input: next++,
+          atSec: effect.atSec,
+          level: effect.level,
+          lengthSec: effect.lengthSec,
+        };
+      });
+      const fx = effectsFilterParts({ effects: placed, endSec, stereo, fadeOut: 'anull' });
+      if (fx) {
+        parts.push(
+          ...fx.parts,
+          `[${label}][${fx.label}]amix=inputs=2:duration=first:normalize=0[withfx]`
+        );
+        label = 'withfx';
+      }
+    }
+    parts.push(`[${label}]${fadeOut}[aout]`);
+    // The review timecode runs over the whole film, so it is drawn here (the picture re-encoded).
+    const font = options.reviewBurnIn ? await resolveFilmFontFile() : null;
+    let videoMap = '0:v';
+    if (font && usableFilterPath(font)) {
+      const size = 25;
+      parts.push(
+        `[0:v]drawtext=fontfile=${q(font)}:text='REVIEW':fontcolor=white@0.9:fontsize=${size}:box=1:boxcolor=black@0.5:boxborderw=9:x=22:y=22,` +
+          `drawtext=fontfile=${q(font)}:timecode='00\\:00\\:00\\:00':timecode_rate=${STILL_MOTION_FPS}:fontcolor=white@0.9:fontsize=${size}:box=1:boxcolor=black@0.5:boxborderw=9:x=22:y=62[vreview]`
+      );
+      videoMap = '[vreview]';
+    }
+    const mixed = path.join(/* turbopackIgnore: true */ workDir, `mixed.${codec.extension}`);
+    await runCapture(ffmpeg, [
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      ...inputs,
+      '-filter_complex',
+      parts.join(';'),
+      '-map',
+      videoMap,
+      '-map',
+      '[aout]',
+      ...(videoMap === '0:v' ? ['-c:v', 'copy'] : codec.video),
+      ...codec.audio,
+      ...codec.container,
+      mixed,
+    ]);
+
+    // Subtitles: each piece's, moved to its place in the film.
+    let at = 0;
+    const srts: string[] = [];
+    for (const piece of pieces) {
+      if (piece.srt) srts.push(shiftSrt(piece.srt, at));
+      at += piece.seconds;
+    }
+    const subtitlesSrt = srts.length ? mergeSrt(srts) : undefined;
+
+    const finished = await finishFilmFile({
+      ffmpeg,
+      file: mixed,
+      workDir,
+      range: options.range ?? null,
+      chapters: options.chapters ?? [],
+      offsetSec: leadOffsetSec,
+      hasAudio: true,
+      loudness: options.loudness ?? null,
+      master: options.master === true,
+      onProgress: options.onProgress,
+    });
+    const srtForFile = subtitlesSrt
+      ? finished.range
+        ? srtForRange(subtitlesSrt, finished.range)
+        : subtitlesSrt
+      : '';
+    let file = finished.file;
+    if (options.subtitleTrack && srtForFile.trim()) {
+      const srtPath = path.join(/* turbopackIgnore: true */ workDir, 'track.srt');
+      const withTrack = path.join(
+        /* turbopackIgnore: true */ workDir,
+        `with-subs.${codec.extension}`
+      );
+      await fs.writeFile(/* turbopackIgnore: true */ srtPath, srtForFile);
+      await runCapture(ffmpeg, [
+        '-y',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        file,
+        '-i',
+        srtPath,
+        '-map',
+        '0:v',
+        '-map',
+        '0:a?',
+        '-map',
+        '1',
+        '-map_chapters',
+        '0',
+        '-c',
+        'copy',
+        '-c:s',
+        'mov_text',
+        '-metadata:s:s:0',
+        'language=eng',
+        ...codec.container,
+        withTrack,
+      ]);
+      file = withTrack;
+    }
+    options.onProgress?.(0.97, 'Reading encode…');
+    const buffer = await fs.readFile(/* turbopackIgnore: true */ file);
+    const { width, height } = FILM_PRESET_SIZE[normalizeFilmResolution(options.resolution)];
+    options.onProgress?.(1, 'Encode complete');
+    return {
+      buffer,
+      mimeType: codec.mimeType,
+      extension: codec.extension,
+      width: even(width),
+      height: even(height),
+      ...(srtForFile ? { subtitlesSrt: srtForFile } : {}),
+      ...(finished.chapters.length ? { chapters: finished.chapters } : {}),
+    };
+  } finally {
+    await fs
+      .rm(/* turbopackIgnore: true */ workDir, { recursive: true, force: true })
+      .catch(() => undefined);
+  }
 }
 
 /** Stable cache key for identical playlists (optional future use). */

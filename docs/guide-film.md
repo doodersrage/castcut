@@ -303,6 +303,15 @@ shot, with who says it and whether its sound is there yet.
 **Shot report** (under **Cut film**) lists what made each shot — tool, model, seed, size and steps,
 LoRAs, prompt — from its Gallery record, to remake or credit it.
 
+## Long films
+
+A film of more than 40 shots — a half-hour episode — is rendered in pieces of about 30 shots, joined,
+then given its music, ambience, effects and finish in one pass over the whole film, so a long cut
+never has to hold hundreds of clips at once. It looks and sounds the same as a short one, with two
+differences: shots are joined with a hard cut where one piece meets the next (crossfades inside a
+piece are kept), and stems are not made at this length. A 600-shot, 20-minute test film rendered
+in under two minutes on the server (stills and short clips; real clips take longer).
+
 ## Missing media
 
 Each shot's file is checked as the edit loads — a byte each, nothing downloaded. A shot whose file

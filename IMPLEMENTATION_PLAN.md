@@ -3500,3 +3500,21 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   content rating (Story rating, Day mood gating), "render what's needed" (Film Director's next
   actions), the reproducibility report (Cut's shot report).
 - **C2PA provenance:** needs a signing library (a new dependency) — not added without the user's OK.
+
+## Part 19 — a half-hour episode (user request 2026-11-05: "do all, lets close those gaps")
+
+The gaps between Castcut and an unattended 30-minute episode, closed in order of what blocks most:
+
+- **G2 long-form encode — done.** `encodeFilmLongFormServer` (server-encode.ts): more than
+  `LONG_FORM_MIN_SHOTS` (40) shots are rendered in pieces (`longFormChunks`, ~30 shots, the title
+  card on the first, credits on the last), joined with concat (stream copy; a piece with no sound
+  gets silence), then one pass lays music ducked under the joined dialogue, ambience, effects, the
+  fade, the review burn-in; then the usual `finishFilmFile` (range, chapters, loudness) and the
+  subtitle track (`shiftSrt`/`mergeSrt` put each piece's lines in film time). Checked: 70 shots
+  (2:20) in 13 s and 600 shots (20:00) in 101 s from test media — picture, sound, one subtitle
+  track, chapters, −14 LUFS. Limits: joins are hard cuts; no stems; the file is still read into
+  memory once at the end (a long ProRes master is very large).
+- **G1 episode pipeline** — script → Scenes → a run that keeps the best take by its checks,
+  redoes failures, animates kept takes, assembles the cut.
+- **G3 episode writing** — premise → beat outline → screenplay, scene by scene, into the pipeline.
+- **G4 long-form music** — score cues per scene, ducked under the lines.

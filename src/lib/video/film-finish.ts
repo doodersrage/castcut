@@ -281,3 +281,51 @@ export function filmCodec(master: boolean): {
         container: ['-movflags', '+faststart'],
       };
 }
+
+/** Past this many shots a film is rendered in pieces and joined (long form). */
+export const LONG_FORM_MIN_SHOTS = 40;
+/** Shots per piece. */
+export const LONG_FORM_CHUNK_SHOTS = 30;
+
+/**
+ * Where a long film is cut into pieces: runs of about LONG_FORM_CHUNK_SHOTS shots, the first long
+ * enough to hold a title card that follows a recap (`firstAtLeast` shots). Half-open index ranges.
+ */
+export function longFormChunks(
+  count: number,
+  firstAtLeast = 0,
+  size = LONG_FORM_CHUNK_SHOTS
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  let start = 0;
+  while (start < count) {
+    const want = out.length === 0 ? Math.max(size, firstAtLeast + 1) : size;
+    let end = Math.min(count, start + want);
+    // Never leave a last piece of one or two shots: fold it into this one.
+    if (count - end > 0 && count - end < 3) end = count;
+    out.push([start, end]);
+    start = end;
+  }
+  return out;
+}
+
+/** An .srt moved later by `offsetSec` (a piece's place in the whole film). */
+export function shiftSrt(srt: string, offsetSec: number): string {
+  if (!offsetSec) return srt;
+  return srtForRange(srt, { fromSec: -offsetSec, toSec: Number.MAX_SAFE_INTEGER });
+}
+
+/** Several .srt files (already in film time) as one, numbered again. */
+export function mergeSrt(parts: readonly string[]): string {
+  const blocks = parts
+    .flatMap(part => part.replace(/\r/g, '').split(/\n{2,}/))
+    .map(block => block.trim())
+    .filter(block => block.includes('-->'))
+    .map(block =>
+      block
+        .split('\n')
+        .slice(block.split('\n').findIndex(line => line.includes('-->')))
+        .join('\n')
+    );
+  return blocks.map((block, index) => `${index + 1}\n${block}\n`).join('\n');
+}
