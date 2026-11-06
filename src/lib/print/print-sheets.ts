@@ -282,3 +282,53 @@ export function tableSheetHtml(input: {
     )}</div></header>${facts ? `<div class="facts">${facts}</div>` : ''}${sections}`
   );
 }
+
+/**
+ * A press kit: the poster, the title and a line about it, the story in brief, who is in it, a
+ * page of stills and the credits — one page to print or save as PDF and send with the film.
+ */
+export function pressKitHtml(input: {
+  title: string;
+  /** One line about it (a logline), when there is one. */
+  tagline?: string;
+  poster?: string;
+  /** The story in brief: scene by scene, or a synopsis as one entry. */
+  story: readonly string[];
+  cast: readonly string[];
+  stills: readonly string[];
+  credits?: readonly string[];
+  /** Running time, shape, size: "1:42 · widescreen". */
+  facts?: string;
+  origin: string;
+}): string {
+  const css = `
+    .top { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 24px; align-items: start; }
+    .poster { width: 100%; border-radius: 6px; display: block; background: #eee; }
+    .tagline { font-size: 13pt; font-style: italic; margin: 6px 0 14px; }
+    h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: .06em; color: #555; margin: 18px 0 6px; }
+    ol { margin: 0; padding-left: 20px; }
+    .stills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stills img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: #eee; }
+    .credits { white-space: pre-line; text-align: center; }
+    @media print { .stills { break-inside: avoid; } }
+  `;
+  const poster = absoluteUrl(input.poster, input.origin);
+  const stills = input.stills
+    .map(url => absoluteUrl(url, input.origin))
+    .filter(Boolean)
+    .slice(0, 9)
+    .map(src => `<img src="${escapeHtml(src)}" alt="">`)
+    .join('');
+  const body = `<header><h1>${escapeHtml(input.title)}</h1><div class="meta">${escapeHtml(input.facts ?? '')}<br>Press kit</div></header>
+  <section class="top">
+    <div>${poster ? `<img class="poster" src="${escapeHtml(poster)}" alt="">` : ''}</div>
+    <div>
+      ${input.tagline ? `<p class="tagline">${escapeHtml(input.tagline)}</p>` : ''}
+      ${input.story.length ? `<h2>The story</h2><ol>${input.story.map(line => `<li>${escapeHtml(line)}</li>`).join('')}</ol>` : ''}
+      ${input.cast.length ? `<h2>Starring</h2><p>${input.cast.map(escapeHtml).join(' · ')}</p>` : ''}
+    </div>
+  </section>
+  ${stills ? `<h2>Stills</h2><section class="stills">${stills}</section>` : ''}
+  ${input.credits?.length ? `<h2>Credits</h2><p class="credits">${input.credits.map(escapeHtml).join('\n')}</p>` : ''}`;
+  return page(`${input.title} — press kit`, css, body);
+}

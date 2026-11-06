@@ -1,5 +1,6 @@
 'use client';
 
+import CastExpressionSheetButton from '@/components/character/CastExpressionSheetButton';
 import { storyboardHtml } from '@/lib/print/print-sheets';
 import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import { lookPlateDrifted } from '@/lib/character/look-plate-guard';
@@ -134,24 +135,35 @@ export default function CharacterHomeSections(props: CharacterHomeViewModel) {
                       .join(' · '),
                     shape: 'vertical',
                     origin: window.location.origin,
-                    frames: props.plateTiles.map((tile, index) => {
-                      const look = looksOf(character).find(entry => entry.id === tile.id);
-                      return {
-                        number: String(index + 1),
-                        image: tile.thumb,
-                        heading: tile.label,
-                        notes: [
-                          ['Wearing', tile.outfit],
-                          ['Looks like', look?.descriptor ?? character.descriptor],
-                        ],
-                      };
-                    }),
+                    frames: [
+                      ...props.plateTiles.map((tile, index) => {
+                        const look = looksOf(character).find(entry => entry.id === tile.id);
+                        return {
+                          number: String(index + 1),
+                          image: tile.thumb,
+                          heading: tile.label,
+                          notes: [
+                            ['Wearing', tile.outfit],
+                            ['Looks like', look?.descriptor ?? character.descriptor],
+                          ] as Array<[string, string | undefined]>,
+                        };
+                      }),
+                      // Her things (Cast props): how each looks, the same every time.
+                      ...(character.props ?? []).map((prop, index) => ({
+                        number: `P${index + 1}`,
+                        heading: prop.name,
+                        notes: [['Hers looks like', prop.looks]] as Array<
+                          [string, string | undefined]
+                        >,
+                      })),
+                    ],
                   })
                 )
               }
             >
               Character sheet
             </Button>
+            <CastExpressionSheetButton character={character} />
           </>
         }
       />

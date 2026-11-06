@@ -32,7 +32,12 @@ In the **Bible** tab, beside the Story rating:
 ## Character sheet
 
 **Character sheet** (beside the Cast's actions) opens every look's plate with its outfit and
-description, and the voice, on one page to print or save as PDF.
+description, the voice, and her props (how each of her things looks), on one page to print or save
+as PDF.
+
+**Expression sheet** renders the plate as six feelings — neutral, smiling, laughing, sad, angry,
+surprised — on Qwen-Image 2.1 Turbo (about three minutes for all six, kept in the Gallery), then
+opens them on one page: a consistency reference, and a check that the face holds as it moves.
 
 ## What a Cast keeps
 

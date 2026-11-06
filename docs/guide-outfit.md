@@ -26,6 +26,11 @@ Above the kits: the clothing types as chips (**All**, **Full outfits**, **Tops**
 — the others are in the type list), **☆ Star this kit** for the one you're on, and a row of the
 kits you starred or tried last, one click to put one on.
 
+### Lookbook
+
+**Lookbook** (at the top) opens your saved clothing and shoes — each picture with its name and the
+words stills are told — on one page to print or save as PDF: a costume reference.
+
 ### Footwear editor
 
 **Edit shoes** — beside **Browse** when a catalog pair is worn, or with **Save for later** on your

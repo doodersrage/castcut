@@ -31,3 +31,26 @@ export function sheetFilename(title: string, suffix: string): string {
     .slice(0, 60);
   return `${slug || 'castcut'}-${suffix}`;
 }
+
+/**
+ * A tab opened now (from the click — opened later, after renders, it would be blocked), filled
+ * with a sheet when it is ready, or closed.
+ */
+export function openPrintSheetLater(): { show: (html: string) => void; close: () => void } {
+  const tab = window.open('', '_blank');
+  tab?.document.write(
+    '<!DOCTYPE html><title>Rendering…</title><p style="font:14px sans-serif;padding:24px">Rendering — this tab fills in when it is done.</p>'
+  );
+  return {
+    show: html => {
+      if (!tab || tab.closed) {
+        openPrintSheet(html);
+        return;
+      }
+      tab.document.open();
+      tab.document.write(html);
+      tab.document.close();
+    },
+    close: () => tab?.close(),
+  };
+}

@@ -3463,3 +3463,19 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   changed with AI (`editClothingPicture({ subject: 'footwear' })`: a shoes wording, square 1024) or
   replaced with a photo, and its words; Save and wear keeps it in My shoes (a catalog pair as an
   own copy, a saved pair in place). "Edit shoes" in FootwearField. e2e footwear-editor.spec.ts.
+
+### Part 18 R6 — delivery and sheets, done
+
+- **Trailer:** `makeReel(…, 'trailer')` — the reel planner's shots in the film's shape, title card,
+  0.4 s crossfades, a closing card (credits, else "Coming soon"); saved as "Trailer · N s".
+- **Press kit:** `pressKitHtml` (print-sheets.ts) from Cut — poster shot, the story in brief (beat
+  words), cast from the shot states, stills, credits, running time.
+- **Lookbook:** `OutfitLookbookButton` — saved garments and shoes with their words.
+- **Expression sheet:** expression-sheet.ts (six feelings, plate-edit prompt), `imageEditGraph`
+  factored out of clothing-edit.ts, `renderCastExpressions` queues six edits and waits;
+  `openPrintSheetLater` opens the tab at the click (a tab opened after the renders is blocked).
+  Not rendered live (it would queue on the user's ComfyUI).
+- **Prop sheet:** the character sheet lists the Cast's props.
+- **Already there:** Gallery compare and groups (collections), contact sheet, locations sheet,
+  character sheet; **episode pack** — the title card with the season's episode, "Previously on" and
+  end credits cover it.

@@ -49,3 +49,31 @@ test('footwear editor: change your shoes’ words, save, and the outfit wears th
   // Kept in My shoes too.
   await expect(page.getByTestId('fitting-footwear-saved')).toContainText('Saved shoes · 1');
 });
+
+test('Outfit lookbook: the saved shoes on a printable page', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: '' },
+    characters: { version: 1, characters: [], removedIds: [] },
+    tools: {
+      fitting: {
+        footwear: 'brown suede desert boots',
+        footwearImageFilename: 'my-boots.png',
+        footwearImageUrl: '/footwear/hiking-boots.webp',
+      },
+    },
+  });
+  await gotoStable(page, '/fitting');
+  await dismissBlockingOverlays(page);
+  await openOutfitClothing(page);
+  await page.getByTestId('fitting-footwear-save').click();
+  await expect(page.getByTestId('fitting-footwear-save')).toHaveText('Saved');
+  await page.keyboard.press('Escape');
+  const [sheet] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.getByTestId('outfit-lookbook').click(),
+  ]);
+  await sheet.waitForLoadState();
+  await expect(sheet.locator('h1')).toContainText('Lookbook');
+  await expect(sheet.getByText('brown suede desert boots').first()).toBeVisible();
+  await sheet.close();
+});

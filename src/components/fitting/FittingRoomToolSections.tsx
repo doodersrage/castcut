@@ -1,5 +1,6 @@
 'use client';
 
+import OutfitLookbookButton from '@/components/fitting/OutfitLookbookButton';
 import { useEffect, useState } from 'react';
 import OutfitKitShelf from '@/components/fitting/OutfitKitShelf';
 import CastChip from '@/components/ui/CastChip';
@@ -277,6 +278,7 @@ export default function FittingRoomToolSections({ description, ...vm }: Props) {
       width="full"
       title="Outfit"
       description={description}
+      headerActions={<OutfitLookbookButton />}
       sidebarPersistKey="fitting"
       sidebar={engineControls}
       sidebarTitle={leanChrome ? false : undefined}

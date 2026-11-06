@@ -17,7 +17,8 @@ import { continuityReportSections } from '@/lib/film/continuity-report';
 import { DIALOGUE_LIST_COLUMNS, dialogueListRows } from '@/lib/film/dialogue-list';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { SHOT_PROVENANCE_COLUMNS, shotProvenanceRows } from '@/lib/film/provenance-report';
-import { tableSheetHtml } from '@/lib/print/print-sheets';
+import { pressKitHtml, tableSheetHtml } from '@/lib/print/print-sheets';
+import { normalizeFilmCredits } from '@/lib/video/polish';
 import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import CutRenderQueue from '@/components/cut/CutRenderQueue';
 import { formatCutTimecode } from '@/lib/film/cut-preview';
@@ -1329,6 +1330,55 @@ export default function CutRoom() {
                           >
                             Dialogue list
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="justify-self-start"
+                            data-testid="cut-press-kit"
+                            title="The poster, the story in brief, who is in it, stills and the credits on one page — print or save as PDF and send with the film"
+                            onClick={() => {
+                              const included = ordered.filter(
+                                shot => vm.options.shotEdits?.shots?.[shot.key]?.include !== false
+                              );
+                              const posterKey = vm.options.shotEdits?.poster?.key;
+                              const poster =
+                                included.find(shot => shot.key === posterKey) ?? included[0];
+                              const pictureOf = (shot: (typeof included)[number]) =>
+                                shot.kind === 'clip' ? shot.thumbUrl : shot.url;
+                              const cast = [
+                                ...new Set(
+                                  included.flatMap(shot => {
+                                    const state = vm.shotStates[shot.key];
+                                    return [state?.castName, ...(state?.others ?? [])].filter(
+                                      (name): name is string => Boolean(name)
+                                    );
+                                  })
+                                ),
+                              ];
+                              const lead = cast[0];
+                              openPrintSheet(
+                                pressKitHtml({
+                                  title: lead ? `${lead}'s film` : 'The film',
+                                  poster: poster ? pictureOf(poster) : undefined,
+                                  story: included
+                                    .map(shot => vm.shotBeatText[shot.key] ?? '')
+                                    .map(text => text.split(' · ')[0]!.trim())
+                                    .filter(Boolean)
+                                    .slice(0, 12),
+                                  cast,
+                                  stills: included
+                                    .filter(shot => shot !== poster)
+                                    .map(pictureOf)
+                                    .filter((url): url is string => Boolean(url)),
+                                  credits: normalizeFilmCredits(vm.options.credits),
+                                  facts: `${formatCutTimecode(preview.total).slice(3, 8)} · ${included.length} shots`,
+                                  origin: window.location.origin,
+                                })
+                              );
+                            }}
+                          >
+                            Press kit
+                          </Button>
                           <CutRenderQueue
                             queue={vm.renderQueue}
                             disabled={!preview.loaded}
@@ -1339,26 +1389,30 @@ export default function CutRoom() {
                           <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
                             <select
                               aria-label="Make a reel"
-                              title="A short vertical reel of this film (faces followed, hard cuts, subtitles, on the beat with music); the full cut is saved as a version first"
+                              title="A short vertical reel (faces followed, hard cuts, subtitles, on the beat) or a trailer (the film's shape, its title card, soft crossfades, a closing card); the full cut is saved as a version first"
                               disabled={busy || kept.length === 0}
                               className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-1 type-caption text-[var(--text-primary)]"
                               value=""
                               data-testid="cut-reel"
                               onChange={event => {
-                                const seconds = Number(event.target.value);
+                                // "30" a reel, "t30" a trailer.
+                                const trailer = event.target.value.startsWith('t');
+                                const seconds = Number(event.target.value.replace(/^t/, ''));
                                 if (seconds !== 15 && seconds !== 30 && seconds !== 60) return;
                                 const durations = new Map<string, number>();
                                 preview.loaded?.keys.forEach((key, index) => {
                                   const sec = preview.loaded?.clipSecs[index];
                                   if (key && sec) durations.set(key, sec);
                                 });
-                                vm.makeReel(seconds, durations);
+                                vm.makeReel(seconds, durations, trailer ? 'trailer' : 'reel');
                               }}
                             >
                               <option value="">Make a reel…</option>
                               <option value="15">15 s reel</option>
                               <option value="30">30 s reel</option>
                               <option value="60">60 s reel</option>
+                              <option value="t30">30 s trailer</option>
+                              <option value="t60">60 s trailer</option>
                             </select>
                             <Button
                               size="sm"

@@ -130,6 +130,14 @@ the shot under the playhead, the **speed** plays at 0.5×–2×, and **⛶** goe
 
 **Make a reel…** turns the edit into a 15 / 30 / 60 s vertical reel (shots spread across the film, clips trimmed to their middle, hard cuts, faces followed, subtitles on); the full edit is saved first as the _Full cut_ version.
 
+**Make a reel…** also makes a **30 s** or **60 s trailer**: the same pick of shots across the film,
+in the film's own shape, with its title card, soft crossfades and a closing card ("Coming soon",
+or your end credits). Like a reel, the full cut is saved as a version first and the trailer as
+_Trailer · N s_.
+
+**Press kit** (under **Cut film**): the poster shot, the story in brief (each shot's beat), who is
+in it, a page of stills and the credits, on one page to print or save as PDF and send with the film.
+
 **Overlay…** on a shot adds a lower third (a name or place, and a smaller line) or a picture — in a corner for the whole shot, or **Full frame (a cutaway)** from and to a second of the shot: the picture covers it there while the shot's sound carries on (an insert over someone talking). A shot has one picture, corner or cutaway. **Clip from Gallery…** makes it a moving cutaway: a
 clip from the Gallery plays full frame over that window (muted — the shot's sound carries on). **Add a logo** (in Options) puts a watermark over the whole film. A still's move can be **from… to…**: pick where the frame starts and ends.
 

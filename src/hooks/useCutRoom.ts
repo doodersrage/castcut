@@ -1562,7 +1562,16 @@ export function useCutRoom() {
    * saved as "Reel · N s". `durations` are the clips' lengths, by key (from the monitor).
    */
   const makeReel = useCallback(
-    (seconds: ReelLength, durations: ReadonlyMap<string, number>) => {
+    /**
+     * `trailer` (Part 18 R6): the same pick of shots across the film, as a trailer — the film's
+     * own shape, the title card, soft crossfades, and a closing card ("Coming soon", or the
+     * credits you wrote).
+     */
+    (
+      seconds: ReelLength,
+      durations: ReadonlyMap<string, number>,
+      kind: 'reel' | 'trailer' = 'reel'
+    ) => {
       // Both versions it saves keep the media they were made with.
       pinEveryShot();
       const before = stateRef.current;
@@ -1582,14 +1591,23 @@ export function useCutRoom() {
         return;
       }
       const picked = new Set(plan.keys);
+      const trailer = kind === 'trailer';
       const options: FilmCutOptionsValue = {
         ...before.options,
-        shape: 'vertical',
-        vertical: true,
-        followFaces: true,
-        subtitles: true,
-        titles: false,
-        crossfadeSec: 0,
+        ...(trailer
+          ? {
+              titles: true,
+              crossfadeSec: 0.4,
+              credits: before.options.credits?.trim() ? before.options.credits : 'Coming soon',
+            }
+          : {
+              shape: 'vertical' as const,
+              vertical: true,
+              followFaces: true,
+              subtitles: true,
+              titles: false,
+              crossfadeSec: 0,
+            }),
         length: 'shots',
         beatSnap: Boolean(before.options.audioBedUrl.trim()),
         shotEdits: {
@@ -1609,7 +1627,7 @@ export function useCutRoom() {
       };
       const reel = {
         id: `v${stamp.toString(36)}r`,
-        name: `Reel · ${seconds} s`,
+        name: trailer ? `Trailer · ${seconds} s` : `Reel · ${seconds} s`,
         savedAt: stamp + 1,
         sources: cut.toolSettings.sources,
         extras: before.extras,
@@ -1618,7 +1636,7 @@ export function useCutRoom() {
       commitEdit({ options }, true, false);
       updateCut(saveCutVersionsPatch(cut.toolSettings, [full, reel]));
       setStatus(
-        `Made a ${seconds} s reel from ${plan.keys.length} shots — the full cut is saved as a version.`
+        `Made a ${seconds} s ${trailer ? 'trailer' : 'reel'} from ${plan.keys.length} shots — the full cut is saved as a version.`
       );
     },
     [commitEdit, cut.toolSettings, pinEveryShot, shots, updateCut]

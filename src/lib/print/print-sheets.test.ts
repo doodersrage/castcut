@@ -4,6 +4,7 @@ import {
   absoluteUrl,
   callSheetHtml,
   escapeHtml,
+  pressKitHtml,
   scriptFountain,
   scriptHtml,
   storyboardHtml,
@@ -58,4 +59,23 @@ describe('print sheets', () => {
   });
 
 
+
+  it('builds a press kit with poster, story, cast, stills and credits', () => {
+    const html = pressKitHtml({
+      title: 'Rae <home>',
+      tagline: 'She came back.',
+      poster: '/p.png',
+      story: ['The letter', 'The train'],
+      cast: ['Rae', 'Mia'],
+      stills: ['/a.png', '', '/b.png'],
+      credits: ['Starring', 'Rae'],
+      origin: 'http://h',
+    });
+    assert.match(html, /Rae &lt;home&gt; — press kit/);
+    assert.match(html, /<img class="poster" src="http:\/\/h\/p\.png"/);
+    assert.match(html, /<li>The letter<\/li><li>The train<\/li>/);
+    assert.match(html, /Rae · Mia/);
+    assert.equal((html.match(/<section class="stills"><img/g) ?? []).length, 1);
+    assert.equal((html.match(/src="http:\/\/h\/[ab]\.png"/g) ?? []).length, 2);
+  });
 });

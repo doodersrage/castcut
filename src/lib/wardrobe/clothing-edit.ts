@@ -24,6 +24,30 @@ export const CLOTHING_EDIT_SIZE = { width: 1024, height: 1280 } as const;
 /** A pair of shoes' size: square, 1024. */
 export const FOOTWEAR_EDIT_SIZE = { width: 1024, height: 1024 } as const;
 
+/**
+ * Qwen-Image 2.1 Turbo editing `image` (an input-folder file) as `prompt` says, at `size` — the
+ * graph the clothing and footwear editors, and the Cast's expression sheet, all use.
+ */
+export function imageEditGraph(input: {
+  image: string;
+  prompt: string;
+  seed: number;
+  size: { width: number; height: number };
+  filenamePrefix: string;
+}): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
+  const graph = locationPictureGraph({ name: '', look: '', setting: 'INT' }, input.seed);
+  graph['14'] = { class_type: 'LoadImage', inputs: { image: input.image } };
+  graph['5']!.inputs = {
+    ...graph['5']!.inputs,
+    prompt: input.prompt,
+    negative_prompt: '',
+    'images.image_1': ['14', 0],
+  };
+  graph['6']!.inputs = { ...graph['6']!.inputs, ...input.size };
+  graph['13']!.inputs = { ...graph['13']!.inputs, filename_prefix: input.filenamePrefix };
+  return graph;
+}
+
 /** The finished graph: Qwen-Image 2.1 Turbo editing `image` (an input-folder file). */
 export function clothingEditGraph(
   image: string,
@@ -31,22 +55,12 @@ export function clothingEditGraph(
   seed: number,
   subject: 'clothing' | 'footwear' = 'clothing'
 ): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
-  const graph = locationPictureGraph({ name: '', look: '', setting: 'INT' }, seed);
-  graph['14'] = { class_type: 'LoadImage', inputs: { image } };
-  graph['5']!.inputs = {
-    ...graph['5']!.inputs,
-    prompt: clothingEditPrompt(instruction, subject),
-    negative_prompt: '',
-    'images.image_1': ['14', 0],
-  };
   // A pair of shoes sits in a square (the footwear kits' shape); clothing is 4:5.
-  graph['6']!.inputs = {
-    ...graph['6']!.inputs,
-    ...(subject === 'footwear' ? FOOTWEAR_EDIT_SIZE : CLOTHING_EDIT_SIZE),
-  };
-  graph['13']!.inputs = {
-    ...graph['13']!.inputs,
-    filename_prefix: subject === 'footwear' ? 'Castcut/footwear-edit' : 'Castcut/clothing-edit',
-  };
-  return graph;
+  return imageEditGraph({
+    image,
+    prompt: clothingEditPrompt(instruction, subject),
+    seed,
+    size: subject === 'footwear' ? FOOTWEAR_EDIT_SIZE : CLOTHING_EDIT_SIZE,
+    filenamePrefix: subject === 'footwear' ? 'Castcut/footwear-edit' : 'Castcut/clothing-edit',
+  });
 }
