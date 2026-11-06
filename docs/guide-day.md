@@ -58,6 +58,13 @@ silly / raunchy.
 | **Narration** | Voice-over heard over the shot in the film — *Suggest a narration* writes one |
 | **Also in this still** | A third Cast member with her and the partner (People: Mixed or Duo, clothed moods, Edit 2511 or Qwen-Image 2.1). **And a fourth** adds one more on Qwen-Image 2.1; the Cast's room photo still comes along, as a fifth picture |
 
+### Light
+
+**Light** (under the pose, in a slot's sheet — Scene has the same) picks how the shot is lit: soft
+window light, golden hour, overcast, hard noon sun, blue hour, night by the place's own lights,
+neon, candlelight, backlit, or low-key. It replaces Day's own light for the time of day in the
+still's prompt; "by the time of day" leaves it to Day. The storyboard and call sheet show it.
+
 ## The pose editor
 
 **Edit joints** (and Outfit's **Custom pose**, and a Story scene's pose) opens the pose editor:

@@ -9,6 +9,7 @@
  * (day-prompt-sweep.test.ts), so a contradiction in the finished prompt fails a test.
  */
 
+import { withShotLook } from './shot-look';
 import { withCastPlace } from '../cast/places';
 import { withLocation, type LocationRecord } from '../location/records';
 import { withStoryState } from './story-state';
@@ -972,7 +973,7 @@ export function buildDaySlotPromptForStill(
       ? withLocation(setting, location)
       : withCastPlace(setting, state.character);
   const placedSlot = placed && placed !== setting ? { ...beatSlot, location: placed } : beatSlot;
-  return buildDaySlotPrompt({
+  const built = buildDaySlotPrompt({
     // Weather / season rides on the Setting (SCENE lead, SETTING line, recipe room).
     slot: state.dayWeather
       ? { ...placedSlot, location: withDayWeather(placedSlot.location, state.dayWeather) }
@@ -1009,6 +1010,8 @@ export function buildDaySlotPromptForStill(
       Boolean(options?.dressPlate) ||
       (garmentReinforce && options?.clothingIsDressedPlate === true),
   });
+  // The shot's picked light and the Cast's film style (shot-look.ts) — nothing when unpicked.
+  return withShotLook(built, { lighting: slot.lighting, style: state.character?.filmStyle });
 }
 
 /**

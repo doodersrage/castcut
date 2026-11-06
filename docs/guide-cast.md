@@ -17,6 +17,18 @@ Day · Scene · Story** · **More**. The tabs stay in reach as you scroll; **Bib
 each of its sections; **Film & media** opens on the newest film, playing, with the others as
 posters to pick.
 
+## Film style and mood board
+
+In the **Bible** tab, beside the Story rating:
+
+- **Film style** — the look of every still this Cast's films render, on Day, Scene and Story: a
+  ready style (35 mm film, muted teal and amber, soft pastel, moody, vivid summer, black and white)
+  and / or your own words ("a 90s camcorder"). Off by default; it adds a style line after the ones
+  that keep her face and clothes.
+- **Mood board** — pictures pinned from this Cast's Gallery, each with a note: the light, places
+  and colours the films aim for. **Mood** beside Day's, Scene's and Story's header shows it while you
+  plan. Reference only — it changes no render.
+
 ## Character sheet
 
 **Character sheet** (beside the Cast's actions) opens every look's plate with its outfit and

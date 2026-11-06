@@ -3414,3 +3414,21 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   from the Gallery record), **character sheet** (Cast actions), **Gallery contact sheet**.
 - Still to do in R3+: style lock per film, mood board, lighting plan, outfit locks per scene —
   these change every page's render prompts and need live renders to judge; then R4–R7.
+
+### Part 18 R3 — done
+
+- **Outfit locks per scene:** already covered (Day's hand-picked outfits, Story's locked kit, Cut's
+  outfit-jump rule) — nothing new built.
+- **Lighting per shot:** `DaySlot.lighting` (day/shot-look.ts `SHOT_LIGHTINGS`); `withShotLook` at the
+  end of `buildDaySlotPromptForStill` replaces any `LIGHT:` line (Day's own time-of-day light) or
+  goes after `SCENE:`; on Qwen-Image 2.1, `candidLightWords` follows a picked light ("… She is lit by
+  that light" marks it). Picker in the slot editor; shown on the storyboard / call sheet.
+- **Style lock per film:** `CharacterRecord.filmStyle` (character/film-style.ts, shared — Cast's
+  components can't import Play): a `STYLE:` line last on Day / Scene stills and Story stills
+  (`storyCastLines`). Control in the Cast Bible.
+- **Mood board:** the old Look Moodboard was retired, so a light one per Cast
+  (`CharacterRecord.moodBoard`, character/mood-board.ts: Gallery links + notes, ≤ 24); Bible section,
+  `CastMoodBoardMenu` on Day, Scene and Story. Reference only.
+- **Colour script, prop list:** done earlier.
+- **Not verified live:** the light and style wordings change render prompts; they are opt-in (no
+  prompt changes unless picked) and need a look on real renders.

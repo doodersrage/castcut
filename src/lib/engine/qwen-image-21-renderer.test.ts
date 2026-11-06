@@ -657,6 +657,13 @@ describe('Qwen-Image 2.1: look', () => {
 
   it("lights a candid still by the scene's own time and place", () => {
     const light = (scene: string) => candidLightWords(`${scene} The woman: freckles, a lamp-lit face.`);
+    // A light picked for the shot wins over the one read from the time and place.
+    assert.match(
+      candidLightWords(
+        'SCENE: she is in the kitchen\nLIGHT: warm flickering candlelight close to her. She is lit by that light, like the place around her, not by a studio light.'
+      ),
+      /^Candid photo taken on a phone, not a studio shoot: warm flickering candlelight close to her, a lived-in room/
+    );
     assert.match(light('Moment: kneeling on the bed in the middle of the night.'), /warm lamp glow[^;]*lived-in room/);
     assert.match(light('Moment: on the bed. LIGHT: a bedside lamp low.'), /warm lamp glow/);
     assert.match(light('Moment: walking along the street at night.'), /place's own lights at night/);

@@ -598,3 +598,34 @@ describe('a picked plain posture on an engine that drops the map (Qwen-Image 2.1
   });
 });
 
+
+describe('a shot’s picked light and the Cast’s film style (Part 18 R3)', () => {
+  it('ride on the still’s prompt only when picked', async () => {
+    const { buildDaySlotPromptForStill } = await import('./still-prompt');
+    const { resolveDayQueueIdentityPlate } = await import('./plate');
+    const plate = { filename: 'cast-plate-mara.png', source: 'cast' as const };
+    const build = (slot: Record<string, unknown>, character: Record<string, unknown>) =>
+      buildDaySlotPromptForStill(
+        { id: 'evening', label: 'evening', location: 'the balcony', sceneHints: 'leans on the rail', ...slot } as never,
+        {
+          plate,
+          queuePlate: resolveDayQueueIdentityPlate({ character, displayPlate: plate } as never),
+          character,
+          hasPlate: true,
+          leadNoun: 'woman',
+          dayMood: 'everyday',
+          intimateEnabled: false,
+          allowCompanions: false,
+          model: 'qwen-image-edit-2511-lightning-8',
+          defaultPoseGuideStyle: 'openpose',
+        } as never
+      );
+    const mara = { id: 'char-mara', name: 'Mara', version: 1, updatedAt: 1 };
+    const plain = build({}, mara);
+    assert.doesNotMatch(plain, /STYLE:|coloured neon/);
+    const lit = build({ lighting: 'neon' }, { ...mara, filmStyle: { preset: 'film-35' } });
+    assert.match(lit, /^LIGHT: coloured neon light/m);
+    assert.equal((lit.match(/^LIGHT:/gm) ?? []).length, 1, 'one light line — Day’s own replaced');
+    assert.match(lit, /\nSTYLE: the whole picture looks shot on 35 mm film/);
+  });
+});

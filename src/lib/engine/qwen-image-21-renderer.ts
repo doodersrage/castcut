@@ -995,15 +995,20 @@ export function candidLightWords(prompt: string): string {
   const photoPlace = /\bPlace: the (?:room|place) shown in\b/.test(prompt);
   const evening = SCENE_EVENING_RE.test(scene);
   const night = SCENE_NIGHT_RE.test(scene) || (!evening && SCENE_LAMP_RE.test(scene));
-  const light = night
-    ? outdoors
-      ? "the place's own lights at night with deep real shadows"
-      : 'a warm lamp glow with deep real shadows'
-    : evening
-      ? 'warm low evening sun with long real shadows'
-      : outdoors
-        ? 'hard natural sunlight with real shadows'
-        : 'window light falling across the room with real shadows';
+  // A light picked for the shot (day/shot-look.ts: "LIGHT: … She is lit by that light") wins over
+  // the one read from the time and place — they argued (neon picked, "window light" added).
+  const picked = /^LIGHT: (.+?)\. She is lit by that light/m.exec(prompt)?.[1];
+  const light = picked
+    ? picked
+    : night
+      ? outdoors
+        ? "the place's own lights at night with deep real shadows"
+        : 'a warm lamp glow with deep real shadows'
+      : evening
+        ? 'warm low evening sun with long real shadows'
+        : outdoors
+          ? 'hard natural sunlight with real shadows'
+          : 'window light falling across the room with real shadows';
   const place = photoPlace
     ? ''
     : outdoors

@@ -1,5 +1,6 @@
 'use client';
 
+import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import StorySheetsMenu from '@/components/roleplay/StorySheetsMenu';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import ClipEngineNote from '@/components/ClipEngineNote';
@@ -380,6 +381,7 @@ export default function RoleplayToolSections({
                 onOpen={() => setCastSheetOpen(true)}
               />
             ) : null}
+            <CastMoodBoardMenu character={castCharacter} testId="story-mood-board" />
             {story.length > 0 ? (
               <StorySheetsMenu
                 story={story}

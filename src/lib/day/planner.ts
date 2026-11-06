@@ -1,4 +1,5 @@
 import { normalizeDayPartSeconds, normalizeDaySpeakers } from './clip-length';
+import { normalizeShotLighting, type ShotLighting } from './shot-look';
 import { danceMoveWords } from '@/lib/pose/dance-move';
 import { normalizeStoryState, type ShotStoryState } from './story-state';
 import { normalizeDubLanguage } from './dub';
@@ -383,6 +384,8 @@ export type DaySlot = {
   posePhoto?: PhotoPose;
   /** Camera the player picked for this slot (unset = the angle the pose implies). */
   poseCamera?: PoseCameraChoice;
+  /** The light the player picked for this shot (day/shot-look.ts); unset = Day's own. */
+  lighting?: ShotLighting;
   /** Two-person poses: which side the Cast lead stands on (unset = as drawn). */
   poseLead?: 'left' | 'right';
   /** Where the Cast looks (unset = as the pose draws it). */
@@ -891,6 +894,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
           : undefined,
       posePhoto: normalizePhotoPose(slot.posePhoto),
       poseCamera: normalizePoseCameraChoice(slot.poseCamera),
+      lighting: normalizeShotLighting(slot.lighting),
       poseLead: slot.poseLead === 'left' || slot.poseLead === 'right' ? slot.poseLead : undefined,
       poseLook: normalizePoseLookChoice(slot.poseLook),
       lookId: readText(slot.lookId, 120) || undefined,

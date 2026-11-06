@@ -8,6 +8,7 @@
  * - storyFamilyRomance: a scene that puts family in a romantic or sexual part — never queued.
  */
 
+import { filmStyleLine } from '../character/film-style';
 import { castMarksLine } from '../cast/marks';
 import { placeRoomOfSetting, resolveCastPlace } from '../cast/places';
 import { castPropsLine } from '../cast/props';
@@ -15,7 +16,9 @@ import { castRelationInfo, normalizeCastRelationships } from '../cast/relationsh
 import { activeLook, looksOf, type CastRelationKind, type CharacterRecord } from '../character/os';
 
 type CastLike =
-  | (Pick<CharacterRecord, 'marks' | 'props' | 'relationships' | 'places'> & { id?: string })
+  | (Pick<CharacterRecord, 'marks' | 'props' | 'relationships' | 'places' | 'filmStyle'> & {
+      id?: string;
+    })
   | null
   | undefined;
 
@@ -71,7 +74,9 @@ export function storyCastLines(
   const text = lines.join('\n');
   // Adult stills pick their own room (as on Day); clothed ones are set in her place.
   const place = input.undressed ? '' : storyPlaceLine(cast, input.scene, input.man);
-  return [input.man ? forMan(text) : text, place].filter(Boolean).join('\n');
+  // The Cast's film style (day/shot-look.ts) — a STYLE line on every still of their films.
+  const style = filmStyleLine(cast?.filmStyle);
+  return [input.man ? forMan(text) : text, place, style].filter(Boolean).join('\n');
 }
 
 /** Words for "Sam is her ___" (gender-free on purpose, like Day's pair words). */

@@ -1,5 +1,6 @@
 'use client';
 
+import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import { useLocations } from '@/components/location/useLocations';
 import DayDubControl from '@/components/day-planner/DayDubControl';
 import { useCommandActions } from '@/hooks/useCommandActions';
@@ -710,6 +711,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               hasPlate={hasPlate}
               onClick={() => setSetupOpen(true)}
             />
+            <CastMoodBoardMenu character={character} testId="day-mood-board" />
             <DaySheetsMenu
               character={character}
               slots={slots}

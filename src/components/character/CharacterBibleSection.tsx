@@ -1,5 +1,7 @@
 'use client';
 
+import CastMoodBoard from '@/components/character/CastMoodBoard';
+import { FILM_STYLES, normalizeFilmStyle } from '@/lib/character/film-style';
 import dynamic from 'next/dynamic';
 import { clearCharacterBio } from '@/lib/play/cast';
 import { useState } from 'react';
@@ -17,7 +19,7 @@ import {
 } from '@/lib/character/os';
 import { saveCharacterBio } from '@/lib/play/cast';
 import { dayPartnerNoun } from '@/lib/day/partner';
-import { FieldLabel, SelectInput } from '@/components/ui/Field';
+import { FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import { buildRoleplayRequestBody, type RoleplayApiPayload } from '@/lib/story/roleplay-play-core';
 import {
   clearRoleplayLibraryBioFromCharacter,
@@ -269,6 +271,10 @@ export default function CharacterBibleSection({
             ? 'Adult: the bible and Story are written uncensored at this rating.'
             : 'The bible and this character’s Story are written at this rating.'}
         </p>
+        <CastFilmStyleControl character={character} onUpdated={onUpdated} />
+      </div>
+      <div className="mb-3">
+        <CastMoodBoard character={character} onUpdated={onUpdated} />
       </div>
       {bio && !editorOpen ? (
         <>
@@ -510,5 +516,64 @@ export default function CharacterBibleSection({
         />
       ) : null}
     </ToolSection>
+  );
+}
+
+/**
+ * The look of everything this Cast's films render (character/film-style.ts): a ready style and /
+ * or words of their own, a STYLE line on every still of Day, Scene and Story. Unset: as before.
+ */
+function CastFilmStyleControl({
+  character,
+  onUpdated,
+}: {
+  character: CharacterRecord;
+  onUpdated?: (character: CharacterRecord) => void;
+}) {
+  const style = normalizeFilmStyle(character.filmStyle);
+  const save = (next: { preset?: string; words?: string }) => {
+    const fresh = getCharacter(character.id);
+    if (!fresh) return;
+    const normalized = normalizeFilmStyle(next);
+    const { filmStyle: _old, ...rest } = fresh;
+    void _old;
+    upsertCharacter(normalized ? { ...rest, filmStyle: normalized } : rest);
+    const saved = getCharacter(character.id);
+    if (saved) onUpdated?.(saved);
+  };
+  return (
+    <div className="flex flex-wrap items-end gap-2" data-testid="cast-film-style">
+      <label className="block space-y-1.5">
+        <FieldLabel htmlFor="cast-film-style-select">Film style</FieldLabel>
+        <SelectInput
+          id="cast-film-style-select"
+          data-testid="cast-film-style-select"
+          title="The look of every still this Cast's films render — Day, Scene and Story"
+          value={style?.preset ?? ''}
+          onChange={event => save({ ...style, preset: event.target.value || undefined })}
+        >
+          <option value="">As rendered (no style)</option>
+          {FILM_STYLES.map(entry => (
+            <option key={entry.id} value={entry.id}>
+              {entry.label}
+            </option>
+          ))}
+        </SelectInput>
+      </label>
+      <TextInput
+        key={style?.words ?? ''}
+        defaultValue={style?.words ?? ''}
+        maxLength={200}
+        placeholder="Or in words — warm, hazy, a 90s camcorder…"
+        aria-label="Film style in your own words"
+        className="!w-72"
+        data-testid="cast-film-style-words"
+        onBlur={event => {
+          if (event.target.value.trim() !== (style?.words ?? '')) {
+            save({ ...style, words: event.target.value });
+          }
+        }}
+      />
+    </div>
   );
 }

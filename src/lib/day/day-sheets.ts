@@ -6,6 +6,7 @@
 
 import type { CallSheetRow, StoryboardFrame } from '../print/print-sheets';
 import { cameraChoiceSummary } from '../pose/camera-shot';
+import { SHOT_LIGHTINGS } from './shot-look';
 import { dayStillShownImage, type DaySlot, type DaySlotStill } from './planner';
 
 /** What a slot's state says, in a few words: "carries the red umbrella · wet hair · anxious". */
@@ -57,6 +58,7 @@ export function dayStoryboardFrames(input: DaySheetInput): StoryboardFrame[] {
         ],
         ['Narration', slot.narration],
         ['Camera', cameraChoiceSummary(slot.poseCamera)],
+        ['Light', SHOT_LIGHTINGS.find(entry => entry.id === slot.lighting)?.label],
         ['State', stateWords(slot)],
       ],
     };
@@ -78,7 +80,12 @@ export function dayCallSheetRows(input: DaySheetInput): CallSheetRow[] {
       beat: [slot.sceneHints, stateWords(slot)].filter(Boolean).join(' — '),
       line: slot.line,
       outfit: slot.wardrobeId ? (input.outfitName?.(slot.wardrobeId) ?? slot.wardrobeId) : '',
-      camera: cameraChoiceSummary(slot.poseCamera),
+      camera: [
+        cameraChoiceSummary(slot.poseCamera),
+        SHOT_LIGHTINGS.find(entry => entry.id === slot.lighting)?.label ?? '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
       status: stillState(still),
       thumb: dayStillShownImage(still) || undefined,
     };

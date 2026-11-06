@@ -103,6 +103,13 @@ export type CharacterRecord = CharacterFeatureFields & {
    * from one of their talking clips, that LTX-2.5 conditions the voice on (with the ID-LoRA).
    */
   voice?: CastVoice;
+  /**
+   * The look of everything this Cast's films render (day/shot-look.ts): a ready style's id and /
+   * or words of their own — a STYLE line on each still. Unset: as before.
+   */
+  filmStyle?: { preset?: string; words?: string };
+  /** Reference pictures pinned from the Cast's Gallery (character/mood-board.ts). */
+  moodBoard?: Array<{ id: string; url: string; note?: string }>;
   ipAdapter?: {
     imageFilename?: string;
     imageFilenames?: string[];

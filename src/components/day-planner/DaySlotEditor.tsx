@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeShotLighting, SHOT_LIGHTINGS } from '@/lib/day/shot-look';
 import { castCatchphrases } from '@/lib/cast/speech';
 import { getCharacter } from '@/lib/character/os';
 import { loadSettingsCache } from '@/lib/settings/cache';
@@ -434,6 +435,27 @@ export default function DaySlotEditor({
           plateUrl={plateUrl}
           updateSlot={updateSlot}
         />
+        <label className="flex flex-wrap items-center gap-2" data-testid="day-slot-lighting">
+          <span className="type-caption text-[var(--text-muted)]">Light</span>
+          <SelectInput
+            value={slot.lighting ?? ''}
+            disabled={busy}
+            aria-label="The light on this shot"
+            title="How this shot is lit — said in its prompt in place of Day's own light for the time of day"
+            className="!w-auto"
+            data-testid="day-slot-lighting-select"
+            onChange={event =>
+              updateSlot(slot.id, { lighting: normalizeShotLighting(event.target.value) })
+            }
+          >
+            <option value="">Light: by the time of day</option>
+            {SHOT_LIGHTINGS.map(entry => (
+              <option key={entry.id} value={entry.id}>
+                Light: {entry.label}
+              </option>
+            ))}
+          </SelectInput>
+        </label>
         {differsFromDay ? (
           <p
             className="type-caption flex flex-wrap items-center gap-x-1 text-[var(--text-muted)]"

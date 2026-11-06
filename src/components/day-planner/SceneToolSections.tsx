@@ -1,5 +1,6 @@
 'use client';
 
+import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import { useLocations } from '@/components/location/useLocations';
 import SceneScriptAndRun from '@/components/day-planner/SceneScriptAndRun';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
@@ -198,11 +199,14 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
         title="Scene"
         description="One shot, exactly as you want it — render takes, keep the best, make it move."
         headerActions={
-          <DaySetupChip
-            character={character}
-            hasPlate={hasPlate}
-            onClick={() => views.setSetupOpen(true)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <DaySetupChip
+              character={character}
+              hasPlate={hasPlate}
+              onClick={() => views.setSetupOpen(true)}
+            />
+            <CastMoodBoardMenu character={character} testId="scene-mood-board" />
+          </div>
         }
         sidebarPersistKey="scene"
         sidebar={engineControls}
