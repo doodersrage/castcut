@@ -30,10 +30,21 @@ export const EPISODE_MINUTES_MIN = 3;
 export const EPISODE_MINUTES_MAX = 60;
 export const EPISODE_SCENES_MAX = 40;
 
-/** About one scene a minute and a quarter: a half hour is 24. */
+/**
+ * About 45 seconds of film a scene, as Castcut cuts one — measured on the 2026-11-06 episode: 24
+ * scenes of about a page each, 234 shots, cut as stills with every line read, came to about 18
+ * minutes (a stage page is a minute; a cut of held stills and read lines runs faster). A half
+ * hour is 40 scenes — about 390 shots, within an episode run's 400. Longer episodes stop at 40:
+ * write two.
+ */
+export const EPISODE_SECONDS_PER_SCENE = 45;
+
 export function episodeSceneCount(minutes: number): number {
   const clamped = Math.min(EPISODE_MINUTES_MAX, Math.max(EPISODE_MINUTES_MIN, Math.round(minutes)));
-  return Math.min(EPISODE_SCENES_MAX, Math.max(3, Math.round(clamped * 0.8)));
+  return Math.min(
+    EPISODE_SCENES_MAX,
+    Math.max(3, Math.round((clamped * 60) / EPISODE_SECONDS_PER_SCENE))
+  );
 }
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };

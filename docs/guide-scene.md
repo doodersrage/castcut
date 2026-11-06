@@ -121,7 +121,8 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   line), and anything it couldn't understand is listed first. Fountain and plain text both work;
   text with no scene headings reads as an outline, one beat per paragraph.
 - **Write an episode…** (with the LLM on) — no script yet? Say what it's about, about how many
-  minutes (a scene for every minute and a quarter: 24 for a half hour) and a tone. **Write the
+  minutes (a scene for every 45 seconds — what a scene comes to as Castcut cuts it: 40 for a
+  half hour, the most it writes; longer, write two) and a tone. **Write the
   outline** gives a title, a logline and each scene's heading and what happens: change any of
   them, or take one out. **Write the screenplay** writes the scenes one at a time, each told how
   the one before ended (on a local 8B model, a few seconds to a quarter of a minute a scene).

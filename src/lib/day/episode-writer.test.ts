@@ -23,8 +23,10 @@ const outline = {
 
 describe('writing an episode (Part 19 G3)', () => {
   it('asks for a scene count that fits the length, with the cast named', () => {
-    assert.equal(episodeSceneCount(30), 24);
-    assert.equal(episodeSceneCount(1), 3);
+    // ~45 s a scene as cut (the 2026-11-06 episode: 24 scenes came to ~18 minutes).
+    assert.equal(episodeSceneCount(30), 40);
+    assert.equal(episodeSceneCount(15), 20);
+    assert.equal(episodeSceneCount(1), 4);
     assert.equal(episodeSceneCount(500), 40);
     const messages = episodeOutlineMessages({
       premise: 'A letter arrives.',
@@ -33,7 +35,7 @@ describe('writing an episode (Part 19 G3)', () => {
       minutes: 30,
     });
     assert.match(messages[1]!.content, /Mara \(a woman\), Lena/);
-    assert.match(messages[1]!.content, /exactly 24 scenes/);
+    assert.match(messages[1]!.content, /exactly 40 scenes/);
   });
 
   it('reads an outline, its headings made screenplay headings', () => {
