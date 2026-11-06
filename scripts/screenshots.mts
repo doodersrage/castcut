@@ -401,11 +401,10 @@ const SHOTS: Shot[] = [
     take: async context => {
       const page = await openPage(context, '/play');
       await page.getByTestId('play-campaign').waitFor({ timeout: 60_000 });
-      // The Cast picker (Nora and the others) sits under "Edit cast & steps".
-      await page.getByText('Edit cast & steps').first().click();
       return page;
     },
-    frame: page => scrollTo(page.getByText('Edit cast & steps').first(), 460),
+    // "Your film": the film so far, its lead, and the steps below it.
+    frame: page => page.evaluate(() => window.scrollTo(0, 0)),
   },
   {
     name: 'day',

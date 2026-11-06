@@ -40,8 +40,8 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI) — details in [doc
 
 | | |
 | --- | --- |
-| ![Film: pick a Cast lead and start a film](docs/screenshots/film.png) | ![Day: four stills of one character from morning to night, ready to cut](docs/screenshots/day.png) |
-| **Film** — pick or create a Cast lead; Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
+| ![Film: the film so far, its Cast lead and the steps](docs/screenshots/film.png) | ![Day: four stills of one character from morning to night, ready to cut](docs/screenshots/day.png) |
+| **Film** — your film so far, its lead, and the steps: Cast → Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
 | ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Cut: Day and Story mixed into one cut, with the monitor and options](docs/screenshots/cut.png) |
 | **Story** — pick what happens next; each scene becomes a still (and a clip). | **Cut** — mix Day, Story and Scenes; watch it, set the shape, music and titles, then cut. |
 | ![Cast page: the Bible tab's Appearance traits for one character](docs/screenshots/cast.png) | ![3D pose editor: a figure over the Cast's picture, with the Camera panel](docs/screenshots/pose-editor.png) |
