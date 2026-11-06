@@ -9,6 +9,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.8.0] - 2026-11-06
+
+- Part 19 G4: music by scene ducks under the lines, in cues a long film can use
+- Part 19 G3: write an episode from a premise, scene by scene
+- Part 19 G1: episode runs keep the best take, redo failures and animate
+- Part 19 G2: render long films in pieces and join them
+- Part 18 round 7: Day templates, changes since the last cut, audio description, blocking, emotion arc
+- Part 18 round 6: trailer, press kit, lookbook, expression sheet, props on the character sheet
+- Part 18 round 5 (Story outline, branches, notes) and a footwear editor
+- Part 18 round 4: foley suggestions, temp music by scene, a dialogue pass
+- Part 18 round 3: light per shot, a film style per Cast, a mood board
+
 ## [v3.7.0] - 2026-11-06
 
 - Dialogue list and locations sheet
