@@ -1,5 +1,7 @@
 'use client';
 
+import StoryOutlineSheet from '@/components/roleplay/StoryOutlineSheet';
+import { branchRoleplayStory } from '@/lib/story/roleplay-library';
 import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import StorySheetsMenu from '@/components/roleplay/StorySheetsMenu';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
@@ -382,6 +384,21 @@ export default function RoleplayToolSections({
               />
             ) : null}
             <CastMoodBoardMenu character={castCharacter} testId="story-mood-board" />
+            {story.length > 0 ? (
+              <StoryOutlineSheet
+                story={story}
+                lead={bio?.name || castCharacterName}
+                tone={tone}
+                disabled={busy}
+                onBranch={index => {
+                  const branched = branchRoleplayStory(toolSettings, index);
+                  if (!branched) return;
+                  // The offered next scenes continued the old story.
+                  sceneFlow.setScenes([]);
+                  updateToolSettings(branched.next);
+                }}
+              />
+            ) : null}
             {story.length > 0 ? (
               <StorySheetsMenu
                 story={story}

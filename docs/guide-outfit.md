@@ -26,6 +26,20 @@ Above the kits: the clothing types as chips (**All**, **Full outfits**, **Tops**
 — the others are in the type list), **☆ Star this kit** for the one you're on, and a row of the
 kits you starred or tried last, one click to put one on.
 
+### Footwear editor
+
+**Edit shoes** — beside **Browse** when a catalog pair is worn, or with **Save for later** on your
+own shoe photo — opens the **footwear editor**:
+
+- **Change it** — say what to change ("make them red", "a lower heel", "white soles") and
+  **Change**: the picture is changed on Qwen-Image 2.1 Turbo (about half a minute); **Back to the
+  previous picture** undoes it.
+- **Replace with a photo** — your own picture of the pair.
+- **What the model is told** — the words stills read; say the change here too.
+
+**Save and wear** wears the edited pair and keeps it in **My shoes**. A catalog pair is saved as your
+own copy (the catalog keeps its own); a saved pair is changed in place.
+
 ## Try it on
 
 1. Pick a **Quality**: **Fast** (front only), **Balanced** (front and back), **Best** (also checks each try-on).

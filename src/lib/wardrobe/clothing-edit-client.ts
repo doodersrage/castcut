@@ -40,17 +40,25 @@ export async function clothingPictureFromFile(file: File): Promise<ClothingPictu
 export async function editClothingPicture(input: {
   picture: ClothingPicture;
   instruction: string;
+  /** The footwear editor's pictures are a pair of shoes (clothing-edit.ts). */
+  subject?: 'clothing' | 'footwear';
 }): Promise<ClothingPicture> {
+  const subject = input.subject ?? 'clothing';
   const instruction = input.instruction.trim();
   if (!instruction) throw new Error('Say what to change first.');
   const { requeueComfyJob } = await import('@/lib/comfyui/requeue');
   const queued = await requeueComfyJob({
-    prompt: clothingEditPrompt(instruction),
+    prompt: clothingEditPrompt(instruction, subject),
     negativePrompt: '',
     model: LOCATION_PICTURE_MODEL,
     tool: 'fitting',
     workflowJson: JSON.stringify(
-      clothingEditGraph(input.picture.filename, instruction, Math.floor(Math.random() * 2 ** 31))
+      clothingEditGraph(
+        input.picture.filename,
+        instruction,
+        Math.floor(Math.random() * 2 ** 31),
+        subject
+      )
     ),
     workflowFinal: true,
   });
@@ -63,5 +71,5 @@ export async function editClothingPicture(input: {
   });
   const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
   if (!url) throw new Error('The edit did not finish (it needs Qwen-Image 2.1 Turbo).');
-  return clothingPictureFromUrl(url, 'clothing-edit.png');
+  return clothingPictureFromUrl(url, `${subject}-edit.png`);
 }

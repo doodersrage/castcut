@@ -104,3 +104,26 @@ test('filmstrip: quick actions on a scene; ← → step through the scenes', asy
   await page.keyboard.press('ArrowLeft');
   await expect(thumbs.nth(1)).toHaveAttribute('aria-pressed', 'true');
 });
+
+test('Outline: scenes with screen time and acts; Branch from here keeps scenes up to it', async ({
+  page,
+}) => {
+  await seed(page, [
+    beat('a', 'Harbour'),
+    beat('b', 'Market'),
+    beat('c', 'Lighthouse'),
+    beat('d', 'Storm'),
+  ]);
+  await gotoStable(page, `/story?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('story-outline-open').click();
+  const outline = page.getByTestId('story-outline');
+  await expect(outline.getByTestId('story-outline-scenes').locator('li')).toHaveCount(4);
+  await expect(outline.getByTestId('story-outline-act-1')).toBeVisible();
+  await expect(outline.getByTestId('story-outline-act-3')).toBeVisible();
+  await outline.getByTestId('story-outline-branch-1').click();
+  await outline.getByTestId('story-outline-branch-confirm-1').click();
+  // The new version carries on from scene 2: two scenes in the reel.
+  await page.getByTestId('story-outline-open').click();
+  await expect(page.getByTestId('story-outline-scenes').locator('li')).toHaveCount(2);
+});

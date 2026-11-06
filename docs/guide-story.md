@@ -65,6 +65,19 @@ finishing tools are described in [Finishing tools](finishing-tools.md).
   Final Draft open.
 - **Storyboard** — every scene's still with what happens and its line.
 
+## Outline
+
+**Outline** (beside **Sheets**) shows the story as a beat board: every scene with its rough screen
+time (a clip about 5 s, a still about 3 s, longer when its words take longer to say) and where it
+starts, the running total, and where the three acts fall — set-up, the turn, the end — from three
+scenes.
+
+- **Branch from here** on a scene keeps the story as it is (in your stories) and carries on a new
+  version from that scene: "what if she says no", written from there, the original untouched.
+- **Write notes** has your LLM read the story as an editor would: a **logline**, a short
+  **synopsis**, and **notes** to act on — what drags, where the turn is or isn't, whether it ends —
+  each naming its scenes. **Copy** takes them all.
+
 ## It keeps track
 
 - **Continuity** — the next still keeps the outfit, hair, place and light unless the scene changes them.

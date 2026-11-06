@@ -3449,3 +3449,17 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
   Day's lip-sync from your own recording; the pass links to it rather than adding a third way.
 - **Not verified live:** Foley words and temp-music cues render on LTX-2.5 / ACE-Step; how they
   sound needs a listen.
+
+### Part 18 R5 — writing, done (+ the footwear editor, asked mid-round)
+
+- **Beat board, timing, acts:** story-outline.ts (`sceneSeconds`, `storyOutline` — acts by time at
+  25% / 75%), `StoryOutlineSheet` beside Sheets.
+- **Branching:** `branchRoleplayStory` (roleplay-library.ts) archives the story and continues a new one
+  with the scenes up to the chosen one (new id on save); offered scenes cleared.
+- **Coverage notes, logline, synopsis:** `/api/story/notes` (Play-owned) → `storyNotesMessages` /
+  `parseStoryNotes`; tried live on qwen3-vl-8b: a logline, a 3-sentence synopsis, three specific
+  notes naming scenes.
+- **Footwear editor (user request):** `FootwearEditorSheet` (Play-owned) — the worn pair's picture
+  changed with AI (`editClothingPicture({ subject: 'footwear' })`: a shoes wording, square 1024) or
+  replaced with a photo, and its words; Save and wear keeps it in My shoes (a catalog pair as an
+  own copy, a saved pair in place). "Edit shoes" in FootwearField. e2e footwear-editor.spec.ts.

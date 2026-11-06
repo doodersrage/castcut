@@ -1,6 +1,9 @@
 'use client';
 
 import WardrobePackButtons from '@/components/wardrobe/WardrobePackButtons';
+import FootwearEditorSheet, {
+  type FootwearEditorTarget,
+} from '@/components/wardrobe/FootwearEditorSheet';
 import { useId, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ChipButton, FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
@@ -105,6 +108,9 @@ export default function FootwearField({
   const busy = Boolean(disabled) || photoBusy;
   const savedShoes = useSavedFootwear();
   const [browse, setBrowse] = useState<'kits' | 'saved' | null>(null);
+  // The footwear editor on the pair being worn (a kit, or your photo).
+  const [editing, setEditing] = useState<FootwearEditorTarget | null>(null);
+  const canEdit = Boolean(onApplyPhoto);
   const alreadySaved = savedShoes.some(entry => entry.imageFilename === imageFilename?.trim());
   const kits = useMemo(
     () => (group === 'All' ? FOOTWEAR_KITS : FOOTWEAR_KITS.filter(entry => entry.group === group)),
@@ -138,6 +144,17 @@ export default function FootwearField({
       className="space-y-2.5 border-t border-[var(--border-subtle)] pt-3"
       data-testid={`${testIdPrefix}-footwear`}
     >
+      <FootwearEditorSheet
+        target={editing}
+        onClose={() => setEditing(null)}
+        onSaved={pair =>
+          onChange({
+            footwear: pair.words,
+            footwearImageUrl: pair.imageUrl,
+            footwearImageFilename: pair.imageFilename,
+          })
+        }
+      />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FieldLabel htmlFor={mode === 'words' ? fieldId : undefined}>Footwear</FieldLabel>
         <SegmentedControl<FootwearMode>
@@ -200,6 +217,24 @@ export default function FootwearField({
               >
                 Browse
               </Button>
+              {canEdit && kit && !ownPhoto ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  data-testid={`${testIdPrefix}-footwear-edit-kit`}
+                  title="Change this pair — its colour, heel, material — as your own copy"
+                  onClick={() =>
+                    setEditing({
+                      label: kit.label,
+                      imageUrl: footwearKitImageUrl(kit.id),
+                      words: kit.words,
+                    })
+                  }
+                >
+                  Edit shoes
+                </Button>
+              ) : null}
             </div>
           </div>
           <WardrobeKitBrowser
@@ -301,6 +336,25 @@ export default function FootwearField({
                 }}
               >
                 {alreadySaved ? 'Saved' : 'Save for later'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy || !imageUrl}
+                data-testid={`${testIdPrefix}-footwear-edit`}
+                title="Change this pair — its colour, heel, material — or its words"
+                onClick={() =>
+                  imageUrl &&
+                  setEditing({
+                    label: stored || 'Your shoes',
+                    imageUrl,
+                    imageFilename: imageFilename ?? undefined,
+                    words: stored,
+                    saved: savedShoes.find(entry => entry.imageFilename === imageFilename?.trim()),
+                  })
+                }
+              >
+                Edit shoes
               </Button>
               <Button
                 size="sm"

@@ -791,3 +791,26 @@ export function archiveAndStartNewRoleplaySession(current: RoleplayToolCache): {
   const archived = persistRoleplayLibraryFromCache(current)?.session ?? null;
   return { archived, next: startNewRoleplaySession(current) };
 }
+
+/**
+ * Branch the story at a scene (Part 18 R5): the story as it is now kept in the library, and a new
+ * story that has its scenes up to and including `atIndex` — "what if she says no" written from
+ * there, the original untouched. The new one gets its own id when it is saved.
+ */
+export function branchRoleplayStory(
+  current: RoleplayToolCache,
+  atIndex: number
+): { archived: RoleplayLibrarySession | null; next: Partial<RoleplayToolCache> } | null {
+  const story = current.story ?? [];
+  if (atIndex < 0 || atIndex >= story.length) return null;
+  const archived = persistRoleplayLibraryFromCache(current)?.session ?? null;
+  return {
+    archived,
+    next: {
+      story: story.slice(0, atIndex + 1),
+      rejectedScenes: [],
+      // A new story: saved under a new id, the original stays as it was.
+      activeSessionId: undefined,
+    },
+  };
+}

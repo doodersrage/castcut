@@ -6,6 +6,7 @@ import {
   deleteRoleplayLibrarySession,
   loadRoleplayLibrary,
   persistRoleplayLibraryFromCache,
+  branchRoleplayStory,
   resolveRoleplayContinueFromCharacter,
   resolveStoryEntryCharacterId,
   ROLEPLAY_LIBRARY_KEY,
@@ -104,6 +105,18 @@ describe('roleplay library', () => {
   it('ignores empty drafts and titles from the assigned name', () => {
     assert.equal(roleplaySessionHasProgress({ personaId: 'raccoon-pirate' }), false);
     assert.equal(roleplaySessionTitle(sampleCache()), 'Alex Quill');
+  });
+
+  it('branches a story at a scene: the original kept, the new one up to that scene', () => {
+    withMockLocalStorage(() => {
+      const branched = branchRoleplayStory(sampleCache({ activeSessionId: 'roleplay-a' }), 0);
+      assert.ok(branched);
+      assert.equal(branched.archived?.id, 'roleplay-a');
+      assert.equal(branched.archived?.snapshot.story?.length, 2, 'the original keeps every scene');
+      assert.deepEqual(branched.next.story?.map(beat => beat.id), ['intro-first-look']);
+      assert.equal(branched.next.activeSessionId, undefined);
+      assert.equal(branchRoleplayStory(sampleCache(), 5), null);
+    });
   });
 
   it('archives a session, continues it, and deletes it', () => {
