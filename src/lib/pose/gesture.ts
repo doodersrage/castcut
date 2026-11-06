@@ -70,7 +70,7 @@ type GestureSpec = {
 
 /** Drinks, named as the beat names them. */
 const DRINK_WORDS =
-  /\b(mug|cup|coffee|tea|latte|espresso|glass(?:es)?|wine|champagne|beer|bottles?|cocktail|drink(?:ing|s)?|sip(?:ping|s)?|toast(?:ing)?|clink(?:ing|s)?)\b/i;
+  /\b(mugs?|cups?|coffee|tea|latte|espresso|glass(?:es)?|wine|champagne|beer|bottles?|cocktails?|drink(?:ing|s)?|sip(?:ping|s)?|toast(?:ing)?)\b/i;
 /** The drink is in hand (not "coffee at her elbow", "a glass on the table"). */
 const DRINK_HELD =
   /\b(in (?:one|her|his|both|each|the other) hands?|holding|holds|sip(?:ping|s)?|drink(?:ing|s)? (?:from|a|her|his)|to drink|pour(?:ing|s)?|clink(?:ing|s)?|toast(?:ing)?|raising|raises|cradling|with an? (?:mug|cup|coffee|glass|bottle|drink|latte))\b|\b(?:mug|cup|glass|bottle|coffee|drink) in (?:one |her |his |both |each )?hands?\b/i;
@@ -164,7 +164,9 @@ const GESTURE_SPECS: readonly GestureSpec[] = [
   },
   {
     id: 'wave',
-    beat: /\bwav(?:e|es|ing)\b/i,
+    // A person waving — not the sea's waves ("the sun glints off the waves" asked her to wave,
+    // and 28 episode stills of her walking failed it, 2026-11-06).
+    beat: /\bwaving\b(?! (?:palms?|grass|flags?|branches|banners?|reeds|trees))|\bwaves? (?:at|to|goodbye|hello|back|bye|over|a hand|(?:her|his|their) (?:hand|arm)s?)\b|(?:\b(?:she|he|they|and|then|also)\s+|,\s*)waves\b(?!\s+(?:roll|crash|lap|break|wash|swirl|curl|pound|around|in\b|of\b|on\b))|\b(?:gives?|giving) (?:a |her |him |them )?(?:little |small |quick )?wave\b/i,
     layouts: ['wave'],
     // "Is she waving?" got "no" on clear waves (the model wants to see motion): ask what shows.
     question: p => `Is one of ${p.possessive} hands raised up at or above ${p.possessive} head?`,
@@ -235,6 +237,27 @@ const GESTURE_SPECS: readonly GestureSpec[] = [
   },
 ];
 
+/**
+ * A sentence about other people — the room around her, not what she does: "Locals sip coffee at
+ * tables" asked her to hold a cup in 32 episode stills of her photographing the café.
+ */
+const OTHERS_SENTENCE =
+  /(^|[.!?…]\s+)(?:the |a few |some |other |two |three |several |a couple of )?(?:locals|tourists|guests|customers|people|others|diners|patrons|regulars|kids|children|couples?|crowds?|passers-?by|strangers|friends|neighbou?rs|fishermen|families|onlookers|shoppers|workers|waiters|staff)\b[^.!?…]*[.!?…]?/gi;
+
+/**
+ * The beat's own action, for matching: sentences about other people, quoted words (a song
+ * title, a sign, a line said) and what someone "used to" do are not what the picture shows — "“The Last Cup of Salt”" asked for a cup,
+ * "a song Aunt Mabel used to hum while stirring pots" for cooking (2026-11-06).
+ */
+export function actionText(beat: string | null | undefined): string {
+  return (beat ?? '')
+    .replace(/[“"][^”"]*[”"]/g, ' ')
+    .replace(/\bused to\b[^.;!?]*/gi, ' ')
+    .replace(OTHERS_SENTENCE, '$1 ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** At most this many questions per still (one vision call answers them all). */
 export const MAX_GESTURE_QUESTIONS = 2;
 
@@ -257,7 +280,7 @@ export function gestureQuestions(input: {
   layout?: string | null;
   lead?: GestureLead;
 }): GestureQuestion[] {
-  const beat = (input.beat ?? '').trim();
+  const beat = actionText(input.beat);
   const layout = (input.layout ?? '').split(':')[0]!.trim();
   const pronouns = PRONOUNS[input.lead ?? 'woman'];
   const stated: GestureSpec[] = [];

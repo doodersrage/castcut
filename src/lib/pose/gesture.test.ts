@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { NormalizedBody } from './library';
 import {
+  actionText,
   applyGestureVerdict,
   decideGesture,
   gestureFixNudge,
@@ -410,5 +411,31 @@ describe('floating utensils (2026-10-14)', async () => {
       'GESTURE (missed last time): she must be visibly cooking with a utensil.'
     );
     assert.match(gestureFixNudge('cooking with a utensil', 'cook:1'), /standing at a counter or stove/);
+  });
+
+  it('asks only about what she does — not the sea, a title, a memory or the people around her', () => {
+    // The 2026-11-06 episode: 78 takes failed an action the shot never asked for.
+    const labels = (beat: string) => gestureQuestions({ beat }).map(q => q.label);
+    assert.deepEqual(labels('The sun glints off the waves as she stands at the water’s edge.'), []);
+    assert.deepEqual(labels('popping up on her surfboard on a wave'), []);
+    assert.deepEqual(labels('takes one more sip as the waves roll in'), ['holding the cup']);
+    assert.deepEqual(labels('She stands on the platform and waves.'), ['waving']);
+    assert.deepEqual(labels('turns toward the door, waves once, then walks out'), ['waving']);
+    assert.deepEqual(labels('waves goodbye from the dock'), ['waving']);
+    assert.deepEqual(
+      labels('The café hums with laughter and clinking spoons. Locals sip coffee at driftwood tables.'),
+      []
+    );
+    assert.deepEqual(labels('Rob says: “I heard you’ve got the last cup of salt.”'), []);
+    assert.deepEqual(labels('a folk song Aunt Mabel used to hum while stirring pots'), []);
+    assert.deepEqual(labels('clinking mugs with a roommate over breakfast'), ['holding the mug']);
+    assert.deepEqual(labels('clinking glasses on the rooftop'), ['holding the glass']);
+  });
+
+  it('reads the beat without quotes, memories or the crowd', () => {
+    assert.equal(
+      actionText('She laughs. Locals sip coffee. Rob says: “Cup?” Mabel used to stir pots. She waves.'),
+      'She laughs. Rob says: Mabel . She waves.'
+    );
   });
 });
