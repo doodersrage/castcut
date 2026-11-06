@@ -120,6 +120,15 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   it, it reads as a screenplay, scene by scene (heading, place, time of day, who speaks, each
   line), and anything it couldn't understand is listed first. Fountain and plain text both work;
   text with no scene headings reads as an outline, one beat per paragraph.
+- **Write an episode…** (with the LLM on) — no script yet? Say what it's about, about how many
+  minutes (a scene for every minute and a quarter: 24 for a half hour) and a tone. **Write the
+  outline** gives a title, a logline and each scene's heading and what happens: change any of
+  them, or take one out. **Write the screenplay** writes the scenes one at a time, each told how
+  the one before ended (on a local 8B model, a few seconds to a quarter of a minute a scene).
+  **Stop after this scene** keeps what's written and **Carry on writing** goes on from there; a
+  scene the model fails twice stops it there, saying so. **Put it in the script box** — then it
+  reads like any script, and **Keep this script**. Changing a scene in the outline writes it, and
+  those after it, again.
 - **Who's who** — each speaking part gets a Cast picker. A name that matches one Cast member is
   only _suggested_ until you **Confirm** it; two possible matches give no guess; **Not in the
   Cast** is a choice too. Nothing is created for you.

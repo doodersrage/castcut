@@ -6,6 +6,7 @@
   "src/app/api/day-premise/route.ts",
   "src/app/api/story/notes/route.ts",
   "src/app/api/script-shots/route.ts",
+  "src/app/api/script-episode/route.ts",
   "src/app/api/marks-check/route.ts",
   "src/app/api/film/narration/route.ts",
   "src/app/review/[token]/page.tsx",

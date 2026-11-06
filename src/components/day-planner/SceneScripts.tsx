@@ -16,14 +16,14 @@ import {
   unsetPlaceShots,
 } from '@/lib/day/script-coverage';
 import { loadSettingsCache } from '@/lib/settings/cache';
+import EpisodeWriterSheet from '@/components/day-planner/EpisodeWriterSheet';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
 import { storyboard } from '@/lib/day/storyboard';
 import { orphanedShots } from '@/lib/day/script-reimport';
 import { requestShotDraft } from '@/lib/day/script-shots-llm';
-import { shotsToPrepare } from '@/lib/day/scene-run';
-import { SCENE_LIMIT_PER_CAST } from '@/lib/day/scenes';
+import { RUN_MAX_ITEMS, shotsToPrepare } from '@/lib/day/scene-run';
 import type { PlannedShot } from '@/lib/day/script-shots';
 import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
 import {
@@ -414,6 +414,7 @@ export default function SceneScripts({
       : new URLSearchParams(window.location.search).get('script')?.trim() || null
   );
   const [draft, setDraft] = useState<string | null>(null);
+  const [writingEpisode, setWritingEpisode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
   // The script as it was before the last new version went in, and the version that replaced it:
@@ -589,7 +590,7 @@ export default function SceneScripts({
             result.created
               ? `${result.created} planned shot${result.created === 1 ? '' : 's'} made into Scenes`
               : 'Every planned shot is a Scene already',
-            overLimit ? `${overLimit} not made: the Cast has ${SCENE_LIMIT_PER_CAST} Scenes` : '',
+            overLimit ? `${overLimit} not made: a run takes at most ${RUN_MAX_ITEMS} Scenes` : '',
             'the run is listed below — nothing renders until you start it',
           ]
             .filter(Boolean)
@@ -632,7 +633,36 @@ export default function SceneScripts({
         >
           {draft === null ? 'Import a script' : 'Cancel'}
         </Button>
+        {llmBody && draft === null ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            data-testid="script-write-episode"
+            title="From a premise: an outline, then the screenplay scene by scene, by your LLM"
+            onClick={() => setWritingEpisode(true)}
+          >
+            Write an episode…
+          </Button>
+        ) : null}
       </div>
+      {llmBody ? (
+        <EpisodeWriterSheet
+          open={writingEpisode}
+          lead={castName ?? 'the lead'}
+          cast={cast.map(member => ({
+            name: member.name,
+            ...(member.sex ? { sex: member.sex } : {}),
+          }))}
+          llmBody={llmBody}
+          onClose={() => setWritingEpisode(false)}
+          onDone={fountain => {
+            setWritingEpisode(false);
+            setOpenId(null);
+            setError(null);
+            setDraft(fountain);
+          }}
+        />
+      ) : null}
 
       {draft !== null ? (
         <div className="mt-3 space-y-2" data-testid="script-import-form">

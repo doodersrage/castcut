@@ -3528,5 +3528,14 @@ The gaps between Castcut and an unattended 30-minute episode, closed in order of
   ~0.9 MB of the 2 MB budget; storage-budget.test.ts). Queue all stays a plain run (the checks run
   on the card). Not verified live on ComfyUI yet: the redo path and Animate in a run were only
   unit-tested / stubbed in e2e.
-- **G3 episode writing** — premise → beat outline → screenplay, scene by scene, into the pipeline.
+- **G3 episode writing — done.** episode-writer.ts + `/api/script-episode` (Play-owned): step
+  `outline` (premise, lead, Cast names with their sex, minutes → `episodeSceneCount` = 0.8/min,
+  3–40; JSON title/logline/scenes, headings normalised) and step `scene` (the outline, the scene
+  before's last lines → one scene in Fountain, cleaned: fences and chatter dropped, cut at a second
+  heading, its own heading first; null unless the script reader takes it). `EpisodeWriterSheet`
+  (Script → Write an episode…, shown with the LLM on): edit the outline, write scene by scene with
+  one retry each, Stop / Carry on, then into the import box (read and kept as any script). Tried
+  live on LM Studio (qwen3-vl-8b): a 6-minute, 5-scene episode in ~45 s, every scene parsed, no
+  issues; quality is a first draft (one "MARA & LENA" speaker, an action beat that contradicts
+  itself).
 - **G4 long-form music** — score cues per scene, ducked under the lines.

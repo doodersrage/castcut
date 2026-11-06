@@ -1282,6 +1282,79 @@ test('Draft with the LLM: its shots are planned, and a failure says why', async 
   await expect(page.getByTestId('script-shot-int-kitchen-morning~2')).toHaveAttribute('data-status', 'planned');
 });
 
+// Part 19 G3: a premise becomes an outline, the outline a screenplay scene by scene, and the
+// screenplay goes into the Script box to be read and kept like any script.
+test('Write an episode: an outline, scenes written one by one, kept as a script', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  const steps: string[] = [];
+  let sceneCalls = 0;
+  await page.route('**/api/script-episode', async route => {
+    const sent = route.request().postDataJSON() as { step: string; index?: number; before?: string; outline?: { scenes: { heading: string }[] } };
+    steps.push(sent.index === undefined ? sent.step : `${sent.step}:${sent.index}`);
+    if (sent.step === 'outline') {
+      await route.fulfill({
+        json: {
+          outline: {
+            title: 'The Letter',
+            logline: 'A letter brings her home.',
+            scenes: [
+              { heading: 'INT. KITCHEN - MORNING', summary: 'She finds the letter.', who: [] },
+              { heading: 'EXT. BEACH - EVENING', summary: 'She walks by the sea.', who: [] },
+              { heading: 'INT. CAFE - NIGHT', summary: 'She opens the café again.', who: [] },
+            ],
+          },
+        },
+      });
+      return;
+    }
+    sceneCalls += 1;
+    // The second scene fails twice (its retry too): the writer stops there, keeping the first.
+    if (sceneCalls === 2 || sceneCalls === 3) {
+      await route.fulfill({ status: 502, json: { error: 'The model did not write that scene — try again.' } });
+      return;
+    }
+    const heading = sent.outline!.scenes[sent.index!]!.heading;
+    await route.fulfill({ json: { text: `${heading}\n\nShe looks around.\n\nNORA\nScene ${sent.index! + 1}.\n` } });
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('script-write-episode').click();
+  const sheet = page.getByTestId('episode-writer');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId('episode-write-outline')).toBeDisabled();
+  await sheet.getByTestId('episode-premise').fill('A letter brings her back to the seaside café.');
+  await sheet.getByTestId('episode-minutes').fill('5');
+  await sheet.getByTestId('episode-write-outline').click();
+  await expect(sheet.getByTestId('episode-outline')).toContainText('The Letter');
+  await expect(sheet.locator('[data-testid^="episode-scene-"]')).toHaveCount(3);
+  // A scene changed in the outline is the one written.
+  await sheet.getByLabel('Scene 3 heading').fill('INT. CAFE - DAY');
+
+  await sheet.getByTestId('episode-write-scenes').click();
+  await expect(sheet.getByText('Scene 2: The model did not write that scene')).toBeVisible();
+  await expect(sheet.getByTestId('episode-scene-0')).toHaveAttribute('data-written', 'true');
+  await expect(sheet.getByTestId('episode-scene-1')).toHaveAttribute('data-written', 'false');
+  await expect(sheet.getByTestId('episode-use')).toContainText('Use the 1 written so far');
+  await sheet.getByTestId('episode-write-scenes').click();
+  await expect(sheet.getByTestId('episode-use')).toContainText('Put it in the script box');
+  // Each scene after the first is told how the one before ended.
+  expect(steps).toEqual(['outline', 'scene:0', 'scene:1', 'scene:1', 'scene:1', 'scene:2']);
+
+  await sheet.getByTestId('episode-use').click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId('script-import-text')).toHaveValue(/^Title: The Letter\n\nINT\. KITCHEN - MORNING/);
+  await expect(page.getByTestId('script-import-text')).toHaveValue(/INT\. CAFE - DAY/);
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toBeVisible();
+  await expect(page.getByTestId('script-reading')).toContainText('BEACH');
+});
+
 test('a script scene is drafted into shots and a shot is made a Scene', async ({ page }) => {
   const source = [
     'INT. KITCHEN - MORNING',

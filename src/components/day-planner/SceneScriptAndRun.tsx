@@ -32,7 +32,11 @@ export default function SceneScriptAndRun({
         <SceneScriptsSection
           castId={character.id}
           castName={character.name}
-          cast={loadCharacters().map(member => ({ id: member.id, name: member.name }))}
+          cast={loadCharacters().map(member => ({
+            id: member.id,
+            name: member.name,
+            ...(member.traits?.sex ? { sex: member.traits.sex } : {}),
+          }))}
           // Scripts keep their own store (M6 V6); any still in the settings move there.
           sceneTool={{
             mounted: vm.mounted,

@@ -8,7 +8,12 @@
 import { placeRoomOfSetting } from '../cast/places';
 import { locationForPlace, type LocationRecord } from '../location/records';
 
-export type ScriptCastMember = { id: string; name: string };
+export type ScriptCastMember = {
+  id: string;
+  name: string;
+  /** Their sex, when set: an episode's scenes are written with it (episode-writer.ts). */
+  sex?: string;
+};
 
 /** A speaking part's Cast member: an id, or null for "not in the Cast" (a stranger, an extra). */
 export type ScriptCastMap = Record<string, string | null>;
