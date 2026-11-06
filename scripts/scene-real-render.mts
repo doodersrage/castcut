@@ -3753,6 +3753,15 @@ const phases: Record<string, Phase> = {
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    // Portrait stills filled out to 16:9 (no black sides); EPISODE_WIDEN=0 leaves them boxed.
+    if (process.env.EPISODE_WIDEN !== '0') {
+      const widen = page.getByTestId('cut-widen');
+      if (await widen.isVisible().catch(() => false)) {
+        if ((await widen.getAttribute('aria-checked')) !== 'true') await widen.click();
+      } else {
+        problems.push('epcut: no Widen stills switch (is the cut wide?)');
+      }
+    }
     // Music by scene shows once the monitor has loaded the whole cut (every picture: minutes for
     // a long one). Not offered is a problem, not a note: the first episode went out silent.
     const music = page.getByTestId('cut-temp-music-make');

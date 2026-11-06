@@ -140,6 +140,7 @@ import {
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine } from '@/lib/film/narration-client';
 import { widenStillForFilm } from '@/lib/film/widen-client';
+import { loadWideStills, rememberWideStill } from '@/lib/film/wide-stills';
 import { isAssembledFilmEntry } from '@/lib/media/kind';
 import { completePlayCampaign } from '@/lib/play/campaign';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
@@ -2277,10 +2278,10 @@ export function useCutRoom() {
               source === 'day' && !key.includes('#')
                 ? dayStillsRef.current.find(entry => entry.slotId === key)
                 : undefined;
-            let wide =
+            let wide: string | undefined =
               dayStill?.wideUrl && dayStill.wideFor === shot.url
                 ? dayStill.wideUrl
-                : wideCache.current.get(shot.url);
+                : (wideCache.current.get(shot.url) ?? loadWideStills()[shot.url]);
             if (!wide) {
               setStatus(`Widening ${shot.title} to 16:9…`);
               wide =
@@ -2292,6 +2293,8 @@ export function useCutRoom() {
                 }).catch(() => null)) ?? undefined;
               if (wide) {
                 wideCache.current.set(shot.url, wide);
+                // Kept for the next cut (a long episode widens each still once).
+                if (!dayStill) rememberWideStill(shot.url, wide);
                 if (dayStill) {
                   const next = upsertDaySlotStill(dayStillsRef.current, {
                     slotId: dayStill.slotId,

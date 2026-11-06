@@ -322,6 +322,13 @@ differences: shots are joined with a hard cut where one piece meets the next (cr
 piece are kept), and stems are not made at this length. A 600-shot, 20-minute test film rendered
 in under two minutes on the server (stills and short clips; real clips take longer).
 
+## Widen stills
+
+Pictures made in Castcut are portrait (3:4). In a wide (16:9) cut they sit in the middle with black
+sides, unless **Widen stills to 16:9** is on (Format): each still is filled out to the sides by
+continuing its scene — the person and everything in the picture stay as they are. It's one render
+per still (about 10 s), kept, so the next cut — or the next version of a long episode — reuses it.
+
 ## Content Credentials
 
 A film rendered on the server is signed with **Content Credentials** (C2PA, the standard behind the

@@ -80,7 +80,7 @@ export type FilmCutOptionsValue = {
   previouslyOn?: boolean;
   /** Story: each scene's first sentence read as a voice-over over its shot (story-film.ts). */
   narrate?: boolean;
-  /** Story: stills widened to 16:9 for a widescreen cut (film-widen-client.ts). */
+  /** Portrait stills widened to 16:9 for a widescreen cut (widen-client.ts), any source. */
   widen?: boolean;
   /** Day / Story shot list: order, leave-outs, captions, holds. */
   shotEdits?: CutShotEdits;
@@ -318,6 +318,17 @@ export default function FilmCutOptionsControls({
             disabled={disabled}
             onChange={next => onChange({ ...value, followFaces: next })}
             testId={`${testIdPrefix}-follow-faces`}
+          />
+        ) : null}
+        {shape === 'wide' ? (
+          <OptionSwitch
+            label="Widen stills to 16:9"
+            note="Portrait stills continued to the sides — no black bars"
+            hint="Each portrait still is filled out to 16:9 by continuing its scene to the left and right (one render a still, about 10 s, kept for the next cut). Off: stills sit in the middle of the frame with black sides"
+            checked={value.widen === true}
+            disabled={disabled}
+            onChange={next => onChange({ ...value, widen: next })}
+            testId={`${testIdPrefix}-widen`}
           />
         ) : null}
         <OptionSwitch
@@ -703,9 +714,7 @@ export default function FilmCutOptionsControls({
       {storyExtras ? (
         <OptionGroup
           title="Story"
-          summary={
-            join(value.narrate && 'narrated', value.widen && shape === 'wide' && 'widened') || 'off'
-          }
+          summary={join(value.narrate && 'narrated') || 'off'}
           persistKey={groupKey('story')}
           testId={`${testIdPrefix}-options-story`}
         >
@@ -717,16 +726,6 @@ export default function FilmCutOptionsControls({
             onChange={next => onChange({ ...value, narrate: next })}
             testId={`${testIdPrefix}-narrate`}
           />
-          {shape === 'wide' ? (
-            <OptionSwitch
-              label="Widen stills to 16:9"
-              note="Portrait stills continued to the sides"
-              checked={value.widen === true}
-              disabled={disabled}
-              onChange={next => onChange({ ...value, widen: next })}
-              testId={`${testIdPrefix}-widen`}
-            />
-          ) : null}
         </OptionGroup>
       ) : null}
 
