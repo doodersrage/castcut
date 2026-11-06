@@ -1770,10 +1770,12 @@ test('day and story show a running job as Rendering, Story Retry flagged, and th
 });
 
 test('retired Look links open the Cast looks', async ({ page }) => {
+  // A dev server streams the redirect and the page follows it once it hydrates (production
+  // answers 307): give it the time a cold dev page takes.
   await gotoStable(page, '/moodboard?character=e2e-char');
-  await expect(page).toHaveURL(/\/characters\/e2e-char\?tab=overview#looks$/);
+  await expect(page).toHaveURL(/\/characters\/e2e-char\?tab=overview#looks$/, { timeout: 30_000 });
   await gotoStable(page, '/m/moodboard');
-  await expect(page).toHaveURL(/\/m$/);
+  await expect(page).toHaveURL(/\/m$/, { timeout: 30_000 });
 });
 
 test('look pack deep link stages Fitting from=look handoff', async ({ page }) => {
