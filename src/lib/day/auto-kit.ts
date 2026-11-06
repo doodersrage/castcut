@@ -125,3 +125,38 @@ export function dayOutfitArcKit(
   );
   return lead && lead.id !== slotId ? lead.wardrobeId?.trim() : undefined;
 }
+
+/**
+ * The outfit a script's Scene wears to match its script (Part 19 follow-up): the auto kit an
+ * earlier-made Scene of the same script already wears in the same part of the day — the day's
+ * outfit or the evening's, as Day keeps them. A Scene renders alone, so on its own it picked by
+ * its time of day and the 2026-11-06 episode changed her clothes four ways across 24 scenes.
+ * Undefined: not a script's, nothing to match yet, or Vacation (an outfit per stop).
+ */
+export function scriptSceneOutfitKit(
+  scenes: ReadonlyArray<{
+    id: string;
+    createdAt: number;
+    fromScript?: { scriptId: string };
+    slot: { id: string; wardrobeId?: string | null };
+  }>,
+  sceneId: string | null | undefined,
+  dayMood: DayMood | string | null | undefined,
+  fits: (wardrobeId: string) => boolean = () => true
+): string | undefined {
+  const scene = scenes.find(entry => entry.id === sceneId);
+  const scriptId = scene?.fromScript?.scriptId;
+  const block = scene ? dayOutfitBlock(scene.slot.id, dayMood) : null;
+  if (!scene || !scriptId || !block) return undefined;
+  return [...scenes]
+    .filter(
+      entry =>
+        entry.id !== scene.id &&
+        entry.fromScript?.scriptId === scriptId &&
+        dayOutfitBlock(entry.slot.id, dayMood) === block &&
+        Boolean(entry.slot.wardrobeId?.trim()) &&
+        fits(entry.slot.wardrobeId!.trim())
+    )
+    .sort((a, b) => a.createdAt - b.createdAt)[0]
+    ?.slot.wardrobeId?.trim();
+}

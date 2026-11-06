@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { dayMoodWantsAutoKit, pickDayAutoKit, type DayAutoKitOption } from './auto-kit';
+import {
+  dayMoodWantsAutoKit,
+  pickDayAutoKit,
+  scriptSceneOutfitKit,
+  type DayAutoKitOption,
+} from './auto-kit';
 
 const OUTFITS = 'Full outfits';
 const options: DayAutoKitOption[] = [
@@ -47,5 +52,37 @@ describe('day-auto-kit', () => {
     assert.equal(pickDayAutoKit({ ...input, exclude: [first, others[0]] }), others[1]);
     // Everything taken: still dress her rather than fall back to the plate's underwear.
     assert.ok(pickDayAutoKit({ ...input, exclude: [first, ...others] }));
+  });
+});
+
+describe('a script’s Scenes keep one outfit for the day and one for the evening', () => {
+  const scene = (id: string, at: number, part: string, kit?: string, scriptId = 's1') => ({
+    id,
+    createdAt: at,
+    fromScript: { scriptId },
+    slot: { id: part, ...(kit ? { wardrobeId: kit } : {}) },
+  });
+  const scenes = [
+    scene('a', 1, 'morning', 'green-wrap'),
+    scene('b', 2, 'afternoon', 'grey-romper'),
+    scene('c', 3, 'night', 'blue-dress'),
+    scene('d', 4, 'afternoon'),
+    scene('e', 5, 'evening'),
+    scene('x', 0, 'afternoon', 'other-script', 's2'),
+  ];
+
+  it('wears the first-made kit of the same script at that time of day', () => {
+    assert.equal(scriptSceneOutfitKit(scenes, 'd', 'everyday'), 'green-wrap');
+    assert.equal(scriptSceneOutfitKit(scenes, 'e', 'everyday'), 'blue-dress');
+    assert.equal(scriptSceneOutfitKit(scenes, 'a', 'everyday'), 'grey-romper');
+  });
+
+  it('skips kits that don’t fit, Scenes of no script, and Vacation', () => {
+    assert.equal(scriptSceneOutfitKit(scenes, 'd', 'everyday', id => id !== 'green-wrap'), 'grey-romper');
+    assert.equal(
+      scriptSceneOutfitKit([{ id: 'n', createdAt: 1, slot: { id: 'morning' } }, ...scenes], 'n', 'everyday'),
+      undefined
+    );
+    assert.equal(scriptSceneOutfitKit(scenes, 'd', 'vacation'), undefined);
   });
 });

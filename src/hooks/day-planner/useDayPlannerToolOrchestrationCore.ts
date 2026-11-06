@@ -188,6 +188,7 @@ import {
   dayMoodWantsAutoKit,
   pickDayAutoKit,
   dayOutfitArcKit,
+  scriptSceneOutfitKit,
   dayOutfitBlock,
 } from '@/lib/day/auto-kit';
 import {
@@ -337,7 +338,11 @@ import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
-import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import {
+  DEFAULT_DAY_TOOL_CACHE,
+  DEFAULT_SCENE_TOOL_CACHE,
+  type SceneToolCache,
+} from '@/lib/play/settings';
 import { sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
 
 const TOOL_ID = 'day' as const;
@@ -1539,11 +1544,23 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               ? entry
               : (latestSlotsRef.current.find(latest => latest.id === entry.id) ?? entry)
           );
-          const arcKit = dayOutfitArcKit(
-            arcSlots.filter(entry => fitsLead(entry.wardrobeId)),
-            queueTarget.id,
-            toolSettings.dayMood
-          );
+          // A script's Scene: the outfit its script's other Scenes already wear at this time of
+          // day (each Scene renders alone, so Day's arc can't see them).
+          const scriptKit = sceneMode
+            ? scriptSceneOutfitKit(
+                (toolSettings as SceneToolCache).scenes ?? [],
+                (toolSettings as SceneToolCache).activeSceneId,
+                toolSettings.dayMood,
+                id => fitsLead(id)
+              )
+            : undefined;
+          const arcKit =
+            scriptKit ??
+            dayOutfitArcKit(
+              arcSlots.filter(entry => fitsLead(entry.wardrobeId)),
+              queueTarget.id,
+              toolSettings.dayMood
+            );
           const picked =
             arcKit ??
             (wardrobeId ||
