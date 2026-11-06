@@ -43,7 +43,7 @@ export default function OpenGraphImage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 48, fontWeight: 600, letterSpacing: '-0.03em' }}>Castcut</div>
           <div style={{ fontSize: 22, color: '#9eb6e0', fontFamily: 'system-ui, sans-serif' }}>
-            Cast → Moodboard → Day → Cut
+            Cast → Moodboard → Short → Cut
           </div>
         </div>
       </div>

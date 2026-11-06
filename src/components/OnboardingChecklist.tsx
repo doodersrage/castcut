@@ -204,7 +204,8 @@ export default function OnboardingChecklist() {
         nextOpen?.id === 'watch-first-film') ? (
         <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="play-workspace-nudge">
           <p className="type-caption text-[var(--text-muted)]">
-            After your first still, switch to the Play workspace for Look → Outfit → Day → Cut film.
+            After your first still, switch to the Play workspace for Look → Outfit → Short → Cut
+            film.
           </p>
           <Button
             size="sm"

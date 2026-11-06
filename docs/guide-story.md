@@ -87,7 +87,7 @@ scenes.
 - **Takes** — each re-render is a take; a clearly worse new take never replaces a better one.
 - **Close camera picks** — on the Qwen-Image 2.1 engines a **Waist up** or **Head & shoulders**
   pick (Pose… → Camera) is cut from the still around her face, as on
-  [Day](guide-day.md#the-pose-editor); the pose check looks at the cut, and the card says when a
+  [Short](guide-day.md#the-pose-editor); the pose check looks at the cut, and the card says when a
   still was kept as rendered (no face found, lying down, two people, already that close).
 
 !!! note "Ratings"

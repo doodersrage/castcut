@@ -31,7 +31,7 @@ describe('opening a still in its tool', () => {
     assert.equal(galleryToolHrefForEntry({ tool: 'fitting', characterId: 'c1' }), '/fitting?character=c1');
     assert.equal(galleryToolHrefForEntry({ tool: 'moodboard' }), '/moodboard');
     assert.equal(galleryToolHrefForEntry({ tool: 'roleplay', characterId: 'c1' }), '/story?character=c1');
-    assert.equal(galleryToolLabel('day'), 'Day');
+    assert.equal(galleryToolLabel('day'), 'Short');
     assert.equal(galleryToolLabel('fitting'), 'Outfit');
     assert.equal(galleryToolLabel('moodboard'), 'Look');
   });

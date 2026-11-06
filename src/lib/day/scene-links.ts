@@ -15,9 +15,13 @@ import {
   nextSceneName,
   normalizeSavedScenes,
   sceneFromDaySlot,
+  scenesWithWorking,
   sendSceneToDayPatch,
+  upsertScene,
   type SavedScene,
 } from './scenes';
+import { dayAsShort } from './day-as-short';
+import { addScriptPatch, setScriptCastPatch, setScriptShotsPatch } from './scene-scripts';
 import type { DaySlotId } from './planner';
 
 /** The Scene page's path beside this one (the phone app keeps to /m). */
@@ -75,4 +79,31 @@ export function sendSceneToDaySlot(input: {
 /** The Day the scene would be sent to, read fresh (its slots for the picker). */
 export function loadDayForScenes(): DayToolCache {
   return loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+}
+
+/**
+ * "Make this Day a short" (day-as-short.ts): the Day as a script, its shots and their Scenes,
+ * written to the Scene page's settings in one go — the lead confirmed in Who's who, the open
+ * scene left as it is. The Day is not changed. Returns the script's id, or an error to show.
+ */
+export function saveDayAsShort(input: {
+  day: DayToolCache;
+  castId: string;
+  leadName: string;
+}): { scriptId: string } | { error: string } {
+  const short = dayAsShort(input);
+  if (!short) return { error: 'Nothing to make a short of yet — give a moment a place or a beat.' };
+  const cache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
+  let next = { ...cache, ...addScriptPatch(cache, short.script) };
+  next = { ...next, ...(setScriptShotsPatch(next, short.script.id, short.shots) ?? {}) };
+  next = {
+    ...next,
+    ...(setScriptCastPatch(next, short.script.id, short.leadSpeaker, input.castId) ?? {}),
+  };
+  const saved = scenesWithWorking(cache) ?? cache.scenes ?? [];
+  next.scenes = normalizeSavedScenes(
+    short.scenes.reduce<SavedScene[]>((all, scene) => upsertScene(all, scene), [...saved])
+  );
+  saveToolSettings('scene', next);
+  return { scriptId: short.script.id };
 }

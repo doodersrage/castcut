@@ -72,7 +72,7 @@ test('Cut is its own step: a tab, both reels in one shot list, and a source can 
   await seed(page);
   await gotoStable(page, '/cut');
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('cut-source-day')).toContainText('Day · 2 shots', { timeout: 30_000 });
+  await expect(page.getByTestId('cut-source-day')).toContainText('Short · 2 shots', { timeout: 30_000 });
   await expect(page.getByTestId('cut-source-story')).toContainText('Story · 1 shot');
   await expect(page.getByTestId('cut-shot-list')).toBeVisible();
   await expect(page.getByTestId('cut-film').first()).toContainText('3 shots');

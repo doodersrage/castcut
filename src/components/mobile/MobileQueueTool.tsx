@@ -129,7 +129,7 @@ export default function MobileQueueTool() {
         <p className="text-sm text-[var(--text-muted)]" data-testid="mobile-queue-empty">
           Nothing rendering.{' '}
           <Link href="/m/day" className="underline" data-testid="mobile-queue-open-day">
-            Open Day
+            Open Short
           </Link>
         </p>
       ) : (

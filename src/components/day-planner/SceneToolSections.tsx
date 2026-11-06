@@ -695,7 +695,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                       onPointerDown={refreshDaySlots}
                       onChange={event => setSendSlotId(event.target.value as DaySlotId)}
                     >
-                      <option value="">Send to Day slot…</option>
+                      <option value="">Send to Short slot…</option>
                       {daySlots.map(entry => (
                         <option key={entry.id} value={entry.id}>
                           {entry.label}

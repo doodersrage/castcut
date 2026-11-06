@@ -22,7 +22,7 @@ export type MobileStudioTab = {
 
 export const MOBILE_STUDIO_TABS: MobileStudioTab[] = [
   { id: 'film', href: '/m/film', label: 'Film', hint: 'Your film' },
-  { id: 'day', href: '/m/day', label: 'Day', hint: 'Plan the Day' },
+  { id: 'day', href: '/m/day', label: 'Short', hint: 'Plan a short' },
   { id: 'fitting', href: '/m/fitting', label: 'Outfit', hint: 'Try clothes on' },
   { id: 'story', href: '/m/story', label: 'Story', hint: 'What happens next' },
   { id: 'scene', href: '/m/scene', label: 'Scene', hint: 'One shot, exactly as you want it' },

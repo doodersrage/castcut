@@ -29,7 +29,7 @@ export default function PlayGalleryEmptyPanel({
 
   if (filmFilter) {
     const primaryHref = castId ? href(remixDayFilmHref(castId)) : href('/day');
-    const primaryLabel = castId ? 'Same look, new Day' : 'Open Day';
+    const primaryLabel = castId ? 'Same look, new short' : 'Open Short';
     return (
       <div className="space-y-3" data-testid="gallery-film-empty">
         <EmptyState
@@ -124,7 +124,7 @@ export default function PlayGalleryEmptyPanel({
         <div className="mt-4 flex flex-wrap gap-2">
           {/* Upload images is in the Gallery's own toolbar above. */}
           <ButtonLink href={href('/day')} variant="ghost" size="sm">
-            Open Day
+            Open Short
           </ButtonLink>
         </div>
       </div>

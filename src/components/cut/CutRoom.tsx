@@ -1146,7 +1146,7 @@ export default function CutRoom() {
                             ? shot => {
                                 const { source } = splitCutRoomKey(shot.key);
                                 return source === 'day'
-                                  ? 'Day'
+                                  ? 'Short'
                                   : source === 'story'
                                     ? 'Story'
                                     : source === 'scenes'

@@ -2545,10 +2545,10 @@ test('queue: jobs say where they came from, batch together, and show time left',
   await gotoStable(page, '/queue');
   await dismissBlockingOverlays(page);
   const batch = page.getByTestId('queue-batch');
-  await expect(batch).toContainText('Day · 2 jobs', { timeout: 30_000 });
-  await expect(batch.getByText('Day · Morning · Queue Cast')).toBeVisible();
-  await expect(batch.getByText('Day · Afternoon · Queue Cast')).toBeVisible();
-  await expect(batch.getByRole('link', { name: 'Open in Day' }).first()).toHaveAttribute(
+  await expect(batch).toContainText('Short · 2 jobs', { timeout: 30_000 });
+  await expect(batch.getByText('Short · Morning · Queue Cast')).toBeVisible();
+  await expect(batch.getByText('Short · Afternoon · Queue Cast')).toBeVisible();
+  await expect(batch.getByRole('link', { name: 'Open in Short' }).first()).toHaveAttribute(
     'href',
     '/day?character=e2e-queue-cast'
   );
@@ -3019,7 +3019,7 @@ test('each Cast keeps its own Day across a Cast switch', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('play-cast-sheet')).toHaveCount(0);
   // In-app navigation: a page load would re-apply this test's seed (it is an init script).
-  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Short', exact: true }).first().click();
   await page.waitForURL(/\/day/);
   // Park A's still came back with her (it used to be thrown away on the switch).
   await expect(page.getByText('1/4 stills').first()).toBeVisible({ timeout: 30_000 });
@@ -4623,7 +4623,7 @@ test('a Day slot can be made in another of the Cast’s looks, and keeps it', as
   // come back. The Cast's active look is unchanged.
   await page.getByRole('link', { name: 'Story', exact: true }).first().click();
   await page.waitForURL(/\/story/);
-  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Short', exact: true }).first().click();
   await page.waitForURL(/\/day/);
   await openDaySlotSheet(page, 'morning');
   await expect(morningLooks().getByTestId('day-slot-look-e2e-day-look-b')).toHaveAttribute(
@@ -4778,7 +4778,7 @@ test('Outfit hands a new outfit to Day: stale slot kits go, hand-picked slots st
   await expect(page.getByTestId('fitting-clothing-summary')).toContainText('barefoot');
 
   // In-app to Day (a page load would re-apply this test's seed).
-  await page.getByRole('link', { name: 'Day', exact: true }).first().click();
+  await page.getByRole('link', { name: 'Short', exact: true }).first().click();
   await page.waitForURL(/\/day/);
   await dismissBlockingOverlays(page);
   const notice = page.getByTestId('day-outfit-handoff-notice');

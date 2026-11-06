@@ -2,7 +2,7 @@
 
 !!! info "The short version"
     This page is the full reference. For quick, task-by-task guides see
-    [Your first film](first-film.md), [Day](guide-day.md), [Story](guide-story.md),
+    [Your first film](first-film.md), [Short](guide-day.md), [Story](guide-story.md),
     [Cut a film](guide-film.md) and [Finishing tools](finishing-tools.md).
     The **Look** page (step 2 below) has been retired: Film goes Cast → Outfit → Day, and
     `/moodboard` opens the Cast's looks.

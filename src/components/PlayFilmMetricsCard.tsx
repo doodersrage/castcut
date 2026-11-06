@@ -169,7 +169,7 @@ export default function PlayFilmMetricsCard() {
             detail={
               metrics.firstFilmCutAt
                 ? new Date(metrics.firstFilmCutAt).toLocaleString()
-                : 'Open Day and Cut film.'
+                : 'Open Short and Cut film.'
             }
           />
           <StatCard label="Cut rate" value={formatRate(rates.cutRate)} detail={rates.headline} />

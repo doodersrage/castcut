@@ -83,9 +83,9 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
   },
   {
     // Retired Look page (retired-look.ts). Kept so saved films' stepIndex values still line up;
-    // never offered as a step — a film that saved here resumes at Day (so it reads as Day).
+    // never offered as a step — a film that saved here resumes at Short (so it reads as Short).
     id: 'moodboard',
-    label: 'Day',
+    label: 'Short',
     description: "Retired — the Cast's looks live on Cast home.",
     optional: true,
     next: 'day',
@@ -95,7 +95,7 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
     id: 'fitting',
     label: 'Outfit',
     description:
-      'Optional — try clothes on and Keep one before the Day (Day can dress your Cast too).',
+      'Optional — try clothes on and Keep one before the Short (Short can dress your Cast too).',
     optional: true,
     next: 'day',
     href: ({ characterId, pack }) =>
@@ -103,8 +103,8 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
   },
   {
     id: 'day',
-    label: 'Day',
-    description: 'Queue morning → night stills, animate clips, then Cut film.',
+    label: 'Short',
+    description: 'Queue the moments’ stills, animate clips, then Cut film.',
     next: 'roleplay',
     href: ({ characterId, pack }) =>
       pack ? lookPackDayHref(pack) : `/day?character=${encodeURIComponent(characterId)}`,
@@ -184,7 +184,7 @@ const FUNNEL_STEP_LABELS: Record<PlayFunnelStepId, string> = {
   character: 'Cast',
   moodboard: 'Look',
   fitting: 'Outfit',
-  day: 'Day',
+  day: 'Short',
   roleplay: 'Story',
   cut: 'Cut film',
 };
@@ -837,7 +837,7 @@ export type PlayJourney = {
 const PLAY_JOURNEY_ORDER: Array<{ id: PlayJourneyStepId; label: string; optional: boolean }> = [
   { id: 'character', label: 'Cast', optional: false },
   { id: 'fitting', label: 'Outfit', optional: true },
-  { id: 'day', label: 'Day', optional: false },
+  { id: 'day', label: 'Short', optional: false },
   { id: 'cut', label: 'Cut film', optional: false },
   { id: 'roleplay', label: 'Story', optional: true },
 ];

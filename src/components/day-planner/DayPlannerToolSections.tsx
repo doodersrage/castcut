@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import DayAsShortButton from '@/components/day-planner/DayAsShortButton';
 import DayTemplatesMenu from '@/components/day-planner/DayTemplatesMenu';
 import { applyDayTemplate } from '@/lib/day/day-templates';
 import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
@@ -31,7 +33,6 @@ import { dayMoodFlavor } from '@/lib/day/mood-flavor';
 import { dayThemeOf } from '@/lib/day/themes';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
-import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day/event';
 import { FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -241,7 +242,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
-    importDayScript,
     writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,
@@ -719,7 +719,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       <ToolLayout
         width="full"
         accent={ACCENT}
-        title="Day"
+        title="Short"
         description={description}
         headerActions={
           <div className="flex flex-wrap items-center gap-2">
@@ -936,11 +936,24 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onSwitchToWholeDay={() => void suggestDayScenes()}
             castId={character?.id}
           />
-          <DayScriptImport
-            className="-mt-1 mb-3"
+          {character?.id ? (
+            // One script path (2026-11-06): a script is imported on Scene, where every scene and line is
+            // kept — not squeezed onto a Day's eight cards.
+            <Link
+              className="ui-text-link type-caption -mt-1 mb-3 inline-block"
+              href={`/scene?character=${encodeURIComponent(character.id)}&script=import`}
+              data-testid="day-script-open"
+            >
+              Import a script… (on Scene)
+            </Link>
+          ) : null}
+          <DayAsShortButton
+            className="ml-3"
+            character={character}
+            toolSettings={toolSettings}
+            slots={slots}
+            stills={stills}
             busy={busy}
-            stillCount={stills.filter(still => still.imageUrl).length}
-            onImport={importDayScript}
           />
           {/* The plan decides the board — chosen once, so it sits above the cards. */}
           <DayPlanBar

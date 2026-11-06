@@ -26,7 +26,7 @@ export const TOOL_QUEUE_QUALITY_OPTIONS: ToolQueueQualityOption[] = [
   { id: 'fantasy', label: 'Fantasy' },
   { id: 'roleplay', label: 'Story' },
   { id: 'fitting', label: 'Outfit' },
-  { id: 'day', label: 'Day' },
+  { id: 'day', label: 'Short' },
   { id: 'background', label: 'Background' },
   { id: 'recipe', label: 'Prompt recipes' },
   { id: 'campaign', label: 'Prompt batch' },

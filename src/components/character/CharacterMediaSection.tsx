@@ -245,7 +245,7 @@ export default function CharacterMediaSection({
               title="No films yet"
               description="Cut a Day film for this cast, or remix the same look with fresh stills."
               action={{
-                label: 'Same look, new Day',
+                label: 'Same look, new short',
                 href: remixDayFilmHref(character.id),
               }}
             />
@@ -255,7 +255,7 @@ export default function CharacterMediaSection({
                 size="sm"
                 variant="secondary"
               >
-                Open Day
+                Open Short
               </ButtonLink>
               <ButtonLink href="#character-film-studio" size="sm" variant="ghost">
                 Open Film studio

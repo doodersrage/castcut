@@ -22,6 +22,7 @@ import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import type { KeyedShot } from '@/lib/film/cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
+import DayAsShortButton from '@/components/day-planner/DayAsShortButton';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
@@ -48,7 +49,6 @@ import SharedToolControls from '@/components/SharedToolControls';
 import ActionMenu, { ACTION_MENU_ITEM_CLASS } from '@/components/ui/ActionMenu';
 import { Button, ButtonLink, PrimaryButton } from '@/components/ui/Button';
 import DayIdeaRow from '@/components/day-planner/DayIdeaRow';
-import DayScriptImport from '@/components/day-planner/DayScriptImport';
 import { activeDayEvent } from '@/lib/day/event';
 import { ChipButton, FieldError } from '@/components/ui/Field';
 import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
@@ -226,7 +226,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
-    importDayScript,
     writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,
@@ -606,7 +605,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
       />
       <div className="space-y-1">
         <div className="flex items-start justify-between gap-2">
-          <h1 className="type-display text-2xl tracking-tight">Day</h1>
+          <h1 className="type-display text-2xl tracking-tight">Short</h1>
           <DaySetupChip
             character={character}
             hasPlate={hasPlate}
@@ -1025,11 +1024,24 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onSwitchToWholeDay={() => void suggestDayScenes()}
           castId={character?.id}
         />
-        <DayScriptImport
-          className="mt-2"
+        {character?.id ? (
+          // One script path (2026-11-06): a script is imported on Scene, where every scene and line is
+          // kept — not squeezed onto a Day's eight cards.
+          <Link
+            className="ui-text-link type-caption mt-2 inline-block"
+            href={`/scene?character=${encodeURIComponent(character.id)}&script=import`}
+            data-testid="day-script-open"
+          >
+            Import a script… (on Scene)
+          </Link>
+        ) : null}
+        <DayAsShortButton
+          className="ml-3"
+          character={character}
+          toolSettings={toolSettings}
+          slots={slots}
+          stills={stills}
           busy={busy}
-          stillCount={stills.filter(still => still.imageUrl).length}
-          onImport={importDayScript}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

@@ -20,7 +20,7 @@ import type { CutBridgeStatus } from '../video/cut-bridge';
 export type CutSource = 'day' | 'story' | 'scenes' | 'script';
 
 export const CUT_SOURCES: { id: CutSource; label: string; href: string }[] = [
-  { id: 'day', label: 'Day', href: '/day' },
+  { id: 'day', label: 'Short', href: '/day' },
   { id: 'story', label: 'Story', href: '/story' },
   // The Cast's scenes (day/scenes.ts): each scene's kept take, its clip when it has one.
   { id: 'scenes', label: 'Scenes', href: '/scene' },

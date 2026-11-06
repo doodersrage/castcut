@@ -4,7 +4,7 @@ import { pageShortcuts } from './page-shortcuts';
 
 test('each page with its own keys is found by its path', () => {
   assert.equal(pageShortcuts('/cut')?.page, 'Cut');
-  assert.equal(pageShortcuts('/day')?.page, 'Day');
+  assert.equal(pageShortcuts('/day')?.page, 'Short');
   assert.equal(pageShortcuts('/fitting')?.page, 'Outfit');
   assert.equal(pageShortcuts('/story')?.page, 'Story');
   assert.equal(pageShortcuts('/gallery')?.page, 'Gallery');

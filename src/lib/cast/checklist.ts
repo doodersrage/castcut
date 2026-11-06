@@ -106,10 +106,10 @@ export function castChecklist(facts: CastChecklistFacts): CastChecklist {
     },
     {
       id: 'day',
-      label: 'Day stills rendered',
+      label: 'Short stills rendered',
       done: dayStills > 0,
       detail: dayStills > 0 ? plural(dayStills, 'still') : 'not yet',
-      action: 'Day',
+      action: 'Short',
       target: { kind: 'href', href: `/day?character=${id}` },
     },
     {

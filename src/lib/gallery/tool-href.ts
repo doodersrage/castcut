@@ -50,7 +50,7 @@ const TOOL_LABEL: Record<string, string> = {
   pet: 'Pet',
   fantasy: 'Fantasy',
   roleplay: 'Story',
-  day: 'Day',
+  day: 'Short',
   scene: 'Scene',
   fitting: 'Outfit',
   moodboard: 'Look',

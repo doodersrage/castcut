@@ -87,7 +87,7 @@ export const PLAY_PHASE_MAX_SAMPLE_MS = 2 * 60 * 60 * 1000;
 const PHASE_LABELS: Record<PlayPhaseId, string> = {
   moodboard: 'Look',
   fitting: 'Outfit',
-  day: 'Day',
+  day: 'Short',
 };
 
 export function playPhaseLabel(phase: PlayPhaseId): string {

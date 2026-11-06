@@ -43,10 +43,10 @@ describe('what a queue job is', () => {
 
   it('names Day slots and clips, with the Cast and a link back', () => {
     const job = describeQueueJob({ promptId: 'p-e', tool: 'day', characterId: 'c1' }, index, 'Robin');
-    assert.equal(job.label, 'Day · Evening · Robin');
+    assert.equal(job.label, 'Short · Evening · Robin');
     assert.equal(job.href, '/day?character=c1');
-    assert.equal(job.openLabel, 'Open in Day');
-    assert.equal(describeQueueJob({ promptId: 'c-e' }, index).label, 'Day · Evening · clip');
+    assert.equal(job.openLabel, 'Open in Short');
+    assert.equal(describeQueueJob({ promptId: 'c-e' }, index).label, 'Short · Evening · clip');
   });
 
   it('names Scene jobs "Scene" — not Day, though they are queued like Day stills', () => {
@@ -89,7 +89,7 @@ describe('what a queue job is', () => {
     assert.equal(describeQueueJob({ promptId: 's-old' }, sceneIndex).label, 'Scene · Dropped take');
     assert.equal(describeQueueJob({ promptId: 's-clip' }, sceneIndex).label, 'Scene · Kitchen · clip');
     // Day's own jobs stay Day's.
-    assert.equal(describeQueueJob({ promptId: 'p-e' }, sceneIndex).label, 'Day · Evening');
+    assert.equal(describeQueueJob({ promptId: 'p-e' }, sceneIndex).label, 'Short · Evening');
     const groups = groupQueueJobs(
       [entry({ id: 'a', promptId: 's-live', queuedAt: 1 }), entry({ id: 'b', promptId: 's-old', queuedAt: 2 })],
       job => describeQueueJob(job, sceneIndex).source
@@ -130,7 +130,7 @@ describe('batches', () => {
       groups.map(group => group.entries.map(job => job.id)),
       [['d1', 'd2', 'd3'], ['s1'], ['d4']]
     );
-    assert.equal(groups[0]?.batchLabel, 'Day · 3 jobs');
+    assert.equal(groups[0]?.batchLabel, 'Short · 3 jobs');
     assert.equal(groups[1]?.batchLabel, undefined);
   });
 });
@@ -195,8 +195,8 @@ describe('time left', () => {
       index,
       'Robin'
     );
-    assert.equal(day.label, 'Day · Robin');
-    assert.equal(day.openLabel, 'Open in Day');
+    assert.equal(day.label, 'Short · Robin');
+    assert.equal(day.openLabel, 'Open in Short');
     assert.match(day.href, /^\/day\?character=c1/);
     const outfit = describeQueueJob(
       { promptId: 'x', tool: 'image-prompt', prompt: 'Edit instruction for an outfit try-on.' },

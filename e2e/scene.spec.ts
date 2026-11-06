@@ -1397,6 +1397,24 @@ test('Make it a short: Day’s idea opens the writer, counted in scenes', async 
   await expect(page.getByTestId('episode-writer')).toHaveCount(0);
 });
 
+// One script path: Short's Import a script… opens Scene's import box (More unfolded), once.
+test('Import a script from Short opens Scene’s import box', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: { stillsCharacterId: CAST, dayMood: 'everyday' }, scene: sceneWithTakes() },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-script-open').first().click({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  await expect(page.getByTestId('script-import-text')).toBeVisible({ timeout: 60_000 });
+  await expect(page).not.toHaveURL(/script=import/);
+  await page.getByTestId('script-import-text').fill('INT. CAFE - DAY\n\nShe sits by the window.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toContainText('CAFE');
+});
+
 // The episode autopilot: from the written episode to a running episode run with no more clicks —
 // kept, Who's who confirmed, every scene's shots (the rules when the LLM can't), Scenes made, the
 // run started as an episode that cuts itself when done.
@@ -2707,6 +2725,52 @@ test('Open as Scene from a Day slot copies its shot and take', async ({ page }) 
   await expect(page.getByTestId('scene-take')).toHaveCount(1);
 });
 
+// The script-driven Short: a Day's moments copied into a script with a Scene each, the still its
+// kept take — the Day left as it is — and opened on the Scene page.
+test('This Day as a script: a scene per moment, its still kept, the Day unchanged', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee', line: 'Coffee first.' },
+          { id: 'afternoon', label: 'Afternoon' },
+          { id: 'evening', label: 'Evening', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+        ],
+        stills: [{ slotId: 'evening', promptId: 'day-evening', imageUrl: '/icon.svg', status: 'completed' }],
+      },
+    },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-as-short').first().click({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/scene\?.*script=/, { timeout: 60_000 });
+  const reading = page.getByTestId('script-reading');
+  await expect(reading).toBeVisible({ timeout: 60_000 });
+  await expect(reading).toContainText('SMALL KITCHEN');
+  await expect(reading).toContainText('ROOFTOP BAR');
+  const tool = JSON.parse((await storedSceneTool(page)) || '{}') as {
+    scripts?: Array<{ id: string; name: string; shots?: unknown[]; castMap?: Record<string, string> }>;
+    scenes?: Array<{ fromScript?: { scriptId: string }; fromDaySlot?: string; keptTakeId?: string; takes: unknown[] }>;
+  };
+  const script = tool.scripts?.find(entry => entry.name === 'Scene Cast’s day');
+  expect(script, JSON.stringify(tool.scripts?.map(entry => entry.name))).toBeTruthy();
+  // Three moments (the empty afternoon is left out), a shot and a Scene each.
+  expect(script!.shots).toHaveLength(3);
+  expect(script!.castMap?.['SCENE CAST']).toBe(CAST);
+  const made = (tool.scenes ?? []).filter(scene => scene.fromScript?.scriptId === script!.id);
+  expect(made.map(scene => scene.fromDaySlot)).toEqual(['morning', 'evening', 'night']);
+  expect(made[1]!.keptTakeId).toBe('day-evening');
+  expect(made[0]!.takes).toHaveLength(0);
+  // The Day is as it was.
+  await gotoStable(page, `/day?character=${CAST}`);
+  await expect(page.getByTestId('day-progress-scene-evening').first()).toContainText('laughing', { timeout: 30_000 });
+});
+
 /** Horizontal overflow (px) of the page, and what sticks out (outside any scrolling strip). */
 async function horizontalOverflow(page: Page): Promise<{ over: number; wide: string[] }> {
   return page.evaluate(() => {
@@ -2935,7 +2999,7 @@ test('queue: the Scene page’s jobs are labelled Scene, not Day', async ({ page
     'href',
     `/scene?character=${CAST}`
   );
-  await expect(page.getByText(/^Day · /)).toHaveCount(0);
+  await expect(page.getByText(/^Short · /)).toHaveCount(0);
 });
 
 test('Make it move: the clip engine choice (Day’s), its requirements, and Animate renders on it', async ({

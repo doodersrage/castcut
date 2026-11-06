@@ -85,7 +85,7 @@ describe('play phase timing', () => {
     };
     assert.deepEqual(
       playPhaseAverages(metrics).map(entry => entry.label),
-      ['Look', 'Outfit', 'Day']
+      ['Look', 'Outfit', 'Short']
     );
     const slowest = slowestPlayPhase(metrics);
     assert.equal(slowest?.phase, 'fitting');

@@ -43,7 +43,7 @@ The same face, clothes and rooms carry through every picture. That is the whole 
 
     Plan the moments, render stills, animate them — everyday, sport, vacation and more.
 
-    [:octicons-arrow-right-24: Day](guide-day.md)
+    [:octicons-arrow-right-24: Short](guide-day.md)
 
 -   :material-book-open-page-variant-outline:{ .lg .middle } __Stories__
 

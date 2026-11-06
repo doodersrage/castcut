@@ -30,7 +30,7 @@ describe('tool-page-chrome', () => {
     assert.equal(TOOL_SETUP_LABELS.queue, 'Queue');
     assert.equal(TOOL_SETUP_LABELS.moodboard, 'Look');
     assert.equal(TOOL_SETUP_LABELS.fitting, 'Outfit');
-    assert.equal(TOOL_SETUP_LABELS.day, 'Day');
+    assert.equal(TOOL_SETUP_LABELS.day, 'Short');
     assert.equal(TOOL_SETUP_LABELS.roleplay, 'Story');
   });
 

@@ -470,26 +470,49 @@ export default function SceneScripts({
   );
   // /scene?script=<id> opens that script (Film Director's next actions, M5 W2).
   const locations = useLocations();
-  const [openId, setOpenId] = useState<string | null>(() =>
-    typeof window === 'undefined'
-      ? null
-      : new URLSearchParams(window.location.search).get('script')?.trim() || null
-  );
+  const [openId, setOpenId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const id = new URLSearchParams(window.location.search).get('script')?.trim() || null;
+    // ?script=import is Short's Import a script… (the import box below), not a script's id.
+    return id === 'import' ? null : id;
+  });
   const [draft, setDraft] = useState<string | null>(null);
   const [writingEpisode, setWritingEpisode] = useState(false);
   // A short from Day (?write=short&premise=…&scenes=…): the writer opens on it, once.
   const [writeSeed, setWriteSeed] = useState<EpisodeWriteSeed | null>(null);
+  // Or Short's Import a script… (?script=import): the import box opens, once.
   useEffect(() => {
-    if (!readEpisodeWriteSeed(window.location.search)) return;
+    const asked = () => {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        seed: readEpisodeWriteSeed(window.location.search),
+        importing: params.get('script') === 'import',
+      };
+    };
+    const first = asked();
+    if (!first.seed && !first.importing) return;
     const timer = window.setTimeout(() => {
-      const seed = readEpisodeWriteSeed(window.location.search);
-      if (!seed) return;
+      const { seed, importing } = asked();
+      if (!seed && !importing) return;
       // Off the URL, so a reload doesn't open it again (in the timer: Strict Mode runs this twice).
       const url = new URL(window.location.href);
-      for (const key of ['write', 'premise', 'scenes', 'tone']) url.searchParams.delete(key);
+      for (const key of ['write', 'premise', 'scenes', 'tone', 'script'])
+        url.searchParams.delete(key);
       window.history.replaceState(window.history.state, '', url);
-      setWriteSeed(seed);
-      setWritingEpisode(true);
+      if (seed) {
+        setWriteSeed(seed);
+        setWritingEpisode(true);
+      } else {
+        setDraft(current => current ?? '');
+        // The box is under the page's folded More: unfold it and bring the box into view.
+        const section = document.querySelector<HTMLElement>('[data-testid="scene-scripts"]');
+        const fold = section?.closest('details');
+        if (fold) fold.open = true;
+        window.setTimeout(
+          () => section?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+          50
+        );
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);

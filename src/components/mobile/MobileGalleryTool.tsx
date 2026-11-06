@@ -187,7 +187,7 @@ export default function MobileGalleryTool() {
                   size="sm"
                   variant="secondary"
                 >
-                  Open Day
+                  Open Short
                 </ButtonLink>
               )}
               {characterId ? (

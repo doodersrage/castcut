@@ -102,7 +102,7 @@ export function groupQueueJobs<
     const source = sourceOf(group.entries[0]!);
     const name =
       source === 'day'
-        ? 'Day'
+        ? 'Short'
         : source === 'scene'
           ? 'Scene'
           : source === 'story'

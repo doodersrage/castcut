@@ -177,7 +177,7 @@ export default function CharacterFilmStudio({
               size="sm"
               variant="secondary"
             >
-              Open Day
+              Open Short
             </ButtonLink>
             <ButtonLink
               href={`/story?character=${encodeURIComponent(characterId)}`}

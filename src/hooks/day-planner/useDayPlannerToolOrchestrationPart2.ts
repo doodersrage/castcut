@@ -1347,7 +1347,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         resolution: filmResolutionForCutOptions(filmCutOptions),
         // The episode was recorded at Cut, so the poster names the season it landed in.
         titleCard: filmCutOptions.titles
-          ? { title: character?.name?.trim() || 'Day', subtitle: dayPosterSubtitle(character?.id) }
+          ? {
+              title: character?.name?.trim() || 'Short',
+              subtitle: dayPosterSubtitle(character?.id),
+            }
           : null,
       });
       downloadFilmBlob(poster.blob, poster.filename);

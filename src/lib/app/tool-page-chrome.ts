@@ -37,7 +37,7 @@ export const TOOL_SETUP_LABELS = {
   nsfwGenerator: 'Adult generator',
   roleplay: 'Story',
   fitting: 'Outfit',
-  day: 'Day',
+  day: 'Short',
   moodboard: 'Look',
   dashboard: 'Dashboard',
   profile: 'Profile',

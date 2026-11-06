@@ -71,7 +71,7 @@ describe('episodePlaylist', () => {
       shots.map(shot => episodeShotPart(shot.key)),
       ['day', 'day', 'story', 'story']
     );
-    assert.equal(shots[0]!.title, 'Day · Morning');
+    assert.equal(shots[0]!.title, 'Short · Morning');
     assert.equal(shots[2]!.title, 'Story · Beat b2');
     // Captions keep the beat's words, not the part label.
     assert.equal(shots[0]!.caption, 'makes coffee');

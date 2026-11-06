@@ -43,7 +43,7 @@ describe('where a tool’s quality comes from', () => {
   it('groups every tool under the chip it queues with', () => {
     const groups = summarizeToolQualities({ day: 'max', format: 'followSettings' }, 'final');
     assert.deepEqual(groups.map(group => group.chip), ['Good', 'Best', 'Custom']);
-    assert.deepEqual(groups[1]!.tools, ['Day']);
+    assert.deepEqual(groups[1]!.tools, ['Short']);
     assert.deepEqual(groups[2]!.tools, ['Format']);
     const all = groups.flatMap(group => group.tools);
     assert.equal(all.length, TOOL_QUEUE_QUALITY_OPTIONS.length);

@@ -498,7 +498,7 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
                   setSheet('send');
                 }}
               >
-                Send to Day…
+                Send to Short…
               </Button>
               <ButtonLink
                 href="/m/cut?from=scenes"
@@ -729,7 +729,7 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
       <SideSheet
         open={sheet === 'send'}
         onClose={() => setSheet(null)}
-        title="Send to Day"
+        title="Send to Short"
         description="The shot goes on that Day slot; its kept take becomes the slot's still (the old one stays as the previous take)."
         testId="scene-send-day-sheet"
       >

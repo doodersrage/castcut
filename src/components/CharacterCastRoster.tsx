@@ -444,7 +444,7 @@ export default function CharacterCastRoster() {
                         className={ACTION_MENU_ITEM_CLASS}
                         onClick={() => applyAndPlanDay(character.id)}
                       >
-                        Open Day
+                        Open Short
                       </button>
                       <button
                         type="button"

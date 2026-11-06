@@ -76,7 +76,7 @@ function inPart(shot: KeyedShot, part: EpisodePart): KeyedShot {
     key: `${PART_PREFIX[part]}${shot.key}`,
     // Captions keep the beat's own words; the part only labels the shot list.
     caption: shot.caption ?? shot.title,
-    title: `${part === 'day' ? 'Day' : 'Story'} · ${shot.title}`,
+    title: `${part === 'day' ? 'Short' : 'Story'} · ${shot.title}`,
   };
 }
 

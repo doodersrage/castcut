@@ -487,7 +487,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             className="ui-btn-ghost w-full justify-center text-center text-sm"
             data-testid="fitting-plan-day"
           >
-            Open Day
+            Open Short
           </Link>
         ) : null}
       </div>

@@ -64,7 +64,7 @@ export const PLAY_APP_COMMAND_ACTIONS: CommandAction[] = [
   },
   {
     id: PLAY_COMMAND_ACTION_IDS.openDay,
-    label: 'Open Day',
+    label: 'Open Short',
     subtitle: 'Day · queue the day, animate, cut',
     keywords: 'day planner morning night stills queue',
     href: '/day',

@@ -1,6 +1,9 @@
-# Day
+# Short
 
-A day in the Cast's life: a handful of moments, each a still, then a clip. Open **Day** (`/day`).
+A short film: a handful of moments, each a still, then a clip — a day in the Cast's life, or one
+event. Open **Short** (`/day`; it was called **Day** until v3.9, and Castcut still calls a plan of
+moments a _Day_ on the page). For more moments than a Day holds, or a story with lines, **Make it a
+short →** writes it as a script (below).
 
 ## The page
 
@@ -8,7 +11,7 @@ Top to bottom, the way a Day is made:
 
 | Part | What's in it |
 | --- | --- |
-| **Idea** | Whole day or one event, **Write the day** from a sentence, **Import a script…** |
+| **Idea** | Whole day or one event, **Write the day** from a sentence, **Make it a short →** (the idea as a script) and **Import a script… (on Scene)** — both open [Scene's Script](guide-scene.md#script) — and **This Day as a script →** (below) |
 | **Plan bar** | Stills (2–8) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · Animate all · **Open Cut →** |
@@ -46,6 +49,12 @@ silly / raunchy.
     as a short script — a scene per moment, starting from the Day's number and as many as you like
     there (2–40) — then planned, rendered and cut like an episode, by hand or with **Make the whole
     episode for me** ([Make an episode](guide-episode.md)). Everyday and Vacation set its tone.
+
+!!! tip "This Day as a script"
+    **This Day as a script →** copies the Day into a script: a scene for each moment with a place, a
+    beat or a line (its place and time as the heading, the lead saying the line), each with its
+    Scene — the moment's still as its kept take. It opens on Scene: storyboard it, add moments,
+    give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
 !!! tip "One event instead of a whole day"
     Switch the idea row to **One event** and write one line — *a dinner date at a candlelit

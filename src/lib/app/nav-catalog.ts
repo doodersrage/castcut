@@ -37,8 +37,8 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
       { href: '/fitting', label: 'Outfit', description: 'Try clothes on, keep the one you like' },
       {
         href: '/day',
-        label: 'Day',
-        description: 'Plan the scenes and render the stills',
+        label: 'Short',
+        description: 'A short film: plan the moments, render the stills',
       },
       {
         href: '/story',

@@ -3585,3 +3585,43 @@ reads it, pose map and prompt alike); `scriptShotCompanions` turns companions on
 Scenes and off for the lead's own. Checked on Qwen-Image 2.1 Turbo: four of Rob's Scenes given
 exactly that rendered both of them, his face from his Cast (Image 2), ~20 s each. Scenes already
 made keep their mood: prepare the run again for it to apply.
+
+## Part 20 — the script-driven Short (user, 2026-11-06: "I guess we're moving to everything being script driven"; "Short sounds like a fine name. Do all you need.")
+
+Day is no longer a second road from an idea to shots: scripts are the one road (Script → Scenes
+→ Run → Cut, with the episode autopilot), and Day — now called **Short** — is the quick front
+door onto it. Small steps; nothing a user made is moved or deleted.
+
+### Done
+
+- **S1 Make it a short** (5758e3f8): Day's idea → Scene's Write an episode, its mood as the tone and
+  a scene per moment; the writer counts in scenes (2–40) or minutes. Any number of moments.
+- **S2 One script path**: Day's own "Import a script…" (eight cards at most, the rest dropped) is
+  gone; the link opens Scene's import box (`/scene?script=import`, More unfolded). Removed:
+  `DayScriptImport`, `lib/day/script-import.ts` and its tests, `importDayScript`.
+- **S3a This Day as a script** (`lib/day/day-as-short.ts`, `saveDayAsShort` in scene-links): a
+  copy — the Day's moments (a place, beat or line set) as a script, a planned shot each and its
+  Scene (the slot's shot, as Open as Scene; the still as its kept take when it is this Cast's),
+  the lead confirmed in Who's who, opened on Scene. The Day is unchanged; deleting the script
+  and its Scenes undoes it.
+- **The rename**: the page is called Short wherever it is named (nav, phone bar, heading, Play's
+  steps, Cut's source, the queue, shortcuts, the checklist, "Open Short"); the guide is "Short".
+  Kept as `day`: the URL (`/day`, `/m/day`), stored settings, Cut's source id, test ids — no
+  migration, old links work. In-page words for the plan ("Suggest day", "Write the day", "Queue
+  day") stay: a day in their life is still what that page plans.
+
+### Next (not started — each its own reviewed step)
+
+- **S3b The Short board on Scenes.** The board's cards read and write Scenes of a short script
+  (the Day's slots become its scenes, the stills their takes) instead of `tools.day.slots/stills`.
+  Needs: a one-way, idempotent copy of each Cast's Day into a script on first open (S3a's
+  `dayAsShort`, marked so it runs once), the Day's settings kept untouched as the rollback; the
+  Day-only parts (moods' Suggest day, One event, templates, Queue the rest, Animate all, the
+  reel, Play's step machine counting Day stills, the Director, plan history) ported to read the
+  script's Scenes. Risk: the largest surface in the app (lib/day, ~230 commits since October) —
+  do it behind the copy, page by page, with the e2e Day suites green at each step.
+- **S3c One Cut source.** When S3b is in, Cut's Day source reads the short's Scenes; retire the
+  Day source after a release with both, so a saved cut that names `day` still opens.
+- **Moods for the script path.** Sport, Suggestive and Intimate (adult-gated) have no tone in
+  Write an episode; give the writer the moods' rules (kit, places, the adult setting) before
+  Day's own writers are retired.

@@ -44,7 +44,7 @@ type KioskTab = {
 
 const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/play', label: 'Film', primary: true },
-  { href: '/day', label: 'Day', primary: true },
+  { href: '/day', label: 'Short', primary: true },
   { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
   // One shot exactly as wanted (Day's engine on one slot): shots → Cut, so before Cut.

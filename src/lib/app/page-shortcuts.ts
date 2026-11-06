@@ -25,7 +25,7 @@ const PAGES: Array<{ match: RegExp; page: string; keys: PageShortcut[] }> = [
   },
   {
     match: /^\/day(?:\/|$)/,
-    page: 'Day',
+    page: 'Short',
     keys: [
       { keys: '← →', does: 'The slot before / after' },
       { keys: 'Enter', does: 'Edit the slot' },

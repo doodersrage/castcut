@@ -91,7 +91,7 @@ export default function MobileStudioShell({ children }: { children: ReactNode })
   // (a hydration mismatch on every /m page). Re-read on each render (a Cast change navigates).
   const activeCharacterId = useSyncExternalStore(subscribeCastChanges, readActiveCast, () => '');
   const deskHref = resolvePlayLoopNavHref('/play', activeCharacterId);
-  const hint = MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Cast → Day → Cut';
+  const hint = MOBILE_STUDIO_TABS.find(entry => entry.id === tab)?.hint ?? 'Cast → Short → Cut';
   const moreActive = moreTabs.some(entry => entry.id === tab);
 
   return (

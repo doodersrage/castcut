@@ -145,7 +145,7 @@ export const FITTING_OUTFIT_PHASES: Array<{
   { id: 'plate', label: 'Plate', description: 'Lock a Cast look plate' },
   { id: 'tryon', label: 'Try-on', description: 'Queue a kit or BYO clothing' },
   { id: 'keep', label: 'Keep', description: 'Pick a winner for Day' },
-  { id: 'day', label: 'Day', description: 'Continue to the day film' },
+  { id: 'day', label: 'Short', description: 'Continue to the short film' },
 ];
 
 /** Active Outfit phase for the phase strip. */

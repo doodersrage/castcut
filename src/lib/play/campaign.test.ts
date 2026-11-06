@@ -193,7 +193,7 @@ describe('playEffectiveProgressLabel', () => {
     // A kept try-on means Outfit is done — the strip shows Day, and so must the header.
     assert.equal(
       playEffectiveProgressLabel({ campaign, funnel: { keepTryOn: 1 } }),
-      'Film · 2 of 3 · Day'
+      'Film · 2 of 3 · Short'
     );
     assert.equal(playEffectiveProgressLabel({ campaign: null, funnel: { keepTryOn: 1 } }), 'Film · start');
   });
@@ -215,7 +215,7 @@ describe('derivePlayJourney', () => {
       ]
     );
     assert.equal(journey.current, 'day');
-    assert.equal(journey.label, 'Film · 2 of 3 · Day');
+    assert.equal(journey.label, 'Film · 2 of 3 · Short');
     assert.equal(journey.steps.find(step => step.id === 'character')?.state, 'done');
   });
   it('a full Day of stills moves the film to Cut film (3 of 3)', async () => {
@@ -248,7 +248,7 @@ describe('derivePlayJourney with a picked Cast and no saved film', () => {
     const { derivePlayJourney } = await import('./step-machine');
     const fresh = derivePlayJourney({ campaign: null, activeCharacterId: 'nora', completedStills: 0 });
     assert.equal(fresh.current, 'day');
-    assert.equal(fresh.label, 'Film · 2 of 3 · Day');
+    assert.equal(fresh.label, 'Film · 2 of 3 · Short');
     assert.equal(fresh.steps.find(step => step.id === 'character')?.state, 'done');
     const stills = derivePlayJourney({
       campaign: null,

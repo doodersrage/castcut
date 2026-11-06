@@ -123,11 +123,11 @@ export function playJobLabeller(index: PlayJobIndex): QueueJobLabeller {
     }
     if (ref.tool === 'day') {
       return {
-        label: ['Day', ref.slotLabel, ref.kind === 'clip' ? 'clip' : null, cast]
+        label: ['Short', ref.slotLabel, ref.kind === 'clip' ? 'clip' : null, cast]
           .filter(Boolean)
           .join(' · '),
         href,
-        openLabel: 'Open in Day',
+        openLabel: 'Open in Short',
         source: 'day',
       };
     }
