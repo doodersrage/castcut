@@ -1838,6 +1838,49 @@ test('an episode run keeps a take on each Scene by itself', async ({
   await expect(page.getByTestId('scene-run-flagged')).toHaveCount(0);
 });
 
+// 2026-11-06: an episode's redos and re-rolls dropped 58 of the lead's 78 script lines — a new
+// take cleared the slot's line as Day does (there it's written to the picture). A script's line
+// is the shot's: it stays through every take. A Scene of no script still starts afresh.
+test('a script Scene keeps its line through a new take; a hand-made one clears it', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const base = sceneWithTakes();
+  const line = 'You didn’t bring the recipe.';
+  const withLine = (fromScript: boolean) => ({
+    ...base,
+    scenes: [
+      {
+        ...base.scenes[0]!,
+        slot: { ...base.scenes[0]!.slot, line },
+        ...(fromScript
+          ? { fromScript: { scriptId: 'script-e2e', sceneId: 'int-kitchen', shotId: 'int-kitchen~2' } }
+          : {}),
+      },
+    ],
+    slots: [{ ...base.slots[0]!, line }],
+  });
+  for (const fromScript of [true, false]) {
+    await seedSettingsCacheOnNextLoad(
+      page,
+      { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene: withLine(fromScript) } },
+      { once: true }
+    );
+    await gotoStable(page, `/scene?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    const before = queued.length;
+    await page.getByTestId('scene-queue-take').click({ timeout: 60_000 });
+    await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(before);
+    await expect
+      .poll(
+        async () => {
+          const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+          return tool.slots?.[0]?.line ?? '';
+        },
+        { timeout: 30_000 }
+      )
+      .toBe(fromScript ? line : '');
+  }
+});
+
 // M5 W4: a run left running by a reload shows as paused; Resume waits for the take in flight.
 test('after a reload a run is paused, and Resume waits for the take in flight', async ({ page }) => {
   const queued = await stubComfyQueue(page);

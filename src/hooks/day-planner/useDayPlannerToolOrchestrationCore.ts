@@ -383,6 +383,23 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   // A scene is one slot: Day's helpers below hand back a whole Day's slots (sceneSlotsPatch).
   const sceneSlotsRef = useRef(storedToolSettings.slots);
   sceneSlotsRef.current = storedToolSettings.slots;
+  /**
+   * A script's Scene keeps its line through new takes: the line is the script's, for the shot,
+   * not for one picture (Day clears it — there it was written to the picture). Clearing it lost
+   * 58 of Lena's 78 lines in the 2026-11-06 episode: every redo or re-roll dropped one.
+   */
+  const sceneCacheRef = useRef<Pick<SceneToolCache, 'scenes' | 'activeSceneId'>>({});
+  sceneCacheRef.current = sceneMode
+    ? {
+        scenes: (storedToolSettings as SceneToolCache).scenes,
+        activeSceneId: (storedToolSettings as SceneToolCache).activeSceneId,
+      }
+    : {};
+  const scriptLineStays = () =>
+    Boolean(
+      sceneCacheRef.current.scenes?.find(scene => scene.id === sceneCacheRef.current.activeSceneId)
+        ?.fromScript
+    );
   const updateToolSettings = useCallback(
     (partial: Parameters<typeof storeToolSettings>[0]) => {
       const patch =
@@ -1242,7 +1259,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       // From the latest slots: an event's moments are queued one after another in one callback.
       const slotsBefore = latestSlotsRef.current;
       const slotsAfter =
-        id && lastTake?.status === 'completed'
+        id && lastTake?.status === 'completed' && !scriptLineStays()
           ? slotsBefore.map(entry => (entry.id === slot.id ? clearDaySlotLine(entry) : entry))
           : null;
       const lineCleared = Boolean(slotsAfter?.some((entry, index) => entry !== slotsBefore[index]));
@@ -1548,8 +1565,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           // day (each Scene renders alone, so Day's arc can't see them).
           const scriptKit = sceneMode
             ? scriptSceneOutfitKit(
-                (toolSettings as SceneToolCache).scenes ?? [],
-                (toolSettings as SceneToolCache).activeSceneId,
+                sceneCacheRef.current.scenes ?? [],
+                sceneCacheRef.current.activeSceneId,
                 toolSettings.dayMood,
                 id => fitsLead(id)
               )
@@ -3422,7 +3439,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         });
         stillsRef.current = nextStills;
         // A new picture over a finished one: its line, tone and reply were for the old picture.
-        const replacing = Boolean(promptId) && lastTake?.status === 'completed';
+        const replacing =
+          Boolean(promptId) && lastTake?.status === 'completed' && !scriptLineStays();
         const slotsBefore = latestSlotsRef.current;
         const slotsAfter = replacing
           ? slotsBefore.map(entry =>
