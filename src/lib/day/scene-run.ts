@@ -6,6 +6,7 @@
  * take: choosing stays the player's. Pure.
  */
 import { parseScript } from '../script/parse';
+import { normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
@@ -30,7 +31,11 @@ export type SceneRunLogEntry = {
     | 'paused'
     | 'resumed'
     | 'cancelled'
-    | 'done';
+    | 'done'
+    | 'redo'
+    | 'kept'
+    | 'flagged'
+    | 'animated';
   detail?: string;
 };
 
@@ -63,6 +68,15 @@ export type SceneRun = {
    * settled from the Gallery when it finishes ({@link settleHandedRun}).
    */
   handOff?: { sceneIds: string[]; handed: Record<string, string> };
+  /**
+   * An episode run (Part 19 G1, episode-run.ts): keep the best take by its checks, try again
+   * when it fails them, animate the kept take — one Scene after another, unattended.
+   */
+  auto?: EpisodeRunAuto;
+  /** Takes rendered per Scene so far (an episode run's redos count here). */
+  attempts?: Record<string, number>;
+  /** Scenes kept with a take that still failed its checks: what it missed (for review). */
+  flagged?: Record<string, string>;
   log: SceneRunLogEntry[];
   createdAt: number;
   updatedAt: number;
@@ -70,7 +84,10 @@ export type SceneRun = {
 
 export const RUN_DEFAULT_MAX_TAKES = 8;
 export const RUN_DEFAULT_MAX_MINUTES = 30;
-export const RUN_MAX_ITEMS = 60;
+/** Scenes in one run: a half-hour episode's shots (Part 19 G1; it was 60). */
+export const RUN_MAX_ITEMS = 400;
+/** Takes one run may render: every Scene, and its redos. */
+export const RUN_MAX_TAKES = RUN_MAX_ITEMS * 4;
 export const RUN_LOG_MAX = 200;
 
 /**
@@ -92,7 +109,11 @@ export function shotsToPrepare(
         shot => !shot.madeSceneId || !existing.has(shot.madeSceneId)
       )
     );
-  const room = Math.max(0, SCENE_LIMIT_PER_CAST - scenesForCast(scenes, script.castId).length);
+  // Script Scenes are never pruned and don't count toward the Cast's Scene limit (scenes.ts), so
+  // a run's worth fits — an episode's (Part 19 G1).
+  void scenesForCast;
+  void SCENE_LIMIT_PER_CAST;
+  const room = RUN_MAX_ITEMS;
   return { fit: pending.slice(0, room), overLimit: Math.max(0, pending.length - room) };
 }
 
@@ -216,7 +237,7 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     ...(typeof run.scriptId === 'string' ? { scriptId: run.scriptId } : {}),
     label: typeof run.label === 'string' ? run.label.slice(0, 80) : 'Run',
     items,
-    maxTakes: whole(run.maxTakes, 1, RUN_MAX_ITEMS, RUN_DEFAULT_MAX_TAKES),
+    maxTakes: whole(run.maxTakes, 1, RUN_MAX_TAKES, RUN_DEFAULT_MAX_TAKES),
     maxMinutes: whole(run.maxMinutes, 1, 24 * 60, RUN_DEFAULT_MAX_MINUTES),
     skipKept: run.skipKept !== false,
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
@@ -242,10 +263,32 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     ...(typeof run.startedAt === 'number' ? { startedAt: run.startedAt } : {}),
     ...handOffField(run.handOff),
     ...(typeof run.stopReason === 'string' ? { stopReason: run.stopReason.slice(0, 200) } : {}),
+    ...(normalizeEpisodeRunAuto(run.auto) ? { auto: normalizeEpisodeRunAuto(run.auto)! } : {}),
+    ...countsField('attempts', run.attempts, value =>
+      typeof value === 'number' && value > 0 ? Math.min(99, Math.round(value)) : null
+    ),
+    ...countsField('flagged', run.flagged, value =>
+      typeof value === 'string' && value.trim() ? value.trim().slice(0, 200) : null
+    ),
     log: (Array.isArray(run.log) ? run.log : []).slice(-RUN_LOG_MAX) as SceneRunLogEntry[],
     createdAt: whole(run.createdAt, 0, Number.MAX_SAFE_INTEGER, 0),
     updatedAt: whole(run.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
   };
+}
+
+function countsField<K extends 'attempts' | 'flagged'>(
+  key: K,
+  raw: unknown,
+  clean: (value: unknown) => NonNullable<SceneRun[K]>[string] | null
+): Partial<Pick<SceneRun, K>> {
+  if (!raw || typeof raw !== 'object') return {};
+  const entries = Object.entries(raw)
+    .slice(0, RUN_MAX_ITEMS)
+    .map(([id, value]) => [id, clean(value)] as const)
+    .filter(([, value]) => value !== null);
+  return entries.length
+    ? ({ [key]: Object.fromEntries(entries) } as unknown as Partial<Pick<SceneRun, K>>)
+    : {};
 }
 
 function handOffField(value: unknown): Pick<SceneRun, 'handOff'> {
@@ -268,10 +311,41 @@ export function withRunLog(run: SceneRun, entry: SceneRunLogEntry): SceneRun {
   return { ...run, log: [...run.log, entry].slice(-RUN_LOG_MAX), updatedAt: entry.at };
 }
 
-/** Takes the run has rendered (landed or failed): what the take limit counts. */
-export function runTakesTaken(run: Pick<SceneRun, 'outcomes' | 'handOff'>): number {
-  const settled = Object.values(run.outcomes ?? {}).filter(outcome => outcome !== 'skipped');
-  return settled.length + runTakesHanded(run).length;
+/**
+ * Takes the run has rendered (landed or failed): what the take limit counts. An episode run's
+ * redos count too: a Scene's attempts, where there are more than its one settled take.
+ */
+export function runTakesTaken(
+  run: Pick<SceneRun, 'outcomes' | 'handOff'> & Partial<Pick<SceneRun, 'attempts'>>
+): number {
+  const outcomes = run.outcomes ?? {};
+  const settled = Object.entries(outcomes).filter(([, outcome]) => outcome !== 'skipped');
+  const redos = Object.entries(run.attempts ?? {}).reduce(
+    (sum, [sceneId, tries]) =>
+      sum + Math.max(0, tries - (outcomes[sceneId] && outcomes[sceneId] !== 'skipped' ? 1 : 0)),
+    0
+  );
+  return settled.length + redos + runTakesHanded(run).length;
+}
+
+/**
+ * An episode run's take that failed its checks, tried again (Part 19 G1): the take in flight
+ * cleared and the Scene's attempt counted, no outcome — the run comes back to the same Scene.
+ */
+export function withRunRedo(
+  run: SceneRun,
+  sceneId: string,
+  detail: string,
+  now = Date.now()
+): SceneRun {
+  const { current: _current, ...rest } = run;
+  return withRunLog(
+    {
+      ...rest,
+      attempts: { ...(run.attempts ?? {}), [sceneId]: (run.attempts?.[sceneId] ?? 0) + 1 },
+    },
+    { at: now, sceneId, event: 'redo', detail }
+  );
 }
 
 /** Takes handed to ComfyUI and not settled yet: [Scene id, prompt id]. */

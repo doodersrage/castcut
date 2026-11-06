@@ -16,6 +16,8 @@ import {
   runTakesTaken,
   settleHandedRun,
   shotsToPrepare,
+  RUN_MAX_TAKES,
+  withRunRedo,
   withRunLog,
   withRunOutcome,
   type SceneRun,
@@ -38,7 +40,7 @@ function scriptWith(made: Record<string, string> = {}) {
 }
 
 describe('a prepared run (M5 W3)', () => {
-  it('prepares the planned shots not made yet, within the Cast’s Scene limit', () => {
+  it('prepares the planned shots not made yet — a full Cast still has room for script Scenes', () => {
     const script = scriptWith({ 'int-kitchen-day~1': 'a' });
     const all = shotsToPrepare(script, [scene('a')]);
     assert.deepEqual(all.fit.map(shot => shot.id), ['ext-roof-night~1', 'ext-roof-night~2']);
@@ -47,7 +49,8 @@ describe('a prepared run (M5 W3)', () => {
     assert.equal(shotsToPrepare(script, []).fit.length, 3);
     const full = Array.from({ length: SCENE_LIMIT_PER_CAST - 1 }, (_, i) => scene(`f${i}`));
     const capped = shotsToPrepare(script, [scene('a'), ...full]);
-    assert.deepEqual([capped.fit.length, capped.overLimit], [0, 2]);
+    // Script Scenes are never pruned and don't count toward the limit (Part 19 G1).
+    assert.deepEqual([capped.fit.length, capped.overLimit], [2, 0]);
   });
 
   it('lists the script’s Scenes in order, kept ones left out, and plans within the limits', () => {
@@ -91,8 +94,8 @@ describe('a prepared run (M5 W3)', () => {
 
   it('reads a stored run back, and keeps its log bounded', () => {
     const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
-    const stored = normalizeSceneRun(JSON.parse(JSON.stringify({ ...run, maxTakes: 999, state: 'bogus' })))!;
-    assert.equal(stored.maxTakes, 60);
+    const stored = normalizeSceneRun(JSON.parse(JSON.stringify({ ...run, maxTakes: 99_999, state: 'bogus' })))!;
+    assert.equal(stored.maxTakes, RUN_MAX_TAKES);
     assert.equal(stored.state, 'prepared');
     assert.equal(normalizeSceneRun({ id: 'x' }), undefined);
     let logged = run;
@@ -155,15 +158,24 @@ describe('running a run (M5 W4)', () => {
 });
 
 describe('automation never chooses for you (M5 W5)', () => {
-  it('the run and its runner never keep a take', () => {
+  // Part 19 G1 narrows it: an episode run, which you switch on, keeps the best take by its
+  // checks — and only it. A plain run still never keeps one.
+  it('the run never keeps a take — only an episode run you switched on does', () => {
     const root = join(__dirname, '..', '..');
-    for (const file of ['lib/day/scene-run.ts', 'hooks/day-planner/useSceneRun.ts']) {
-      const source = readFileSync(join(root, file), 'utf8')
+    const code = (file: string) =>
+      readFileSync(join(root, file), 'utf8')
         // Comments may say it never does.
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '');
-      assert.doesNotMatch(source, /keepTake|keepSceneTake|keptTakeId\s*[:=]/, file);
-    }
+    assert.doesNotMatch(code('lib/day/scene-run.ts'), /keepTake|keepSceneTake|keptTakeId\s*[:=]/);
+    const runner = code('hooks/day-planner/useSceneRun.ts');
+    // (A read — keptTakeId === … — is fine; setting it is not.)
+    assert.doesNotMatch(runner, /keepSceneTake|keptTakeId\s*(:|=(?!=))/);
+    // The one keep: inside afterEpisodeTake, which the loop reaches only with auto.keep on.
+    assert.equal(runner.match(/keepTake\(/g)?.length, 1);
+    const episode = runner.slice(runner.indexOf('const afterEpisodeTake'), runner.indexOf('const loop = '));
+    assert.match(episode, /keepTake\(/);
+    assert.match(runner, /entry\?\.status === 'completed' && latest\.auto\?\.keep\) \{\s*[\s\S]{0,40}afterEpisodeTake/);
   });
 
   // M6 D8 (found preparing V3): the run opened the next Scene as soon as a take landed, so the
@@ -269,5 +281,26 @@ describe('Queue all: a run handed to ComfyUI (Part 14 A)', () => {
     );
     assert.equal(failed.outcomes?.b, 'failed');
     assert.match(failed.log.at(-2)!.detail!, /B: OOM/);
+  });
+});
+
+describe('an episode run (Part 19 G1)', () => {
+  it('keeps its choices, attempts and flags when stored, and counts redos as takes', () => {
+    const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
+    const auto = { ...run, auto: { keep: true, redo: 9, animate: true } };
+    let next = withRunRedo(auto, 'a', 'the pose missed', 6);
+    assert.equal(next.attempts?.a, 1);
+    assert.equal(next.log.at(-1)?.event, 'redo');
+    assert.equal(runTakesTaken(next), 1, 'the redone take counts');
+    next = withRunOutcome({ ...next, attempts: { a: 2 }, flagged: { a: 'the pose missed' } }, 'a', 'landed', 'kept', 7);
+    assert.equal(runTakesTaken(next), 2, 'two takes for a: the redo and the kept one');
+    const stored = normalizeSceneRun(JSON.parse(JSON.stringify(next)))!;
+    assert.deepEqual(stored.auto, { keep: true, redo: 3, animate: true });
+    assert.deepEqual([stored.attempts, stored.flagged], [{ a: 2 }, { a: 'the pose missed' }]);
+    assert.deepEqual(normalizeSceneRun({ ...run, auto: { keep: false, animate: true } })?.auto, {
+      keep: false,
+      redo: 1,
+      animate: false,
+    });
   });
 });

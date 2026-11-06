@@ -4,7 +4,14 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { ToolSection } from '@/components/ui/ToolPageShell';
-import { runQueue, type SceneRun } from '@/lib/day/scene-run';
+import { EPISODE_REDO_MAX } from '@/lib/day/episode-run';
+import {
+  RUN_DEFAULT_MAX_MINUTES,
+  RUN_DEFAULT_MAX_TAKES,
+  RUN_MAX_TAKES,
+  runQueue,
+  type SceneRun,
+} from '@/lib/day/scene-run';
 import type { SavedScene } from '@/lib/day/scenes';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { formatEta, typicalRenderMs } from '@/lib/queue/eta';
@@ -14,15 +21,20 @@ const FIELD =
 
 /**
  * A prepared run of takes (M5 W3): exactly what it will queue — Scene, engine, an estimate —
- * within limits you set, each Scene in or out, before anything renders. It never keeps a take.
+ * within limits you set, each Scene in or out, before anything renders. It never keeps a take,
+ * unless it is an episode run (Part 19 G1): then it keeps the best by its checks, redoes a
+ * failing one, animates the kept take, and lists any it wasn't sure of.
  */
 export default function SceneRunPanel({
   run,
   scenes,
   disabled,
   onChange,
+  onOpenScene,
   children,
 }: {
+  /** Open a Scene (a flagged one, to check its kept take). */
+  onOpenScene?: (sceneId: string) => void;
   run: SceneRun;
   scenes: readonly SavedScene[];
   disabled?: boolean;
@@ -49,7 +61,9 @@ export default function SceneRunPanel({
           {plan.gone.length
             ? ` · ${plan.gone.length} Scene${plan.gone.length === 1 ? '' : 's'} gone`
             : ''}
-          {' · it never keeps a take: you choose.'}
+          {run.auto?.keep
+            ? ' · it keeps the best take by its checks; any it isn’t sure of are listed for you.'
+            : ' · it never keeps a take: you choose.'}
         </p>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="flex items-center gap-1">
@@ -57,7 +71,7 @@ export default function SceneRunPanel({
             <input
               type="number"
               min={1}
-              max={60}
+              max={RUN_MAX_TAKES}
               aria-label="At most this many takes"
               className={FIELD}
               value={run.maxTakes}
@@ -65,7 +79,7 @@ export default function SceneRunPanel({
               data-testid="scene-run-max-takes"
               onChange={event => {
                 const value = Math.round(Number(event.target.value));
-                if (value >= 1) set({ maxTakes: Math.min(60, value) });
+                if (value >= 1) set({ maxTakes: Math.min(RUN_MAX_TAKES, value) });
               }}
             />
             takes
@@ -98,6 +112,111 @@ export default function SceneRunPanel({
             Leave out Scenes with a kept take
           </label>
         </div>
+        <fieldset
+          className="flex flex-wrap items-center gap-3 text-sm"
+          data-testid="scene-run-episode"
+          disabled={disabled || run.state === 'running'}
+        >
+          <legend className="type-caption mb-1 text-[var(--text-muted)]">
+            Episode — for a whole script, unattended (keep this page open)
+          </legend>
+          <label
+            className="flex items-center gap-1"
+            title="After each take and its checks (Auto-review, face and pose), keep the best of the Scene's takes — the run doesn't wait for you"
+          >
+            <input
+              type="checkbox"
+              checked={run.auto?.keep === true}
+              data-testid="scene-run-auto-keep"
+              onChange={event => {
+                const keep = event.target.checked;
+                const redo = run.auto?.redo ?? 1;
+                const included = run.items.filter(item => item.include).length;
+                set({
+                  auto: { redo, animate: keep && run.auto?.animate === true, keep },
+                  // Limits still at their defaults fit the whole script and its redos.
+                  ...(keep && run.maxTakes === RUN_DEFAULT_MAX_TAKES
+                    ? { maxTakes: Math.min(RUN_MAX_TAKES, Math.max(1, included * (1 + redo))) }
+                    : {}),
+                  ...(keep && run.maxMinutes === RUN_DEFAULT_MAX_MINUTES
+                    ? { maxMinutes: 24 * 60 }
+                    : {}),
+                });
+              }}
+            />
+            Keep the best take by its checks
+          </label>
+          <label className="flex items-center gap-1">
+            redo a failing take
+            <select
+              aria-label="Times to render a failing take again"
+              className={FIELD}
+              value={run.auto?.redo ?? 1}
+              disabled={!run.auto?.keep}
+              data-testid="scene-run-auto-redo"
+              onChange={event =>
+                set({
+                  auto: {
+                    keep: true,
+                    animate: run.auto?.animate === true,
+                    redo: Number(event.target.value),
+                  },
+                })
+              }
+            >
+              {Array.from({ length: EPISODE_REDO_MAX + 1 }, (_, n) => (
+                <option key={n} value={n}>
+                  {n}×
+                </option>
+              ))}
+            </select>
+          </label>
+          <label
+            className="flex items-center gap-1"
+            title="Animate the kept take with the page's Animate (a talking clip when the shot has a line) before the next Scene"
+          >
+            <input
+              type="checkbox"
+              checked={run.auto?.animate === true}
+              disabled={!run.auto?.keep}
+              data-testid="scene-run-auto-animate"
+              onChange={event =>
+                set({
+                  auto: { keep: true, redo: run.auto?.redo ?? 1, animate: event.target.checked },
+                })
+              }
+            />
+            Animate each kept take
+          </label>
+        </fieldset>
+        {run.flagged && Object.keys(run.flagged).length ? (
+          <div className="space-y-1" data-testid="scene-run-flagged">
+            <p className="type-caption font-medium">
+              To check — kept, but its checks weren’t happy ({Object.keys(run.flagged).length})
+            </p>
+            <ul className="space-y-0.5">
+              {Object.entries(run.flagged).map(([sceneId, why]) => (
+                <li key={sceneId} className="flex items-center gap-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate">
+                    {byId.get(sceneId)?.name ?? sceneId}
+                    <span className="type-caption ml-2 text-[var(--text-muted)]">{why}</span>
+                  </span>
+                  {onOpenScene && byId.has(sceneId) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={disabled}
+                      data-testid={`scene-run-flagged-open-${sceneId}`}
+                      onClick={() => onOpenScene(sceneId)}
+                    >
+                      Open
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <ol className="space-y-0.5">
           {run.items.map(item => {
             const scene = byId.get(item.sceneId);

@@ -14,11 +14,15 @@ import {
   runQueue,
   runTakeSettled,
   runTakesHanded,
+  runTakesTaken,
   settleHandedRun,
   withRunLog,
   withRunOutcome,
+  withRunRedo,
   type SceneRun,
 } from '@/lib/day/scene-run';
+import { bestSceneTake } from '@/lib/day/episode-run';
+import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
 type ScenePage = ReturnType<typeof useScenePage>;
@@ -51,7 +55,8 @@ async function until(ready: () => boolean, timeoutMs: number): Promise<boolean> 
  * queue its take with the page's own Render (`queueSlot`), wait for it to land and its checks to
  * finish — then the next; a failure stops it. Pause stops after the take in flight, Cancel too
  * (nothing else is queued). The run record keeps the take in flight, so after a reload it is
- * waited for, not queued again. It never keeps a take.
+ * waited for, not queued again. It never keeps a take — unless it is an episode run you switched
+ * on (Part 19 G1): see afterEpisodeTake.
  *
  * Queue all (M5 hand-off, IMPLEMENTATION_PLAN Part 14 A) puts together each Scene's take the same
  * way but hands it to ComfyUI and opens the next at once: once every take is queued the page can
@@ -116,6 +121,112 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     window.addEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
     return () => window.removeEventListener(COMFYUI_GALLERY_UPDATED_EVENT, settle);
   }, [handedKey, save]);
+
+  /**
+   * An episode run's take, landed and checked (Part 19 G1, episode-run.ts): the best of the
+   * Scene's takes by their checks is kept — or, when even that one fails them and redos are
+   * left, the Scene is rendered again. Out of redos, the least-bad is kept, noted and flagged
+   * for review. Then, when asked, the kept take is animated (the page's own Animate) and the run
+   * waits for its clip. False: the run stopped (paused by you, or the take didn't come back).
+   */
+  const afterEpisodeTake = useCallback(
+    async (sceneId: string, name: string, promptId: string): Promise<boolean> => {
+      // The page files the take on its Scene once its checks are done.
+      await until(
+        () =>
+          pageRef.current.active?.id === sceneId &&
+          pageRef.current.active.takes.some(take => (take.promptId ?? take.id) === promptId),
+        OPEN_TIMEOUT_MS
+      );
+      const active = pageRef.current.active;
+      const checks = new Map(loadComfyGallery().map(entry => [entry.promptId, entry.playChecks]));
+      const pick =
+        active?.id === sceneId ? bestSceneTake(active, id => checks.get(id) ?? undefined) : null;
+      let run = runRef.current!;
+      const auto = run.auto!;
+      const tries = (run.attempts?.[sceneId] ?? 0) + 1;
+      const failing = !pick || pick.misses.length > 0;
+      if (failing && tries <= auto.redo && runTakesTaken(run) + 1 < run.maxTakes) {
+        const why = pick ? pick.misses.join(', ') : 'no take to keep';
+        save(withRunRedo(run, sceneId, `${name}: ${why} — rendering it again`));
+        return true;
+      }
+      if (!pick) {
+        save(withRunOutcome(run, sceneId, 'failed', `${name}: no take to keep`));
+        return true;
+      }
+      pageRef.current.keepTake(pick.take.id);
+      await until(() => pageRef.current.active?.keptTakeId === pick.take.id, OPEN_TIMEOUT_MS);
+      run = { ...(runRef.current ?? run), attempts: { ...(run.attempts ?? {}), [sceneId]: tries } };
+      if (pick.misses.length) {
+        const why = pick.misses.join(', ');
+        pageRef.current.noteTake(pick.take.id, {
+          note: `Kept by the run — check it: ${why}`.slice(0, SCENE_TAKE_NOTE_MAX),
+        });
+        run = withRunLog(
+          { ...run, flagged: { ...(run.flagged ?? {}), [sceneId]: why } },
+          { at: Date.now(), sceneId, event: 'flagged', detail: `${name}: ${why}` }
+        );
+      } else {
+        run = withRunLog(run, {
+          at: Date.now(),
+          sceneId,
+          event: 'kept',
+          detail: `${name}: ${pick.checked ? 'passed its checks' : 'not checked — the newest take'}`,
+        });
+      }
+      save(run);
+
+      if (auto.animate && !pick.take.clipUrl) {
+        // The kept take is on the card once nothing renders there; then the page's Animate.
+        await until(
+          () => !pageRef.current.inFlight && pageRef.current.still?.promptId === pick.take.promptId,
+          CHECKS_TIMEOUT_MS
+        );
+        await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
+        const queued = pageRef.current.still?.clipStatus;
+        const landed =
+          queued === 'queued' || queued === 'running'
+            ? await until(() => {
+                const status = pageRef.current.still?.clipStatus;
+                return status === 'completed' || status === 'error';
+              }, RENDER_TIMEOUT_MS)
+            : false;
+        const ok = landed && pageRef.current.still?.clipStatus === 'completed';
+        // Its clip joins the kept take (the page merges it), which Cut then plays.
+        if (ok) {
+          await until(() => Boolean(pageRef.current.kept?.clipUrl), OPEN_TIMEOUT_MS);
+        }
+        const latest = runRef.current ?? run;
+        save(
+          withRunLog(
+            ok
+              ? latest
+              : {
+                  ...latest,
+                  flagged: {
+                    ...(latest.flagged ?? {}),
+                    [sceneId]: [latest.flagged?.[sceneId], 'its clip didn’t render']
+                      .filter(Boolean)
+                      .join('; '),
+                  },
+                },
+            {
+              at: Date.now(),
+              sceneId,
+              event: ok ? 'animated' : 'flagged',
+              detail: ok
+                ? `${name}: animated`
+                : `${name}: its clip didn’t render — the still is used`,
+            }
+          )
+        );
+      }
+      save(withRunOutcome(runRef.current ?? run, sceneId, 'landed', `${name}: done`));
+      return true;
+    },
+    [save]
+  );
 
   const loop = useCallback(async () => {
     if (loopingRef.current) return;
@@ -287,7 +398,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           await until(() => !pageRef.current.inFlight, CHECKS_TIMEOUT_MS);
         }
         const latest = runRef.current ?? run;
-        if (entry?.status === 'completed') {
+        if (entry?.status === 'completed' && latest.auto?.keep) {
+          // An episode run: keep the best take, or try again; animate it; then the next Scene.
+          if (!(await afterEpisodeTake(sceneId, scene.name, promptId))) return;
+        } else if (entry?.status === 'completed') {
           save(withRunOutcome(latest, sceneId, 'landed', `${scene.name}: a take landed`));
         } else {
           const why = entry?.statusMessage?.trim() || (entry ? entry.status : 'it timed out');
@@ -304,7 +418,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       setLooping(false);
       setStopping(null);
     }
-  }, [save]);
+  }, [afterEpisodeTake, save]);
 
   const start = useCallback(() => {
     const run = runRef.current;

@@ -462,17 +462,21 @@ function sceneHoldsTakes(scene: SavedScene): boolean {
 
 /**
  * One Cast's scenes under {@link SCENE_LIMIT_PER_CAST}: empty ones go, least recently touched
- * first, but never the newest (a scene just made); scenes with takes always stay (M0 audit D1:
+ * first, but never the newest (a scene just made); script Scenes are not counted; scenes with
+ * takes always stay (M0 audit D1:
  * the 61st scene used to drop the oldest, kept take, Cut shot and all), and so do Scenes a
  * script shot made (M6 D2: the shot read _Planned_ again).
  */
 function cappedCastScenes(list: SavedScene[]): SavedScene[] {
-  if (list.length <= SCENE_LIMIT_PER_CAST) return list;
+  // Script Scenes don't count (Part 19 G1): an episode's 300 shots would otherwise push out
+  // every empty Scene made by hand.
+  const counted = list.filter(scene => !scene.fromScript).length;
+  if (counted <= SCENE_LIMIT_PER_CAST) return list;
   const newest = list.reduce((a, b) => (b.updatedAt > a.updatedAt ? b : a));
   const droppable = list
     .filter(scene => scene !== newest && !sceneHoldsTakes(scene) && !scene.fromScript)
     .sort((a, b) => a.updatedAt - b.updatedAt);
-  const drop = new Set(droppable.slice(0, list.length - SCENE_LIMIT_PER_CAST));
+  const drop = new Set(droppable.slice(0, counted - SCENE_LIMIT_PER_CAST));
   return drop.size ? list.filter(scene => !drop.has(scene)) : list;
 }
 

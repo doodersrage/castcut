@@ -65,7 +65,8 @@ export default function SceneRunControls({
             {run.state === 'prepared' ? 'Start the run' : 'Resume'}
           </Button>
         ) : null}
-        {run.state === 'prepared' && !looping && onQueueAll ? (
+        {/* An episode run judges each take on the card: it can't hand them all off. */}
+        {run.state === 'prepared' && !looping && onQueueAll && !run.auto?.keep ? (
           <Button
             size="sm"
             variant="secondary"

@@ -162,10 +162,24 @@ describe('scenes: stored and read back', () => {
       createScene({ castId: 'nora', name: `Empty ${i}`, id: `e${i}`, now: i + 1 })
     );
     const scenes = normalizeSavedScenes([fromShot, ...empties]);
-    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST);
+    // Script Scenes don't count toward the cap (Part 19 G1): 60 of the others stay, and it.
+    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST + 1);
     const kept = scenes.find(scene => scene.id === 'from-shot');
     assert.deepEqual(kept?.fromScript, fromShot.fromScript);
-    assert.ok(!scenes.some(scene => scene.id === 'e3'), 'an unlinked empty Scene goes instead');
+    assert.ok(!scenes.some(scene => scene.id === 'e2'), 'the oldest unlinked empty Scenes go');
+    assert.ok(scenes.some(scene => scene.id === 'e3'));
+    // An episode's worth of script Scenes pushes out no Scene made by hand.
+    const episode = Array.from({ length: 300 }, (_, i) =>
+      createScene({
+        castId: 'nora',
+        name: `Shot ${i}`,
+        id: `ep${i}`,
+        fromScript: { scriptId: 's1', sceneId: 'int-kitchen-day', shotId: `int-kitchen-day~${i}` },
+        now: 100 + i,
+      })
+    );
+    const mixed = normalizeSavedScenes([...empties.slice(0, 10), ...episode]);
+    assert.equal(mixed.length, 310);
   });
 
   it('drops empty scenes, oldest first, only while over the cap', () => {

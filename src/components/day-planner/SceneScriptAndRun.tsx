@@ -53,6 +53,7 @@ export default function SceneScriptAndRun({
           scenes={page.castScenes}
           disabled={page.inFlight || runner.looping}
           onChange={page.updateRun}
+          onOpenScene={sceneId => page.openScene(sceneId)}
         >
           <SceneRunControls
             run={page.run}

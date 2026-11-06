@@ -3514,7 +3514,19 @@ The gaps between Castcut and an unattended 30-minute episode, closed in order of
   (2:20) in 13 s and 600 shots (20:00) in 101 s from test media — picture, sound, one subtitle
   track, chapters, −14 LUFS. Limits: joins are hard cuts; no stems; the file is still read into
   memory once at the end (a long ProRes master is very large).
-- **G1 episode pipeline** — script → Scenes → a run that keeps the best take by its checks,
-  redoes failures, animates kept takes, assembles the cut.
+- **G1 episode pipeline — done.** An *episode run* (`SceneRun.auto`, episode-run.ts): after
+  each take settles (the run already waited for the face finish, Auto-review and pose redo),
+  `bestSceneTake` ranks the Scene's takes by the Gallery `playChecks` (no miss, then face + pose
+  score, then newest; never a rejected one); a failing best is redone up to `auto.redo` times
+  (`withRunRedo`, counted in `runTakesTaken`), else kept and flagged (take note + `run.flagged`,
+  listed in the panel with Open). `auto.animate` then runs `vm.animateSlot` on the kept take and
+  waits for its clip. Limits raised for a script: `RUN_MAX_ITEMS` 400, `RUN_MAX_TAKES` 1600;
+  script Scenes no longer count toward `SCENE_LIMIT_PER_CAST` (so an episode can't prune hand-made
+  empty Scenes) and `shotsToPrepare` makes them all. The M5 W5 guard ("automation never chooses
+  for you") is narrowed to: only an opted-in episode run keeps, only in `afterEpisodeTake`.
+  Storage: 300 episode Scenes add ~300 KB to the synced settings (a capped project + episode is
+  ~0.9 MB of the 2 MB budget; storage-budget.test.ts). Queue all stays a plain run (the checks run
+  on the card). Not verified live on ComfyUI yet: the redo path and Animate in a run were only
+  unit-tested / stubbed in e2e.
 - **G3 episode writing** — premise → beat outline → screenplay, scene by scene, into the pipeline.
 - **G4 long-form music** — score cues per scene, ducked under the lines.

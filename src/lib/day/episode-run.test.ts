@@ -1,0 +1,39 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { bestSceneTake, takeCheckMisses } from './episode-run';
+
+const take = (id: string, at: number, extra = {}) => ({ id, promptId: id, imageUrl: `/${id}.png`, at, ...extra });
+
+describe('episode run: which take to keep', () => {
+  it('says what a take missed', () => {
+    assert.deepEqual(takeCheckMisses({ poseMiss: true, outfitMiss: 'a red dress', at: 1 }), [
+      'the pose missed',
+      'the outfit (a red dress)',
+    ]);
+    assert.deepEqual(takeCheckMisses({ face: 0.8, at: 1 }), []);
+    assert.deepEqual(takeCheckMisses(undefined), []);
+  });
+
+  it('keeps a passing take over a newer failing one, the better scores, never a rejected one', () => {
+    const checks: Record<string, object> = {
+      a: { face: 0.7, pose: 0.6, at: 1 },
+      b: { face: 0.9, pose: 0.9, poseMiss: true, at: 1 },
+      c: { face: 0.8, pose: 0.7, at: 1 },
+      d: { face: 1, pose: 1, at: 1 },
+    };
+    const scene = { takes: [take('a', 1), take('b', 2), take('c', 3), take('d', 4, { review: 'rejected' as const })] };
+    const pick = bestSceneTake(scene, id => checks[id] as never);
+    assert.equal(pick?.take.id, 'c');
+    assert.deepEqual(pick?.misses, []);
+  });
+
+  it('falls back to the least-bad take, and to the newest when nothing was checked', () => {
+    const failing = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, id =>
+      (id === 'a' ? { poseMiss: true, faceMiss: true, at: 1 } : { poseMiss: true, at: 1 }) as never
+    );
+    assert.deepEqual([failing?.take.id, failing?.misses], ['b', ['the pose missed']]);
+    const unchecked = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, () => undefined);
+    assert.deepEqual([unchecked?.take.id, unchecked?.checked], ['b', false]);
+    assert.equal(bestSceneTake({ takes: [] }, () => undefined), null);
+  });
+});

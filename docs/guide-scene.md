@@ -178,7 +178,34 @@ page.
    and the checks that run on the card (Face finish, review, pose redo) only run on the take that
    lands on the open Scene. Use **Start the run** when you want them on every take.
 
-A run never keeps a take — choosing stays yours. It stops by itself, saying why, when a take
+A run never keeps a take — choosing stays yours — unless you make it an **episode run**:
+
+### Episode runs
+
+For a whole script — a half-hour episode is 200–350 shots — without clicking Keep on every one.
+Under the limits, **Episode**:
+
+- **Keep the best take by its checks** — after each take and its checks (Auto-review, face match,
+  the pose, the outfit, the place, the action), the run keeps the Scene's best take: one with no
+  check missed, then the best face and pose scores, then the newest. Turn **Auto-review** on for
+  it to judge more than the face and the pose; with no checks at all it keeps the newest take.
+  Switching it on with the limits at their defaults fits them to the script: a take per Scene and
+  its redos, up to a day.
+- **Redo a failing take** 0–3 times — when even the best take missed a check, the Scene is
+  rendered again (each redo counts toward the take limit).
+- **Animate each kept take** — the kept take is animated with the page's own Animate (a talking
+  clip when the shot has a line), and the run waits for the clip before the next Scene. A clip
+  that fails leaves the still in place.
+- **To check** — a Scene whose best take still missed a check once the redos ran out is kept
+  anyway, with a note on the take ("Kept by the run — check it: the pose missed"), and listed
+  here with **Open**. That list is the review pass: everything else is in the cut already.
+
+An episode run renders one Scene at a time with this page open — it can't use **Queue all**,
+since the checks run on the card. A script's Scenes don't count toward the Cast's 60-Scene limit,
+so an episode never pushes out a Scene you made by hand. Then open **Cut**: Scenes is a source, in
+the order the Scenes were made (a script prepared in one go is in its own order), and a film this long is rendered in pieces ([Cut → Long films](guide-film.md#long-films)).
+
+It stops by itself, saying why, when a take
 fails, isn't queued or a Scene can't be opened. It runs while the Scene page is open: closing the
 tab pauses it, and after a reload it shows _Paused_ and **Resume** carries on — waiting for the
 take that was rendering instead of queueing it again. **What it did** lists every step, and
