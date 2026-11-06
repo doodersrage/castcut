@@ -11,6 +11,11 @@ import {
 /** Review one landed Day still through `/api/play-slot-review`. Rejects on any failure. */
 export async function reviewDaySlotStill(options: {
   imageUrl: string;
+  /**
+   * The still on its own, when `imageUrl` is an identity pair: the outfit's second look
+   * describes what she wears from it (on the pair it can't tell her from the reference).
+   */
+  outfitImageUrl?: string;
   context?: SlotReviewContext;
   shared?: Pick<
     SharedToolSettings,
@@ -35,6 +40,16 @@ export async function reviewDaySlotStill(options: {
     fallbackName: 'day-still.png',
   });
   const { image, mimeType } = await prepareVisionScanImagePayload(still);
+  const alone =
+    options.outfitImageUrl && options.context?.referencePair && options.context.outfit?.trim()
+      ? await resolveStillFileForVisionScan({
+          file: null,
+          urls: [options.outfitImageUrl],
+          fallbackName: 'day-still.png',
+        })
+          .then(file => prepareVisionScanImagePayload(file))
+          .catch(() => null)
+      : null;
   const response = await fetch('/api/play-slot-review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -47,6 +62,7 @@ export async function reviewDaySlotStill(options: {
       outfit: options.context?.outfit,
       expectedPeople: options.context?.expectedPeople,
       referencePair: options.context?.referencePair === true,
+      ...(alone ? { outfitImage: alone.image, outfitMimeType: alone.mimeType } : {}),
       ...(options.shared ? sharedLlmRequestBody(options.shared) : {}),
     }),
   });

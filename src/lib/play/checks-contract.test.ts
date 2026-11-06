@@ -298,6 +298,30 @@ describe('Play checks against a fake ComfyUI + vision LLM', () => {
     assert.deepEqual(review.notes, ["outfit doesn't match the kit (2/5)"]);
   });
 
+  it('checks an outfit miss again on the still alone when the review was an identity pair', async () => {
+    // The episode's reviews were all pairs (Cast plate beside the still): the second look never
+    // ran, and every outfit flag stood unchecked (75 of 316 takes).
+    const alone = `data:image/jpeg;base64,${PNG.toString('base64')}`;
+    const describes = () =>
+      full.recorded.chats.filter(chat =>
+        JSON.stringify(chat.messages).includes('Describe only the clothing')
+      );
+    const before = describes().length;
+    await reviewPlaySlotStill({
+      imageDataUrl: IMAGE_DATA_URL,
+      context: { outfit: 'aqua sweater dress', expectedPeople: 1, referencePair: true },
+    });
+    assert.equal(describes().length, before, 'a pair alone: nothing to describe her from');
+    await reviewPlaySlotStill({
+      imageDataUrl: IMAGE_DATA_URL,
+      outfitImageDataUrl: alone,
+      context: { outfit: 'aqua sweater dress', expectedPeople: 1, referencePair: true },
+    });
+    const [look] = describes().slice(before);
+    assert.ok(look, 'the second look ran');
+    assert.ok(JSON.stringify(look.messages).includes('data:image/jpeg'), 'on the still alone');
+  });
+
   it('the fake validates like ComfyUI (so a passing graph means something)', () => {
     assert.match(
       String(

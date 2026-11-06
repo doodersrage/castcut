@@ -22,6 +22,8 @@ import {
 /** Server-side single-image quality review for one Day still. Throws on config or parse errors. */
 export async function reviewPlaySlotStill(options: {
   imageDataUrl: string;
+  /** The still alone when `imageDataUrl` is an identity pair (the outfit's second look). */
+  outfitImageDataUrl?: string;
   context?: SlotReviewContext;
   llm?: LlmRequestOptions;
 }): Promise<SlotQualityReport> {
@@ -91,16 +93,21 @@ export async function reviewPlaySlotStill(options: {
  */
 async function outfitSecondLook(
   report: SlotQualityReport,
-  options: { imageDataUrl: string; context?: SlotReviewContext; llm?: LlmRequestOptions },
+  options: {
+    imageDataUrl: string;
+    outfitImageDataUrl?: string;
+    context?: SlotReviewContext;
+    llm?: LlmRequestOptions;
+  },
   visionModel: string
 ): Promise<SlotQualityReport> {
   const outfit = options.context?.outfit?.trim();
-  if (
-    !outfit ||
-    !reportFlagsOutfit(report) ||
-    options.context?.expectedPeople === 2 ||
-    options.context?.referencePair === true
-  ) {
+  // On an identity pair, the still alone (sent with it); without it, it can't tell her clothes
+  // from the reference's, and the review stands — every outfit flag on a Cast with a plate did,
+  // unchecked: 75 of 316 episode takes, about the one-call review's known false-alarm rate.
+  const image =
+    options.context?.referencePair === true ? options.outfitImageDataUrl : options.imageDataUrl;
+  if (!outfit || !image || !reportFlagsOutfit(report) || options.context?.expectedPeople === 2) {
     return report;
   }
   try {
@@ -108,7 +115,7 @@ async function outfitSecondLook(
     const seen = await visionCompletion({
       systemPrompt: '',
       textPrompt: OUTFIT_DESCRIBE_PROMPT,
-      imageDataUrl: options.imageDataUrl,
+      imageDataUrl: image,
       maxTokens: 120,
       temperature: 0,
       model: visionModel,

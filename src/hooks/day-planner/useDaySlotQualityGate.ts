@@ -318,6 +318,7 @@ export function useDaySlotQualityGate(
         const realism = looked.realism;
         const report = await reviewDaySlotStill({
           imageUrl: pair ?? imageUrl,
+          ...(pair ? { outfitImageUrl: imageUrl } : {}),
           context: {
             beat: target.sceneHints,
             setting: target.location,

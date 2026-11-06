@@ -24,6 +24,9 @@ export async function POST(request: Request) {
       outfit?: string;
       expectedPeople?: number | 'any';
       referencePair?: boolean;
+      /** The still alone, with an identity pair: for the outfit's second look. */
+      outfitImage?: string;
+      outfitMimeType?: string;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -38,8 +41,13 @@ export async function POST(request: Request) {
     if (body.image.length > 12_000_000) {
       return apiError('Image payload is too large.', 400);
     }
+    const outfitImage =
+      body.outfitImage?.trim() && body.outfitImage.length <= 12_000_000
+        ? normalizeImageDataUrl(body.outfitImage.trim(), body.outfitMimeType)
+        : undefined;
     const report = await reviewPlaySlotStill({
       imageDataUrl: normalizeImageDataUrl(body.image.trim(), body.mimeType),
+      ...(outfitImage ? { outfitImageDataUrl: outfitImage } : {}),
       context: {
         beat: body.beat?.trim() || undefined,
         setting: body.setting?.trim() || undefined,
