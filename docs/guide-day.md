@@ -56,6 +56,12 @@ silly / raunchy.
     Scene — the moment's still as its kept take. It opens on Scene: storyboard it, add moments,
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
+    **Make the short →** does the same and starts its run on Scene: each moment without a kept
+    still is rendered in turn, the best take kept by its checks (one redo when it misses one), and
+    Cut cuts the short when it's done — Queue day with the checks of an
+    [episode run](guide-scene.md#episode-runs). Keep the Scene page open while it runs. It won't
+    start over a run already listed, going or paused on Scene: finish or cancel that one first.
+
 !!! tip "One event instead of a whole day"
     Switch the idea row to **One event** and write one line — *a dinner date at a candlelit
     trattoria*. Every slot becomes the next moment of that event, and the clips run straight

@@ -2771,6 +2771,62 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   await expect(page.getByTestId('day-progress-scene-evening').first()).toContainText('laughing', { timeout: 30_000 });
 });
 
+// Make the short: the Day as a script and its run started — the moments without a kept still
+// rendered one at a time, the best take kept, then the cut. Never over a run already going.
+test('Make the short: Short’s moments run on Scene, the kept ones left out', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const day = {
+    stillsCharacterId: CAST,
+    dayMood: 'everyday',
+    slots: [
+      { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+      { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading on a bench' },
+      { id: 'evening', label: 'Evening', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+      { id: 'night', label: 'Night' },
+    ],
+    stills: [{ slotId: 'morning', promptId: 'day-morning', imageUrl: '/icon.svg', status: 'completed' }],
+  };
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day, scene: { run: { id: 'run-other', castId: CAST, label: 'Another script', items: [], state: 'paused', position: 0, maxTakes: 4, maxMinutes: 30, skipKept: true, log: [], createdAt: 1, updatedAt: 1 } } },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-make-short').first().click({ timeout: 30_000 });
+  // A paused run on Scene is left alone.
+  await expect(page.getByTestId('day-as-short-error').first()).toContainText('paused on Scene');
+  await expect(page).toHaveURL(/\/day/);
+
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day, scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await page.getByTestId('day-make-short').first().click({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        const run = tool.run ?? {};
+        return [
+          run.state,
+          (run.items ?? []).filter((item: { include: boolean }) => item.include).length,
+          (run.items ?? []).length,
+          run.auto?.keep && run.auto?.cutWhenDone,
+        ].join('|');
+      },
+      { timeout: 60_000 }
+    )
+    // Three moments (the empty night left out); the morning's still is kept, so two render.
+    .toBe('running|2|3|true');
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect(page).not.toHaveURL(/start=/);
+});
+
 /** Horizontal overflow (px) of the page, and what sticks out (outside any scrolling strip). */
 async function horizontalOverflow(page: Page): Promise<{ over: number; wide: string[] }> {
   return page.evaluate(() => {

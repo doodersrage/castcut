@@ -21,7 +21,16 @@ import {
   type SavedScene,
 } from './scenes';
 import { dayAsShort } from './day-as-short';
-import { addScriptPatch, setScriptCastPatch, setScriptShotsPatch } from './scene-scripts';
+import { autopilotRun, type EpisodeAutopilot } from './episode-autopilot';
+import { normalizeSceneRun, runFromScript } from './scene-run';
+import {
+  addScriptPatch,
+  setScriptCastPatch,
+  setScriptShotsPatch,
+  type ScriptsCache,
+} from './scene-scripts';
+import { scriptsCacheOf } from './scene-script-store';
+import { applySceneScriptsPatch, loadSceneScriptStore } from './scene-script-store-client';
 import type { DaySlotId } from './planner';
 
 /** The Scene page's path beside this one (the phone app keeps to /m). */
@@ -90,20 +99,43 @@ export function saveDayAsShort(input: {
   day: DayToolCache;
   castId: string;
   leadName: string;
-}): { scriptId: string } | { error: string } {
+  /** Make the short: a run over its moments saved too, as an episode run with these settings. */
+  render?: EpisodeAutopilot;
+}): { scriptId: string; runId?: string } | { error: string } {
   const short = dayAsShort(input);
   if (!short) return { error: 'Nothing to make a short of yet — give a moment a place or a beat.' };
-  const cache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
-  let next = { ...cache, ...addScriptPatch(cache, short.script) };
-  next = { ...next, ...(setScriptShotsPatch(next, short.script.id, short.shots) ?? {}) };
-  next = {
-    ...next,
-    ...(setScriptCastPatch(next, short.script.id, short.leadSpeaker, input.castId) ?? {}),
+  // One run at a time on Scene: one going (or paused, or listed) is never replaced.
+  const before = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
+  const current = before.run ? normalizeSceneRun(before.run) : null;
+  if (
+    input.render &&
+    current &&
+    ['prepared', 'running', 'paused', 'handed'].includes(current.state)
+  ) {
+    return {
+      error: `A run is ${current.state === 'prepared' ? 'listed' : current.state === 'paused' ? 'paused' : 'going'} on Scene (“${current.label}”) — finish or cancel it there first.`,
+    };
+  }
+  // The script in the scripts' own store (scene-script-store), its shots and Who's who with it.
+  let scripts: ScriptsCache = scriptsCacheOf(loadSceneScriptStore());
+  scripts = { ...scripts, ...addScriptPatch(scripts, short.script) };
+  scripts = { ...scripts, ...(setScriptShotsPatch(scripts, short.script.id, short.shots) ?? {}) };
+  scripts = {
+    ...scripts,
+    ...(setScriptCastPatch(scripts, short.script.id, short.leadSpeaker, input.castId) ?? {}),
   };
+  applySceneScriptsPatch({ scripts: scripts.scripts });
+  // Its Scenes in the Scene page's settings, beside the Cast's others (the open one stays open).
+  const cache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
   const saved = scenesWithWorking(cache) ?? cache.scenes ?? [];
-  next.scenes = normalizeSavedScenes(
+  const scenes = normalizeSavedScenes(
     short.scenes.reduce<SavedScene[]>((all, scene) => upsertScene(all, scene), [...saved])
   );
-  saveToolSettings('scene', next);
-  return { scriptId: short.script.id };
+  const script = scripts.scripts?.find(entry => entry.id === short.script.id) ?? short.script;
+  // The moments with no kept still are the run (a kept one is left out, as Prepare a run does).
+  const run = input.render
+    ? autopilotRun(runFromScript({ script, scenes }), input.render)
+    : undefined;
+  saveToolSettings('scene', { ...cache, scenes, ...(run ? { run } : {}) });
+  return { scriptId: short.script.id, ...(run ? { runId: run.id } : {}) };
 }

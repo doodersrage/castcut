@@ -3610,6 +3610,14 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   migration, old links work. In-page words for the plan ("Suggest day", "Write the day", "Queue
   day") stay: a day in their life is still what that page plans.
 
+- **B1 Make the short** (user, 2026-11-06: "do the full short buildout"): Short's Queue on the
+  script road — the Day as a script (S3a) and an episode run over its moments with no kept still
+  (keep the best by its checks, one redo, cut when done), started on Scene (`?start=<run id>`).
+  Never replaces a run listed, going or paused on Scene. Fixes on the way: the short's script is
+  written to the scripts' own store (it went to the legacy Scene settings, adopted on open); the
+  start-a-saved-run hook retries until the run runs (a run record changing in the same tick
+  cleared its one timer — the autopilot's start shared that race).
+
 ### Next (not started — each its own reviewed step)
 
 - **S3b The Short board on Scenes.** The board's cards read and write Scenes of a short script

@@ -31,14 +31,33 @@ export default function SceneScriptAndRun({
   const router = useRouter();
   // The episode autopilot's run: saved with its settings, then started once the runner has it
   // (its ref follows the page a commit later, so the start waits for the next tick).
-  const startRunId = useRef<string | null>(null);
+  // Or Short's Make the short (?start=<run id>): the run it saved, started when the page opens.
+  const startRunId = useRef<string | null>(
+    typeof window === 'undefined'
+      ? null
+      : new URLSearchParams(window.location.search).get('start')?.trim() || null
+  );
   const { run } = page;
   const { start } = runner;
   useEffect(() => {
-    if (!startRunId.current || run?.id !== startRunId.current || run.state !== 'prepared') return;
-    startRunId.current = null;
-    const timer = window.setTimeout(start, 0);
-    return () => window.clearTimeout(timer);
+    const want = startRunId.current;
+    if (!want || run?.id !== want) return;
+    if (run.state !== 'prepared') {
+      // Started (or changed by hand): done asking.
+      startRunId.current = null;
+      return;
+    }
+    // Off the URL: a reload resumes the run (Resume), it doesn't start it again.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('start')) {
+      url.searchParams.delete('start');
+      window.history.replaceState(window.history.state, '', url);
+    }
+    // Asked again until it runs: the runner reads the run a commit later, and the run record
+    // changing meanwhile re-runs this (and clears a single timer before it fired).
+    start();
+    const timer = window.setInterval(start, 500);
+    return () => window.clearInterval(timer);
   }, [run, start]);
   // Done, with the cut asked for: Cut opens on the Scenes and cuts the episode (useCutAutopilot).
   const { updateRun } = page;
