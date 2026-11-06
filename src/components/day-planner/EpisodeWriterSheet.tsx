@@ -10,8 +10,12 @@ import {
   episodeFountain,
   episodeSceneCount,
   episodeSceneTail,
+  EPISODE_SCENES_MAX,
+  EPISODE_SCENES_MIN,
+  EPISODE_SECONDS_PER_SCENE,
   type EpisodeCastMember,
   type EpisodeOutline,
+  type EpisodeWriteSeed,
 } from '@/lib/day/episode-writer';
 import { DEFAULT_EPISODE_AUTOPILOT, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 
@@ -44,8 +48,11 @@ export default function EpisodeWriterSheet({
   onClose,
   onDone,
   canAutopilot = false,
+  seed,
 }: {
   open: boolean;
+  /** A short from Day: its idea, tone and moments (a count of scenes, not minutes). */
+  seed?: EpisodeWriteSeed | null;
   /** Offer "Make the whole episode for me" (the page can prepare and start a run). */
   canAutopilot?: boolean;
   lead: string;
@@ -55,9 +62,11 @@ export default function EpisodeWriterSheet({
   /** The screenplay, as Fountain — and the autopilot's settings when it is to make the episode. */
   onDone: (fountain: string, autopilot: EpisodeAutopilot | null) => void;
 }) {
-  const [premise, setPremise] = useState('');
+  const [premise, setPremise] = useState(seed?.premise ?? '');
   const [minutes, setMinutes] = useState(30);
-  const [tone, setTone] = useState('');
+  // A short is counted in scenes (Day's moments); an episode in minutes.
+  const [scenes, setScenes] = useState<number | null>(seed?.scenes ?? null);
+  const [tone, setTone] = useState(seed?.tone ?? '');
   const [outline, setOutline] = useState<EpisodeOutline | null>(null);
   // Written scenes, by outline index.
   const [written, setWritten] = useState<string[]>([]);
@@ -78,6 +87,7 @@ export default function EpisodeWriterSheet({
         step: 'outline',
         premise,
         minutes,
+        ...(scenes ? { scenes } : {}),
       });
       setOutline(data.outline);
       setWritten([]);
@@ -143,7 +153,7 @@ export default function EpisodeWriterSheet({
         stopRef.current = true;
         onClose();
       }}
-      title="Write an episode"
+      title={seed ? 'Write a short' : 'Write an episode'}
       description={`For ${lead}: an outline from your premise, then the screenplay, scene by scene, by your LLM.`}
       size="lg"
       testId="episode-writer"
@@ -162,24 +172,64 @@ export default function EpisodeWriterSheet({
             onChange={event => setPremise(event.target.value)}
           />
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <label className="flex items-center gap-1">
-              About
-              <input
-                type="number"
-                min={EPISODE_MINUTES_MIN}
-                max={EPISODE_MINUTES_MAX}
-                aria-label="About this many minutes"
-                className="w-16 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5"
-                value={minutes}
-                disabled={busy !== null}
-                data-testid="episode-minutes"
-                onChange={event => {
-                  const value = Math.round(Number(event.target.value));
-                  if (value > 0) setMinutes(Math.min(EPISODE_MINUTES_MAX, value));
-                }}
-              />
-              minutes · {episodeSceneCount(minutes)} scenes
-            </label>
+            {scenes ? (
+              <label className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={EPISODE_SCENES_MIN}
+                  max={EPISODE_SCENES_MAX}
+                  aria-label="This many scenes"
+                  className="w-16 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5"
+                  value={scenes}
+                  disabled={busy !== null}
+                  data-testid="episode-scenes"
+                  onChange={event => {
+                    const value = Math.round(Number(event.target.value));
+                    if (value > 0) setScenes(Math.min(EPISODE_SCENES_MAX, value));
+                  }}
+                />
+                scenes · about {Math.max(1, Math.round((scenes * EPISODE_SECONDS_PER_SCENE) / 60))}{' '}
+                min
+              </label>
+            ) : (
+              <label className="flex items-center gap-1">
+                About
+                <input
+                  type="number"
+                  min={EPISODE_MINUTES_MIN}
+                  max={EPISODE_MINUTES_MAX}
+                  aria-label="About this many minutes"
+                  className="w-16 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5"
+                  value={minutes}
+                  disabled={busy !== null}
+                  data-testid="episode-minutes"
+                  onChange={event => {
+                    const value = Math.round(Number(event.target.value));
+                    if (value > 0) setMinutes(Math.min(EPISODE_MINUTES_MAX, value));
+                  }}
+                />
+                minutes · {episodeSceneCount(minutes)} scenes
+              </label>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={busy !== null}
+              data-testid="episode-length-unit"
+              onClick={() =>
+                setScenes(
+                  scenes
+                    ? null
+                    : Math.max(
+                        EPISODE_SCENES_MIN,
+                        Math.min(EPISODE_SCENES_MAX, episodeSceneCount(minutes))
+                      )
+                )
+              }
+            >
+              {scenes ? 'In minutes' : 'In scenes'}
+            </Button>
             <label className="flex min-w-48 flex-1 items-center gap-1">
               Tone
               <TextInput

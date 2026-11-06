@@ -1023,6 +1023,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           onWriteEvent={writeDayEvent}
           onLeaveEvent={leaveDayEvent}
           onSwitchToWholeDay={() => void suggestDayScenes()}
+          castId={character?.id}
         />
         <DayScriptImport
           className="mt-2"

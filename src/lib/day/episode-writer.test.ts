@@ -11,6 +11,11 @@ import {
   normalizeEpisodeHeading,
   parseEpisodeOutline,
   parseEpisodeScene,
+  dayShortSeed,
+  episodeLengthScenes,
+  episodeWriteHref,
+  normalizeEpisodeScenes,
+  readEpisodeWriteSeed,
 } from './episode-writer';
 
 const outline = {
@@ -86,5 +91,31 @@ describe('writing an episode (Part 19 G3)', () => {
     const messages = episodeSceneMessages({ outline, index: 1, lead: 'Mara', cast: [], before: 'MARA\nWho sent this?' });
     assert.match(messages[1]!.content, /Write scene 2: EXT\. STREET - DAY — She runs/);
     assert.match(messages[1]!.content, /How the scene before ended:\nMARA/);
+  });
+});
+
+describe('a short from Day', () => {
+  it('counts a short in scenes, 2 to 40, over the minutes', () => {
+    assert.equal(normalizeEpisodeScenes(undefined), null);
+    assert.equal(normalizeEpisodeScenes('abc'), null);
+    assert.equal(normalizeEpisodeScenes(1), 2);
+    assert.equal(normalizeEpisodeScenes(12), 12);
+    assert.equal(normalizeEpisodeScenes(99), 40);
+    assert.equal(episodeLengthScenes({ minutes: 30, scenes: 5 }), 5);
+    assert.equal(episodeLengthScenes({ minutes: 30 }), 40);
+    const [, user] = episodeOutlineMessages({ premise: 'A rainy Saturday', lead: 'Mara', cast: [], minutes: 30, scenes: 5 });
+    assert.match(user!.content, /a short — write exactly 5 scenes, about 4 minutes on screen/);
+  });
+
+  it('carries the idea, its mood and its moments to the Scene page, and back', () => {
+    const seed = dayShortSeed({ premise: '  A rainy Saturday  ', mood: 'everyday', moments: 6 });
+    assert.deepEqual(seed, { premise: 'A rainy Saturday', tone: 'everyday slice of life, warm and observant', scenes: 6 });
+    const href = episodeWriteHref('cast-1', seed);
+    assert.match(href, /^\/scene\?character=cast-1&write=short&/);
+    assert.deepEqual(readEpisodeWriteSeed(href.slice(href.indexOf('?'))), seed);
+    // A mood with no tone of its own, and a URL with no idea, or no short asked for.
+    assert.equal(dayShortSeed({ premise: 'x', mood: 'sport', moments: 4 }).tone, undefined);
+    assert.equal(readEpisodeWriteSeed('?write=short&scenes=4'), null);
+    assert.equal(readEpisodeWriteSeed('?premise=x&scenes=4'), null);
   });
 });

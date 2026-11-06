@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   decideFinding,
   findingDecisionMap,
@@ -17,6 +17,7 @@ import {
 } from '@/lib/day/script-coverage';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import EpisodeWriterSheet from '@/components/day-planner/EpisodeWriterSheet';
+import { readEpisodeWriteSeed, type EpisodeWriteSeed } from '@/lib/day/episode-writer';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
@@ -476,6 +477,22 @@ export default function SceneScripts({
   );
   const [draft, setDraft] = useState<string | null>(null);
   const [writingEpisode, setWritingEpisode] = useState(false);
+  // A short from Day (?write=short&premise=…&scenes=…): the writer opens on it, once.
+  const [writeSeed, setWriteSeed] = useState<EpisodeWriteSeed | null>(null);
+  useEffect(() => {
+    if (!readEpisodeWriteSeed(window.location.search)) return;
+    const timer = window.setTimeout(() => {
+      const seed = readEpisodeWriteSeed(window.location.search);
+      if (!seed) return;
+      // Off the URL, so a reload doesn't open it again (in the timer: Strict Mode runs this twice).
+      const url = new URL(window.location.href);
+      for (const key of ['write', 'premise', 'scenes', 'tone']) url.searchParams.delete(key);
+      window.history.replaceState(window.history.state, '', url);
+      setWriteSeed(seed);
+      setWritingEpisode(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
   // The script as it was before the last new version went in, and the version that replaced it:
@@ -878,6 +895,8 @@ export default function SceneScripts({
       </div>
       {llmBody ? (
         <EpisodeWriterSheet
+          key={writeSeed ? 'short' : 'episode'}
+          seed={writeSeed}
           open={writingEpisode}
           lead={castName ?? 'the lead'}
           cast={cast.map(member => ({

@@ -1355,6 +1355,48 @@ test('Write an episode: an outline, scenes written one by one, kept as a script'
   await expect(page.getByTestId('script-reading')).toContainText('BEACH');
 });
 
+// Day's idea as a short (2026-11-06): Make it a short opens Scene's writer on it — a scene per
+// moment, as many as you like there — and the outline asks for that many.
+test('Make it a short: Day’s idea opens the writer, counted in scenes', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: { stillsCharacterId: CAST, dayMood: 'everyday' }, scene: sceneWithTakes() },
+  });
+  const outlines: Array<{ scenes?: number; minutes?: number; premise?: string; tone?: string }> = [];
+  await page.route('**/api/script-episode', async route => {
+    outlines.push(route.request().postDataJSON());
+    await route.fulfill({ status: 502, json: { error: 'e2e: no outline' } });
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-idea-short')).toHaveCount(0);
+  await input.fill('a slow Sunday in Lisbon');
+  await page.getByTestId('day-idea-short').first().click();
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  const sheet = page.getByTestId('episode-writer');
+  await expect(sheet).toBeVisible({ timeout: 60_000 });
+  await expect(sheet).toContainText('Write a short');
+  await expect(sheet.getByTestId('episode-premise')).toHaveValue('a slow Sunday in Lisbon');
+  await expect(sheet.getByTestId('episode-tone')).toHaveValue(/everyday/);
+  // The Day's four moments to start; any number from here.
+  await expect(sheet.getByTestId('episode-scenes')).toHaveValue('4');
+  await expect(page).not.toHaveURL(/write=short/);
+  await sheet.getByTestId('episode-scenes').fill('11');
+  await sheet.getByTestId('episode-write-outline').click();
+  await expect.poll(() => outlines.length).toBe(1);
+  expect(outlines[0]).toMatchObject({ step: 'outline', scenes: 11, premise: 'a slow Sunday in Lisbon' });
+  // In minutes again: an episode's length.
+  await sheet.getByTestId('episode-length-unit').click();
+  await expect(sheet.getByTestId('episode-minutes')).toBeVisible();
+  // Reloaded, the writer doesn't open by itself.
+  await page.reload();
+  await expect(page.getByTestId('scene-scripts')).toBeAttached({ timeout: 60_000 });
+  await expect(page.getByTestId('episode-writer')).toHaveCount(0);
+});
+
 // The episode autopilot: from the written episode to a running episode run with no more clicks —
 // kept, Who's who confirmed, every scene's shots (the rules when the LLM can't), Scenes made, the
 // run started as an episode that cuts itself when done.

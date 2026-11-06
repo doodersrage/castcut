@@ -7,7 +7,8 @@ import {
   EPISODE_SCENES_MAX,
   episodeOutlineMessages,
   episodeOutlineTokens,
-  episodeSceneCount,
+  episodeLengthScenes,
+  normalizeEpisodeScenes,
   episodeSceneMessages,
   normalizeEpisodeHeading,
   parseEpisodeOutline,
@@ -63,7 +64,8 @@ function outlineFrom(value: unknown): EpisodeOutline | null {
 
 /**
  * POST — writing an episode (Part 19 G3, episode-writer.ts), one LLM call a step:
- * - `{ step: 'outline', premise, lead, cast[], minutes, tone? }` → `{ outline }`
+ * - `{ step: 'outline', premise, lead, cast[], minutes, scenes?, tone? }` → `{ outline }` (scenes:
+ *   a short's count, over the minutes)
  * - `{ step: 'scene', outline, index, lead, cast[], before?, tone? }` → `{ text }` (Fountain)
  */
 export async function POST(request: Request) {
@@ -100,11 +102,13 @@ export async function POST(request: Request) {
         EPISODE_MINUTES_MAX,
         Math.max(EPISODE_MINUTES_MIN, Number(body.minutes) || 30)
       );
+      // A short from Day asks for its scenes by count (its moments), not minutes.
+      const scenes = normalizeEpisodeScenes(body.scenes);
       const outline = parseEpisodeOutline(
         // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
         await call(
-          episodeOutlineMessages({ premise, lead, cast, minutes, tone }),
-          episodeOutlineTokens(episodeSceneCount(minutes))
+          episodeOutlineMessages({ premise, lead, cast, minutes, scenes, tone }),
+          episodeOutlineTokens(episodeLengthScenes({ minutes, scenes }))
         )
       );
       if (!outline)

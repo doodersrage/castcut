@@ -64,14 +64,86 @@ function castLine(lead: string, cast: readonly EpisodeCastMember[]): string {
   return named.join(', ');
 }
 
+/** A short counted in scenes (moments), not minutes: 2 at least — one is a Scene of its own. */
+export const EPISODE_SCENES_MIN = 2;
+
+/** A scene count as asked (2–40), or null: the length is in minutes. */
+export function normalizeEpisodeScenes(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.min(EPISODE_SCENES_MAX, Math.max(EPISODE_SCENES_MIN, n));
+}
+
+/** How many scenes the outline asks for: the count when one is given, else the minutes'. */
+export function episodeLengthScenes(input: { minutes: number; scenes?: number | null }): number {
+  return normalizeEpisodeScenes(input.scenes) ?? episodeSceneCount(input.minutes);
+}
+
+/**
+ * A short from Day (2026-11-06): Day's idea, mood and number of moments, carried to the Scene
+ * page's Write an episode — scripts make the film now; Day's moments are its scenes.
+ */
+export type EpisodeWriteSeed = { premise: string; tone?: string; scenes: number };
+
+const DAY_MOOD_TONES: Record<string, string> = {
+  everyday: 'everyday slice of life, warm and observant',
+  vacation: 'a holiday away, sunny and easy',
+};
+
+export function dayShortSeed(input: {
+  premise: string;
+  mood: string | null | undefined;
+  moments: number;
+}): EpisodeWriteSeed {
+  const tone =
+    DAY_MOOD_TONES[
+      String(input.mood ?? '')
+        .trim()
+        .toLowerCase()
+    ];
+  return {
+    premise: input.premise.trim().slice(0, 2000),
+    ...(tone ? { tone } : {}),
+    scenes: normalizeEpisodeScenes(input.moments) ?? EPISODE_SCENES_MIN,
+  };
+}
+
+/** The Scene page, its writer open on the seed. */
+export function episodeWriteHref(castId: string, seed: EpisodeWriteSeed): string {
+  const params = new URLSearchParams({
+    character: castId,
+    write: 'short',
+    premise: seed.premise,
+    scenes: String(seed.scenes),
+  });
+  if (seed.tone) params.set('tone', seed.tone);
+  return `/scene?${params.toString()}`;
+}
+
+/** The seed in a Scene page URL (`?write=short&…`), or null. */
+export function readEpisodeWriteSeed(search: string): EpisodeWriteSeed | null {
+  const params = new URLSearchParams(search);
+  if (params.get('write') !== 'short') return null;
+  const premise = (params.get('premise') ?? '').trim().slice(0, 2000);
+  const scenes = normalizeEpisodeScenes(params.get('scenes'));
+  if (!premise || !scenes) return null;
+  const tone = (params.get('tone') ?? '').trim().slice(0, 60);
+  return { premise, scenes, ...(tone ? { tone } : {}) };
+}
+
 export function episodeOutlineMessages(input: {
   premise: string;
   lead: string;
   cast: readonly EpisodeCastMember[];
   minutes: number;
+  /** A short counted in scenes: overrides the minutes. */
+  scenes?: number | null;
   tone?: string;
 }): ChatMessage[] {
-  const count = episodeSceneCount(input.minutes);
+  const scenes = normalizeEpisodeScenes(input.scenes);
+  const count = scenes ?? episodeSceneCount(input.minutes);
+  const onScreen = Math.round((count * EPISODE_SECONDS_PER_SCENE) / 60);
   return [
     {
       role: 'system',
@@ -89,7 +161,9 @@ export function episodeOutlineMessages(input: {
         `Premise: ${input.premise.trim()}`,
         `The lead: ${input.lead}. The cast to use: ${castLine(input.lead, input.cast)}. Add other people only if the story needs them.`,
         input.tone?.trim() ? `Tone: ${input.tone.trim()}.` : '',
-        `Length: about ${Math.round(input.minutes)} minutes on screen — write exactly ${count} scenes.`,
+        scenes
+          ? `Length: a short — write exactly ${count} scenes, about ${onScreen <= 1 ? 'a minute' : `${onScreen} minutes`} on screen.`
+          : `Length: about ${Math.round(input.minutes)} minutes on screen — write exactly ${count} scenes.`,
       ]
         .filter(Boolean)
         .join('\n'),

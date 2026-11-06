@@ -23,7 +23,9 @@ say in each.
 ## By hand
 
 1. **Write it.** Scene → More → Script → **Write an episode…**: what it's about, about how many
-   minutes (a scene for every 45 seconds: 40 for a half hour), a tone. **Write the outline**, change
+   minutes (a scene for every 45 seconds: 40 for a half hour) — or **In scenes**, a count (2–40)
+   for a short — and a tone. From [Day](guide-day.md), **Make it a short →** opens it on the Day's
+   idea, its mood as the tone and a scene per moment. **Write the outline**, change
    what you like, **Write the screenplay**, then **Put it in the script box** and **Keep this
    script**. ([Script](guide-scene.md#script))
 2. **Who's who.** **Confirm** each part the page suggests. A part that comes back and isn't in the

@@ -41,6 +41,12 @@ silly / raunchy.
 2. Edit any card in its **slot sheet** — Setting, Beat, pose, clothes.
 3. **Queue day** renders the stills. A card shows *#3 in queue*, then *Rendering · 45%*.
 
+!!! tip "Make it a short"
+    Typed an idea? **Make it a short →** takes it to Scene's [Write an episode](guide-scene.md#script)
+    as a short script — a scene per moment, starting from the Day's number and as many as you like
+    there (2–40) — then planned, rendered and cut like an episode, by hand or with **Make the whole
+    episode for me** ([Make an episode](guide-episode.md)). Everyday and Vacation set its tone.
+
 !!! tip "One event instead of a whole day"
     Switch the idea row to **One event** and write one line — *a dinner date at a candlelit
     trattoria*. Every slot becomes the next moment of that event, and the clips run straight

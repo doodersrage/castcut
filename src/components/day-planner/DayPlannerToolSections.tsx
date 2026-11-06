@@ -934,6 +934,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onWriteEvent={writeDayEvent}
             onLeaveEvent={leaveDayEvent}
             onSwitchToWholeDay={() => void suggestDayScenes()}
+            castId={character?.id}
           />
           <DayScriptImport
             className="-mt-1 mb-3"

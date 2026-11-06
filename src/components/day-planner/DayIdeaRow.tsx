@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { DAY_EVENT_MAX_LENGTH, type DayEvent } from '@/lib/day/event';
 import { DAY_PREMISE_MAX_LENGTH, dayPremiseAvailable } from '@/lib/day/premise';
+import { dayShortSeed, episodeWriteHref } from '@/lib/day/episode-writer';
 
 type IdeaMode = 'day' | 'event';
 
@@ -23,8 +24,11 @@ export default function DayIdeaRow({
   onWriteEvent,
   onLeaveEvent,
   onSwitchToWholeDay,
+  castId,
   className = '',
 }: {
+  /** The Cast the Day is for: offers the idea as a short (a script on the Scene page). */
+  castId?: string;
   dayMood: string | null | undefined;
   busy?: boolean;
   slotCount: number;
@@ -157,6 +161,21 @@ export default function DayIdeaRow({
         >
           {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write the day'}
         </Button>
+        {castId && !eventMode && premise.trim() ? (
+          // The idea as a script: Scene's Write an episode, a scene per moment (as many as you
+          // like there), then its run and Cut — or Make the whole episode for me.
+          <ButtonLink
+            size="sm"
+            variant="ghost"
+            href={episodeWriteHref(
+              castId,
+              dayShortSeed({ premise, mood: dayMood, moments: slotCount })
+            )}
+            data-testid="day-idea-short"
+          >
+            Make it a short →
+          </ButtonLink>
+        ) : null}
       </div>
       {note ? (
         <p
