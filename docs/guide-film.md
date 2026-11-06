@@ -246,7 +246,11 @@ under the whole shot, quieter.
 so a cut of stills is silent. With this on, each still's line is read when the film is cut — the
 lead's in her own kept voice, another Cast member's in theirs (by the name the shot gives), anyone
 else in a generic voice of the other sex — and the still is held for as long as the line takes.
-A cut of a whole episode's kept stills becomes a talking animatic.
+A cut of a whole episode's kept stills becomes a talking animatic. Each speaker's lines are read
+on their own seed, so they keep one voice (a new seed each line made each line someone slightly
+new). A Cast member who speaks and has no kept voice is given one first — a few seconds of them
+introducing themselves, kept like an audition, so their talking clips use it too; the status line
+names them, and Cast → Voice changes it.
 
 **Music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
 style for each stretch (ACE-Step, about ten seconds each), placed at its start and stopped where

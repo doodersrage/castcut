@@ -4,9 +4,15 @@ import { renderNarration } from '@/lib/film/narration-server';
 export const runtime = 'nodejs';
 export const maxDuration = 200;
 
-/** A narration line for a Day shot: { line, speaker, voiceSample, comfyUrl } → { url }. */
+/** A narration line for a Day shot: { line, speaker, voiceSample, seed, comfyUrl } → { url }. */
 export async function POST(request: Request) {
-  let body: { line?: unknown; speaker?: unknown; voiceSample?: unknown; comfyUrl?: unknown };
+  let body: {
+    line?: unknown;
+    speaker?: unknown;
+    voiceSample?: unknown;
+    seed?: unknown;
+    comfyUrl?: unknown;
+  };
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -20,6 +26,9 @@ export async function POST(request: Request) {
         ...(typeof body.voiceSample === 'string' &&
         /^[\w.-]+\.(wav|flac|mp3)$/i.test(body.voiceSample)
           ? { voiceSample: body.voiceSample }
+          : {}),
+        ...(Number.isInteger(body.seed) && (body.seed as number) >= 0
+          ? { seed: Math.min(body.seed as number, 2 ** 31 - 1) }
           : {}),
         ...(typeof body.comfyUrl === 'string' ? { comfyUrl: body.comfyUrl } : {}),
       })

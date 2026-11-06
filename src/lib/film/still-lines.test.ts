@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createScene, sceneCutShots } from '../day/scenes';
-import { stillLineOf } from './still-lines';
+import { baseVoiceLine, speakerSeed, stillLineOf } from './still-lines';
 
 describe('reading the lines on stills', () => {
   it('reads the lead’s line, else the other person’s from the beat, on stills only', () => {
@@ -32,5 +32,20 @@ describe('reading the lines on stills', () => {
       text: 'You didn’t bring the recipe.',
       speaker: { lead: true },
     });
+  });
+
+  it('keeps one seed a speaker (a new seed was a new voice each line), apart from the others', () => {
+    assert.equal(speakerSeed('char-rob'), speakerSeed(' CHAR-ROB '));
+    assert.notEqual(speakerSeed('char-rob'), speakerSeed('char-lena'));
+    assert.notEqual(speakerSeed('man:Customer'), speakerSeed('man:Rob'));
+    const seed = speakerSeed('char-rob');
+    assert.ok(Number.isInteger(seed) && seed >= 0 && seed < 1_000_000_000);
+  });
+
+  it('gives a base voice a few seconds of their own words', () => {
+    assert.equal(
+      baseVoiceLine('Rob Hale'),
+      'Hi, I’m Rob. This is how I sound when I talk — easy, clear, and just like this.'.replace('’', "'")
+    );
   });
 });

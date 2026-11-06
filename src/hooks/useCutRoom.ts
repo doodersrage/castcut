@@ -28,8 +28,8 @@ import {
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
-import { castVoiceOf } from '@/lib/cast/voice';
-import { stillLineOf } from '@/lib/film/still-lines';
+import { castVoiceOf, takeCastVoiceFromClip } from '@/lib/cast/voice';
+import { baseVoiceLine, speakerSeed, stillLineOf } from '@/lib/film/still-lines';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import {
   applyCharacterRecord,
@@ -2354,16 +2354,15 @@ export function useCutRoom() {
               narrationText: line,
             };
         }
+        /** Cast members given a base voice for this cut (the status line says so). */
+        const gaveVoices: string[] = [];
         // Read the lines on stills (Part 19): a still's line in its speaker's voice — the lead's
         // own, the other person's by name from the Cast — and the still held for it.
         if (cutOptions.readLines === true) {
           const people = loadCharacters();
           const leadId = cast?.id;
-          for (const [index, shot] of picked.entries()) {
-            if (shot.narrationUrl) continue;
-            const said = stillLineOf(shot);
-            if (!said) continue;
-            const who = said.speaker.lead
+          const speakerOf = (said: NonNullable<ReturnType<typeof stillLineOf>>) =>
+            said.speaker.lead
               ? leadId
                 ? getCharacter(leadId)
                 : undefined
@@ -2372,6 +2371,31 @@ export function useCutRoom() {
                     member.name.trim().toLowerCase() ===
                     (said.speaker as { name: string }).name.toLowerCase()
                 );
+          // A Cast member with no voice gets a base voice first — one introduction line on their
+          // own seed, kept as their voice like an audition — or every line is someone new.
+          const unvoiced = new Map<string, NonNullable<ReturnType<typeof speakerOf>>>();
+          for (const shot of picked) {
+            const said = shot.narrationUrl ? null : stillLineOf(shot);
+            const who = said ? speakerOf(said) : undefined;
+            if (who && !castVoiceOf(who.id)) unvoiced.set(who.id, who);
+          }
+          for (const who of unvoiced.values()) {
+            setStatus(`Giving ${who.name} a voice…`);
+            const sex: 'woman' | 'man' = who.traits?.sex === 'man' ? 'man' : 'woman';
+            const url = await renderNarrationLine({
+              line: baseVoiceLine(who.name),
+              speaker: sex,
+              seed: speakerSeed(who.id),
+            }).catch(() => undefined);
+            if (url && !(await takeCastVoiceFromClip({ castId: who.id, clipUrl: url }))) {
+              gaveVoices.push(who.name);
+            }
+          }
+          for (const [index, shot] of picked.entries()) {
+            if (shot.narrationUrl) continue;
+            const said = stillLineOf(shot);
+            if (!said) continue;
+            const who = speakerOf(said);
             const sex: 'woman' | 'man' =
               who?.traits?.sex === 'man'
                 ? 'man'
@@ -2383,13 +2407,19 @@ export function useCutRoom() {
                       ? 'man'
                       : 'woman';
             const sample = who ? castVoiceOf(who.id)?.sample : undefined;
-            const cacheKey = `line:${who?.id ?? sex}:${said.text}`;
+            // One seed a speaker: their lines keep one voice (a Cast id, else the beat's name).
+            const seed = speakerSeed(
+              who?.id ??
+                `${sex}:${said.speaker.lead ? 'lead' : (said.speaker as { name: string }).name}`
+            );
+            const cacheKey = `line:${who?.id ?? sex}:${sample ?? ''}:${said.text}`;
             let url = storyNarrationCache.current.get(cacheKey);
             if (!url) {
               setStatus(`Reading ${shot.title}’s line…`);
               url = await renderNarrationLine({
                 line: said.text,
                 speaker: sex,
+                seed,
                 ...(sample ? { voiceSample: sample } : {}),
               }).catch(() => undefined);
               if (url) storyNarrationCache.current.set(cacheKey, url);
@@ -2584,6 +2614,9 @@ export function useCutRoom() {
         }
         const notes = [
           ...result.cutNotes,
+          ...(gaveVoices.length
+            ? [`gave ${gaveVoices.join(' and ')} a voice (change it in Cast → Voice)`]
+            : []),
           ...(result.contentCredentials
             ? [
                 result.contentCredentials.signed

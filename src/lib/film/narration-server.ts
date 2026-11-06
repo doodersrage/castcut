@@ -17,6 +17,8 @@ export async function renderNarration(input: {
   line: string;
   speaker?: 'woman' | 'man';
   voiceSample?: string;
+  /** One speaker's lines on one seed sound like one person (a new seed is a new voice). */
+  seed?: number;
   comfyUrl?: string;
 }): Promise<{ url: string }> {
   const line = normalizeNarration(input.line);
@@ -36,7 +38,7 @@ export async function renderNarration(input: {
     prompt: buildNarrationGraph({
       line,
       speaker: input.speaker === 'man' ? 'man' : 'woman',
-      seed: Math.floor(Math.random() * 1_000_000_000),
+      seed: input.seed ?? Math.floor(Math.random() * 1_000_000_000),
       prefix: 'audio/Castcut-narration',
       ...(input.voiceSample ? { voiceSample: input.voiceSample } : {}),
     }),

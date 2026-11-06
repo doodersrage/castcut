@@ -5,6 +5,8 @@ export async function renderNarrationLine(input: {
   line: string;
   speaker: 'woman' | 'man';
   voiceSample?: string;
+  /** The speaker's own seed (still-lines.ts speakerSeed), so their lines keep one voice. */
+  seed?: number;
 }): Promise<string> {
   const response = await fetch('/api/film/narration', {
     method: 'POST',

@@ -29,3 +29,26 @@ export function stillLineOf(shot: {
   }
   return null;
 }
+
+/**
+ * A speaker's own seed for read lines: the speech model draws a new voice for each seed, so a
+ * random one a line made each line a slightly different person (Rob most of all). Stable per
+ * speaker key — a Cast id, else the name the beat gives. Pure.
+ */
+export function speakerSeed(key: string): number {
+  let hash = 2166136261;
+  for (const char of key.trim().toLowerCase()) {
+    hash ^= char.codePointAt(0)!;
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % 1_000_000_000;
+}
+
+/**
+ * What a speaker says to give them a base voice (a Cast member with none, before their lines are
+ * read): a few calm seconds in their own words, kept as their voice sample like an audition.
+ */
+export function baseVoiceLine(name: string): string {
+  const first = name.trim().split(/\s+/)[0] || 'me';
+  return `Hi, I'm ${first}. This is how I sound when I talk — easy, clear, and just like this.`;
+}
