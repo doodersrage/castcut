@@ -43,7 +43,11 @@ import { dayPagePath, loadDayForScenes, sendSceneToDaySlot } from '@/lib/day/sce
 import { normalizeSceneRun, runFromScript, type SceneRun } from '@/lib/day/scene-run';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { applySceneScriptsPatch, loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
-import type { PlannedShot, ShotSceneDraft } from '@/lib/day/script-shots';
+import {
+  scriptShotCompanions,
+  type PlannedShot,
+  type ShotSceneDraft,
+} from '@/lib/day/script-shots';
 import { galleryEntryPrimaryViewUrl, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { daySlotsForScene } from '@/lib/day/scenes';
@@ -212,6 +216,7 @@ export function useScenePage(vm: DayEngineView) {
     (
       input: Pick<Parameters<typeof createScene>[0], 'name' | 'slot' | 'fromScript'> & {
         partnerCharacterId?: string;
+        partnerInFrame?: boolean;
       },
       also?: (sceneId: string) => Partial<SceneToolCache> | null
     ): string | null => {
@@ -220,7 +225,7 @@ export function useScenePage(vm: DayEngineView) {
         setNote('A take is rendering — make the scene when it lands.');
         return null;
       }
-      const { partnerCharacterId, ...shot } = input;
+      const { partnerCharacterId, partnerInFrame, ...shot } = input;
       const scene = createScene({
         castId,
         ...shot,
@@ -228,6 +233,7 @@ export function useScenePage(vm: DayEngineView) {
           ...(cache as Record<string, unknown>),
           // The script's second person, else nobody named (an invented stranger).
           partnerCharacterId: partnerCharacterId ?? '',
+          ...scriptShotCompanions(partnerCharacterId, partnerInFrame),
         },
         outfit: cache as Record<string, unknown>,
       });
@@ -266,6 +272,7 @@ export function useScenePage(vm: DayEngineView) {
           mood: {
             ...(cache as Record<string, unknown>),
             partnerCharacterId: draft.partnerCharacterId ?? '',
+            ...scriptShotCompanions(draft.partnerCharacterId, draft.partnerInFrame),
           },
           outfit: cache as Record<string, unknown>,
           // Distinct times keep their order (and ids) apart.

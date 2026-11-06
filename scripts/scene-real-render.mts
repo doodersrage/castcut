@@ -3664,6 +3664,85 @@ const phases: Record<string, Phase> = {
     await shot(page, 'episode-run-done');
   },
 
+  /**
+   * The partner in the picture (2026-11-06): the episode's shots of Rob rendered Lena alone. Give
+   * a few of his Scenes what a script Scene now gets when its shot shows the partner — "Duo ·
+   * companions" on and "the two of them together" in the beat — and render each once.
+   */
+  async eppair(_ctx, page) {
+    const lead = process.env.EPISODE_LEAD_NAME ?? 'Lena';
+    const partner = process.env.EPISODE_PARTNER_NAME ?? 'Rob';
+    // A static file of the app's origin: its storage, and no app page to write its copy back.
+    await page.goto(`${BASE}/manifest.json`, { waitUntil: 'domcontentloaded' });
+    const scenes = (await v2Scenes(page)) as Array<
+      V2Scene & { slot: { sceneHints?: string }; partnerCharacterId?: string }
+    >;
+    const withPartner = scenes.filter(scene => scene.partnerCharacterId);
+    const lines = withPartner
+      .filter(scene => scene.slot.sceneHints?.includes(`${partner} says`))
+      .slice(0, Number(process.env.PAIR_LINES ?? 3));
+    const wide = withPartner
+      .filter(scene => /Establishing/.test(scene.name) && !/CAVE/.test(scene.name))
+      .slice(0, 1);
+    const picked = [...lines, ...wide];
+    log('pair test on', picked.map(scene => scene.name).join(' | '));
+    await page.evaluate(
+      ({ ids, prefix }) =>
+        new Promise<void>((resolve, reject) => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const db = request.result;
+            const store = db.transaction('kv', 'readwrite').objectStore('kv');
+            const get = store.get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              const record = get.result;
+              const scene = record.value.tools.scene;
+              const now = Date.now();
+              scene.scenes = scene.scenes.map(
+                (entry: { id: string; slot: { sceneHints?: string } }, index: number) => {
+                  if (!ids.includes(entry.id)) return entry;
+                  const hints = `${prefix} ${(entry.slot.sceneHints ?? '').replace(prefix, '').trim()}`;
+                  return {
+                    ...entry,
+                    allowCompanions: true,
+                    slot: { ...entry.slot, sceneHints: hints, sceneHintsTyped: hints },
+                    updatedAt: now + index,
+                  };
+                }
+              );
+              record.value.updatedAt = now;
+              const put = store.put(record);
+              put.onsuccess = () => {
+                db.close();
+                resolve();
+              };
+              put.onerror = () => reject(put.error);
+            };
+          };
+        }),
+      { ids: picked.map(scene => scene.id), prefix: `${lead} and ${partner}, the two of them together.` }
+    );
+    const results: Array<{ name: string; promptId?: string; imageUrl?: string; status?: string }> = [];
+    for (const scene of picked) {
+      await attempt(page, `pair ${scene.name}`, async () => {
+        await go(page, `/scene?character=${V2_CAST}&scene=${scene.id}`);
+        await page.getByTestId('scene-queue-take').waitFor({ timeout: 60_000 });
+        await page.waitForTimeout(2000);
+        const before = (await sceneStill(page))?.promptId;
+        await page.getByTestId('scene-queue-take').click();
+        const still = await waitForTake(page, before, scene.name.slice(0, 24), 15);
+        results.push({ name: scene.name, promptId: still.promptId, imageUrl: still.imageUrl, status: still.status });
+        if (still.imageUrl) {
+          const bytes = await page.request.get(new URL(still.imageUrl, BASE).href);
+          writeFileSync(join(OUT, `pair-${results.length}.png`), await bytes.body());
+        }
+        await shot(page, `pair-${results.length}`);
+      });
+    }
+    writeFileSync(join(OUT, 'pair.json'), JSON.stringify(results, null, 1));
+  },
+
   /** Part 19: the episode cut — music by scene, lines read, the long film. */
   async epcut(_ctx, page) {
     await go(page, `/cut?from=scenes&character=${V2_CAST}`);
@@ -3782,6 +3861,8 @@ async function main() {
   const ctx = await chromium.launchPersistentContext(join(OUT, 'profile'), {
     viewport: { width: 1440, height: 1000 },
     baseURL: BASE,
+    // A profile a newer browser made can't be opened by an older one (its storage is refused).
+    ...(process.env.SCENE_CHROME ? { executablePath: process.env.SCENE_CHROME } : {}),
   });
   await desk(ctx);
   const page = ctx.pages()[0] ?? (await ctx.newPage());

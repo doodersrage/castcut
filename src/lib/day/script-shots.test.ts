@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
+import { resolveDayPoseHeadcount } from './planner';
 import { createScene, normalizeSavedScene } from './scenes';
 import { createScript, normalizeSavedScript, setScriptShotsPatch } from './scene-scripts';
 import {
@@ -14,6 +15,7 @@ import {
   mergedShot,
   movedShot,
   normalizePlannedShots,
+  scriptShotCompanions,
   splitShot,
   withSceneShots,
   type PlannedShot,
@@ -127,8 +129,15 @@ describe('shot lists from a script (M3 S4)', () => {
       castMap,
       placeMap: undefined,
     });
-    assert.equal(his.slot.sceneHints, `${action} Tomás Ruiz says: “You always say that.”`);
+    // His line shows him: a two-shot, said so the people count reads two (pose map and prompt).
+    assert.equal(
+      his.slot.sceneHints,
+      `Nora Ortiz and Tomás Ruiz, the two of them together. ${action} Tomás Ruiz says: “You always say that.”`
+    );
     assert.equal(his.slot.line, undefined);
+    assert.equal(his.partnerInFrame, true);
+    // Her own line stays on her alone.
+    assert.equal(lead.partnerInFrame, undefined);
 
     // Unconfirmed names are not used: no partner, the cue as written.
     const unsure = shotSceneDraft({
@@ -142,7 +151,44 @@ describe('shot lists from a script (M3 S4)', () => {
       placeMap: undefined,
     });
     assert.equal(unsure.partnerCharacterId, undefined);
+    assert.equal(unsure.partnerInFrame, undefined);
     assert.equal(unsure.slot.sceneHints, `${action} Tomas says: “You always say that.”`);
+  });
+
+  it('puts the partner in the picture only on shots that show them', () => {
+    const shots = draftShots(kitchen);
+    const castMap = { NORA: 'nora', TOMAS: 'tomas' };
+    const draft = (index: number) =>
+      shotSceneDraft({
+        shot: shots[index]!,
+        scene: kitchen,
+        sceneIndex: 0,
+        shotIndex: index,
+        castId: 'nora',
+        cast,
+        castMap,
+        placeMap: undefined,
+      });
+    const inFrame = shots.map((_, index) => draft(index).partnerInFrame === true);
+    // The wide (everyone), her line, his line, her line again, his reaction — and a two-person
+    // headcount exactly where he is shown.
+    assert.deepEqual(
+      shots.map(shot => shot.purpose),
+      ['establishing', 'dialogue', 'dialogue', 'dialogue', 'reaction']
+    );
+    assert.deepEqual(inFrame, [true, false, true, false, true]);
+    assert.equal(
+      resolveDayPoseHeadcount({
+        haystack: draft(0).slot.sceneHints!,
+        beat: draft(0).slot.sceneHints,
+        dayMood: 'everyday',
+        allowCompanions: true,
+      }),
+      2
+    );
+    assert.deepEqual(scriptShotCompanions('tomas', true), { allowCompanions: true });
+    assert.deepEqual(scriptShotCompanions('tomas', undefined), { allowCompanions: false });
+    assert.deepEqual(scriptShotCompanions(undefined, true), {});
   });
 
   it('reads the place as you set it', () => {

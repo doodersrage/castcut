@@ -358,6 +358,11 @@ export type ShotSceneDraft = {
   slot: DaySlot;
   /** A second Cast member in the shot (a confirmed speaking part). */
   partnerCharacterId?: string;
+  /**
+   * The partner is in the picture: a wide of the scene, their line or their reaction (a two-shot
+   * — a Scene renders its lead, so it can't show them alone). Their Scene renders two people.
+   */
+  partnerInFrame?: boolean;
 };
 
 /**
@@ -395,6 +400,12 @@ export function shotSceneDraft(input: {
   const partner =
     parts.find(part => part.castId !== castId && shot.who.includes(part.speaker)) ??
     parts.find(part => part.castId !== castId);
+  // The lead's own lines and reactions stay on her; any shot that shows the partner has both.
+  const partnerInFrame = Boolean(partner?.castId && shot.who.includes(partner.speaker));
+  const leadName = cast.find(member => member.id === castId)?.name;
+  const partnerName = partner?.castId
+    ? cast.find(member => member.id === partner.castId)?.name
+    : undefined;
   // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
   // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
   const sceneAction =
@@ -402,6 +413,10 @@ export function shotSceneDraft(input: {
       ? scene.elements.find(element => element.kind === 'action')?.text
       : undefined;
   const beat = [
+    // "The two of them" is what the people count reads as a pair (pose map and prompt alike).
+    partnerInFrame && leadName && partnerName
+      ? `${leadName} and ${partnerName}, the two of them together.`
+      : '',
     shot.action ?? (sceneAction ? clean(sceneAction) : ''),
     shot.line && !leadSpeaks && shot.speaker ? `${nameOf(shot.speaker)} says: “${shot.line}”` : '',
     shot.purpose === 'reaction' && shot.who[0] ? `${nameOf(shot.who[0])} reacts.` : '',
@@ -431,5 +446,18 @@ export function shotSceneDraft(input: {
       ...(leadSpeaks && shot.line ? { line: shot.line } : {}),
     },
     ...(partner?.castId ? { partnerCharacterId: partner.castId } : {}),
+    ...(partnerInFrame ? { partnerInFrame: true } : {}),
   };
+}
+
+/**
+ * A script Scene's "Duo · companions": on when its shot shows the partner, off when it shows the
+ * lead alone (the page's own setting would otherwise put the partner in every shot, or none).
+ * Nothing when the script names no partner — the page's setting stands.
+ */
+export function scriptShotCompanions(
+  partnerCharacterId: string | undefined,
+  partnerInFrame: boolean | undefined
+): { allowCompanions?: boolean } {
+  return partnerCharacterId ? { allowCompanions: partnerInFrame === true } : {};
 }

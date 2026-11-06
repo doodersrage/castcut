@@ -149,7 +149,9 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   animatic →** opens Cut on the script (see below).
 - **Make it a Scene** — the shot becomes a Scene, opened: the place, the time of day, the framing
   on the camera row, the lead's line said on camera (anyone else's in the beat) and a confirmed
-  partner. The shot shows what it became — _Scene made_, _n takes_, _Kept take_ — and **Open
+  partner. A shot that shows the partner — the scene's wide, their line, their reaction — renders
+  the two of them (People: Duo · companions on for that Scene, the partner's face from their Cast);
+  the lead's own lines and reactions stay on her alone. The shot shows what it became — _Scene made_, _n takes_, _Kept take_ — and **Open
   scene** goes to it.
 - **Coverage** — for the script and each scene: planned, made, kept, in the Cut. A scene with no
   establishing shot, an exchange with no reaction, or shots made with none kept is flagged; **It's

@@ -3573,3 +3573,15 @@ each was made, not script order).
 - **Driver:** scripts/scene-real-render.mts phases `episode` (Write an episode…, Who's who),
   `epshots` (LLM draft, rules fallback), `eprun` (episode run: keep, redo, resume a pause),
   `epcut` (Read the lines, Music by scene, the long cut); `SCENE_CAST_NAME` for imported Casts.
+
+### Part 19 follow-up — the partner in the picture (2026-11-06)
+
+The overnight episode (234 shots, Lena + Rob) rendered Lena alone in every shot, Rob's 70 lines
+included: script Scenes kept `partnerCharacterId`, but clothed moods count one person unless
+Duo · companions is on, and "Rob says: …" never read as a second person. `shotSceneDraft` now
+marks `partnerInFrame` (the shot's `who` holds the partner: the wide, their line or reaction — a
+two-shot) and opens the beat with "Lena and Rob, the two of them together." (the people count
+reads it, pose map and prompt alike); `scriptShotCompanions` turns companions on for those
+Scenes and off for the lead's own. Checked on Qwen-Image 2.1 Turbo: four of Rob's Scenes given
+exactly that rendered both of them, his face from his Cast (Image 2), ~20 s each. Scenes already
+made keep their mood: prepare the run again for it to apply.
