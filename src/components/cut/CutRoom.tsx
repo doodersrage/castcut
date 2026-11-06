@@ -9,6 +9,8 @@
 import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resolution';
 import { STILL_MOTION_FPS } from '@/lib/video/polish';
 import CutPartRender from '@/components/cut/CutPartRender';
+import CutFoley from '@/components/cut/CutFoley';
+import CutTempMusic from '@/components/cut/CutTempMusic';
 import CutColourScript from '@/components/cut/CutColourScript';
 import { CONTINUITY_RULE_LABELS } from '@/lib/checks/check-quality';
 import { continuityReportSections } from '@/lib/film/continuity-report';
@@ -1431,6 +1433,24 @@ export default function CutRoom() {
                   {panel === 'transcript' ? (
                     <CutTranscript
                       rows={subtitleRows}
+                      fixHrefOf={key => {
+                        const { source, key: id } = splitCutRoomKey(key.replace(/~\d+$/, ''));
+                        const base = id.split('#')[0]!;
+                        if (source === 'day') return `/day?slot=${encodeURIComponent(base)}`;
+                        if (source === 'scenes') return `/scene?scene=${encodeURIComponent(base)}`;
+                        return source === 'story' ? '/story' : null;
+                      }}
+                      soundOf={key => {
+                        const loaded = preview.loaded;
+                        const index = loaded ? loaded.keys.indexOf(key) : -1;
+                        const shot = index >= 0 ? loaded!.shots[index] : undefined;
+                        if (!shot) return null;
+                        const speaker = vm.shotStates[key]?.castName;
+                        if (shot.spoken?.trim()) {
+                          return { speaker, state: shot.kind === 'clip' ? 'talking' : 'silent' };
+                        }
+                        return shot.narrationText?.trim() ? { speaker, state: 'voice-over' } : null;
+                      }}
                       activeKey={activeKey}
                       disabled={busy}
                       onSeek={preview.seek}
@@ -1719,6 +1739,23 @@ export default function CutRoom() {
                     disabled={busy}
                     onChange={vm.setEffect}
                     onSeek={preview.seek}
+                  />
+                  <CutFoley
+                    loaded={preview.loaded}
+                    beatText={vm.shotBeatText}
+                    sound={vm.options.sound}
+                    disabled={busy}
+                    onAdd={(id, effect) => vm.setEffect(id, effect, true)}
+                  />
+                  <CutTempMusic
+                    loaded={preview.loaded}
+                    feelingOf={key =>
+                      [vm.shotStates[key]?.emotion, vm.shotBeatText[key]]
+                        .filter(Boolean)
+                        .join(' · ')
+                    }
+                    disabled={busy}
+                    onAdd={(id, effect) => vm.setEffect(id, effect, true)}
                   />
                 </div>
                 <p className="type-caption mt-2 text-[var(--text-muted)]">

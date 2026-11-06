@@ -1008,9 +1008,12 @@ export function useCutPreview(input: {
         }
         const local = t - effect.atSec;
         // Its length once known; until then, a few seconds.
-        const length = Number.isFinite(audio.duration) ? audio.duration : 5;
+        const fileLength = Number.isFinite(audio.duration) ? audio.duration : 5;
+        // A set length (a temp-music cue) stops it there, faded over its last second.
+        const length = effect.lengthSec ? Math.min(fileLength, effect.lengthSec) : fileLength;
+        const tailFade = effect.lengthSec ? Math.min(1, Math.max(0, length - local)) : 1;
         if (!effect.muted && local >= 0 && local < length && t < loaded.timeline.totalSec) {
-          audio.volume = Math.min(1, normalizeEffectLevel(effect.level)) * gain.effects;
+          audio.volume = Math.min(1, normalizeEffectLevel(effect.level)) * gain.effects * tailFade;
           if (Math.abs(audio.currentTime - local) > 0.3) audio.currentTime = local;
           if (running && audio.paused) void playMetered(audio).catch(() => undefined);
           if (!running && !audio.paused) audio.pause();

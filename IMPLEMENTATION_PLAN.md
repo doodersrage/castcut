@@ -3432,3 +3432,20 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
 - **Colour script, prop list:** done earlier.
 - **Not verified live:** the light and style wordings change render prompts; they are opt-in (no
   prompt changes unless picked) and need a look on real renders.
+
+### Part 18 R4 — sound, done
+
+- **Foley suggestions:** foley.ts (word rules → "Make a sound" words, a bed per shot plus hits, minus
+  sounds already placed near), `useCutRoom().shotBeatText` (each shot's Day slot / Story scene /
+  Scene words), `CutFoley` (Make it, Make all, Skip) under the effects track.
+- **Temp music by scene:** temp-music.ts (`feelingTone` → film/score.ts styles; runs of the same
+  feeling as cues, short runs merged; none for one feeling), `CutTempMusic` makes ACE-Step cues as
+  effects. Effects gained `lengthSec` (cut with a 1 s fade, encode and monitor) so a cue stops where
+  the next starts.
+- **Dialogue pass:** Transcript shows each line's speaker and sound state (talking clip / no sound
+  yet / voice-over), a filter for the silent ones, and **Fix the line** (Day `?slot=` now opens that
+  slot's sheet; Scene `?scene=`; Story).
+- **ADR:** already there in pieces — change the line and Animate again (Cast's voice, lip-synced), or
+  Day's lip-sync from your own recording; the pass links to it rather than adding a third way.
+- **Not verified live:** Foley words and temp-music cues render on LTX-2.5 / ACE-Step; how they
+  sound needs a listen.

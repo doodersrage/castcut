@@ -220,6 +220,17 @@ narration — so a quiet line and a loud one sit closer; in the film, not the mo
 **Clean up voices** (Options → Sound): on the clips' sound and the narration, a low cut under the
 voice, noise reduction and a gentle de-esser — applied in the film, not the monitor.
 
+**Foley** (under the effects): the sounds the shots say happen — rain on the street shot, a door,
+footsteps, a phone, a café's murmur, the sea — each with its moment. **Make it** makes one with
+_Make a sound_ (LTX-2.5, about half a minute) and places it; **Make all** does them in turn; **Skip**
+hides one. A sound already placed near that moment isn't suggested again. Places and weather go
+under the whole shot, quieter.
+
+**Temp music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
+style for each stretch (ACE-Step, about ten seconds each), placed on the effects track and stopped
+where the next starts. It shows only when the feeling changes; for one feeling throughout use
+**Score this film**. Temp music doesn't duck under the lines the way the music track does.
+
 **Measure loudness** on a film in **Your films** reads its loudness (LUFS), range and true peak
 and says how it sits against the web's −14 LUFS or broadcast's −23 (EBU R128): what to turn up or
 down, and peaks over −1 dBTP that may clip.
@@ -263,6 +274,12 @@ cross). Above it:
 - **Continuity report** — every shot's who, wearing, where and when, what she carries and how she
   has changed, then the open findings and a **prop list** (each thing and the shots it is in): a
   page to print or save as PDF.
+
+**Transcript** is also the dialogue pass: each line shows who says it and whether its sound is
+there — **Talking clip**, **Voice-over**, or **No sound yet** (a line on a still, heard once the shot
+is animated). Tick **Only the lines with no sound yet** to work through them; **Fix the line** opens
+it where it is written (the Day slot's sheet, the Scene, the Story) — change it and Animate again,
+and it is said in the Cast's voice, lip-synced.
 
 **Dialogue list** (under **Cut film**) lists every line said on screen and every voice-over, shot by
 shot, with who says it and whether its sound is there yet.

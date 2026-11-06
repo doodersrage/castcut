@@ -2759,6 +2759,32 @@ export function useCutRoom() {
     storyName,
   ]);
 
+  /**
+   * What each shot says happens, in words — its Day slot's beat and place, its Story scene, its
+   * Scene's beat — for foley suggestions (foley.ts). A copy reads its original's words.
+   */
+  const shotBeatText = useMemo(() => {
+    const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
+    const out: Record<string, string> = {};
+    for (const shot of previewShots) {
+      const { source, key } = splitCutRoomKey(shot.key.replace(/~\d+$/, ''));
+      const base = key.split('#')[0]!;
+      let text = '';
+      if (source === 'day') {
+        const slot = slots.find(entry => entry.id === base);
+        text = [slot?.sceneHints, slot?.location].filter(Boolean).join(' · ');
+      } else if (source === 'story') {
+        const beat = beatByKey.get(base);
+        text = [beat?.title, beat?.blurb].filter(Boolean).join(' · ');
+      } else if (source === 'scenes') {
+        const scene = savedScenes.find(entry => entry.id === base);
+        text = [scene?.slot.sceneHints, scene?.slot.location].filter(Boolean).join(' · ');
+      }
+      out[shot.key] = text || shot.caption || shot.title;
+    }
+    return out;
+  }, [beats, previewShots, savedScenes, slots]);
+
   // Continuity (M2 C2): what the checks found on the film's shots, and your decisions about it.
   const [decisions, setDecisions] = useState<FindingDecision[]>([]);
   useEffect(() => {
@@ -2916,6 +2942,7 @@ export function useCutRoom() {
     previewShots,
     pinStates,
     shotStates,
+    shotBeatText,
     continuity,
     decide,
     takeOffered,

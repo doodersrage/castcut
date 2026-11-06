@@ -222,4 +222,20 @@ describe('cut sound', () => {
     });
     assert.match(graph.filter, /\[1:a\][^;]*volume='if\(lt\(t,2\.5\),0\.2,0\.2\)':eval=frame,afade=t=in[^;]*,adelay/);
   });
+
+  it('an effect with a set length stops there with a second’s fade (a temp-music cue)', () => {
+    const graph = buildFilterComplex({
+      shotCount: 1,
+      kinds: ['still'],
+      holdSecs: [20],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      effectInputs: [{ input: 1, atSec: 2, level: 0.5, lengthSec: 10 }],
+    });
+    assert.match(graph.filter, /\[1:a\][^;]*asetpts=PTS-STARTPTS,atrim=0:10,afade=t=out:st=9:d=1,volume=0\.5,adelay=2000/);
+    assert.equal(normalizeCutEffects([{ id: 'a', url: '/a', atSec: 1, lengthSec: 0.5 }])[0]!.lengthSec, undefined);
+    assert.equal(normalizeCutEffects([{ id: 'a', url: '/a', atSec: 1, lengthSec: 12.34 }])[0]!.lengthSec, 12.3);
+  });
 });

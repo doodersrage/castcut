@@ -451,6 +451,21 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     },
     [setActiveSlotId]
   );
+  // ?slot=<id> (Cut's "Fix the line", a shared link): that slot's sheet opens once the plan is in.
+  const deepSlotDone = useRef(false);
+  useEffect(() => {
+    if (deepSlotDone.current || !slots.length) return;
+    const wanted = new URLSearchParams(window.location.search).get('slot')?.trim();
+    if (!wanted || !slots.some(slot => slot.id === wanted)) {
+      deepSlotDone.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      deepSlotDone.current = true;
+      openSlotSheet(wanted as DaySlotId);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [openSlotSheet, slots]);
 
   // Keys on the board (not while typing, nor with a dialog or the slot sheet open): ← → the
   // slot before / after, Enter edits it, Q queues (or requeues) it, A animates its still.

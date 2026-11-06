@@ -555,7 +555,12 @@ export function buildFilterComplex(input: {
   /** The ambience track's ffmpeg input index (looped), when there is one. */
   ambienceInput?: number | null;
   /** The effects track (cut-sound.ts, M10 T4): each placed sound's input, film time and level. */
-  effectInputs?: ReadonlyArray<{ input: number; atSec: number; level?: number }>;
+  effectInputs?: ReadonlyArray<{
+    input: number;
+    atSec: number;
+    level?: number;
+    lengthSec?: number;
+  }>;
   /**
    * Per shot: the input to read a clip's sound from (its own sound-only input), else the clip's
    * own input. M6 D17: the sound is mixed in parallel, so reading it from the picture's input
@@ -1263,13 +1268,19 @@ export async function encodeFilmPlaylistServer(
     }
 
     // The effects track (M10 T4): each placed sound the cut hears.
-    const effectFiles: Array<{ path: string; atSec: number; level?: number }> = [];
+    const effectFiles: Array<{ path: string; atSec: number; level?: number; lengthSec?: number }> =
+      [];
     for (const [k, effect] of heardEffects(options.sound).entries()) {
       try {
         const fetched = await fetchShotBytes(effect.url, requestOrigin, undefined, options.userId);
         const filePath = path.join(/* turbopackIgnore: true */ workDir, `effect-${k}.audio`);
         await fs.writeFile(/* turbopackIgnore: true */ filePath, fetched.buffer);
-        effectFiles.push({ path: filePath, atSec: effect.atSec, level: effect.level });
+        effectFiles.push({
+          path: filePath,
+          atSec: effect.atSec,
+          level: effect.level,
+          ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
+        });
       } catch {
         options.onProgress?.(
           0.43,
@@ -1761,6 +1772,7 @@ export async function encodeFilmPlaylistServer(
           k,
         atSec: effect.atSec,
         level: effect.level,
+        ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
       })),
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,

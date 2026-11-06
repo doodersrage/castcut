@@ -113,3 +113,16 @@ test('Day sheets: the storyboard opens as a printable page of the slots', async 
   await expect(sheet.getByRole('button', { name: 'Print / save as PDF' })).toBeVisible();
   await sheet.close();
 });
+
+test('Day ?slot= opens that slot’s sheet (Cut’s “Fix the line”); its Light pick is there', async ({
+  page,
+}) => {
+  await seed(page);
+  await gotoStable(page, `/day?character=${CAST}&slot=afternoon`);
+  await dismissBlockingOverlays(page);
+  const sheet = page.getByTestId('day-slot-sheet');
+  await expect(sheet).toBeVisible({ timeout: 30_000 });
+  await expect(sheet.getByTestId('day-slot-lighting-select')).toBeVisible();
+  await sheet.getByTestId('day-slot-lighting-select').selectOption('golden');
+  await expect(sheet.getByTestId('day-slot-lighting-select')).toHaveValue('golden');
+});

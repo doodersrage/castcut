@@ -124,6 +124,8 @@ export type CutEffect = {
   level?: number;
   /** Silent in the monitor and left out of the encode. */
   muted?: boolean;
+  /** Stop it this many seconds in, with a 1 s fade (a temp-music cue); unset: to its end. */
+  lengthSec?: number;
 };
 
 export const CUT_EFFECTS_MAX = 60;
@@ -252,6 +254,9 @@ export function normalizeCutEffects(raw: unknown): CutEffect[] {
         ? { level: normalizeEffectLevel(e.level) }
         : {}),
       ...(e.muted === true ? { muted: true } : {}),
+      ...(typeof e.lengthSec === 'number' && Number.isFinite(e.lengthSec) && e.lengthSec >= 1
+        ? { lengthSec: Math.round(Math.min(600, e.lengthSec) * 10) / 10 }
+        : {}),
     });
   }
   return out.sort((a, b) => a.atSec - b.atSec).slice(0, CUT_EFFECTS_MAX);
@@ -280,7 +285,7 @@ export function withCutEffect(
  * time; mixed into `[fx]`, padded or cut to the film's end. Null when there are none.
  */
 export function effectsFilterParts(input: {
-  effects: ReadonlyArray<{ input: number; atSec: number; level?: number }>;
+  effects: ReadonlyArray<{ input: number; atSec: number; level?: number; lengthSec?: number }>;
   endSec: number;
   stereo: string;
   fadeOut: string;
@@ -289,7 +294,12 @@ export function effectsFilterParts(input: {
   if (!placed.length) return null;
   const parts = placed.map((effect, k) => {
     const level = normalizeEffectLevel(effect.level);
-    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[fx${k}]`;
+    // A set length: cut there with a second's fade (a cue that would run into the next).
+    const length =
+      effect.lengthSec && effect.lengthSec >= 1
+        ? `,atrim=0:${effect.lengthSec},afade=t=out:st=${Math.max(0, effect.lengthSec - 1)}:d=1`
+        : '';
+    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${length}${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[fx${k}]`;
   });
   const labels = placed.map((_, k) => `[fx${k}]`).join('');
   parts.push(
