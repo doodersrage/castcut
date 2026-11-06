@@ -3596,6 +3596,10 @@ const phases: Record<string, Phase> = {
   /** Part 19: an episode run — keep the best take, one redo, no animating — to the end. */
   async eprun(_ctx, page) {
     await openScene(page, V2_CAST);
+    // The stills' engine, set before the run (EPISODE_ENGINE, a label; '-' leaves the page's).
+    if (process.env.EPISODE_ENGINE !== '-') {
+      await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
+    }
     const script = await v2Script(page);
     if (!script) throw new Error('no script');
     await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
