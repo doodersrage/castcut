@@ -3487,6 +3487,27 @@ const phases: Record<string, Phase> = {
         await page.waitForTimeout(800);
       });
     }
+    // The recurring minor parts as Cast members, plates and all (script-new-cast.ts), so their
+    // shots show them — EPISODE_NEW_CAST=0 leaves them strangers.
+    const make = page.getByTestId('script-make-cast');
+    if (process.env.EPISODE_NEW_CAST !== '0' && (await make.isEnabled().catch(() => false))) {
+      await attempt(page, 'recurring parts made Cast', async () => {
+        log('making Cast:', (await page.getByTestId('script-recurring').textContent())?.trim());
+        const started = Date.now();
+        await make.click();
+        // One plate at a time; each waits for its render.
+        await page
+          .getByTestId('script-prepare-note')
+          .filter({ hasText: /Cast now|Not cast/ })
+          .waitFor({ timeout: 90 * 60_000 });
+        log(
+          (await page.getByTestId('script-prepare-note').textContent())?.trim(),
+          'in',
+          Math.round((Date.now() - started) / 60_000),
+          'min'
+        );
+      });
+    }
     await shot(page, 'episode-kept');
   },
 
@@ -3639,6 +3660,12 @@ const phases: Record<string, Phase> = {
       log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
       await page.getByTestId('scene-run-auto-keep').check();
       await page.getByTestId('scene-run-auto-redo').selectOption(String(EP_REDO));
+      // EPISODE_ANIMATE=all animates every kept take, =lines only the shots where someone speaks.
+      const animate = process.env.EPISODE_ANIMATE;
+      if (animate === 'all' || animate === 'lines') {
+        await page.getByTestId('scene-run-auto-animate').check();
+        await page.getByTestId('scene-run-auto-animate-only').selectOption(animate);
+      }
       log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
       await shot(page, 'episode-run-prepared');
     }

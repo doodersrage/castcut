@@ -22,7 +22,7 @@ import {
   withRunRedo,
   type SceneRun,
 } from '@/lib/day/scene-run';
-import { bestSceneTake } from '@/lib/day/episode-run';
+import { bestSceneTake, episodeAnimates } from '@/lib/day/episode-run';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -184,7 +184,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       }
       save(run);
 
-      if (auto.animate && !pick.take.clipUrl) {
+      if (episodeAnimates(auto, pageRef.current.active?.slot ?? {}) && !pick.take.clipUrl) {
         // The kept take is on the card once nothing renders there; then the page's Animate.
         await until(
           () => !pageRef.current.inFlight && pageRef.current.still?.promptId === pick.take.promptId,

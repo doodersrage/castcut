@@ -133,7 +133,12 @@ export default function SceneRunPanel({
                 const redo = run.auto?.redo ?? 1;
                 const included = run.items.filter(item => item.include).length;
                 set({
-                  auto: { redo, animate: keep && run.auto?.animate === true, keep },
+                  auto: {
+                    redo,
+                    animate: keep && run.auto?.animate === true,
+                    ...(run.auto?.animateOnly ? { animateOnly: run.auto.animateOnly } : {}),
+                    keep,
+                  },
                   // Limits still at their defaults fit the whole script and its redos.
                   ...(keep && run.maxTakes === RUN_DEFAULT_MAX_TAKES
                     ? { maxTakes: Math.min(RUN_MAX_TAKES, Math.max(1, included * (1 + redo))) }
@@ -159,6 +164,7 @@ export default function SceneRunPanel({
                   auto: {
                     keep: true,
                     animate: run.auto?.animate === true,
+                    ...(run.auto?.animateOnly ? { animateOnly: run.auto.animateOnly } : {}),
                     redo: Number(event.target.value),
                   },
                 })
@@ -182,11 +188,39 @@ export default function SceneRunPanel({
               data-testid="scene-run-auto-animate"
               onChange={event =>
                 set({
-                  auto: { keep: true, redo: run.auto?.redo ?? 1, animate: event.target.checked },
+                  auto: {
+                    keep: true,
+                    redo: run.auto?.redo ?? 1,
+                    animate: event.target.checked,
+                    ...(run.auto?.animateOnly ? { animateOnly: run.auto.animateOnly } : {}),
+                  },
                 })
               }
             />
             Animate each kept take
+          </label>
+          <label className="flex items-center gap-1">
+            <select
+              aria-label="Which kept takes to animate"
+              className={FIELD}
+              value={run.auto?.animateOnly ?? 'all'}
+              disabled={!run.auto?.animate}
+              data-testid="scene-run-auto-animate-only"
+              title="Every shot, or only the shots where someone speaks (talking clips, the stills between held) — fewer clips, so a night goes further"
+              onChange={event =>
+                set({
+                  auto: {
+                    keep: true,
+                    redo: run.auto?.redo ?? 1,
+                    animate: true,
+                    ...(event.target.value === 'lines' ? { animateOnly: 'lines' as const } : {}),
+                  },
+                })
+              }
+            >
+              <option value="all">every shot</option>
+              <option value="lines">shots with a line</option>
+            </select>
           </label>
         </fieldset>
         {run.flagged && Object.keys(run.flagged).length ? (

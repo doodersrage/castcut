@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { bestSceneTake, takeCheckMisses } from './episode-run';
+import {
+  bestSceneTake,
+  episodeAnimates,
+  normalizeEpisodeRunAuto,
+  takeCheckMisses,
+} from './episode-run';
 
 const take = (id: string, at: number, extra = {}) => ({ id, promptId: id, imageUrl: `/${id}.png`, at, ...extra });
 
@@ -35,5 +40,27 @@ describe('episode run: which take to keep', () => {
     const unchecked = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, () => undefined);
     assert.deepEqual([unchecked?.take.id, unchecked?.checked], ['b', false]);
     assert.equal(bestSceneTake({ takes: [] }, () => undefined), null);
+  });
+});
+
+describe('episode run: which kept takes are animated', () => {
+  it('animates every one, or only shots with a line, and keeps the choice only while animating', () => {
+    const lines = { animate: true, animateOnly: 'lines' as const };
+    assert.equal(episodeAnimates({ animate: true }, {}), true);
+    assert.equal(episodeAnimates({ animate: false }, { line: 'Hi.' }), false);
+    assert.equal(episodeAnimates(lines, { line: 'You’re late.' }), true);
+    assert.equal(episodeAnimates(lines, { sceneHints: 'Rob says: “Always was.”' }), true);
+    assert.equal(episodeAnimates(lines, { sceneHints: 'She wipes the counter.' }), false);
+    assert.deepEqual(normalizeEpisodeRunAuto({ keep: true, animate: true, animateOnly: 'lines' }), {
+      keep: true,
+      redo: 1,
+      animate: true,
+      animateOnly: 'lines',
+    });
+    assert.deepEqual(normalizeEpisodeRunAuto({ keep: true, animate: false, animateOnly: 'lines' }), {
+      keep: true,
+      redo: 1,
+      animate: false,
+    });
   });
 });

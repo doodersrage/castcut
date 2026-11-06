@@ -66,6 +66,12 @@ export type EpisodeRunAuto = {
   redo: number;
   /** Animate the kept take (the page's own Animate) before the next Scene. */
   animate: boolean;
+  /**
+   * Which kept takes are animated: every one (unset), or only shots with a line — talking clips
+   * where someone speaks, held stills between (a night's worth, while a whole episode's clips
+   * take longer).
+   */
+  animateOnly?: 'lines';
 };
 
 export const EPISODE_REDO_MAX = 3;
@@ -79,5 +85,21 @@ export function normalizeEpisodeRunAuto(raw: unknown): EpisodeRunAuto | undefine
       : 1;
   const keep = value.keep === true;
   // Animating follows keeping: there is no kept take to move otherwise.
-  return { keep, redo, animate: keep && value.animate === true };
+  const animate = keep && value.animate === true;
+  return {
+    keep,
+    redo,
+    animate,
+    ...(animate && value.animateOnly === 'lines' ? { animateOnly: 'lines' } : {}),
+  };
+}
+
+/** Whether a kept take is animated: every one, or only a shot with a line said in it. */
+export function episodeAnimates(
+  auto: Pick<EpisodeRunAuto, 'animate' | 'animateOnly'>,
+  slot: { line?: string; sceneHints?: string }
+): boolean {
+  if (!auto.animate) return false;
+  if (auto.animateOnly !== 'lines') return true;
+  return Boolean(slot.line?.trim()) || /\bsays: [“"]/.test(slot.sceneHints ?? '');
 }

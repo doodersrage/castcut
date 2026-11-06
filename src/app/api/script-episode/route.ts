@@ -15,6 +15,7 @@ import {
   type EpisodeCastMember,
   type EpisodeOutline,
 } from '@/lib/day/episode-writer';
+import { newCastPartMessages, parseNewCastPart, partCanBeCast } from '@/lib/day/script-new-cast';
 import { chatCompletion } from '@/lib/llm/client';
 import {
   parseLlmRequestOptions,
@@ -124,7 +125,24 @@ export async function POST(request: Request) {
       if (!written) return apiError('The model did not write that scene — try again.', 502);
       return apiJson({ text: written });
     }
-    return apiError('Say which step: outline or scene.', 400);
+    if (body.step === 'part') {
+      // A recurring part made a Cast member (script-new-cast.ts): how they look, from their lines.
+      const speaker = text(body.speaker, 60);
+      const excerpt = text(body.excerpt, 2000);
+      if (!speaker || !excerpt) return apiError('Send the part and its lines.', 400);
+      if (!partCanBeCast(speaker)) {
+        return apiError('That part is not made a Cast member (a child, or a role).', 400);
+      }
+      const draft = parseNewCastPart(
+        await call(
+          newCastPartMessages({ speaker, excerpt, title: text(body.title, 120) || undefined }),
+          200
+        )
+      );
+      if (!draft) return apiError('The model did not say how they look — try again.', 502);
+      return apiJson({ draft });
+    }
+    return apiError('Say which step: outline, scene or part.', 400);
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Could not write the episode.', 502);
   }

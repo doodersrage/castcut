@@ -1626,12 +1626,19 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await expect(page.getByTestId('scene-run-queue-all')).toHaveCount(0);
   await expect(page.getByTestId('scene-run-auto-animate')).toBeEnabled();
   await page.getByTestId('scene-run-auto-redo').selectOption('2');
+  await expect(page.getByTestId('scene-run-auto-animate-only')).toBeDisabled();
   await page.getByTestId('scene-run-auto-animate').check();
   await expect(page.getByTestId('scene-run-max-takes')).toHaveValue('1');
   await expect(page.getByTestId('scene-run-max-minutes')).toHaveValue('1440');
   await expect
     .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.auto)
     .toEqual({ keep: true, animate: true, redo: 2 });
+  // Only the shots with a line move (talking clips); the choice stays as redos change.
+  await page.getByTestId('scene-run-auto-animate-only').selectOption('lines');
+  await page.getByTestId('scene-run-auto-redo').selectOption('1');
+  await expect
+    .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.auto)
+    .toEqual({ keep: true, animate: true, animateOnly: 'lines', redo: 1 });
 
   await page.getByTestId('scene-run-discard').click();
   await page.getByTestId('confirm-dialog-confirm').click();
@@ -1879,6 +1886,106 @@ test('a script Scene keeps its line through a new take; a hand-made one clears i
       )
       .toBe(fromScript ? line : '');
   }
+});
+
+// 2026-11-06: an episode's 15 minor parts all spoke over the lead's face. A recurring part not
+// in the Cast can be made one: the LLM casts them, the Cast member is made, their plate queued,
+// and the part is theirs — never a child or a numbered extra.
+test('Who’s who makes a recurring part a Cast member, with a plate, and gives them the part', async ({
+  page,
+}) => {
+  const queued = await stubComfyQueue(page);
+  const asked: Array<Record<string, unknown>> = [];
+  await page.route('**/api/script-episode', async route => {
+    const body = JSON.parse(route.request().postData() || '{}') as Record<string, unknown>;
+    asked.push(body);
+    await route.fulfill({
+      json: {
+        draft: {
+          sex: 'man',
+          ageBand: '40s',
+          bodyBuild: 'stocky',
+          hairColor: 'grey',
+          hairLength: 'short',
+          ethnicity: 'random',
+          height: 'random',
+        },
+      },
+    });
+  });
+  const source = [
+    'INT. CAFE - MORNING',
+    '',
+    'Tommy wipes the counter.',
+    '',
+    'TOMMY',
+    'You’re late.',
+    '',
+    'LITTLE GIRL',
+    'A cookie?',
+    '',
+    'LITTLE GIRL',
+    'Please?',
+    '',
+    'LITTLE GIRL',
+    'Pretty please?',
+    '',
+    'INT. CAFE - NIGHT',
+    '',
+    'TOMMY',
+    'Closing time.',
+    '',
+  ].join('\n');
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...sceneWithTakes(),
+        scripts: [{ id: 'script-cafe', castId: CAST, name: 'Cafe', source, createdAt: 1, updatedAt: 1 }],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}&script=script-cafe`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
+  // Tommy comes back (two scenes); the little girl is never offered.
+  const recurring = page.getByTestId('script-recurring');
+  await expect(recurring).toContainText('Tommy (2 lines)');
+  await expect(recurring).not.toContainText('Little');
+  await page.getByTestId('script-make-cast').click();
+  await expect(page.getByTestId('script-speaker-TOMMY')).toHaveAttribute('data-status', 'confirmed', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('script-speaker-TOMMY')).toContainText('Tommy');
+  expect(asked[0]).toMatchObject({ step: 'part', speaker: 'TOMMY' });
+  expect(String(asked[0]!.excerpt)).toContain('TOMMY: Closing time.');
+  // His plate is asked for (here ComfyUI has no models, so the note says it wasn't made)…
+  await expect(page.getByTestId('script-prepare-note')).toContainText('Cast now: Tommy');
+  await expect(page.getByTestId('script-prepare-note')).toContainText(
+    queued.length ? 'Cast now: Tommy' : 'No plate yet for Tommy'
+  );
+  // …and the lead stays the active Cast (what the next render reads): a plate render makes its
+  // Cast the active one for the job.
+  const activeCast = () =>
+    page.evaluate(
+      () =>
+        new Promise<string>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => resolve('');
+          request.onsuccess = () => {
+            const get = request.result
+              .transaction('kv', 'readonly')
+              .objectStore('kv')
+              .get('comfy-prompt-tool-settings-v1');
+            get.onsuccess = () => resolve(get.result?.value?.shared?.activeCharacterId ?? '');
+            get.onerror = () => resolve('');
+          };
+        })
+    );
+  await expect.poll(activeCast, { timeout: 15_000 }).toBe(CAST);
+  await expect(page.getByTestId('day-setup-chip')).toContainText('Scene Cast');
 });
 
 // M5 W4: a run left running by a reload shows as paused; Resume waits for the take in flight.

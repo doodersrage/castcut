@@ -132,7 +132,12 @@ A screenplay for the Cast, from text to shots. Open the **Script** section under
   those after it, again.
 - **Who's who** — each speaking part gets a Cast picker. A name that matches one Cast member is
   only _suggested_ until you **Confirm** it; two possible matches give no guess; **Not in the
-  Cast** is a choice too. Nothing is created for you.
+  Cast** is a choice too. Nothing is created unless you ask: a part that isn't in the Cast and
+  comes back (lines in two scenes, or three lines) is listed, and **Make … Cast** (with the LLM
+  on) casts each one from their lines — sex, age, build, hair; the rest is rolled as on Cast's
+  create — makes them a Cast member, renders their plate (one at a time) and gives them the part,
+  so their shots show them instead of the lead. Never a child (a little girl, a teenager), a
+  numbered extra (Customer #2) or a bare role (Woman): they stay strangers.
 - **Where** — each place shows how Castcut reads it (a kitchen as her home's kitchen, an office
   as her workplace) and can be set to her home, her workplace or somewhere else.
 - **Where** — or one of your [Locations](#locations).

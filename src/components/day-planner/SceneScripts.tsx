@@ -68,6 +68,19 @@ import { useLocations } from '@/components/location/useLocations';
 import type { LocationRecord } from '@/lib/location/records';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
+import {
+  partDisplayName,
+  recurringScriptParts,
+  scriptPartExcerpt,
+} from '@/lib/day/script-new-cast';
+import { createBlankCharacter, getCharacter, upsertCharacter } from '@/lib/character/os';
+import { syncSharedIdentityToCast } from '@/lib/character/identity';
+import type { CharacterAppearanceFormDraft } from '@/lib/character/appearance';
+import { queueCastLookPlate } from '@/lib/cast/plate-queue';
+import { tryAttachPendingOutfitPlate } from '@/lib/look/outfit-plate';
+import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
+import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
+import { loadToolSettings } from '@/lib/settings/cache';
 
 const NO_DECISIONS: FindingDecision[] = [];
 let decisionsCache: { key: string; value: FindingDecision[] } | null = null;
@@ -96,6 +109,8 @@ function NamesAndPlaces({
   locations,
   onCast,
   onPlace,
+  onMakeCast,
+  casting,
 }: {
   locations: readonly LocationRecord[];
   script: SavedScript;
@@ -103,6 +118,10 @@ function NamesAndPlaces({
   cast: readonly ScriptCastMember[];
   onCast: (speaker: string, castId: string | null | undefined) => void;
   onPlace: (place: string, choice: ScriptPlaceChoice | undefined) => void;
+  /** Make recurring parts Cast members (script-new-cast.ts); absent without the LLM. */
+  onMakeCast?: (speakers: string[]) => void;
+  /** What making them is doing now ("Casting Tommy…"). */
+  casting?: string | null;
 }) {
   const speakers = resolveSpeakers(
     parsed.scenes.flatMap(scene => scene.speakers),
@@ -116,12 +135,41 @@ function NamesAndPlaces({
   );
   const nameOf = (id: string | null | undefined) =>
     id === null ? 'Not in the Cast' : (cast.find(member => member.id === id)?.name ?? '');
+  const recurring = onMakeCast ? recurringScriptParts(parsed, speakers) : [];
   if (!speakers.length && !places.length) return null;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {speakers.length ? (
         <div data-testid="script-speakers">
           <h4 className="type-caption mb-1 font-medium">Who&apos;s who</h4>
+          {recurring.length || casting ? (
+            <div
+              className="type-caption mb-2 space-y-1 text-[var(--text-secondary)]"
+              data-testid="script-recurring"
+            >
+              {recurring.length ? (
+                <p>
+                  Not in the Cast, and they come back:{' '}
+                  {recurring
+                    .map(part => `${partDisplayName(part.speaker)} (${part.lines} lines)`)
+                    .join(', ')}
+                  . Their shots show {cast.length ? 'the lead' : 'nobody'} in their place until they
+                  have a face.
+                </p>
+              ) : null}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={Boolean(casting) || !recurring.length}
+                data-testid="script-make-cast"
+                title="Your LLM reads their lines and casts them (sex, age, build, hair); each is made a Cast member, their plate is rendered, and the part is theirs. Never a child or a numbered extra."
+                onClick={() => onMakeCast?.(recurring.map(part => part.speaker))}
+              >
+                {casting ??
+                  `Make ${recurring.length === 1 ? partDisplayName(recurring[0]!.speaker) : `these ${recurring.length}`} Cast`}
+              </Button>
+            </div>
+          ) : null}
           <ul className="space-y-1">
             {speakers.map(part => (
               <li
@@ -371,7 +419,10 @@ export default function SceneScripts({
   openScene,
   prepareRun,
   llmBody,
+  sendComfyUi,
 }: {
+  /** Renders a new Cast member's plate (Make them Cast). */
+  sendComfyUi?: Parameters<typeof queueCastLookPlate>[0]['sendComfyUi'];
   castId: string;
   castName?: string;
   /** The Cast, for matching speaking parts. */
@@ -424,6 +475,7 @@ export default function SceneScripts({
     applied: SavedScript;
   } | null>(null);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
+  const [casting, setCasting] = useState<string | null>(null);
   // M9 T3: the open script as a storyboard instead of its reading.
   const [board, setBoard] = useState(false);
   const open = scripts.find(script => script.id === openId) ?? null;
@@ -551,6 +603,86 @@ export default function SceneScripts({
             )
           )
         )
+    );
+  };
+
+  /**
+   * Make recurring parts Cast members (script-new-cast.ts): each cast by the LLM from their lines,
+   * created, their plate queued, and the part pointed at them — one after another, the mapping
+   * built on the last one's (not the render's stale store).
+   */
+  const makeCast = async (speakers: string[]) => {
+    if (!open || !openParsed || !llmBody) return;
+    let current = cache;
+    const made: string[] = [];
+    const missed: string[] = [];
+    const noPlate: string[] = [];
+    for (const speaker of speakers) {
+      const name = partDisplayName(speaker);
+      setCasting(`Casting ${name}…`);
+      try {
+        const response = await fetch('/api/script-episode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            ...llmBody,
+            step: 'part',
+            speaker,
+            excerpt: scriptPartExcerpt(openParsed, speaker),
+            title: openParsed.title.title ?? open.name,
+          }),
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          draft?: CharacterAppearanceFormDraft;
+        };
+        if (!response.ok || !data.draft) throw new Error('not cast');
+        const record = createBlankCharacter(name, data.draft);
+        upsertCharacter(record);
+        const patch = setScriptCastPatch(current, open.id, speaker, record.id);
+        if (patch) {
+          current = { ...current, ...patch };
+          update(patch);
+        }
+        // One plate at a time: the plate render keeps one pending still (Outfit's), so each is
+        // waited for and attached to its own Cast member before the next is queued.
+        if (sendComfyUi) {
+          setCasting(`Rendering ${name}’s plate (${made.length + 1} of ${speakers.length})…`);
+          const queued = await queueCastLookPlate({ characterId: record.id, sendComfyUi }).catch(
+            () => null
+          );
+          // The plate render makes its Cast the app's active one (its identity on the job): the
+          // lead goes back at once, or the page — and the next render — would be theirs.
+          const lead = getCharacter(castId);
+          if (lead) syncSharedIdentityToCast(lead);
+          const pending = loadToolSettings(
+            'fitting',
+            DEFAULT_FITTING_TOOL_CACHE
+          ).pendingOutfitPlatePromptId?.trim();
+          if (queued?.result === 'queued' && pending) {
+            await waitForGalleryPromptIds([pending], { timeoutMs: 10 * 60_000, pollMs: 3000 });
+            // The lead keeps Outfit's own plate; only the new member's record takes this one.
+            tryAttachPendingOutfitPlate(castId);
+          } else {
+            noPlate.push(name);
+          }
+        }
+        made.push(name);
+      } catch {
+        missed.push(name);
+      }
+    }
+    setCasting(null);
+    setPrepareNote(
+      [
+        made.length ? `Cast now: ${made.join(', ')}.` : '',
+        noPlate.length
+          ? `No plate yet for ${noPlate.join(', ')} — make it on their Cast page (Looks).`
+          : '',
+        missed.length ? `Not cast (try again): ${missed.join(', ')}.` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
     );
   };
 
@@ -773,6 +905,8 @@ export default function SceneScripts({
               const patch = setScriptPlacePatch(cache, open.id, place, choice);
               if (patch) update(patch);
             }}
+            casting={casting}
+            {...(llmBody ? { onMakeCast: speakers => void makeCast(speakers) } : {})}
           />
           {prepareNote ? (
             <p className="type-caption" data-testid="script-prepare-note">

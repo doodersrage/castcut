@@ -48,6 +48,7 @@ export default function SceneScriptAndRun({
           openScene={page.openScene}
           prepareRun={page.prepareRun}
           llmBody={sharedLlmRequestBody(vm.shared)}
+          sendComfyUi={vm.actions.sendComfyUi}
         />
       ) : null}
       <LocationsSection scenes={page.scenes} emptyPhoto={emptyPlacePhoto} />
