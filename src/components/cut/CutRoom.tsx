@@ -10,6 +10,7 @@ import { FILM_PRESET_SIZE, filmResolutionForCutOptions } from '@/lib/video/resol
 import { STILL_MOTION_FPS } from '@/lib/video/polish';
 import CutPartRender from '@/components/cut/CutPartRender';
 import CutFoley from '@/components/cut/CutFoley';
+import { cutChangesSince } from '@/lib/film/cut-changes';
 import CutTempMusic from '@/components/cut/CutTempMusic';
 import CutColourScript from '@/components/cut/CutColourScript';
 import { CONTINUITY_RULE_LABELS } from '@/lib/checks/check-quality';
@@ -1243,6 +1244,15 @@ export default function CutRoom() {
                         </div>
                         <div className="grid gap-2 border-t border-[var(--border-subtle)] pt-3 [&>button:first-child]:w-full">
                           {cutButton}
+                          {vm.lastCutOptions ? (
+                            <CutChangesSince
+                              changes={cutChangesSince(
+                                vm.lastCutOptions,
+                                vm.options,
+                                key => vm.previewShots.find(shot => shot.key === key)?.title ?? key
+                              )}
+                            />
+                          ) : null}
                           <CutPartRender
                             time={preview.time}
                             total={preview.total}
@@ -2038,5 +2048,25 @@ export default function CutRoom() {
         }}
       />
     </>
+  );
+}
+
+/** Under Cut film: what changed since the last film was rendered (cut-changes.ts). */
+function CutChangesSince({ changes }: { changes: string[] }) {
+  return (
+    <div className="type-caption text-[var(--text-muted)]" data-testid="cut-changes-since">
+      {changes.length ? (
+        <>
+          <p className="font-medium text-[var(--text-secondary)]">Since the last cut</p>
+          <ul className="list-disc pl-5">
+            {changes.map(change => (
+              <li key={change}>{change}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p>Nothing changed since the last cut.</p>
+      )}
+    </div>
   );
 }

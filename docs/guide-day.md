@@ -65,6 +65,20 @@ window light, golden hour, overcast, hard noon sun, blue hour, night by the plac
 neon, candlelight, backlit, or low-key. It replaces Day's own light for the time of day in the
 still's prompt; "by the time of day" leaves it to Day. The storyboard and call sheet show it.
 
+### Blocking
+
+Beside **Light**, a small plan from above shows the shot's blocking: the people (the lead filled in)
+and the camera where its direction and shot size put it — a glance at the 180° line before a still
+is made.
+
+## Templates
+
+**Templates** (at the top) keeps a day's plan to start another from: **Save this day as a template**
+keeps every slot's place, beat, line, reply, narration, camera, light and story state, and the
+mood — never the outfits, the Cast or the stills. **Use** puts a template's plan on the slots (Undo
+takes it back); the stills already made stay until you make them again. Templates are kept in this
+browser.
+
 ## The pose editor
 
 **Edit joints** (and Outfit's **Custom pose**, and a Story scene's pose) opens the pose editor:

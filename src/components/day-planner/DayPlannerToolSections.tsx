@@ -1,5 +1,7 @@
 'use client';
 
+import DayTemplatesMenu from '@/components/day-planner/DayTemplatesMenu';
+import { applyDayTemplate } from '@/lib/day/day-templates';
 import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import { useLocations } from '@/components/location/useLocations';
 import DayDubControl from '@/components/day-planner/DayDubControl';
@@ -727,6 +729,20 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onClick={() => setSetupOpen(true)}
             />
             <CastMoodBoardMenu character={character} testId="day-mood-board" />
+            <DayTemplatesMenu
+              slots={slots}
+              dayMood={toolSettings.dayMood}
+              moodLabel={dayThemeOf(dayMoodFlavor(toolSettings))?.label}
+              disabled={busy}
+              onUse={template =>
+                updateToolSettings({
+                  slots: applyDayTemplate(slots, template),
+                  ...(template.dayMood
+                    ? { dayMood: template.dayMood as typeof toolSettings.dayMood }
+                    : {}),
+                })
+              }
+            />
             <DaySheetsMenu
               character={character}
               slots={slots}

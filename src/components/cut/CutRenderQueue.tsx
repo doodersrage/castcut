@@ -25,7 +25,12 @@ export default function CutRenderQueue({
 }: {
   queue: readonly QueuedRender[];
   disabled?: boolean;
-  onQueue: (item: { label: string; profile?: ExportProfileId; master?: boolean }) => void;
+  onQueue: (item: {
+    label: string;
+    profile?: ExportProfileId;
+    master?: boolean;
+    extra?: { audioDescription?: boolean };
+  }) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
 }) {
@@ -61,6 +66,16 @@ export default function CutRenderQueue({
           onClick={() => onQueue({ label: 'ProRes master', master: true })}
         >
           + ProRes master
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={disabled}
+          data-testid="cut-queue-audio-description"
+          title="Every shot with nothing said gets a short description of what is seen, in a narrator's voice — an accessible version for blind and low-vision viewers"
+          onClick={() => onQueue({ label: 'Audio-described', extra: { audioDescription: true } })}
+        >
+          + Audio-described
         </Button>
       </div>
       {queue.length ? (

@@ -126,3 +126,22 @@ test('Day ?slot= opens that slot’s sheet (Cut’s “Fix the line”); its Lig
   await sheet.getByTestId('day-slot-lighting-select').selectOption('golden');
   await expect(sheet.getByTestId('day-slot-lighting-select')).toHaveValue('golden');
 });
+
+test('Day templates: save the plan, change it, use the template — the plan comes back', async ({
+  page,
+}) => {
+  await seed(page);
+  await gotoStable(page, `/day?character=${CAST}&slot=morning`);
+  await dismissBlockingOverlays(page);
+  const sheet = page.getByTestId('day-slot-sheet');
+  await expect(sheet).toBeVisible({ timeout: 30_000 });
+  // The shot's blocking from above sits beside its Light.
+  await expect(sheet.getByTestId('day-slot-blocking')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('day-templates-menu-trigger').click();
+  await page.getByTestId('day-template-save').click();
+  await page.getByTestId('day-templates-menu-trigger').click();
+  await expect(page.getByTestId('day-template-use')).toHaveCount(1);
+  await page.getByTestId('day-template-use').click();
+  await expect(page.getByTestId('day-action-bar')).toBeVisible();
+});

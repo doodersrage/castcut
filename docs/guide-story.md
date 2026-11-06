@@ -72,6 +72,8 @@ time (a clip about 5 s, a still about 3 s, longer when its words take longer to 
 starts, the running total, and where the three acts fall — set-up, the turn, the end — from three
 scenes.
 
+- **The feeling, scene by scene** — a line across the top: up is happier, down sadder or darker,
+  read from each scene's words. A flat line is a story that never turns.
 - **Branch from here** on a scene keeps the story as it is (in your stories) and carries on a new
   version from that scene: "what if she says no", written from there, the original untouched.
 - **Write notes** has your LLM read the story as an editor would: a **logline**, a short

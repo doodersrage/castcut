@@ -163,6 +163,14 @@ copy that gets out is marked. A ProRes master never carries it.
 social**, …) and **+ ProRes master**; they render one after another with the cut as it is when each
 starts, and download as they finish — not kept on the Cast. Keep the page open while it runs.
 
+**Since the last cut** (under **Cut film**, after a film is made): what changed in the edit since —
+shots left out, put back, moved or trimmed, new takes, colour, the look, the music, text — for
+whoever reviews the next one.
+
+**+ Audio-described** in the render queue makes an accessible version: every shot with nothing said
+gets a short description of what is seen ("She pours coffee in the kitchen."), read in the other
+voice to the lead's, so it is never taken for her.
+
 **Render just a part** (under **Cut film**): set **From the playhead** and **To the playhead**, or
 use **The loop**, and **Render this part** — the same mix, look and subtitles, as a quick review
 copy of one scene. It is downloaded, not kept on the Cast, and has no "Previously on". It needs

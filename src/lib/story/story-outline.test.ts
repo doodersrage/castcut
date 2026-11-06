@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { parseStoryNotes, sceneSeconds, storyNotesMessages, storyOutline } from './story-outline';
+import {
+  parseStoryNotes,
+  sceneSeconds,
+  storyFeelingArc,
+  storyNotesMessages,
+  storyOutline,
+} from './story-outline';
 
 const beat = (id: string, extra: Record<string, unknown> = {}) => ({ id, title: id, blurb: `${id} happens`, at: 1, ...extra });
 
@@ -33,5 +39,20 @@ describe('Story outline', () => {
       notes: ['Scene 2 drags.'],
     });
     assert.equal(parseStoryNotes('no json here'), null);
+  });
+
+  it('reads the emotion arc: each scene’s feeling, low to high, carried when unnamed', () => {
+    const arc = storyFeelingArc([
+      { title: 'Letter', blurb: 'a happy morning' },
+      { title: 'Train', blurb: 'she travels' },
+      { title: 'Café', blurb: 'she cries alone' },
+      { title: 'Beach', blurb: 'they laugh and hug' },
+    ] as never);
+    assert.deepEqual(arc.map(point => [point.tone, point.valence]), [
+      ['everyday', 1],
+      ['everyday', 1],
+      ['melancholy', -2],
+      ['silly', 1.5],
+    ]);
   });
 });

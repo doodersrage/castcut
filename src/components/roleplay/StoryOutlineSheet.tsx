@@ -6,7 +6,7 @@ import SideSheet from '@/components/ui/SideSheet';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
-import { storyOutline, type StoryNotes } from '@/lib/story/story-outline';
+import { storyFeelingArc, storyOutline, type StoryNotes } from '@/lib/story/story-outline';
 
 const ACT_LABELS: Record<1 | 2 | 3, string> = {
   1: 'Act I — set-up',
@@ -45,6 +45,7 @@ export default function StoryOutlineSheet({
   const [error, setError] = useState<string | null>(null);
   const [branchAt, setBranchAt] = useState<number | null>(null);
   const outline = useMemo(() => storyOutline(story), [story]);
+  const arc = useMemo(() => storyFeelingArc(story), [story]);
 
   const writeNotes = async () => {
     setWriting(true);
@@ -100,6 +101,46 @@ export default function StoryOutlineSheet({
         size="lg"
         testId="story-outline"
       >
+        {arc.length >= 2 ? (
+          <figure className="mb-3 space-y-1" data-testid="story-outline-arc">
+            <svg
+              viewBox={`0 0 ${(arc.length - 1) * 40 + 20} 60`}
+              className="h-16 w-full"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={`The story's feeling, scene by scene: ${arc.map(point => point.tone || 'unnamed').join(', ')}`}
+            >
+              <line
+                x1="0"
+                y1="30"
+                x2={(arc.length - 1) * 40 + 20}
+                y2="30"
+                stroke="currentColor"
+                strokeOpacity="0.15"
+              />
+              <polyline
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="2"
+                points={arc
+                  .map(point => `${point.index * 40 + 10},${30 - point.valence * 12}`)
+                  .join(' ')}
+              />
+              {arc.map(point => (
+                <circle
+                  key={point.index}
+                  cx={point.index * 40 + 10}
+                  cy={30 - point.valence * 12}
+                  r="3"
+                  fill="var(--accent)"
+                />
+              ))}
+            </svg>
+            <figcaption className="type-caption text-[var(--text-muted)]">
+              The feeling, scene by scene — up is happier, down is sadder or darker
+            </figcaption>
+          </figure>
+        ) : null}
         <ol className="space-y-1" data-testid="story-outline-scenes">
           {outline.scenes.map(scene => (
             <li key={scene.index}>

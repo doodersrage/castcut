@@ -3479,3 +3479,24 @@ failure (scene-layout:69, a disabled button) fails the same on HEAD in the isola
 - **Already there:** Gallery compare and groups (collections), contact sheet, locations sheet,
   character sheet; **episode pack** — the title card with the season's episode, "Previously on" and
   end credits cover it.
+
+### Part 18 R7 — workflow, done (C2PA waits for a dependency OK)
+
+- **Templates:** day-templates.ts (`templateFromDay` keeps the plan fields only, `applyDayTemplate`
+  puts them on the slots keeping each slot's outfit — Day's Undo covers it; stills stay), kept with
+  `writeBrowserValue('day-templates')`; `DayTemplatesMenu` in the Day header.
+- **Change log:** cut-changes.ts `cutChangesSince(lastCutOptions, options)` — shots left out / back /
+  moved / trimmed / held, new takes, speed, colour, clip sound, text, transitions, overlays, look,
+  music, effects, titles, shape, markers; shown under Cut film after a render (session only).
+- **Audio description:** audio-description.ts (`audioDescriptionLine` from the beat and place),
+  `cutOptions.audioDescription` narrates every silent shot in the other voice; "+ Audio-described"
+  in the render queue (`enqueueRender({ extra })`).
+- **Blocking diagram:** pose/blocking.ts `blockingPlan` (camera by direction and shot size, people by
+  lead side and count), `BlockingDiagram` in the slot editor beside Light.
+- **Emotion arc:** `storyFeelingArc` (feelingTone → valence, carried when unnamed), drawn in the
+  Outline.
+- **Already there:** version history (Day undo/redo, Cut versions, Scene takes, Story library), the
+  project archive (Package a cut), multi-language (Day's Dub), sharing for comments (review links),
+  content rating (Story rating, Day mood gating), "render what's needed" (Film Director's next
+  actions), the reproducibility report (Cut's shot report).
+- **C2PA provenance:** needs a signing library (a new dependency) — not added without the user's OK.

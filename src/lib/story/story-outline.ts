@@ -7,6 +7,7 @@
  */
 
 import type { RoleplayStoryBeat } from './roleplay';
+import { feelingTone } from '../film/temp-music';
 
 export type OutlineScene = {
   index: number;
@@ -126,4 +127,36 @@ export function parseStoryNotes(reply: string | null | undefined): StoryNotes | 
   } catch {
     return null;
   }
+}
+
+/** How a feeling sits from low (−2: grief, fear) to high (+2: joy, triumph). */
+const VALENCE: Record<string, number> = {
+  melancholy: -2,
+  horror: -2,
+  gritty: -1.5,
+  noir: -1,
+  dreamy: 0,
+  cozy: 1,
+  everyday: 1,
+  romantic: 1.5,
+  silly: 1.5,
+  festival: 2,
+  epic: 2,
+};
+
+/**
+ * The story's emotion arc: each scene's feeling (film/temp-music.ts feelingTone on its words) and
+ * where it sits, low to high; a scene that names none carries the one before (or sits at 0).
+ */
+export function storyFeelingArc(
+  beats: ReadonlyArray<Pick<RoleplayStoryBeat, 'title' | 'blurb' | 'line' | 'narration'>>
+): Array<{ index: number; tone: string; valence: number }> {
+  let last = { tone: '', valence: 0 };
+  return beats.map((beat, index) => {
+    const tone = feelingTone(
+      [beat.title, beat.blurb, beat.line, beat.narration].filter(Boolean).join(' ')
+    );
+    if (tone) last = { tone, valence: VALENCE[tone] ?? 0 };
+    return { index, ...last };
+  });
 }

@@ -10,6 +10,7 @@
 import type { FilmChapter, FilmRange } from '@/lib/video/film-finish';
 import { formatCutTimecode } from '@/lib/film/cut-preview';
 import { cutMarkerChapters } from '@/lib/film/cut-markers';
+import { audioDescriptionLine } from '@/lib/film/audio-description';
 import { normalizeFilmCredits } from '@/lib/video/polish';
 import type { ShotSubtitleCue } from '@/lib/media/kind';
 import { planReel, type ReelLength } from '@/lib/video/cut-reel';
@@ -2176,6 +2177,32 @@ export function useCutRoom() {
     setStatus(null);
   }, [bySource.day, dayCast, day.toolSettings.stillsCharacterId, slots, updateDay]);
 
+  /**
+   * What each shot says happens, in words — its Day slot's beat and place, its Story scene, its
+   * Scene's beat — for foley suggestions (foley.ts). A copy reads its original's words.
+   */
+  const shotBeatText = useMemo(() => {
+    const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
+    const out: Record<string, string> = {};
+    for (const shot of previewShots) {
+      const { source, key } = splitCutRoomKey(shot.key.replace(/~\d+$/, ''));
+      const base = key.split('#')[0]!;
+      let text = '';
+      if (source === 'day') {
+        const slot = slots.find(entry => entry.id === base);
+        text = [slot?.sceneHints, slot?.location].filter(Boolean).join(' · ');
+      } else if (source === 'story') {
+        const beat = beatByKey.get(base);
+        text = [beat?.title, beat?.blurb].filter(Boolean).join(' · ');
+      } else if (source === 'scenes') {
+        const scene = savedScenes.find(entry => entry.id === base);
+        text = [scene?.slot.sceneHints, scene?.slot.location].filter(Boolean).join(' · ');
+      }
+      out[shot.key] = text || shot.caption || shot.title;
+    }
+    return out;
+  }, [beats, previewShots, savedScenes, slots]);
+
   const cutNow = useCallback(
     /** `part`: just that part of the film (monitor seconds) — a review copy, not kept. */
     async (
@@ -2319,6 +2346,33 @@ export function useCutRoom() {
               narrationUrl: url,
               narrationText: line,
             };
+        }
+        // An audio-described version (Part 18 R7): every shot with nothing said gets a short
+        // description of what is seen, read in the other voice — so it is never taken for her.
+        if (cutOptions.audioDescription === true) {
+          const leadMan =
+            (withDay ? dayCast : storyCast)?.traits?.sex === 'man' || (!withDay && storyMan);
+          for (const [index, shot] of picked.entries()) {
+            if (shot.narrationUrl || shot.spoken?.trim()) continue;
+            const line = audioDescriptionLine(shotBeatText[shot.key] ?? shot.caption ?? '');
+            if (!line) continue;
+            let url = storyNarrationCache.current.get(`ad:${line}`);
+            if (!url) {
+              setStatus(`Describing ${shot.title}…`);
+              url = await renderNarrationLine({
+                line,
+                speaker: leadMan ? 'woman' : 'man',
+              }).catch(() => undefined);
+              if (url) storyNarrationCache.current.set(`ad:${line}`, url);
+            }
+            if (url) {
+              picked[index] = {
+                ...holdForNarration(shot, line),
+                narrationUrl: url,
+                narrationText: line,
+              };
+            }
+          }
         }
         // "Previously on": the season's last Day episode, else the Cast's last Story.
         // A part is timed as the monitor shows the cut: no recap in front of it.
@@ -2522,6 +2576,7 @@ export function useCutRoom() {
       }
     },
     [
+      shotBeatText,
       actions.sendComfyUi,
       beats,
       commitEdit,
@@ -2550,16 +2605,21 @@ export function useCutRoom() {
   const [renderQueue, setRenderQueue] = useState<QueuedRender[]>([]);
   const queueRuns = useRef(new Map<string, () => Promise<boolean | undefined>>());
   const enqueueRender = useCallback(
-    (item: { label: string; profile?: ExportProfileId; master?: boolean; part?: FilmRange }) => {
+    (item: {
+      label: string;
+      profile?: ExportProfileId;
+      master?: boolean;
+      part?: FilmRange;
+      /** Options for this render only (an audio-described version). */
+      extra?: Partial<FilmCutOptionsValue>;
+    }) => {
       const id = `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
       queueRuns.current.set(id, () => {
         const now = stateRef.current.options;
-        return cutNow(
-          [],
-          item.part,
-          item.master === true,
-          item.profile ? applyExportProfile(now, item.profile) : now
-        );
+        return cutNow([], item.part, item.master === true, {
+          ...(item.profile ? applyExportProfile(now, item.profile) : now),
+          ...item.extra,
+        });
       });
       setRenderQueue(list => [...list, { id, label: item.label, status: 'waiting' }]);
     },
@@ -2777,32 +2837,6 @@ export function useCutRoom() {
     storyName,
   ]);
 
-  /**
-   * What each shot says happens, in words — its Day slot's beat and place, its Story scene, its
-   * Scene's beat — for foley suggestions (foley.ts). A copy reads its original's words.
-   */
-  const shotBeatText = useMemo(() => {
-    const beatByKey = new Map(beats.map(beat => [`${beat.id}@${beat.at}`, beat]));
-    const out: Record<string, string> = {};
-    for (const shot of previewShots) {
-      const { source, key } = splitCutRoomKey(shot.key.replace(/~\d+$/, ''));
-      const base = key.split('#')[0]!;
-      let text = '';
-      if (source === 'day') {
-        const slot = slots.find(entry => entry.id === base);
-        text = [slot?.sceneHints, slot?.location].filter(Boolean).join(' · ');
-      } else if (source === 'story') {
-        const beat = beatByKey.get(base);
-        text = [beat?.title, beat?.blurb].filter(Boolean).join(' · ');
-      } else if (source === 'scenes') {
-        const scene = savedScenes.find(entry => entry.id === base);
-        text = [scene?.slot.sceneHints, scene?.slot.location].filter(Boolean).join(' · ');
-      }
-      out[shot.key] = text || shot.caption || shot.title;
-    }
-    return out;
-  }, [beats, previewShots, savedScenes, slots]);
-
   // Continuity (M2 C2): what the checks found on the film's shots, and your decisions about it.
   const [decisions, setDecisions] = useState<FindingDecision[]>([]);
   useEffect(() => {
@@ -3012,6 +3046,8 @@ export function useCutRoom() {
     lastChapters,
     cutPart: (part: FilmRange) => cutNow([], part),
     cutMaster: () => cutNow([], undefined, true),
+    /** The options the last film was rendered with (this session) — "changed since". */
+    lastCutOptions: lastOutput?.options ?? null,
     renderQueue,
     enqueueRender,
     removeQueuedRender,

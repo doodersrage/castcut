@@ -1,5 +1,6 @@
 'use client';
 
+import BlockingDiagram from '@/components/pose/BlockingDiagram';
 import { normalizeShotLighting, SHOT_LIGHTINGS } from '@/lib/day/shot-look';
 import { castCatchphrases } from '@/lib/cast/speech';
 import { getCharacter } from '@/lib/character/os';
@@ -435,27 +436,37 @@ export default function DaySlotEditor({
           plateUrl={plateUrl}
           updateSlot={updateSlot}
         />
-        <label className="flex flex-wrap items-center gap-2" data-testid="day-slot-lighting">
-          <span className="type-caption text-[var(--text-muted)]">Light</span>
-          <SelectInput
-            value={slot.lighting ?? ''}
-            disabled={busy}
-            aria-label="The light on this shot"
-            title="How this shot is lit — said in its prompt in place of Day's own light for the time of day"
-            className="!w-auto"
-            data-testid="day-slot-lighting-select"
-            onChange={event =>
-              updateSlot(slot.id, { lighting: normalizeShotLighting(event.target.value) })
+        <div className="flex items-center gap-3">
+          <BlockingDiagram
+            camera={slot.poseCamera}
+            leadSide={slot.poseLead}
+            people={
+              (allowCompanions ? 2 : 1) + (slot.thirdCastId ? 1 : 0) + (slot.fourthCastId ? 1 : 0)
             }
-          >
-            <option value="">Light: by the time of day</option>
-            {SHOT_LIGHTINGS.map(entry => (
-              <option key={entry.id} value={entry.id}>
-                Light: {entry.label}
-              </option>
-            ))}
-          </SelectInput>
-        </label>
+            testId="day-slot-blocking"
+          />
+          <label className="flex flex-wrap items-center gap-2" data-testid="day-slot-lighting">
+            <span className="type-caption text-[var(--text-muted)]">Light</span>
+            <SelectInput
+              value={slot.lighting ?? ''}
+              disabled={busy}
+              aria-label="The light on this shot"
+              title="How this shot is lit — said in its prompt in place of Day's own light for the time of day"
+              className="!w-auto"
+              data-testid="day-slot-lighting-select"
+              onChange={event =>
+                updateSlot(slot.id, { lighting: normalizeShotLighting(event.target.value) })
+              }
+            >
+              <option value="">Light: by the time of day</option>
+              {SHOT_LIGHTINGS.map(entry => (
+                <option key={entry.id} value={entry.id}>
+                  Light: {entry.label}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+        </div>
         {differsFromDay ? (
           <p
             className="type-caption flex flex-wrap items-center gap-x-1 text-[var(--text-muted)]"

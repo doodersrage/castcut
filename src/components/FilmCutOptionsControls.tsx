@@ -113,6 +113,8 @@ export type FilmCutOptionsValue = {
   subtitleTrack?: boolean;
   /** End credits rolling after the last shot, one line each (polish.ts normalizeFilmCredits). */
   credits?: string;
+  /** Describe what each silent shot shows, in a narrator's voice (an audio-described version). */
+  audioDescription?: boolean;
   /** "REVIEW" and the running timecode burned into the picture (a review copy). */
   reviewBurnIn?: boolean;
   /** Match shots: every shot's colour toward this shot's (its key) instead of the film's middle. */
