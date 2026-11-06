@@ -4,6 +4,7 @@ import { parseScript } from '../script/parse';
 import {
   episodeFountain,
   episodeOutlineMessages,
+  episodeOutlineTokens,
   episodeSceneCount,
   episodeSceneMessages,
   episodeSceneTail,
@@ -50,6 +51,19 @@ describe('writing an episode (Part 19 G3)', () => {
       ['INT. KITCHEN - MORNING', 'EXT. STREET - DAY']
     );
     assert.equal(parseEpisodeOutline('no json'), null);
+    // Cut off by the token limit mid-scene (a half hour's 40 ran past 3,000): the whole scenes stay.
+    const cut = parseEpisodeOutline(
+      '{"title":"T","logline":"x","scenes":[' +
+        '{"heading":"INT. KITCHEN - DAY","summary":"One.","who":["Mara"]},' +
+        '{"heading":"EXT. STREET - DAY","summary":"Two.","who":[]},' +
+        '{"heading":"INT. CAFE - NIGHT","summary":"Thr'
+    );
+    assert.deepEqual(
+      cut?.scenes.map(scene => scene.summary),
+      ['One.', 'Two.']
+    );
+    assert.equal(episodeOutlineTokens(40), 5000);
+    assert.ok(episodeOutlineTokens(episodeSceneCount(30)) > 3000);
     assert.equal(normalizeEpisodeHeading('int. cafe - night'), 'INT. CAFE - NIGHT');
   });
 

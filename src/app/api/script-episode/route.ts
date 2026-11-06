@@ -6,6 +6,8 @@ import {
   EPISODE_MINUTES_MIN,
   EPISODE_SCENES_MAX,
   episodeOutlineMessages,
+  episodeOutlineTokens,
+  episodeSceneCount,
   episodeSceneMessages,
   normalizeEpisodeHeading,
   parseEpisodeOutline,
@@ -98,7 +100,11 @@ export async function POST(request: Request) {
         Math.max(EPISODE_MINUTES_MIN, Number(body.minutes) || 30)
       );
       const outline = parseEpisodeOutline(
-        await call(episodeOutlineMessages({ premise, lead, cast, minutes, tone }), 3000)
+        // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
+        await call(
+          episodeOutlineMessages({ premise, lead, cast, minutes, tone }),
+          episodeOutlineTokens(episodeSceneCount(minutes))
+        )
       );
       if (!outline)
         return apiError('The model did not write an outline this time — try again.', 502);

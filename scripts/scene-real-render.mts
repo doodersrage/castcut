@@ -3383,8 +3383,18 @@ const phases: Record<string, Phase> = {
     await sheet.getByTestId('episode-minutes').fill(String(EP_MINUTES));
     await sheet.getByTestId('episode-tone').fill(EP_TONE);
     const started = Date.now();
-    await sheet.getByTestId('episode-write-outline').click();
-    await sheet.getByTestId('episode-outline').waitFor({ timeout: 300_000 });
+    // The model sometimes writes no usable outline: ask again (twice more) before giving up.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await sheet.getByTestId('episode-write-outline').click();
+      const ready = await sheet
+        .getByTestId('episode-outline')
+        .waitFor({ timeout: 600_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (ready) break;
+      log('no outline — asking again');
+      if (attempt === 2) throw new Error('the LLM wrote no outline three times');
+    }
     const scenes = await sheet.locator('[data-testid^="episode-scene-"]').count();
     log(
       'outline:',

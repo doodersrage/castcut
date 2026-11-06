@@ -121,8 +121,23 @@ function jsonIn(reply: string | null | undefined): unknown {
   try {
     return JSON.parse(text.slice(start, end + 1));
   } catch {
+    // Cut off by the token limit mid-scene: keep the scenes written whole and close the list.
+    const cut = text.slice(start, end + 1);
+    const lastScene = cut.lastIndexOf('}');
+    for (let at = lastScene; at > 0; at = cut.lastIndexOf('}', at - 1)) {
+      try {
+        return JSON.parse(`${cut.slice(0, at + 1)}]}`);
+      } catch {
+        // not a scene's end yet — try the one before
+      }
+    }
     return null;
   }
+}
+
+/** Tokens to ask for an outline of `scenes` scenes: ~70 a scene, with room for title and logline. */
+export function episodeOutlineTokens(scenes: number): number {
+  return Math.min(8000, 600 + scenes * 110);
 }
 
 export function parseEpisodeOutline(reply: string | null | undefined): EpisodeOutline | null {
