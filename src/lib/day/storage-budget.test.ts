@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { CUT_VERSIONS_LIMIT } from '../film/cut-room';
-import { RUN_LOG_MAX } from './scene-run';
+import { RUN_LOG_MAX, RUN_MAX_ITEMS } from './scene-run';
 import { SCRIPT_SOURCE_MAX, SCRIPTS_PER_CAST } from './scene-scripts';
 import {
   createScene,
@@ -40,13 +40,13 @@ describe('storage budgets at the record caps', () => {
   });
 });
 
-// Part 19 G1: a half-hour episode — 300 script Scenes, each with the three takes an episode run
+// Part 19 G1: a half-hour episode — RUN_MAX_ITEMS (600) script Scenes, each with the three takes an episode run
 // leaves (the kept one with its clip) — on top of the project at the caps, in the synced settings.
 describe('storage budget for an episode', () => {
-  it('holds 300 script Scenes of three takes within the settings budget', () => {
+  it('holds a full run of script Scenes, three takes each, within the settings budget', () => {
     const { settings } = largeProjectAtCaps();
     const id = (n: number) => `00000000-0000-4000-9000-${String(n).padStart(12, '0')}`;
-    const episode = Array.from({ length: 300 }, (_, i) => ({
+    const episode = Array.from({ length: RUN_MAX_ITEMS }, (_, i) => ({
       ...createScene({
         castId: 'cast-mara',
         name: `${i + 1}A KITCHEN · Mara at the window`,
@@ -75,7 +75,7 @@ describe('storage budget for an episode', () => {
       keptTakeId: id(i * 10 + 2),
     }));
     const scenes = normalizeSavedScenes([...settings.tools.scene.scenes, ...episode]);
-    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST + 300);
+    assert.equal(scenes.length, SCENE_LIMIT_PER_CAST + RUN_MAX_ITEMS);
     const episodeBytes = jsonBytes(episode);
     const total = jsonBytes({ ...settings, tools: { ...settings.tools, scene: { ...settings.tools.scene, scenes } } });
     assert.ok(total <= STORAGE_BUDGETS.settings, `settings with an episode ${total} (episode ${episodeBytes})`);

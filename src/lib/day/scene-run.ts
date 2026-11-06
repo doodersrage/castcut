@@ -87,8 +87,11 @@ export type SceneRun = {
 
 export const RUN_DEFAULT_MAX_TAKES = 8;
 export const RUN_DEFAULT_MAX_MINUTES = 30;
-/** Scenes in one run: a half-hour episode's shots (Part 19 G1; it was 60). */
-export const RUN_MAX_ITEMS = 400;
+/**
+ * Scenes in one run: a half-hour episode's shots (Part 19 G1; it was 60, then 400 — the
+ * 2026-11-06 episode's 40 scenes drafted 483 shots, and the last 83 would have been left out).
+ */
+export const RUN_MAX_ITEMS = 600;
 /** Takes one run may render: every Scene, and its redos. */
 export const RUN_MAX_TAKES = RUN_MAX_ITEMS * 4;
 export const RUN_LOG_MAX = 200;
