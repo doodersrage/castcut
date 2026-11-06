@@ -148,6 +148,9 @@ async function openScene(page: Page, castId: string, path = '/scene') {
   await page.waitForTimeout(1500);
   // The page keeps the active Cast over `?character=` once one is chosen: switch in Setup.
   const chip = page.getByTestId('day-setup-chip');
+  // Wait for it: checked at once, a chip not drawn yet skipped the switch, and the 2026-11-06
+  // episode was written for Rob (the last Cast imported) instead of Lena.
+  await chip.waitFor({ timeout: 60_000 });
   // Ids like cast-mara name the Cast; an imported one (char-…) is named by SCENE_CAST_NAME.
   const name = (
     castId === process.env.SCENE_CAST ? (process.env.SCENE_CAST_NAME ?? castId) : castId
@@ -3379,6 +3382,11 @@ const phases: Record<string, Phase> = {
     await openMore(page);
     await page.getByTestId('script-write-episode').click({ timeout: 120_000 });
     const sheet = page.getByTestId('episode-writer');
+    // Written for the lead: the sheet names whom (the script belongs to the page's Cast).
+    const forWhom = (await sheet.textContent({ timeout: 30_000 })) ?? '';
+    if (!forWhom.includes(`For ${EP_LEAD_NAME}:`)) {
+      throw new Error(`the writer is for someone else (${forWhom.match(/For [^:]+:/)?.[0] ?? '?'})`);
+    }
     await sheet.getByTestId('episode-premise').fill(EP_PREMISE);
     await sheet.getByTestId('episode-minutes').fill(String(EP_MINUTES));
     await sheet.getByTestId('episode-tone').fill(EP_TONE);
