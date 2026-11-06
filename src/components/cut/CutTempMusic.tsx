@@ -3,8 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { formatCutTime, type CutPreviewLoaded } from '@/hooks/useCutPreview';
-import { requestFilmScore } from '@/lib/film/score';
-import { tempMusicCues } from '@/lib/film/temp-music';
+import { cutTempMusicCues, makeTempMusic } from '@/lib/film/temp-music-client';
 import type { CutEffect } from '@/lib/video/cut-sound';
 
 /**
@@ -27,49 +26,15 @@ export default function CutTempMusic({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const cues = useMemo(() => {
-    if (!loaded) return [];
-    return tempMusicCues(
-      loaded.timeline.items
-        .filter(item => item.shot >= 0)
-        .flatMap(item => {
-          const key = loaded.keys[item.shot];
-          return key
-            ? [
-                {
-                  key,
-                  title: loaded.shots[item.shot]?.title ?? 'Shot',
-                  feeling: feelingOf(key),
-                  startSec: item.startSec,
-                  durSec: item.durSec,
-                },
-              ]
-            : [];
-        })
-    );
-  }, [feelingOf, loaded]);
+  const cues = useMemo(
+    () => (loaded ? cutTempMusicCues(loaded, feelingOf) : []),
+    [feelingOf, loaded]
+  );
   if (!loaded || !cues.length) return null;
   const makeAll = async () => {
     setError(null);
-    for (const [index, cue] of cues.entries()) {
-      setBusy(`Cue ${index + 1} of ${cues.length}: ${cue.tone}…`);
-      try {
-        const made = await requestFilmScore({ brief: { tone: cue.tone }, cutSeconds: cue.seconds });
-        onAdd(`fx-cue-${Date.now().toString(36)}${index}`, {
-          url: made.url,
-          name: `Music · ${cue.tone}`,
-          atSec: cue.atSec,
-          level: 0.6,
-          // Music, not a sound: it joins the bed and ducks under the lines.
-          duck: true,
-          // Stops where the next stretch starts (a score renders a few seconds long).
-          lengthSec: cue.seconds,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not make that cue.');
-        break;
-      }
-    }
+    const result = await makeTempMusic(cues, onAdd, setBusy);
+    if (result.error) setError(result.error);
     setBusy(null);
   };
   return (

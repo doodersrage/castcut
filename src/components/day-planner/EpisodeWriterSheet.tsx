@@ -13,6 +13,7 @@ import {
   type EpisodeCastMember,
   type EpisodeOutline,
 } from '@/lib/day/episode-writer';
+import { DEFAULT_EPISODE_AUTOPILOT, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 
 const AREA =
   'w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] p-2 text-sm';
@@ -42,14 +43,17 @@ export default function EpisodeWriterSheet({
   llmBody,
   onClose,
   onDone,
+  canAutopilot = false,
 }: {
   open: boolean;
+  /** Offer "Make the whole episode for me" (the page can prepare and start a run). */
+  canAutopilot?: boolean;
   lead: string;
   cast: readonly EpisodeCastMember[];
   llmBody: Record<string, unknown>;
   onClose: () => void;
-  /** The screenplay, as Fountain. */
-  onDone: (fountain: string) => void;
+  /** The screenplay, as Fountain — and the autopilot's settings when it is to make the episode. */
+  onDone: (fountain: string, autopilot: EpisodeAutopilot | null) => void;
 }) {
   const [premise, setPremise] = useState('');
   const [minutes, setMinutes] = useState(30);
@@ -60,6 +64,8 @@ export default function EpisodeWriterSheet({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stopRef = useRef(false);
+  const [autopilotOn, setAutopilotOn] = useState(false);
+  const [pilot, setPilot] = useState<EpisodeAutopilot>(DEFAULT_EPISODE_AUTOPILOT);
 
   const base = { lead, cast, tone: tone.trim() || undefined, ...llmBody };
 
@@ -280,12 +286,102 @@ export default function EpisodeWriterSheet({
                 variant={complete ? 'primary' : 'ghost'}
                 disabled={busy !== null || !written.length}
                 data-testid="episode-use"
-                title="Into the Script box: see how it reads, then Keep this script"
-                onClick={() => onDone(episodeFountain(outline, written))}
+                title={
+                  autopilotOn
+                    ? 'Keep it, cast it, plan the shots, render every one and keep the best — then the cut'
+                    : 'Into the Script box: see how it reads, then Keep this script'
+                }
+                onClick={() =>
+                  onDone(episodeFountain(outline, written), autopilotOn ? pilot : null)
+                }
               >
-                {complete ? 'Put it in the script box' : `Use the ${written.length} written so far`}
+                {autopilotOn
+                  ? 'Make the episode'
+                  : complete
+                    ? 'Put it in the script box'
+                    : `Use the ${written.length} written so far`}
               </Button>
             </div>
+            {canAutopilot && written.length ? (
+              <fieldset
+                className="space-y-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] p-2 text-sm"
+                data-testid="episode-autopilot"
+              >
+                <label className="flex items-center gap-2 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={autopilotOn}
+                    data-testid="episode-autopilot-on"
+                    onChange={event => setAutopilotOn(event.target.checked)}
+                  />
+                  Make the whole episode for me
+                </label>
+                <p className="type-caption text-[var(--text-muted)]">
+                  Keeps the script, confirms Who&apos;s who, plans every scene&apos;s shots, makes
+                  them Scenes and renders each — keeping the best take by its checks — then cuts the
+                  film. Hours for a half hour: keep this page open (overnight is fine).
+                </p>
+                {autopilotOn ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={pilot.makeCast}
+                        data-testid="episode-autopilot-cast"
+                        onChange={event => setPilot({ ...pilot, makeCast: event.target.checked })}
+                      />
+                      Make the recurring parts Cast
+                    </label>
+                    <label className="flex items-center gap-1">
+                      redo a failing take
+                      <select
+                        aria-label="Times to render a failing take again"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5"
+                        value={pilot.redo}
+                        data-testid="episode-autopilot-redo"
+                        onChange={event => setPilot({ ...pilot, redo: Number(event.target.value) })}
+                      >
+                        {[0, 1, 2, 3].map(n => (
+                          <option key={n} value={n}>
+                            {n}×
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1">
+                      animate
+                      <select
+                        aria-label="Which kept takes to animate"
+                        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5"
+                        value={pilot.animate}
+                        data-testid="episode-autopilot-animate"
+                        onChange={event =>
+                          setPilot({
+                            ...pilot,
+                            animate: event.target.value as EpisodeAutopilot['animate'],
+                          })
+                        }
+                      >
+                        <option value="none">nothing (stills)</option>
+                        <option value="lines">the shots with a line</option>
+                        <option value="all">every shot</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={pilot.cutWhenDone}
+                        data-testid="episode-autopilot-cut"
+                        onChange={event =>
+                          setPilot({ ...pilot, cutWhenDone: event.target.checked })
+                        }
+                      />
+                      Cut the film when it&apos;s done
+                    </label>
+                  </div>
+                ) : null}
+              </fieldset>
+            ) : null}
           </section>
         ) : null}
         {busy ? (

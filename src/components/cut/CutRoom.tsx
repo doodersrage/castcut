@@ -61,6 +61,7 @@ import CutReviewNotes from '@/components/cut/CutReviewNotes';
 import { normalizeSubtitleStyle, wordChunks } from '@/lib/video/subtitle-style';
 import CutTranscript from '@/components/cut/CutTranscript';
 import { useCutReviewNotes } from '@/hooks/useCutReviewNotes';
+import { useCutAutopilot } from '@/components/cut/useCutAutopilot';
 import CutGeneratePanel from '@/components/cut/CutGeneratePanel';
 import { useCutPreview } from '@/hooks/useCutPreview';
 import FilmCutShotList from '@/components/FilmCutShotList';
@@ -177,6 +178,13 @@ export default function CutRoom() {
     solo,
   });
   const activeKey = preview.keyAt(preview.time);
+  // A shot's feeling, for Music by scene (the button below, and the episode autopilot's cut).
+  const { shotStates, shotBeatText } = vm;
+  const feelingOf = useCallback(
+    (key: string) => [shotStates[key]?.emotion, shotBeatText[key]].filter(Boolean).join(' · '),
+    [shotBeatText, shotStates]
+  );
+  const autopilotNote = useCutAutopilot({ vm, loaded: preview.loaded, feelingOf });
   // The music's beat grid, for snapping an edge on the beat (the tempo "Fit to the music" reads).
   const bedUrl = vm.options.audioBedUrl.trim();
   const [beatSec, setBeatSec] = useState<{ url: string; sec: number } | null>(null);
@@ -1813,11 +1821,7 @@ export default function CutRoom() {
                   />
                   <CutTempMusic
                     loaded={preview.loaded}
-                    feelingOf={key =>
-                      [vm.shotStates[key]?.emotion, vm.shotBeatText[key]]
-                        .filter(Boolean)
-                        .join(' · ')
-                    }
+                    feelingOf={feelingOf}
                     disabled={busy}
                     onAdd={(id, effect) => vm.setEffect(id, effect, true)}
                   />
@@ -1843,6 +1847,11 @@ export default function CutRoom() {
           </>
         ) : null}
 
+        {autopilotNote ? (
+          <p className="type-caption font-medium" role="status" data-testid="cut-autopilot">
+            {autopilotNote}
+          </p>
+        ) : null}
         {vm.status || vm.error || vm.cutDone ? (
           <div className="space-y-1" role="status" data-testid="cut-status">
             {vm.status ? (

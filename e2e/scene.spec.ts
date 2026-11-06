@@ -1355,6 +1355,81 @@ test('Write an episode: an outline, scenes written one by one, kept as a script'
   await expect(page.getByTestId('script-reading')).toContainText('BEACH');
 });
 
+// The episode autopilot: from the written episode to a running episode run with no more clicks —
+// kept, Who's who confirmed, every scene's shots (the rules when the LLM can't), Scenes made, the
+// run started as an episode that cuts itself when done.
+test('Make the episode: the autopilot keeps, plans, prepares and starts the run', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await page.route('**/api/script-episode', async route => {
+    const sent = route.request().postDataJSON() as {
+      step: string;
+      index?: number;
+      outline?: { scenes: { heading: string }[] };
+    };
+    if (sent.step === 'outline') {
+      await route.fulfill({
+        json: {
+          outline: {
+            title: 'The Letter',
+            logline: 'A letter brings her home.',
+            scenes: [
+              { heading: 'INT. KITCHEN - MORNING', summary: 'She finds the letter.', who: [] },
+              { heading: 'EXT. BEACH - EVENING', summary: 'She walks by the sea.', who: [] },
+            ],
+          },
+        },
+      });
+      return;
+    }
+    const heading = sent.outline!.scenes[sent.index!]!.heading;
+    await route.fulfill({
+      json: { text: `${heading}\n\nShe looks around.\n\nSCENE CAST\nScene ${sent.index! + 1}.\n` },
+    });
+  });
+  // The LLM's shot plan fails: the autopilot drafts by the rules instead.
+  await page.route('**/api/script-shots', route => route.fulfill({ status: 502, json: { error: 'down' } }));
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await page.getByTestId('script-write-episode').click({ timeout: 60_000 });
+  const sheet = page.getByTestId('episode-writer');
+  await sheet.getByTestId('episode-premise').fill('A letter brings her back to the seaside café.');
+  await sheet.getByTestId('episode-minutes').fill('3');
+  await sheet.getByTestId('episode-write-outline').click();
+  await expect(sheet.locator('[data-testid^="episode-scene-"]')).toHaveCount(2);
+  await sheet.getByTestId('episode-write-scenes').click();
+  await expect(sheet.getByTestId('episode-use')).toContainText('Put it in the script box');
+  await sheet.getByTestId('episode-autopilot-on').check();
+  await sheet.getByTestId('episode-autopilot-redo').selectOption('2');
+  await expect(sheet.getByTestId('episode-use')).toHaveText('Make the episode');
+  await sheet.getByTestId('episode-use').click();
+  await expect(sheet).toHaveCount(0);
+
+  await expect(page.getByTestId('script-autopilot')).toContainText('Running:', { timeout: 60_000 });
+  await expect(page.getByTestId('script-autopilot')).toContainText('then the cut');
+  // Kept, its lead confirmed (the cue names the Cast), the shots planned, the run going as an episode.
+  const stored = async () => JSON.parse((await storedSceneTool(page)) || '{}');
+  await expect
+    .poll(async () => {
+      const tool = await stored();
+      const script = (tool.scripts ?? []).find((entry: { name: string }) => entry.name === 'The Letter');
+      return [
+        script?.castMap?.['SCENE CAST'],
+        (script?.shots ?? []).length > 0,
+        tool.run?.state,
+        JSON.stringify(tool.run?.auto),
+      ].join('|');
+    }, { timeout: 60_000 })
+    .toBe(`${CAST}|true|running|${JSON.stringify({ keep: true, redo: 2, animate: false, cutWhenDone: true })}`);
+  // And its first take went to ComfyUI.
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+});
+
 test('a script scene is drafted into shots and a shot is made a Scene', async ({ page }) => {
   const source = [
     'INT. KITCHEN - MORNING',

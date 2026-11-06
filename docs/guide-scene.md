@@ -114,7 +114,9 @@ can pin a clip's last frame) re-poses the kept take for the clip to land on.
 
 ## Script
 
-A screenplay for the Cast, from text to shots. Open the **Script** section under the takes.
+A screenplay for the Cast, from text to shots. Open the **Script** section under the takes. For a
+whole episode — and **Make the whole episode for me**, which does every step below — see
+[Make an episode](guide-episode.md).
 
 - **Import a script** — paste it, or upload a `.fountain`, `.txt` or `.md` file. Before you keep
   it, it reads as a screenplay, scene by scene (heading, place, time of day, who speaks, each

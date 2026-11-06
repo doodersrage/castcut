@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
@@ -26,6 +28,26 @@ export default function SceneScriptAndRun({
   runner: ReturnType<typeof useSceneRun>;
 }) {
   const character = vm.character;
+  const router = useRouter();
+  // The episode autopilot's run: saved with its settings, then started once the runner has it
+  // (its ref follows the page a commit later, so the start waits for the next tick).
+  const startRunId = useRef<string | null>(null);
+  const { run } = page;
+  const { start } = runner;
+  useEffect(() => {
+    if (!startRunId.current || run?.id !== startRunId.current || run.state !== 'prepared') return;
+    startRunId.current = null;
+    const timer = window.setTimeout(start, 0);
+    return () => window.clearTimeout(timer);
+  }, [run, start]);
+  // Done, with the cut asked for: Cut opens on the Scenes and cuts the episode (useCutAutopilot).
+  const { updateRun } = page;
+  const castId = character?.id;
+  useEffect(() => {
+    if (!run || run.state !== 'done' || !run.auto?.cutWhenDone || !castId) return;
+    updateRun({ ...run, auto: { ...run.auto, cutWhenDone: false } });
+    router.push(`/cut?from=scenes&character=${encodeURIComponent(castId)}&autocut=1`);
+  }, [castId, router, run, updateRun]);
   return (
     <>
       {character ? (
@@ -49,6 +71,10 @@ export default function SceneScriptAndRun({
           prepareRun={page.prepareRun}
           llmBody={sharedLlmRequestBody(vm.shared)}
           sendComfyUi={vm.actions.sendComfyUi}
+          onStartRun={next => {
+            startRunId.current = next.id;
+            page.updateRun(next);
+          }}
         />
       ) : null}
       <LocationsSection scenes={page.scenes} emptyPhoto={emptyPlacePhoto} />

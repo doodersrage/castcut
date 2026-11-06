@@ -72,6 +72,8 @@ export type EpisodeRunAuto = {
    * take longer).
    */
   animateOnly?: 'lines';
+  /** When the run is done, cut the film (episode autopilot: the Scene page opens Cut). */
+  cutWhenDone?: boolean;
 };
 
 export const EPISODE_REDO_MAX = 3;
@@ -91,6 +93,7 @@ export function normalizeEpisodeRunAuto(raw: unknown): EpisodeRunAuto | undefine
     redo,
     animate,
     ...(animate && value.animateOnly === 'lines' ? { animateOnly: 'lines' } : {}),
+    ...(keep && value.cutWhenDone === true ? { cutWhenDone: true } : {}),
   };
 }
 

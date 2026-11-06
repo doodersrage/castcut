@@ -23,10 +23,12 @@ import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
 import { storyboard } from '@/lib/day/storyboard';
 import { orphanedShots } from '@/lib/day/script-reimport';
 import { requestShotDraft } from '@/lib/day/script-shots-llm';
-import { RUN_MAX_ITEMS, shotsToPrepare } from '@/lib/day/scene-run';
+import { RUN_MAX_ITEMS, shotsToPrepare, type SceneRun } from '@/lib/day/scene-run';
+import { autopilotRun, partsToConfirm, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 import type { PlannedShot } from '@/lib/day/script-shots';
 import type { SavedScene, SceneScriptLink } from '@/lib/day/scenes';
 import {
+  draftShots,
   shotSceneDraft,
   shotsForScene,
   withSceneShots,
@@ -73,7 +75,12 @@ import {
   recurringScriptParts,
   scriptPartExcerpt,
 } from '@/lib/day/script-new-cast';
-import { createBlankCharacter, getCharacter, upsertCharacter } from '@/lib/character/os';
+import {
+  createBlankCharacter,
+  getCharacter,
+  loadCharacters,
+  upsertCharacter,
+} from '@/lib/character/os';
 import { syncSharedIdentityToCast } from '@/lib/character/identity';
 import type { CharacterAppearanceFormDraft } from '@/lib/character/appearance';
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
@@ -420,7 +427,10 @@ export default function SceneScripts({
   prepareRun,
   llmBody,
   sendComfyUi,
+  onStartRun,
 }: {
+  /** Start a prepared run as given (the episode autopilot's, its settings on it). */
+  onStartRun?: (run: SceneRun) => void;
   /** Renders a new Cast member's plate (Make them Cast). */
   sendComfyUi?: Parameters<typeof queueCastLookPlate>[0]['sendComfyUi'];
   castId: string;
@@ -444,7 +454,7 @@ export default function SceneScripts({
     script: SavedScript,
     made: Array<{ shot: PlannedShot; draft: ShotSceneDraft }>,
     onlySceneId?: string
-  ) => { created: number } | null;
+  ) => { created: number; run: SceneRun } | null;
   /** The LLM settings a request carries (Draft with the LLM); unset: that button is not shown. */
   llmBody?: Record<string, unknown>;
 }) {
@@ -476,6 +486,8 @@ export default function SceneScripts({
   } | null>(null);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
   const [casting, setCasting] = useState<string | null>(null);
+  /** Where the episode autopilot is (null: not running). */
+  const [autopilotNote, setAutopilotNote] = useState<string | null>(null);
   // M9 T3: the open script as a storyboard instead of its reading.
   const [board, setBoard] = useState(false);
   const open = scripts.find(script => script.id === openId) ?? null;
@@ -611,9 +623,15 @@ export default function SceneScripts({
    * created, their plate queued, and the part pointed at them — one after another, the mapping
    * built on the last one's (not the render's stale store).
    */
-  const makeCast = async (speakers: string[]) => {
-    if (!open || !openParsed || !llmBody) return;
-    let current = cache;
+  const makeCast = async (
+    speakers: string[],
+    /** The script to cast for (the autopilot's, just kept): the open one when not said. */
+    on?: { script: SavedScript; parsed: ParsedScript; cache: ScriptsCache }
+  ): Promise<ScriptsCache> => {
+    const script = on?.script ?? open;
+    const parsed = on?.parsed ?? openParsed;
+    let current = on?.cache ?? cache;
+    if (!script || !parsed || !llmBody) return current;
     const made: string[] = [];
     const missed: string[] = [];
     const noPlate: string[] = [];
@@ -629,8 +647,8 @@ export default function SceneScripts({
             ...llmBody,
             step: 'part',
             speaker,
-            excerpt: scriptPartExcerpt(openParsed, speaker),
-            title: openParsed.title.title ?? open.name,
+            excerpt: scriptPartExcerpt(parsed, speaker),
+            title: parsed.title.title ?? script.name,
           }),
         });
         const data = (await response.json().catch(() => ({}))) as {
@@ -639,7 +657,7 @@ export default function SceneScripts({
         if (!response.ok || !data.draft) throw new Error('not cast');
         const record = createBlankCharacter(name, data.draft);
         upsertCharacter(record);
-        const patch = setScriptCastPatch(current, open.id, speaker, record.id);
+        const patch = setScriptCastPatch(current, script.id, speaker, record.id);
         if (patch) {
           current = { ...current, ...patch };
           update(patch);
@@ -684,12 +702,92 @@ export default function SceneScripts({
         .filter(Boolean)
         .join(' ')
     );
+    return current;
+  };
+
+  /**
+   * The episode autopilot (episode-autopilot.ts): a written episode to a running episode run —
+   * keep the script, confirm Who's who, make the recurring parts Cast, draft every scene's shots,
+   * prepare the run and start it with the episode settings. Each step builds on the last one's
+   * store (not this render's).
+   */
+  const runAutopilot = async (source: string, pilot: EpisodeAutopilot) => {
+    const script = createScript({ castId, source });
+    if (!script) {
+      setError('The episode could not be kept as a script (too long?).');
+      return;
+    }
+    let current: ScriptsCache = { ...cache, ...addScriptPatch(cache, script) };
+    update(addScriptPatch(cache, script));
+    setDraft(null);
+    setError(null);
+    setOpenId(script.id);
+    const apply = (patch: ScriptsCache | null) => {
+      if (!patch) return;
+      current = { ...current, ...patch };
+      update(patch);
+    };
+    const now = () => current.scripts?.find(entry => entry.id === script.id) ?? script;
+    const parsed = parseScript(script.source);
+    const speakers = () =>
+      resolveSpeakers(
+        parsed.scenes.flatMap(scene => scene.speakers),
+        loadCharacters().map(member => ({ id: member.id, name: member.name })),
+        now().castMap
+      );
+    try {
+      setAutopilotNote('Who’s who…');
+      for (const part of partsToConfirm(speakers())) {
+        apply(setScriptCastPatch(current, script.id, part.speaker, part.castId));
+      }
+      const recurring = recurringScriptParts(parsed, speakers());
+      if (pilot.makeCast && recurring.length) {
+        setAutopilotNote(
+          `Casting ${recurring.length} recurring part${recurring.length === 1 ? '' : 's'}…`
+        );
+        current = await makeCast(
+          recurring.map(part => part.speaker),
+          { script: now(), parsed, cache: current }
+        );
+      }
+      for (const [index, scene] of parsed.scenes.entries()) {
+        setAutopilotNote(`Planning the shots: scene ${index + 1} of ${parsed.scenes.length}…`);
+        let shots: PlannedShot[] = [];
+        if (llmBody) shots = await requestShotDraft(scene, llmBody).catch(() => []);
+        if (!shots.length) shots = draftShots(scene);
+        apply(
+          setScriptShotsPatch(current, script.id, withSceneShots(now().shots, scene.id, shots))
+        );
+      }
+      setAutopilotNote('Making the Scenes…');
+      const result = prepareFor(now(), parsed);
+      if (!result?.run) throw new Error('the run could not be prepared');
+      const started = autopilotRun(result.run, pilot);
+      onStartRun?.(started);
+      setAutopilotNote(
+        `Running: ${started.items.length} shots, one at a time${pilot.cutWhenDone ? ' — then the cut' : ''}. Keep this page open.`
+      );
+    } catch (error) {
+      setAutopilotNote(
+        `The autopilot stopped: ${error instanceof Error ? error.message : 'something went wrong'} — go on by hand from here.`
+      );
+    }
   };
 
   /** Make the script's (or one scene's) planned shots into Scenes and list the run. */
   const prepare = (onlySceneId?: string) => {
-    if (!prepareRun || !open || !openParsed) return;
-    const parsed = openParsed;
+    if (open && openParsed) prepareFor(open, openParsed, onlySceneId);
+  };
+
+  const prepareFor = (script: SavedScript, parsed: ParsedScript, onlySceneId?: string) => {
+    if (!prepareRun) return null;
+    const open = script;
+    // The Cast as it is now: members made since the page drew (Make … Cast) included.
+    const castNow: ScriptCastMember[] = loadCharacters().map(member => ({
+      id: member.id,
+      name: member.name,
+      ...(member.traits?.sex ? { sex: member.traits.sex } : {}),
+    }));
     const { fit, overLimit } = shotsToPrepare(open, scenes, onlySceneId);
     const made = fit.flatMap(shot => {
       const sceneIndex = parsed.scenes.findIndex(scene => scene.id === shot.sceneId);
@@ -707,7 +805,7 @@ export default function SceneScripts({
             sceneIndex,
             shotIndex,
             castId,
-            cast,
+            cast: castNow,
             castMap: open.castMap,
             placeMap: open.placeMap,
             locations,
@@ -729,6 +827,7 @@ export default function SceneScripts({
             .join(' · ')
         : null
     );
+    return result;
   };
 
   return (
@@ -787,12 +886,14 @@ export default function SceneScripts({
           }))}
           llmBody={llmBody}
           onClose={() => setWritingEpisode(false)}
-          onDone={fountain => {
+          onDone={(fountain, pilot) => {
             setWritingEpisode(false);
             setOpenId(null);
             setError(null);
-            setDraft(fountain);
+            if (pilot) void runAutopilot(fountain, pilot);
+            else setDraft(fountain);
           }}
+          canAutopilot={Boolean(prepareRun && onStartRun)}
         />
       ) : null}
 
@@ -908,6 +1009,11 @@ export default function SceneScripts({
             casting={casting}
             {...(llmBody ? { onMakeCast: speakers => void makeCast(speakers) } : {})}
           />
+          {autopilotNote ? (
+            <p className="type-caption font-medium" role="status" data-testid="script-autopilot">
+              {autopilotNote}
+            </p>
+          ) : null}
           {prepareNote ? (
             <p className="type-caption" data-testid="script-prepare-note">
               {prepareNote}

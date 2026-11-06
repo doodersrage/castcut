@@ -1498,3 +1498,73 @@ test('editor round: keys, safe areas, loop, speed, several shots picked, skimmin
   await page.getByTestId('cut-undo').click();
   await expect(page.getByTestId('cut-film').first()).toContainText('2 shots');
 });
+
+// The episode autopilot's cut: a finished run opens Cut with autocut=1, and Cut lays the episode
+// out, makes its music by scene and cuts it — once (the URL forgets autocut).
+test('autocut: Cut makes the music and cuts the episode by itself', async ({ page }) => {
+  test.setTimeout(300_000);
+  const scene = (id: string, name: string, sceneHints: string) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints },
+    takes: [{ id: `${id}-t`, promptId: `${id}-t`, imageUrl: thumb, at: 1 }],
+    keptTakeId: `${id}-t`,
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    // Two feelings, three shots each: nine seconds apiece, past the 8 s a cue needs.
+    tools: {
+      scene: {
+        scenes: [
+          scene('ep-1', 'Kitchen', 'a tender kiss'),
+          scene('ep-2', 'Beach', 'love'),
+          scene('ep-5', 'Garden', 'romantic'),
+          scene('ep-3', 'Cafe', 'a tense secret'),
+          scene('ep-4', 'Pier', 'nervous'),
+          scene('ep-6', 'Alley', 'suspicious'),
+        ],
+      },
+    },
+  });
+  let scores = 0;
+  await page.route('**/api/film/score', route => {
+    scores += 1;
+    return route.fulfill({
+      json: { url: '/api/comfyui/view?filename=e2e-cue.mp3&type=output', label: 'Score', seconds: 8 },
+    });
+  });
+  let cut: { shots?: unknown[]; effects?: Array<{ name?: string }> } | null = null;
+  await page.route('**/api/film/assemble', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { ok: true, available: true, encoder: 'ffmpeg' } });
+      return;
+    }
+    cut = route.request().postDataJSON() as typeof cut;
+    await route.fulfill({ status: 503, json: { error: 'e2e: no encode' } });
+  });
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}&autocut=1`);
+  await dismissBlockingOverlays(page);
+  await expect(page).not.toHaveURL(/autocut/, { timeout: 60_000 });
+  await expect.poll(() => cut?.shots?.length ?? 0, { timeout: 90_000 }).toBe(6);
+  expect(scores).toBeGreaterThan(0);
+  expect(JSON.stringify(cut)).toContain('Music ·');
+  // The server won't encode here: Cut records it in the browser instead, in real time.
+  await expect(page.getByTestId('cut-autopilot')).toContainText(
+    /the episode is cut|the cut stopped/,
+    { timeout: 180_000 }
+  );
+  // Reloaded, it doesn't cut again.
+  const posted = cut;
+  await page.reload();
+  await expect(page.getByTestId('cut-film').first()).toContainText('6 shots', { timeout: 60_000 });
+  await expect(page.getByTestId('cut-autopilot')).toHaveCount(0);
+  expect(cut).toBe(posted);
+});
