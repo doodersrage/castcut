@@ -3463,6 +3463,86 @@ const phases: Record<string, Phase> = {
     await shot(page, 'episode-kept');
   },
 
+  /**
+   * Part 19: start the episode's stills again on another engine (EPISODE_ENGINE, a label) — every
+   * take the episode's Scenes hold is marked rejected (kept on the Scene, restorable, never picked),
+   * the kept take let go, the run discarded. The next `eprun` renders all of them again.
+   */
+  async epreset(_ctx, page) {
+    await openScene(page, V2_CAST);
+    await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
+    await page.waitForTimeout(3000);
+    // Written with no app page open (it would write its own copy back).
+    await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+    const counts = await page.evaluate(
+      castId =>
+        new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const db = request.result;
+            const store = db.transaction('kv', 'readwrite').objectStore('kv');
+            const get = store.get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              const record = get.result as {
+                value: {
+                  tools: {
+                    scene?: {
+                      scenes?: Array<{
+                        castId: string;
+                        fromScript?: unknown;
+                        keptTakeId?: string;
+                        takes: Array<{ review?: string }>;
+                        updatedAt: number;
+                      }>;
+                      run?: unknown;
+                    };
+                  };
+                  updatedAt?: number;
+                };
+              };
+              const scene = record.value.tools.scene;
+              if (!scene?.scenes) return reject(new Error('no stored Scenes'));
+              const now = Date.now();
+              let scenes = 0;
+              let takes = 0;
+              scene.scenes = scene.scenes.map((entry, index) => {
+                if (entry.castId !== castId || !entry.fromScript) return entry;
+                scenes += 1;
+                takes += entry.takes.length;
+                const { keptTakeId: _kept, ...rest } = entry;
+                return {
+                  ...rest,
+                  takes: entry.takes.map(take => ({ ...take, review: 'rejected' })),
+                  updatedAt: now + index,
+                };
+              });
+              delete scene.run;
+              if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
+              const put = store.put(record);
+              put.onsuccess = () => {
+                db.close();
+                resolve({ scenes, takes });
+              };
+              put.onerror = () => reject(put.error);
+            };
+          };
+        }),
+      V2_CAST
+    );
+    log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
+    await openScene(page, V2_CAST);
+    await openMore(page);
+    await page.waitForTimeout(5000);
+    // A copy synced back from the server can bring the old run back: discard it here too.
+    if (await page.getByTestId('scene-run').isVisible().catch(() => false)) {
+      await page.getByTestId('scene-run-discard').click();
+      await page.getByTestId('confirm-dialog-confirm').click();
+      log('an old run came back from the server copy — discarded');
+    }
+    log('engine now:', (await page.getByTestId('tool-engine-chip').textContent())?.trim());
+  },
+
   /** Part 19: every scene's shots drafted (the LLM, else the rules). */
   async epshots(_ctx, page) {
     await openScene(page, V2_CAST);
@@ -3526,6 +3606,8 @@ const phases: Record<string, Phase> = {
       log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
       await shot(page, 'episode-run-prepared');
     }
+    // The run judges takes by their checks: Auto-review adds outfit, place and action to face and pose.
+    if (process.env.EPISODE_AUTO_REVIEW !== '0') await autoReviewOn(page);
     const started = Date.now();
     await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
     let last = 0;

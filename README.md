@@ -1,6 +1,6 @@
 # Castcut
 
-**Local character films with ComfyUI.** Cast → Outfit → Day → (Story · Scene) → **Cut**.
+**Local character films with ComfyUI.** Cast → Outfit → Day → (Story · Scene · Script) → **Cut**.
 
 Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut). The classic prompt and image tools, without the film loop, live on as [**Prompt Studio**](https://github.com/doodersrage/prompt-studio), built on the shared core package [`prompt-studio-core`](https://www.npmjs.com/package/prompt-studio-core).
 
@@ -13,13 +13,18 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 ### How it works
 
 1. **Cast** — create a character once: a face plate, traits, a voice, her home and workplace.
-2. **Outfit** — dress her: a kit, your own photo, or shoes you pick.
-3. **Day** — plan 2–8 moments from morning to night; each becomes a still, then a clip. Give a moment a **line** and she says it, lip-synced, in her voice.
-4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own.
+2. **Outfit** — dress her: a kit, your own photo, or shoes you pick — and change a piece with the **clothing** and **footwear editors** ("make it red", "a lower heel").
+3. **Day** — plan 2–8 moments from morning to night; each becomes a still, then a clip. Give a moment a **line** and she says it, lip-synced, in her voice. Light, blocking and camera per shot; day templates; printable call sheets and storyboards.
+4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own. An **Outline** shows screen time, acts and the story's emotional arc, with notes from the LLM and branches.
 5. **Scene** *(optional)* — one shot, exactly as you want it: setting, beat, line, pose and camera. Render takes, ★ keep the best, then make it move.
-6. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day, Story and Scenes, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
+6. **Script** *(optional, on the Scene page)* — import a screenplay (Fountain or plain text), or **Write an episode** from a premise with the LLM; plan each scene's shots and render them all in a **run**.
+7. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day, Story and Scenes, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
 
-**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Make more realistic** (WAN 2.2 low-noise re-render), **Copy moves from a video** (Wan Animate 2), **Direct a move** (pose her through a few beats on a 3D body, then render it), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, and **Sketch over a still**.
+**Whole episodes:** write a half-hour script from a premise, then let an **episode run** render every shot unattended — it keeps the best take by its checks, redoes the ones that fail, can animate each kept take, and lists the few it wasn't sure of for you. Cut renders long films in pieces, lays **Music by scene** under the lines, and can **read the lines on stills** in each speaker's voice for a talking animatic.
+
+**Cut, in depth:** colour correction, LUTs, shot matching and a colour script; scopes and level meters; a transcript you can edit the film from; review notes and review links; a render queue with ProRes masters, chapters, loudness, subtitle tracks and stems; trailers, a press kit, continuity, dialogue and provenance reports; foley suggestions, **Make a sound** and an audio-described version.
+
+**Finishing tools** on any still or clip: **Sharpen & smooth** (SeedVR2 + RIFE), **Make more realistic** (WAN 2.2 low-noise re-render), **Copy moves from a video** (Wan Animate 2), **Direct a move** (pose her through a few beats on a 3D body, then render it), **Dance to music** (Wan-Dancer), **Lip-sync to a recording** (InfiniteTalk, one or two people), **Relight**, **Sketch over a still**, **Restyle** and **Remove or replace** (WAN 2.2 Fun VACE), and the **Motion brush** (WAN-Move).
 
 **Consistency:** one face (the Cast plate), one dressed plate per outfit, and the Cast's own places — set a photo of a real room and stills set there are built around it.
 
@@ -51,7 +56,7 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI) — details in [doc
 
 ## Quick start
 
-Requires **Node.js 22+** and a reachable **ComfyUI**.
+Requires **Node.js 24+** and a reachable **ComfyUI**.
 
 ```bash
 npm install
@@ -77,8 +82,9 @@ Docker: `cd docker && cp .env.example .env && docker compose up -d --build` — 
 | **Outfit** | `/fitting` | Clothing, shoes, try-ons, the dressed plate |
 | **Day** | `/day` | The day plan, stills, clips, Cut film |
 | **Story** | `/story` | Scene-by-scene stories with stills and clips |
-| **Scene** | `/scene` | One shot as you want it — takes, keep the best, make it move |
-| **Cut** | `/cut` | Put the film together: order, trim, music, titles, export |
+| **Scene** | `/scene` | One shot as you want it — takes, keep the best, make it move; scripts, locations and runs |
+| **Cut** | `/cut` | Put the film together: order, trim, colour, sound, titles, export |
+| **Film Director** | `/production` | The whole production at a glance: what's done, what's next, runs and their logs |
 | **Gallery** | `/gallery` | Everything rendered — filters by Cast, look, checks |
 | **Queue** | `/queue` | What ComfyUI is doing |
 | **Video · Compose · Refine · Inpaint** | | Single-shot tools under More |
@@ -91,10 +97,10 @@ The classic prompt and image tools (Generate, Format, Pet, Fantasy, Topics, Vari
 
 | Job | Engines |
 | --- | --- |
-| **Stills** | Qwen-Image 2.1 Turbo (default), Qwen-Image 2.1 Noct-Q / Noct-Q Fast, Qwen-Image-Edit 2511, Qwen Rapid AIO (SFW / NSFW), Bria Fibo 2.0 Edit Turbo, FLUX.2 Klein |
-| **Clips** | LTX-2.5 (talking clips, sound), WAN 2.2 Rapid AIO, MiniMax-H3 |
-| **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2 (Copy moves, the Director), Wan-Dancer, InfiniteTalk, Qwen-Edit Relight |
-| **Music** | ACE-Step 1.5 |
+| **Stills** | Qwen-Image-2512 / Qwen-Image-Edit 2511 (default: with a Cast plate, stills render on Edit 2511), Qwen-Image 2.1 Turbo (about 3× faster here), Qwen-Image 2.1 Noct-Q / Noct-Q Fast, Qwen Rapid AIO (SFW / NSFW), Bria Fibo 2.0 Edit Turbo, FLUX.2 Klein |
+| **Clips** | LTX-2.5 (talking clips, sound), MiniMax-H3 (longer clips, two people), WAN 2.2 Rapid AIO, Wan 2.1 Phantom (a new shot with a Cast member) |
+| **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2 (Copy moves, the Director), Wan-Dancer, InfiniteTalk, Qwen-Edit Relight, WAN 2.2 Fun VACE (Restyle, Remove or replace), WAN-Move (Motion brush) |
+| **Music & sound** | ACE-Step 1.5 (scores, music by scene), LTX-2.5 (Make a sound) |
 | **Language / vision** | Built-in llama.cpp, LM Studio, Ollama, or a hosted provider |
 
 Optional: the [Diffusers engine](https://github.com/doodersrage/castcut-diffusers) and cloud engines (Fal, Replicate, Grok, Gemini, Runway, Luma) for the single-shot tools.
