@@ -85,6 +85,11 @@ export type FilmPlaylistShot = {
   framing?: 'medium' | 'close';
   /** What is said on screen in this clip (its line, and the reply) — burned in as subtitles. */
   spoken?: string;
+  /**
+   * Stills: the lead's line in this shot. A still can't say it, so it is neither heard nor
+   * subtitled — unless Cut reads the lines on stills (still-lines.ts), which voices it.
+   */
+  stillLine?: string;
   /** Clips: the sound's level in the cut (1 = as recorded, 0 = muted). */
   volume?: number;
   /** Stills: push in, pull out or hold still (unset = the cut's alternating slow zoom). */

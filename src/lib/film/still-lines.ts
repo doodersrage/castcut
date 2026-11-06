@@ -1,8 +1,9 @@
 /**
  * Read the lines on stills (Part 19, the stills animatic): a still says its line only once it is
  * animated, so a cut of stills is silent. With this, each still's line is read in its speaker's
- * voice and the still holds for it. A Scene's lead line is the shot's `spoken`; another person's
- * line is in its beat as `Rob says: “…”` (day/script-shots.ts). One line a shot. Pure.
+ * voice and the still holds for it. The lead's line is the still's `stillLine` (or `spoken`);
+ * another person's line is in its beat as `Rob says: “…”` (day/script-shots.ts). One line a
+ * shot. Pure.
  */
 
 export type StillLine = {
@@ -16,10 +17,11 @@ const SAYS = /([A-Z][\w'’-]*(?: [A-Z][\w'’-]*)?) says: [“"](.+?)[”"]/;
 export function stillLineOf(shot: {
   kind?: string;
   spoken?: string;
+  stillLine?: string;
   caption?: string;
 }): StillLine | null {
   if (shot.kind !== 'still') return null;
-  const spoken = shot.spoken?.trim();
+  const spoken = shot.stillLine?.trim() || shot.spoken?.trim();
   if (spoken) return { text: spoken.slice(0, 400), speaker: { lead: true } };
   const said = SAYS.exec(shot.caption ?? '');
   if (said?.[2]?.trim()) {

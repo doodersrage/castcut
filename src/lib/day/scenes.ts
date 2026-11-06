@@ -1340,6 +1340,8 @@ export function sceneCutShots(
               kind: 'still',
               holdSec: stillHoldSec,
               entryId: take.promptId || scene.id,
+              // Her line, for Read the lines on stills (the reply is another person's).
+              ...(scene.slot.line?.trim() ? { stillLine: scene.slot.line.trim() } : {}),
             },
           ];
     });

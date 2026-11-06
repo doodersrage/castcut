@@ -3753,7 +3753,10 @@ const phases: Record<string, Phase> = {
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    // Music by scene shows once the monitor has loaded the whole cut (every picture: minutes for
+    // a long one). Not offered is a problem, not a note: the first episode went out silent.
     const music = page.getByTestId('cut-temp-music-make');
+    await music.waitFor({ timeout: 15 * 60_000 }).catch(() => undefined);
     if (await music.isVisible().catch(() => false)) {
       const started = Date.now();
       await music.click();
@@ -3764,7 +3767,8 @@ const phases: Record<string, Phase> = {
       }
       log('music cues made in', Math.round((Date.now() - started) / 60_000), 'min');
     } else {
-      log('no Music by scene offered');
+      problems.push('epcut: Music by scene was never offered — the film has no music');
+      log('✗ no Music by scene offered');
     }
     await shot(page, 'episode-cut-ready');
     const filmsBefore = await page.getByTestId('cut-film-entry').count();
