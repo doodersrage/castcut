@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.7.0] - 2026-11-06
+
+- Dialogue list and locations sheet
+- Continuity report, 180-degree rule, colour script, shot report, character and contact sheets
+- Cut pro rounds, production sheets, Animate beats and Scene fixes
+
 ## [v3.6.0] - 2026-11-05
 
 - CI: skip onnxruntime-node's CUDA download (its nuget fetch kept timing out)
