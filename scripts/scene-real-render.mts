@@ -9,6 +9,8 @@
  * Phases: setup (import the Cast files in SCENE_CASTS), scenes, takes, move, links, cut,
  * transfer, queue, phone. Screenshots go to SCENE_OUT.
  *
+ * A half-hour episode (Part 19): setup episode epshots eprun epcut (EPISODE_* settings below).
+ *
  * Script to film (M6 V2), in order on one install: setup engine script shots run keep cut2
  * package. `script` imports a short three-scene script for SCENE_CAST (default cast-mara);
  * `shots` drafts each scene's shots and makes one a Scene; `run` prepares a run over them,
@@ -146,7 +148,12 @@ async function openScene(page: Page, castId: string, path = '/scene') {
   await page.waitForTimeout(1500);
   // The page keeps the active Cast over `?character=` once one is chosen: switch in Setup.
   const chip = page.getByTestId('day-setup-chip');
-  const name = castId.replace(/^cast-/, '');
+  // Ids like cast-mara name the Cast; an imported one (char-…) is named by SCENE_CAST_NAME.
+  const name = (
+    castId === process.env.SCENE_CAST ? (process.env.SCENE_CAST_NAME ?? castId) : castId
+  )
+    .replace(/^cast-/, '')
+    .toLowerCase();
   if (
     (await chip.isVisible().catch(() => false)) &&
     !(await chip.textContent())?.toLowerCase().includes(name)
@@ -680,6 +687,25 @@ async function storedScripts(page: Page): Promise<StoredScript[]> {
   if (scripts?.length) return scripts;
   const scene = (await toolSettings(page)).scene as { scripts?: StoredScript[] } | undefined;
   return scene?.scripts ?? [];
+}
+
+// Part 19: the episode (EPISODE_* overrides).
+const EP_PARTNER = process.env.EPISODE_PARTNER ?? '';
+const EP_LEAD_NAME = process.env.EPISODE_LEAD_NAME ?? 'Lena';
+const EP_PARTNER_NAME = process.env.EPISODE_PARTNER_NAME ?? 'Rob';
+const EP_MINUTES = Number(process.env.EPISODE_MINUTES ?? 30);
+const EP_TONE = process.env.EPISODE_TONE ?? 'warm comedy-drama';
+const EP_REDO = Number(process.env.EPISODE_REDO ?? 1);
+const EP_HOURS = Number(process.env.EPISODE_HOURS ?? 16);
+const EP_PREMISE =
+  process.env.EPISODE_PREMISE ??
+  'Lena inherits her late aunt’s run-down seaside café and has one summer to make it pay. Rob, the fisherman who supplies the kitchen and never says more than he must, turns out to know more about her aunt than he lets on.';
+
+/** The Scene page's More section (the scripts and the run live in it), opened. */
+async function openMore(page: Page) {
+  const more = page.getByTestId('scene-more');
+  await more.waitFor({ state: 'attached', timeout: 60_000 }).catch(() => undefined);
+  if (await more.count()) await more.evaluate(el => ((el as HTMLDetailsElement).open = true));
 }
 
 async function v2Script(page: Page) {
@@ -3341,6 +3367,285 @@ const phases: Record<string, Phase> = {
   },
 
   /** Import the Cast files (the Cast page's Import), each with its plate. */
+  /**
+   * Part 19, a half-hour episode, on one install: setup episode epshots eprun epcut. The lead is
+   * SCENE_CAST, the second person EPISODE_PARTNER (a Cast id); the premise EPISODE_PREMISE.
+   * `episode` writes it (Write an episode…: outline, every scene), keeps it and says who's who.
+   */
+  async episode(_ctx, page) {
+    await openScene(page, V2_CAST);
+    await openMore(page);
+    await page.getByTestId('script-write-episode').click({ timeout: 120_000 });
+    const sheet = page.getByTestId('episode-writer');
+    await sheet.getByTestId('episode-premise').fill(EP_PREMISE);
+    await sheet.getByTestId('episode-minutes').fill(String(EP_MINUTES));
+    await sheet.getByTestId('episode-tone').fill(EP_TONE);
+    const started = Date.now();
+    await sheet.getByTestId('episode-write-outline').click();
+    await sheet.getByTestId('episode-outline').waitFor({ timeout: 300_000 });
+    const scenes = await sheet.locator('[data-testid^="episode-scene-"]').count();
+    log(
+      'outline:',
+      (await sheet.getByTestId('episode-outline').locator('p').first().textContent())?.trim(),
+      '·',
+      scenes,
+      'scenes in',
+      Math.round((Date.now() - started) / 1000),
+      's'
+    );
+    await shot(page, 'episode-outline');
+    // Every scene written: Carry on after a scene the model failed twice (up to 5 times).
+    for (let pass = 0; pass < 6; pass += 1) {
+      const write = sheet.getByTestId('episode-write-scenes');
+      if (!(await write.isVisible().catch(() => false))) break;
+      await write.click();
+      const until = Date.now() + 90 * 60_000;
+      while (Date.now() < until) {
+        await page.waitForTimeout(5000);
+        if (
+          !(await sheet
+            .getByTestId('episode-busy')
+            .isVisible()
+            .catch(() => false))
+        )
+          break;
+      }
+      const written = await sheet.locator('[data-written="true"]').count();
+      log(
+        'written',
+        written,
+        'of',
+        scenes,
+        'after',
+        Math.round((Date.now() - started) / 60_000),
+        'min'
+      );
+    }
+    await sheet.getByTestId('episode-use').click();
+    const text = await page.getByTestId('script-import-text').inputValue();
+    writeFileSync(join(OUT, 'episode.fountain'), text);
+    log('screenplay', text.length, 'characters → episode.fountain');
+    log(
+      'summary:',
+      (
+        await page
+          .getByTestId('script-summary')
+          .textContent()
+          .catch(() => '')
+      )?.trim()
+    );
+    await page.getByTestId('script-keep').click();
+    await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+    // Who's who: the lead's and the partner's parts; everyone else stays a stranger.
+    const parts = await page
+      .locator('[data-testid^="script-speaker-"][data-status]')
+      .evaluateAll(list =>
+        list.map(el => (el as HTMLElement).dataset.testid!.replace('script-speaker-', ''))
+      );
+    log('speaking parts:', parts.join(', '));
+    for (const [castId, name] of [
+      [V2_CAST, EP_LEAD_NAME],
+      [EP_PARTNER, EP_PARTNER_NAME],
+    ] as const) {
+      const part = parts.find(entry => entry.toUpperCase() === name.toUpperCase());
+      if (!part) {
+        log('no speaking part named', name);
+        continue;
+      }
+      await attempt(page, `${part} is the Cast`, async () => {
+        const row = page.getByTestId(`script-speaker-${part}`);
+        const confirm = page.getByTestId(`script-speaker-confirm-${part}`);
+        if (await confirm.isVisible().catch(() => false)) await confirm.click();
+        else await row.getByRole('combobox').selectOption(castId);
+        await page.waitForTimeout(800);
+      });
+    }
+    await shot(page, 'episode-kept');
+  },
+
+  /** Part 19: every scene's shots drafted (the LLM, else the rules). */
+  async epshots(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script — run the episode phase first');
+    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await openMore(page);
+    await page.getByTestId('script-reading').waitFor({ timeout: 120_000 });
+    const ids = await page
+      .locator('[data-testid^="script-scene-"]')
+      .evaluateAll(list =>
+        list
+          .map(el => (el as HTMLElement).dataset.testid!.replace('script-scene-', ''))
+          .filter(id => !id.includes('-shot'))
+      );
+    log(ids.length, 'scenes');
+    for (const sceneId of ids) {
+      await attempt(page, `draft ${sceneId}`, async () => {
+        const scene = page.getByTestId(`script-scene-${sceneId}`);
+        if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
+        const before = await page.locator(`[data-testid^="script-shot-${sceneId}~"]`).count();
+        if (before) return;
+        const llm = page.getByTestId(`script-shots-draft-llm-${sceneId}`);
+        if (await llm.isVisible().catch(() => false)) {
+          await llm.click();
+          await page
+            .locator(`[data-testid^="script-shot-${sceneId}~"]`)
+            .first()
+            .waitFor({ timeout: 180_000 })
+            .catch(() => undefined);
+        }
+        if (!(await page.locator(`[data-testid^="script-shot-${sceneId}~"]`).count())) {
+          log(sceneId, 'LLM draft gave nothing — the rules draft it');
+          await page.getByTestId(`script-shots-draft-${sceneId}`).click();
+          await page.locator(`[data-testid^="script-shot-${sceneId}~"]`).first().waitFor();
+        }
+      });
+    }
+    const drafted = (await v2Script(page))?.shots ?? [];
+    log('drafted', drafted.length, 'shots');
+    await shot(page, 'episode-shots');
+  },
+
+  /** Part 19: an episode run — keep the best take, one redo, no animating — to the end. */
+  async eprun(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script');
+    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await openMore(page);
+    if (
+      !(await page
+        .getByTestId('scene-run')
+        .isVisible()
+        .catch(() => false))
+    ) {
+      await page.getByTestId('script-prepare-run').click({ timeout: 120_000 });
+      log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
+      await page.getByTestId('scene-run-auto-keep').check();
+      await page.getByTestId('scene-run-auto-redo').selectOption(String(EP_REDO));
+      log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
+      await shot(page, 'episode-run-prepared');
+    }
+    const started = Date.now();
+    await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+    let last = 0;
+    const run = await waitForRun(
+      page,
+      entry => {
+        const done = Object.keys(entry.outcomes ?? {}).length;
+        if (Date.now() - last > 10 * 60_000) {
+          last = Date.now();
+          log(
+            new Date().toISOString().slice(11, 16),
+            entry.state,
+            done,
+            'done',
+            entry.stopReason ? `· ${entry.stopReason}` : ''
+          );
+        }
+        // A pause (a take that wasn't queued, a Scene that didn't open) is resumed, once a minute.
+        if (entry.state === 'paused')
+          void page
+            .getByTestId('scene-run-start')
+            .click()
+            .catch(() => undefined);
+        return ['done', 'cancelled'].includes(entry.state ?? '');
+      },
+      EP_HOURS * 60
+    );
+    const log2 = run.log ?? [];
+    const count = (event: string) => log2.filter(entry => entry.event === event).length;
+    log(
+      'episode run',
+      run.state,
+      'in',
+      Math.round((Date.now() - started) / 60_000),
+      'min ·',
+      Object.keys(run.outcomes ?? {}).length,
+      'Scenes ·',
+      count('kept'),
+      'kept clean ·',
+      count('flagged'),
+      'flagged ·',
+      count('redo'),
+      'redos'
+    );
+    writeFileSync(join(OUT, 'episode-run.json'), JSON.stringify(run, null, 1));
+    await shot(page, 'episode-run-done');
+  },
+
+  /** Part 19: the episode cut — music by scene, lines read, the long film. */
+  async epcut(_ctx, page) {
+    await go(page, `/cut?from=scenes&character=${V2_CAST}`);
+    const button = page.getByTestId('cut-film').first();
+    await button.waitFor({ timeout: 300_000 });
+    await page.waitForTimeout(5000);
+    await page.getByTestId('cut-tab-options').click();
+    const read = page.getByTestId('cut-read-lines');
+    await read.waitFor({ timeout: 60_000 });
+    if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    const music = page.getByTestId('cut-temp-music-make');
+    if (await music.isVisible().catch(() => false)) {
+      const started = Date.now();
+      await music.click();
+      const until = Date.now() + 120 * 60_000;
+      while (Date.now() < until) {
+        await page.waitForTimeout(10_000);
+        if ((await music.textContent())?.includes('Make the cues')) break;
+      }
+      log('music cues made in', Math.round((Date.now() - started) / 60_000), 'min');
+    } else {
+      log('no Music by scene offered');
+    }
+    await shot(page, 'episode-cut-ready');
+    const filmsBefore = await page.getByTestId('cut-film-entry').count();
+    const started = Date.now();
+    await button.click();
+    for (let i = 0; i < 20; i += 1) {
+      await page.waitForTimeout(1500);
+      if (
+        await page
+          .getByTestId('cut-blocked-dialog')
+          .isVisible()
+          .catch(() => false)
+      ) {
+        log('asked:', (await page.getByTestId('cut-blocked-ask').textContent())?.trim());
+        await page.getByTestId('confirm-dialog-confirm').click();
+      }
+      if (
+        await page
+          .getByTestId('cut-problems-cut-anyway')
+          .isVisible()
+          .catch(() => false)
+      ) {
+        await page.getByTestId('cut-problems-cut-anyway').click();
+      }
+    }
+    const until = Date.now() + 240 * 60_000;
+    let said = '';
+    while (Date.now() < until) {
+      if ((await page.getByTestId('cut-film-entry').count()) > filmsBefore) break;
+      const now =
+        (
+          await page
+            .getByTestId('cut-status')
+            .textContent()
+            .catch(() => '')
+        )?.trim() ?? '';
+      if (now && now !== said) {
+        said = now;
+        log('  ', now.slice(0, 160));
+      }
+      await page.waitForTimeout(15_000);
+    }
+    log('episode cut in', Math.round((Date.now() - started) / 60_000), 'min');
+    await attempt(page, 'the episode is cut', async () => {
+      if ((await page.getByTestId('cut-film-entry').count()) <= filmsBefore)
+        throw new Error(said || 'no film');
+    });
+    await shot(page, 'episode-cut-done');
+  },
+
   async setup(_ctx, page) {
     const files = readdirSync(CASTS).filter(name => name.endsWith('.castcut.json'));
     for (const name of files) await importCast(page, name);

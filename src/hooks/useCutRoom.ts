@@ -29,10 +29,12 @@ import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
 import { castVoiceOf } from '@/lib/cast/voice';
+import { stillLineOf } from '@/lib/film/still-lines';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import {
   applyCharacterRecord,
   getCharacter,
+  loadCharacters,
   looksOf,
   type CharacterRecord,
 } from '@/lib/character/os';
@@ -2346,6 +2348,55 @@ export function useCutRoom() {
               narrationUrl: url,
               narrationText: line,
             };
+        }
+        // Read the lines on stills (Part 19): a still's line in its speaker's voice — the lead's
+        // own, the other person's by name from the Cast — and the still held for it.
+        if (cutOptions.readLines === true) {
+          const people = loadCharacters();
+          const leadId = cast?.id;
+          for (const [index, shot] of picked.entries()) {
+            if (shot.narrationUrl) continue;
+            const said = stillLineOf(shot);
+            if (!said) continue;
+            const who = said.speaker.lead
+              ? leadId
+                ? getCharacter(leadId)
+                : undefined
+              : people.find(
+                  member =>
+                    member.name.trim().toLowerCase() ===
+                    (said.speaker as { name: string }).name.toLowerCase()
+                );
+            const sex: 'woman' | 'man' =
+              who?.traits?.sex === 'man'
+                ? 'man'
+                : who?.traits?.sex === 'woman'
+                  ? 'woman'
+                  : said.speaker.lead
+                    ? 'woman'
+                    : cast?.traits?.sex === 'woman'
+                      ? 'man'
+                      : 'woman';
+            const sample = who ? castVoiceOf(who.id)?.sample : undefined;
+            const cacheKey = `line:${who?.id ?? sex}:${said.text}`;
+            let url = storyNarrationCache.current.get(cacheKey);
+            if (!url) {
+              setStatus(`Reading ${shot.title}’s line…`);
+              url = await renderNarrationLine({
+                line: said.text,
+                speaker: sex,
+                ...(sample ? { voiceSample: sample } : {}),
+              }).catch(() => undefined);
+              if (url) storyNarrationCache.current.set(cacheKey, url);
+            }
+            if (url) {
+              picked[index] = {
+                ...holdForNarration(shot, said.text),
+                narrationUrl: url,
+                narrationText: said.text,
+              };
+            }
+          }
         }
         // An audio-described version (Part 18 R7): every shot with nothing said gets a short
         // description of what is seen, read in the other voice — so it is never taken for her.

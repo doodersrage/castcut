@@ -3551,3 +3551,13 @@ Part 19 status: G1–G4 done. Still between Castcut and an unattended episode: a
 real script on ComfyUI (none yet — it needs the user's machine and hours of GPU), the redo and
 animate paths under a real run, and Cut's order for Scenes prepared at different times (by when
 each was made, not script order).
+
+### Part 19 — the stills animatic, and the overnight episode (user, 2026-11-05: "queue release and run a full overnight episode"; chose 30 min as stills, Lena + Rob)
+
+- **Read the lines on stills:** still-lines.ts `stillLineOf` (the lead's `spoken`, else
+  `Name says: “…”` from the beat — how script-shots.ts writes another person's line); Cut option
+  `readLines` records each in the speaker's voice (`castVoiceOf(...).sample`, sex from the Cast,
+  a stranger in the other voice) and `holdForNarration` holds the still for it.
+- **Driver:** scripts/scene-real-render.mts phases `episode` (Write an episode…, Who's who),
+  `epshots` (LLM draft, rules fallback), `eprun` (episode run: keep, redo, resume a pause),
+  `epcut` (Read the lines, Music by scene, the long cut); `SCENE_CAST_NAME` for imported Casts.

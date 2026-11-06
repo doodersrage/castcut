@@ -113,6 +113,8 @@ export type FilmCutOptionsValue = {
   subtitleTrack?: boolean;
   /** End credits rolling after the last shot, one line each (polish.ts normalizeFilmCredits). */
   credits?: string;
+  /** Read each still's line in its speaker's voice, the still held for it (a stills animatic). */
+  readLines?: boolean;
   /** Describe what each silent shot shows, in a narrator's voice (an audio-described version). */
   audioDescription?: boolean;
   /** "REVIEW" and the running timecode burned into the picture (a review copy). */
@@ -448,12 +450,21 @@ export default function FilmCutOptionsControls({
         title="Sound"
         summary={join(
           hasBed ? `music: ${bedLabel || 'a track'}` : 'no music',
-          value.sound?.ambienceUrl?.trim() && 'ambience'
+          value.sound?.ambienceUrl?.trim() && 'ambience',
+          value.readLines === true && 'lines read'
         )}
         defaultOpen
         persistKey={groupKey('sound')}
         testId={`${testIdPrefix}-options-sound`}
       >
+        <OptionSwitch
+          label="Read the lines on stills"
+          note="A still's line in its speaker's voice, the still held for it — a stills animatic talks"
+          checked={value.readLines === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, readLines: next })}
+          testId={`${testIdPrefix}-read-lines`}
+        />
         <OptionRow label="Music">
           <span
             className="min-w-0 flex-1 truncate type-caption text-[var(--text-primary)]"

@@ -242,6 +242,12 @@ _Make a sound_ (LTX-2.5, about half a minute) and places it; **Make all** does t
 hides one. A sound already placed near that moment isn't suggested again. Places and weather go
 under the whole shot, quieter.
 
+**Read the lines on stills** (Options → Sound): a still says its line only once it is animated,
+so a cut of stills is silent. With this on, each still's line is read when the film is cut — the
+lead's in her own kept voice, another Cast member's in theirs (by the name the shot gives), anyone
+else in a generic voice of the other sex — and the still is held for as long as the line takes.
+A cut of a whole episode's kept stills becomes a talking animatic.
+
 **Music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
 style for each stretch (ACE-Step, about ten seconds each), placed at its start and stopped where
 the next starts. A stretch longer than two minutes is several cues in the same style (a score can
