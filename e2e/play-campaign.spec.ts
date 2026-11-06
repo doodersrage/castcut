@@ -1274,12 +1274,16 @@ test('story mid-flow: edit a scene in the reel, then write its still again', asy
   await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
   // Edit scene sits in the stage card's ⋯ menu and opens the scene's side sheet. The newest
   // scene is on stage; the strip brings the others up.
-  const editButtons = page.getByTestId('story-beat-edit');
+  // The stage card's own menu (the scene on stage stays where it is).
+  await page.getByTestId('story-beat-menu-trigger').first().click();
+  const stageMenu = page.getByTestId('story-beat-menu-panel');
+  const editButtons = stageMenu.getByTestId('story-beat-edit');
   await expect(editButtons).toHaveCount(1);
   // A scene whose still is rendering cannot be edited underneath its job.
   await expect(editButtons.first()).toBeDisabled();
   // Nothing to write again until the text changes.
-  await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await expect(stageMenu.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   await openStoryBeatSheet(page, 0);
   const editor = page.getByTestId('story-beat-editor');
   await expect(editor.getByTestId('story-beat-edit-title')).toHaveValue('The letter');
@@ -1523,11 +1527,15 @@ test('phone story: edit a scene in the reel, then write its still again', async 
   await expect(page.getByText('The letter').filter({ visible: true }).first()).toBeVisible({
     timeout: 30_000,
   });
-  const editButtons = page.getByTestId('story-beat-edit');
+  // The stage card's own menu (the scene on stage stays where it is).
+  await page.getByTestId('story-beat-menu-trigger').first().click();
+  const stageMenu = page.getByTestId('story-beat-menu-panel');
+  const editButtons = stageMenu.getByTestId('story-beat-edit');
   await expect(editButtons).toHaveCount(1);
   // The newest scene is on stage; its still is rendering, so it cannot be edited (as on desk).
   await expect(editButtons.first()).toBeDisabled();
-  await expect(page.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await expect(stageMenu.getByTestId('story-beat-rewrite')).toHaveCount(0);
+  await page.keyboard.press('Escape');
   // The same ⋯ menu and scene sheet as desk (a bottom sheet on the phone).
   await openStoryBeatSheet(page, 0);
   const editor = page.getByTestId('story-beat-editor');
@@ -2428,9 +2436,10 @@ test('day cut: face marks, what the cut leaves out, shape, clip trim, and a miss
   // A closer frame for a still, the poster from a clip frame, and the lines' level.
   await room.getByTestId('cut-shot-framing-day:morning').selectOption('close');
   await room.getByTestId('cut-shot-menu-day:night-trigger').click();
-  await room.getByTestId('cut-shot-poster-day:night').click();
-  await expect(room.getByTestId('cut-shot-poster-day:night')).toHaveAttribute('aria-pressed', 'true');
-  await room.getByTestId('cut-shot-poster-at-day:night').fill('2.5');
+  // The shot menu is portalled to the body: its items are on the page, not in the room.
+  await page.getByTestId('cut-shot-poster-day:night').click();
+  // Picking it closes the menu; the poster's frame field shows on the card.
+  await page.getByTestId('cut-shot-poster-at-day:night').fill('2.5');
   await page.getByTestId('cut-tab-options').click();
   await room.getByTestId('cut-voice-level').fill('1.5');
   // The choices stay as set (Cut keeps its options between visits).

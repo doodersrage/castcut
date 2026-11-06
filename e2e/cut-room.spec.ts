@@ -1173,7 +1173,11 @@ test('look and speed: the monitor shows the grade, a 2× clip halves its block, 
   await page.getByTestId('cut-shot-menu-day:morning-trigger').click();
   await page.getByTestId('cut-shot-overlay-day:morning').click();
   await page.getByTestId('cut-shot-overlay-editor-day:morning-lower').fill('Nora');
+  // The menu closed on the pick; the editor stays open on the card (its menu item says so).
+  await expect(page.getByTestId('cut-shot-overlay-editor-day:morning-lower')).toHaveValue('Nora');
+  await page.getByTestId('cut-shot-menu-day:morning-trigger').click();
   await expect(page.getByTestId('cut-shot-overlay-day:morning')).toHaveAttribute('aria-expanded', 'true');
+  await page.keyboard.press('Escape');
   // A still's hand-set move: from… to… shows its two framings.
   await page.getByTestId('cut-shot-motion-day:morning').selectOption('custom');
   await expect(page.getByTestId('cut-shot-move-to-day:morning')).toHaveValue('centre');

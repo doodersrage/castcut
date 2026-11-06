@@ -27,7 +27,12 @@ export default function ShotCardMenu({
 }) {
   return (
     <div className={className}>
+      {/* Portalled: shot cards sit under sticky bars and later cards, which painted over an
+          in-place panel (the Day board's queue bar cut through the menu). */}
       <ActionMenu
+        portal
+        maxPanelHeight={640}
+        panelTestId={testId ? `${testId}-panel` : undefined}
         label={<span aria-hidden="true">⋯</span>}
         summaryAriaLabel={`${label} actions`}
         caret={false}

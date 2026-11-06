@@ -25,12 +25,13 @@ export async function showStoryBeat(page: Page, index = 0): Promise<number> {
 
 export async function openStoryBeatMenu(page: Page, index = 0): Promise<Locator> {
   const card = await showStoryBeat(page, index);
-  const menu = page.getByTestId('story-beat-menu').nth(card);
-  if ((await menu.getAttribute('open')) == null) {
-    await page.getByTestId('story-beat-menu-trigger').nth(card).click({ timeout: 30_000 });
+  // The menu is portalled to the body: open state is on the trigger, items are in the panel.
+  const trigger = page.getByTestId('story-beat-menu-trigger').nth(card);
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+    await trigger.click({ timeout: 30_000 });
   }
-  await expect(menu).toHaveAttribute('open', '');
-  return menu;
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  return page.getByTestId('story-beat-menu-panel');
 }
 
 export async function openStoryBeatSheet(
@@ -45,11 +46,10 @@ export async function openStoryBeatSheet(
     }
     await closeStorySheets(page);
   }
-  await openStoryBeatMenu(page, index);
-  const card = await showStoryBeat(page, index);
-  await page
+  // One menu panel is open at a time (portalled): its item, not the nth card's.
+  const panel = await openStoryBeatMenu(page, index);
+  await panel
     .getByTestId(via === 'edit' ? 'story-beat-edit' : 'story-beat-pose-open')
-    .nth(card)
     .click({ timeout: 30_000 });
   await expect(sheet).toBeVisible({ timeout: 30_000 });
   await expect(sheet).toHaveAttribute('data-beat-index', String(index));
