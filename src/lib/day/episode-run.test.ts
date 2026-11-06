@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { bestSceneTake, takeCheckMisses } from './episode-run';
+import { bestSceneTake, episodeRedoEngine, takeCheckMisses } from './episode-run';
 
 const take = (id: string, at: number, extra = {}) => ({ id, promptId: id, imageUrl: `/${id}.png`, at, ...extra });
 
@@ -35,5 +35,15 @@ describe('episode run: which take to keep', () => {
     const unchecked = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, () => undefined);
     assert.deepEqual([unchecked?.take.id, unchecked?.checked], ['b', false]);
     assert.equal(bestSceneTake({ takes: [] }, () => undefined), null);
+  });
+});
+
+describe('episode run: the engine a redo goes on', () => {
+  it('sends a Qwen-Image 2.1 pose or hand-and-prop miss to Edit 2511, nothing else', () => {
+    assert.equal(episodeRedoEngine({ gestureMiss: 'holding the cup' }, 'qwen-image-2.1'), 'qwen-edit-2511');
+    assert.equal(episodeRedoEngine({ poseMiss: true }, 'qwen-image-2.1'), 'qwen-edit-2511');
+    assert.equal(episodeRedoEngine({ gestureMiss: '  ' }, 'qwen-image-2.1'), null);
+    assert.equal(episodeRedoEngine({ poseMiss: true }, 'qwen-edit-2511'), null, 'already on 2511');
+    assert.equal(episodeRedoEngine(undefined, 'qwen-image-2.1'), null);
   });
 });

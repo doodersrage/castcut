@@ -21,7 +21,9 @@ import {
   withRunRedo,
   type SceneRun,
 } from '@/lib/day/scene-run';
-import { bestSceneTake } from '@/lib/day/episode-run';
+import { bestSceneTake, episodeRedoEngine } from '@/lib/day/episode-run';
+import { POSE_REPORT_ENGINE_LABELS } from '@/lib/pose/pose-engine-report';
+import { poseModelFamily } from '@/lib/pose/pose-model-profile';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -139,7 +141,8 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         OPEN_TIMEOUT_MS
       );
       const active = pageRef.current.active;
-      const checks = new Map(loadComfyGallery().map(entry => [entry.promptId, entry.playChecks]));
+      const gallery = loadComfyGallery();
+      const checks = new Map(gallery.map(entry => [entry.promptId, entry.playChecks]));
       const pick =
         active?.id === sceneId ? bestSceneTake(active, id => checks.get(id) ?? undefined) : null;
       let run = runRef.current!;
@@ -148,7 +151,23 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const failing = !pick || pick.misses.length > 0;
       if (failing && tries <= auto.redo && runTakesTaken(run) + 1 < run.maxTakes) {
         const why = pick ? pick.misses.join(', ') : 'no take to keep';
-        save(withRunRedo(run, sceneId, `${name}: ${why} — rendering it again`));
+        // A hand-and-prop miss on Qwen-Image 2.1 goes again on Edit 2511 (that redo only).
+        const pickedId = pick ? (pick.take.promptId ?? pick.take.id) : null;
+        const engine = pickedId
+          ? episodeRedoEngine(
+              checks.get(pickedId) ?? undefined,
+              poseModelFamily(gallery.find(entry => entry.promptId === pickedId)?.model)
+            )
+          : null;
+        save(
+          withRunRedo(
+            run,
+            sceneId,
+            `${name}: ${why} — rendering it again${engine ? ` on ${POSE_REPORT_ENGINE_LABELS[engine]}` : ''}`,
+            Date.now(),
+            engine
+          )
+        );
         return true;
       }
       if (!pick) {
@@ -319,7 +338,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         if (!promptId) {
           const before = pageRef.current.still?.promptId;
           save({ ...run, current: { sceneId, at: Date.now() } });
-          await vmRef.current.queueSlot(pageRef.current.slot, { byPlayer: true });
+          await vmRef.current.queueSlot(pageRef.current.slot, {
+            byPlayer: true,
+            engine: run.redoOn?.[sceneId],
+          });
           const queued = await until(() => {
             const id = pageRef.current.still?.promptId;
             return Boolean(id && id !== before);

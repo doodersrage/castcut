@@ -7,6 +7,7 @@
  */
 
 import type { GalleryPlayChecks } from '../gallery/comfyui-gallery-entry';
+import type { DaySlotEngine } from './planner';
 import type { SavedScene, SceneTake } from './scenes';
 
 /** What a take's checks found wrong, in words (empty: nothing, or not checked). */
@@ -80,4 +81,18 @@ export function normalizeEpisodeRunAuto(raw: unknown): EpisodeRunAuto | undefine
   const keep = value.keep === true;
   // Animating follows keeping: there is no kept take to move otherwise.
   return { keep, redo, animate: keep && value.animate === true };
+}
+
+/**
+ * The engine a redo renders on. Qwen-Image 2.1 is quick but loses hands and what they hold (a
+ * cup, a utensil — the overnight episode's most common miss after the outfit): a take on it that
+ * missed the pose or the action goes again on Edit 2511, which holds them better — that redo
+ * only (the Scene keeps its engine). Null: the redo stays on the engine it was on.
+ */
+export function episodeRedoEngine(
+  checks: Pick<GalleryPlayChecks, 'poseMiss' | 'gestureMiss'> | undefined,
+  family: string | null | undefined
+): DaySlotEngine | null {
+  if (family !== 'qwen-image-2.1' || !checks) return null;
+  return checks.poseMiss || checks.gestureMiss?.trim() ? 'qwen-edit-2511' : null;
 }

@@ -201,7 +201,9 @@ Under the limits, **Episode**:
   Switching it on with the limits at their defaults fits them to the script: a take per Scene and
   its redos, up to a day.
 - **Redo a failing take** 0–3 times — when even the best take missed a check, the Scene is
-  rendered again (each redo counts toward the take limit).
+  rendered again (each redo counts toward the take limit). On Qwen-Image 2.1, a redo for a missed
+  pose or action (a hand holding a cup, a utensil — what 2.1 loses most) renders on Edit 2511 when
+  it's installed, that redo only; the run's log says so.
 - **Animate each kept take** — the kept take is animated with the page's own Animate (a talking
   clip when the shot has a line), and the run waits for the clip before the next Scene. A clip
   that fails leaves the still in place.

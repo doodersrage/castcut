@@ -303,4 +303,14 @@ describe('an episode run (Part 19 G1)', () => {
       animate: false,
     });
   });
+
+  it('remembers the engine a redo goes on, for that redo, and stores only engines it knows', () => {
+    const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
+    let next = withRunRedo(run, 'a', 'the action (holding the cup)', 6, 'qwen-edit-2511');
+    assert.deepEqual(next.redoOn, { a: 'qwen-edit-2511' });
+    assert.deepEqual(normalizeSceneRun(JSON.parse(JSON.stringify(next)))?.redoOn, { a: 'qwen-edit-2511' });
+    next = withRunRedo(next, 'a', 'the outfit', 7);
+    assert.equal(next.redoOn, undefined, 'a second redo on no engine goes back to the Day’s');
+    assert.equal(normalizeSceneRun({ ...run, redoOn: { a: 'flux' } })?.redoOn, undefined);
+  });
 });

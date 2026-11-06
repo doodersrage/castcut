@@ -7,6 +7,7 @@
  */
 import { parseScript } from '../script/parse';
 import { normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
+import { normalizeDaySlotEngine, type DaySlotEngine } from './planner';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
@@ -77,6 +78,8 @@ export type SceneRun = {
   attempts?: Record<string, number>;
   /** Scenes kept with a take that still failed its checks: what it missed (for review). */
   flagged?: Record<string, string>;
+  /** A redo to render on another engine than the Day's (episodeRedoEngine), by Scene. */
+  redoOn?: Record<string, DaySlotEngine>;
   log: SceneRunLogEntry[];
   createdAt: number;
   updatedAt: number;
@@ -270,13 +273,14 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     ...countsField('flagged', run.flagged, value =>
       typeof value === 'string' && value.trim() ? value.trim().slice(0, 200) : null
     ),
+    ...countsField('redoOn', run.redoOn, value => normalizeDaySlotEngine(value) ?? null),
     log: (Array.isArray(run.log) ? run.log : []).slice(-RUN_LOG_MAX) as SceneRunLogEntry[],
     createdAt: whole(run.createdAt, 0, Number.MAX_SAFE_INTEGER, 0),
     updatedAt: whole(run.updatedAt, 0, Number.MAX_SAFE_INTEGER, 0),
   };
 }
 
-function countsField<K extends 'attempts' | 'flagged'>(
+function countsField<K extends 'attempts' | 'flagged' | 'redoOn'>(
   key: K,
   raw: unknown,
   clean: (value: unknown) => NonNullable<SceneRun[K]>[string] | null
@@ -336,12 +340,17 @@ export function withRunRedo(
   run: SceneRun,
   sceneId: string,
   detail: string,
-  now = Date.now()
+  now = Date.now(),
+  /** The engine the redo renders on (episodeRedoEngine); none: the Day's. */
+  engine?: DaySlotEngine | null
 ): SceneRun {
-  const { current: _current, ...rest } = run;
+  const { current: _current, redoOn, ...rest } = run;
+  const { [sceneId]: _was, ...otherRedos } = redoOn ?? {};
+  const nextRedos = engine ? { ...otherRedos, [sceneId]: engine } : otherRedos;
   return withRunLog(
     {
       ...rest,
+      ...(Object.keys(nextRedos).length ? { redoOn: nextRedos } : {}),
       attempts: { ...(run.attempts ?? {}), [sceneId]: (run.attempts?.[sceneId] ?? 0) + 1 },
     },
     { at: now, sceneId, event: 'redo', detail }

@@ -3537,7 +3537,12 @@ const phases: Record<string, Phase> = {
     await openMore(page);
     await page.waitForTimeout(5000);
     // A copy synced back from the server can bring the old run back: discard it here too.
-    if (await page.getByTestId('scene-run').isVisible().catch(() => false)) {
+    if (
+      await page
+        .getByTestId('scene-run')
+        .isVisible()
+        .catch(() => false)
+    ) {
       await page.getByTestId('scene-run-discard').click();
       await page.getByTestId('confirm-dialog-confirm').click();
       log('an old run came back from the server copy — discarded');

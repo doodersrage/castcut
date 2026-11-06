@@ -89,7 +89,7 @@ export function SceneTakeCard({
  * The scene's takes: tap one to put it on the card, ★ keeps it (Cut uses it, Make it move starts
  * from it), i says how it was made, × drops it from the scene (it stays in the Gallery, and Recently
  * deleted puts it back for 14 days). Good and Reject are your verdict, without rendering again
- * (M7 T3): rejected takes are hidden until shown, and restorable; Compare puts two side by side. `strip`: one swipeable row with 44 px
+ * (M7 T3): rejected takes are hidden until shown, and restorable; Compare puts two side by side. `strip`: one swipeable row with 44 px tall
  * buttons (the phone); else a wrapping grid.
  */
 export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boolean }) {
@@ -137,7 +137,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
             <li
               key={take.id}
               className={`group/take relative shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] border-2 ${
-                strip ? 'w-28' : 'w-full'
+                strip ? 'w-36' : 'w-full'
               } ${
                 onCard
                   ? 'border-[var(--accent-border)]'
@@ -174,25 +174,32 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                   {isRejected || take.review === 'approved' ? (
                     <span
                       className={`type-caption pointer-events-none absolute bottom-1 left-1 rounded bg-[var(--bg-base)]/85 px-1 ${
-                        isRejected ? 'text-[var(--text-muted)]' : 'text-[var(--tint-success-text)]'
+                        isRejected
+                          ? '!text-[var(--text-muted)]'
+                          : '!text-[var(--tint-success-text)]'
                       }`}
                     >
                       {isRejected ? 'Rejected' : '✓ Good'}
                     </span>
                   ) : null}
                 </button>
-                {onCard ? (
-                  <span className="type-caption pointer-events-none absolute left-1 top-1 rounded bg-[var(--bg-base)]/85 px-1 text-[var(--accent-text)]">
-                    On card
-                  </span>
-                ) : null}
-                {isKept ? (
-                  <span
-                    className="type-caption pointer-events-none absolute right-1 top-1 rounded bg-[var(--accent)] px-1.5 font-medium text-[var(--on-accent)]"
-                    data-testid={`scene-take-kept-badge-${index}`}
-                  >
-                    ★ Kept
-                  </span>
+                {/* One row that wraps: on a narrow take the two badges stack instead of overlapping. */}
+                {onCard || isKept ? (
+                  <div className="pointer-events-none absolute inset-x-1 top-1 flex flex-wrap items-start justify-between gap-0.5">
+                    {onCard ? (
+                      <span className="type-caption rounded bg-[var(--bg-base)]/85 px-1 !text-[var(--accent-text)]">
+                        On card
+                      </span>
+                    ) : null}
+                    {isKept ? (
+                      <span
+                        className="type-caption ml-auto rounded bg-[var(--accent)] px-1.5 font-medium !text-[var(--on-accent)]"
+                        data-testid={`scene-take-kept-badge-${index}`}
+                      >
+                        ★ Kept
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
                 {/* Quick actions on hover (or keyboard focus): keep it or reject it from the picture. */}
                 {!strip && !isRejected ? (
@@ -231,7 +238,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                     type="button"
                     className={
                       strip
-                        ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center font-medium no-underline'
+                        ? 'ui-text-link type-caption flex min-h-11 flex-1 items-center justify-center whitespace-nowrap font-medium no-underline'
                         : 'ui-text-link type-caption rounded px-1 py-0.5 hover:bg-[var(--bg-hover)]'
                     }
                     aria-pressed={isKept}
@@ -245,7 +252,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                     type="button"
                     className={
                       strip
-                        ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
+                        ? 'ui-text-link type-caption flex min-h-11 min-w-9 items-center justify-center no-underline'
                         : 'ui-text-link type-caption'
                     }
                     aria-label={`How take ${index + 1} was made`}
@@ -259,7 +266,7 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                     type="button"
                     className={
                       strip
-                        ? 'ui-text-link type-caption flex min-h-11 min-w-11 items-center justify-center no-underline'
+                        ? 'ui-text-link type-caption flex min-h-11 min-w-9 items-center justify-center no-underline'
                         : 'ui-text-link type-caption'
                     }
                     aria-label={`Remove take ${index + 1}`}
