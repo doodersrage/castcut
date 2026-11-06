@@ -176,6 +176,13 @@ async function openScene(page: Page, castId: string, path = '/scene') {
 /** Pick the page's engine by its label (the model select in the Engine chip's column). */
 async function setEngine(page: Page, label: string) {
   const chip = page.getByTestId('tool-engine-chip');
+  // Already on it: the chip names the engine ("Qwen-Image 2.1 Turbo · Good"). The sheet's model
+  // picker is blank while a take renders, and looking for the label there timed out a resume.
+  const short = label.replace(/\s*\([^)]*\)\s*$/, '');
+  if ((await chip.textContent({ timeout: 30_000 }))?.includes(short)) {
+    log('engine already', short);
+    return;
+  }
   if ((await chip.getAttribute('aria-expanded')) !== 'true') await chip.click();
   const sheet = page.getByRole('dialog').filter({ hasText: 'Model, quality, and LoRAs' }).first();
   await sheet.waitFor({ timeout: 30_000 });

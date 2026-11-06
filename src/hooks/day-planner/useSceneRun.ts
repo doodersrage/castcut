@@ -145,7 +145,12 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const checks = new Map(gallery.map(entry => [entry.promptId, entry.playChecks]));
       const pick =
         active?.id === sceneId ? bestSceneTake(active, id => checks.get(id) ?? undefined) : null;
-      let run = runRef.current!;
+      // The run can be missing for a moment — the page's settings reloaded under it (a sync, a
+      // remount): wait for it to come back rather than throw. A throw here ended the loop and
+      // left the 2026-11-06 episode "running" with nothing running it.
+      await until(() => Boolean(runRef.current?.auto), OPEN_TIMEOUT_MS);
+      if (!runRef.current?.auto) return false;
+      let run = runRef.current;
       const auto = run.auto!;
       const tries = (run.attempts?.[sceneId] ?? 0) + 1;
       const failing = !pick || pick.misses.length > 0;
