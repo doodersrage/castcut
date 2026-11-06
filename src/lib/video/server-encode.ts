@@ -565,6 +565,8 @@ export function buildFilterComplex(input: {
     atSec: number;
     level?: number;
     lengthSec?: number;
+    /** A music cue: it joins the music bed and ducks under the lines (Part 19 G4). */
+    duck?: boolean;
   }>;
   /**
    * Per shot: the input to read a clip's sound from (its own sound-only input), else the clip's
@@ -941,18 +943,34 @@ export function buildFilterComplex(input: {
     );
     if (input.stems) stemTap('speech0', 'speech', 'dialogue', true);
   }
-  if (hasAudioBed) {
-    const audioIndex = shotCount;
-    // The music from its start point, faded in when asked (the fade out is on the whole mix).
-    const musicStart = normalizeMusicStartSec(input.sound?.musicStartSec);
-    const fadeIn = normalizeMusicFadeInSec(input.sound?.musicFadeInSec);
-    const bed =
-      `[${audioIndex}:a]${stereo},atrim=${musicStart}:${musicStart + end},asetpts=PTS-STARTPTS${musicGain}${musicKeys}` +
-      (fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : '');
+  // Music cues (temp music by scene, Part 19 G4): placed like effects, but part of the music bed —
+  // under the score when there is one, the whole bed when not — so they duck under the lines.
+  const cues = effectsFilterParts({
+    effects: (input.effectInputs ?? []).filter(effect => effect.duck),
+    endSec: end,
+    stereo,
+    fadeOut: 'anull',
+    label: 'cue',
+  });
+  if (cues) parts.push(...cues.parts);
+  if (hasAudioBed || cues) {
+    if (hasAudioBed) {
+      const audioIndex = shotCount;
+      // The music from its start point, faded in when asked (the fade out is on the whole mix).
+      const musicStart = normalizeMusicStartSec(input.sound?.musicStartSec);
+      const fadeIn = normalizeMusicFadeInSec(input.sound?.musicFadeInSec);
+      parts.push(
+        `[${audioIndex}:a]${stereo},atrim=${musicStart}:${musicStart + end},asetpts=PTS-STARTPTS${musicGain}${musicKeys}` +
+          (fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : '') +
+          `,apad=whole_dur=${end}${cues ? '[score]' : '[bed]'}`
+      );
+      if (cues) parts.push(`[score][cue]amix=inputs=2:duration=first:normalize=0[bed]`);
+    } else {
+      parts.push(`[cue]anull[bed]`);
+    }
     if (speechCount > 0) {
       // Duck the music under the lines, then lay the lines on top.
       parts.push(`[speech]asplit=2[sp1][sp2]`);
-      parts.push(`${bed},apad=whole_dur=${end}[bed]`);
       parts.push(
         `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400${input.stems ? '[ducked0]' : '[ducked]'}`
       );
@@ -962,7 +980,7 @@ export function buildFilterComplex(input: {
         `[ducked][sp2]amix=inputs=2:duration=first:normalize=0,atrim=0:${end},${fadeOut}[aout]`
       );
     } else {
-      parts.push(`${bed},${fadeOut}${input.stems ? '[aout0]' : '[aout]'}`);
+      parts.push(`[bed]atrim=0:${end},${fadeOut}${input.stems ? '[aout0]' : '[aout]'}`);
       if (input.stems) stemTap('aout0', 'aout', 'music', false);
     }
     audioLabel = 'aout';
@@ -986,7 +1004,7 @@ export function buildFilterComplex(input: {
   }
   // Effects: each placed sound at its time, on top of everything (they don't duck the music).
   const effects = effectsFilterParts({
-    effects: input.effectInputs ?? [],
+    effects: (input.effectInputs ?? []).filter(effect => !effect.duck),
     endSec: end,
     stereo,
     fadeOut,
@@ -1273,8 +1291,13 @@ export async function encodeFilmPlaylistServer(
     }
 
     // The effects track (M10 T4): each placed sound the cut hears.
-    const effectFiles: Array<{ path: string; atSec: number; level?: number; lengthSec?: number }> =
-      [];
+    const effectFiles: Array<{
+      path: string;
+      atSec: number;
+      level?: number;
+      lengthSec?: number;
+      duck?: boolean;
+    }> = [];
     for (const [k, effect] of heardEffects(options.sound).entries()) {
       try {
         const fetched = await fetchShotBytes(effect.url, requestOrigin, undefined, options.userId);
@@ -1285,6 +1308,7 @@ export async function encodeFilmPlaylistServer(
           atSec: effect.atSec,
           level: effect.level,
           ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
+          ...(effect.duck ? { duck: true } : {}),
         });
       } catch {
         options.onProgress?.(
@@ -1778,6 +1802,7 @@ export async function encodeFilmPlaylistServer(
         atSec: effect.atSec,
         level: effect.level,
         ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
+        ...(effect.duck ? { duck: true } : {}),
       })),
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
@@ -2259,7 +2284,13 @@ export async function encodeFilmLongFormServer(
     };
     const bed = await fetchTo(options.audioBedUrl, 'bed.audio').catch(() => null);
     const ambience = await fetchTo(options.sound?.ambienceUrl, 'ambience.audio').catch(() => null);
-    const effects: Array<{ path: string; atSec: number; level?: number; lengthSec?: number }> = [];
+    const effects: Array<{
+      path: string;
+      atSec: number;
+      level?: number;
+      lengthSec?: number;
+      duck?: boolean;
+    }> = [];
     for (const [k, effect] of heardEffects(options.sound).entries()) {
       const file = await fetchTo(effect.url, `effect-${k}.audio`).catch(() => null);
       if (file) {
@@ -2268,6 +2299,7 @@ export async function encodeFilmLongFormServer(
           atSec: effect.atSec,
           level: effect.level,
           ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
+          ...(effect.duck ? { duck: true } : {}),
         });
       }
     }
@@ -2278,54 +2310,75 @@ export async function encodeFilmLongFormServer(
       fadeOutSec > 0
         ? `afade=t=out:st=${Math.max(0, endSec - fadeOutSec).toFixed(3)}:d=${fadeOutSec}`
         : 'anull';
+    // Inputs first (the joined film, the score, the ambience, each placed sound), then the graph.
     const inputs: string[] = ['-i', joined];
+    let next = 1;
+    const bedInput = bed ? (inputs.push('-i', bed), next++) : null;
+    const ambienceInput = ambience
+      ? (inputs.push('-stream_loop', '-1', '-i', ambience), next++)
+      : null;
+    const placed = effects.map(effect => {
+      inputs.push('-vn', '-i', effect.path);
+      return {
+        input: next++,
+        atSec: effect.atSec,
+        level: effect.level,
+        lengthSec: effect.lengthSec,
+        duck: effect.duck,
+      };
+    });
     const parts: string[] = [`[0:a]${stereo},apad=whole_dur=${endSec},atrim=0:${endSec}[speech]`];
     let label = 'speech';
-    let next = 1;
-    if (bed) {
-      inputs.push('-i', bed);
-      const at = next++;
-      const musicStart = normalizeMusicStartSec(options.sound?.musicStartSec);
-      const fadeIn = normalizeMusicFadeInSec(options.sound?.musicFadeInSec);
-      const level = normalizeMusicLevel(options.musicLevel);
-      const keys = levelKeysExpr(normalizeCutLevelKeys(options.sound?.musicKeys));
+    // Music cues join the score (Part 19 G4): the bed, ducked under what the pieces say.
+    const cues = effectsFilterParts({
+      effects: placed.filter(effect => effect.duck),
+      endSec,
+      stereo,
+      fadeOut: 'anull',
+      label: 'cue',
+    });
+    if (cues) parts.push(...cues.parts);
+    if (bedInput !== null || cues) {
+      if (bedInput !== null) {
+        const musicStart = normalizeMusicStartSec(options.sound?.musicStartSec);
+        const fadeIn = normalizeMusicFadeInSec(options.sound?.musicFadeInSec);
+        const level = normalizeMusicLevel(options.musicLevel);
+        const keys = levelKeysExpr(normalizeCutLevelKeys(options.sound?.musicKeys));
+        parts.push(
+          `[${bedInput}:a]${stereo},atrim=${musicStart}:${musicStart + endSec},asetpts=PTS-STARTPTS` +
+            `${level !== 1 ? `,volume=${level}` : ''}${keys ? `,volume=${q(keys)}:eval=frame` : ''}` +
+            `${fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : ''},apad=whole_dur=${endSec}${cues ? '[score]' : '[bed]'}`
+        );
+        if (cues) parts.push(`[score][cue]amix=inputs=2:duration=first:normalize=0[bed]`);
+      } else {
+        parts.push(`[cue]anull[bed]`);
+      }
       parts.push(
-        `[${at}:a]${stereo},atrim=${musicStart}:${musicStart + endSec},asetpts=PTS-STARTPTS` +
-          `${level !== 1 ? `,volume=${level}` : ''}${keys ? `,volume=${q(keys)}:eval=frame` : ''}` +
-          `${fadeIn > 0 ? `,afade=t=in:st=0:d=${fadeIn}` : ''},apad=whole_dur=${endSec}[bed]`,
         `[speech]asplit=2[sp1][sp2]`,
         `[bed][sp1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[ducked]`,
         `[ducked][sp2]amix=inputs=2:duration=first:normalize=0[withbed]`
       );
       label = 'withbed';
     }
-    if (ambience) {
-      inputs.push('-stream_loop', '-1', '-i', ambience);
-      const at = next++;
+    if (ambienceInput !== null) {
       parts.push(
-        `[${at}:a]${stereo},atrim=0:${endSec},asetpts=PTS-STARTPTS,volume=${normalizeAmbienceLevel(options.sound?.ambienceLevel)}[amb]`,
+        `[${ambienceInput}:a]${stereo},atrim=0:${endSec},asetpts=PTS-STARTPTS,volume=${normalizeAmbienceLevel(options.sound?.ambienceLevel)}[amb]`,
         `[${label}][amb]amix=inputs=2:duration=first:normalize=0[withamb]`
       );
       label = 'withamb';
     }
-    if (effects.length) {
-      const placed = effects.map(effect => {
-        inputs.push('-vn', '-i', effect.path);
-        return {
-          input: next++,
-          atSec: effect.atSec,
-          level: effect.level,
-          lengthSec: effect.lengthSec,
-        };
-      });
-      const fx = effectsFilterParts({ effects: placed, endSec, stereo, fadeOut: 'anull' });
-      if (fx) {
-        parts.push(
-          ...fx.parts,
-          `[${label}][${fx.label}]amix=inputs=2:duration=first:normalize=0[withfx]`
-        );
-        label = 'withfx';
-      }
+    const fx = effectsFilterParts({
+      effects: placed.filter(effect => !effect.duck),
+      endSec,
+      stereo,
+      fadeOut: 'anull',
+    });
+    if (fx) {
+      parts.push(
+        ...fx.parts,
+        `[${label}][${fx.label}]amix=inputs=2:duration=first:normalize=0[withfx]`
+      );
+      label = 'withfx';
     }
     parts.push(`[${label}]${fadeOut}[aout]`);
     // The review timecode runs over the whole film, so it is drawn here (the picture re-encoded).

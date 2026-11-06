@@ -34,6 +34,11 @@ const TONES: ReadonlyArray<[RegExp, string]> = [
 ];
 
 export const MIN_CUE_SEC = 8;
+/**
+ * The longest cue (Part 19 G4): a score renders at most 240 s (score.ts), so a long stretch — an
+ * act of a half-hour episode — is several cues in the same style, each fading into the next.
+ */
+export const MAX_CUE_SEC = 120;
 
 /** The score style a shot's feeling reads as ('' when it names none). */
 export function feelingTone(feeling: string): string {
@@ -41,7 +46,11 @@ export function feelingTone(feeling: string): string {
   return '';
 }
 
-/** The cues for a film: one per run of shots that feel the same (none for one feeling only). */
+/**
+ * The cues for a film: one per run of shots that feel the same, a long run in pieces of at most
+ * MAX_CUE_SEC (a piece after the first lists no shots: it carries on). None when one cue would
+ * do — one feeling in a film short enough for Score this film.
+ */
 export function tempMusicCues(shots: readonly TempMusicShot[]): TempCue[] {
   const runs: TempCue[] = [];
   let last = '';
@@ -78,5 +87,16 @@ export function tempMusicCues(shots: readonly TempMusicShot[]): TempCue[] {
       shots: [...first!.shots, ...second!.shots],
     });
   }
-  return merged.length > 1 ? merged : [];
+  const pieces = merged.flatMap(run => {
+    const count = Math.ceil(run.seconds / MAX_CUE_SEC);
+    if (count <= 1) return [run];
+    const each = Math.round((run.seconds / count) * 10) / 10;
+    return Array.from({ length: count }, (_, i) => ({
+      tone: run.tone,
+      atSec: Math.round((run.atSec + i * each) * 10) / 10,
+      seconds: i === count - 1 ? Math.round((run.seconds - each * (count - 1)) * 10) / 10 : each,
+      shots: i === 0 ? run.shots : [],
+    }));
+  });
+  return pieces.length > 1 ? pieces : [];
 }

@@ -109,6 +109,48 @@ describe('cut sound', () => {
     assert.equal(graph.audioLabel, 'fx');
   });
 
+  // Part 19 G4: music cues (temp music by scene) are music — they join the bed, fade in and
+  // duck under the lines; sound effects stay on top, unducked.
+  it('music cues join the music bed and duck under the lines; effects stay on top', () => {
+    const base = {
+      shotCount: 1,
+      kinds: ['still' as const],
+      holdSecs: [20],
+      width: 640,
+      height: 360,
+      crossfadeSec: 0,
+    };
+    const cuesOnly = buildFilterComplex({
+      ...base,
+      hasAudioBed: false,
+      // A voice-over to duck under.
+      narration: [{ shot: 0, input: 5 }],
+      effectInputs: [
+        { input: 2, atSec: 0, level: 0.6, lengthSec: 10, duck: true },
+        { input: 3, atSec: 10, lengthSec: 10, duck: true },
+        { input: 4, atSec: 5 },
+      ],
+    });
+    assert.match(cuesOnly.filter, /\[2:a\][^;]*afade=t=in:st=0:d=1\.5[^;]*\[cue0\]/);
+    assert.match(cuesOnly.filter, /\[cue0\]\[cue1\]amix=inputs=2[^;]*\[cue\]/);
+    assert.match(cuesOnly.filter, /\[cue\]anull\[bed\]/);
+    assert.match(cuesOnly.filter, /\[bed\]\[sp1\]sidechaincompress/);
+    // The door is a sound: on top, not in the bed, not faded in.
+    assert.match(cuesOnly.filter, /\[4:a\][^;]*adelay=5000:all=1\[fx0\]/);
+    assert.doesNotMatch(cuesOnly.filter, /\[4:a\][^;]*afade=t=in/);
+    const withScore = buildFilterComplex({
+      ...base,
+      hasAudioBed: true,
+      effectInputs: [{ input: 3, atSec: 0, lengthSec: 10, duck: true }],
+    });
+    assert.match(withScore.filter, /\[score\]\[cue\]amix=inputs=2:duration=first:normalize=0\[bed\]/);
+    assert.doesNotMatch(withScore.filter, /\[fx\]/);
+    assert.deepEqual(
+      normalizeCutEffects([{ id: 'a', url: '/a.mp3', atSec: 1, duck: true }, { id: 'b', url: '/b.mp3', atSec: 2, duck: 'yes' }]).map(e => e.duck),
+      [true, undefined]
+    );
+  });
+
   it('music level points: a line between them, held before and after', () => {
     const keys = normalizeCutLevelKeys([
       { atSec: 10, level: 0.5 },

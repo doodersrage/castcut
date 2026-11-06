@@ -242,10 +242,14 @@ _Make a sound_ (LTX-2.5, about half a minute) and places it; **Make all** does t
 hides one. A sound already placed near that moment isn't suggested again. Places and weather go
 under the whole shot, quieter.
 
-**Temp music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
-style for each stretch (ACE-Step, about ten seconds each), placed on the effects track and stopped
-where the next starts. It shows only when the feeling changes; for one feeling throughout use
-**Score this film**. Temp music doesn't duck under the lines the way the music track does.
+**Music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
+style for each stretch (ACE-Step, about ten seconds each), placed at its start and stopped where
+the next starts. A stretch longer than two minutes is several cues in the same style (a score can
+be at most four minutes), so a half-hour episode has music from start to end. The cues are music,
+not sounds: each fades in, plays under the score if there is one, and ducks under the lines the
+way the music track does (in the render; the monitor plays them at their level). It shows when
+the feeling changes, or when the film is too long for one score; for one feeling over a short
+film, use **Score this film**.
 
 **Measure loudness** on a film in **Your films** reads its loudness (LUFS), range and true peak
 and says how it sits against the web's −14 LUFS or broadcast's −23 (EBU R128): what to turn up or

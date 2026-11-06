@@ -126,6 +126,11 @@ export type CutEffect = {
   muted?: boolean;
   /** Stop it this many seconds in, with a 1 s fade (a temp-music cue); unset: to its end. */
   lengthSec?: number;
+  /**
+   * Music, not a sound (Part 19 G4): it fades in, joins the music bed and ducks under the lines
+   * as the music track does (a temp-music cue). Unset: a sound effect on top of everything.
+   */
+  duck?: boolean;
 };
 
 export const CUT_EFFECTS_MAX = 60;
@@ -257,6 +262,7 @@ export function normalizeCutEffects(raw: unknown): CutEffect[] {
       ...(typeof e.lengthSec === 'number' && Number.isFinite(e.lengthSec) && e.lengthSec >= 1
         ? { lengthSec: Math.round(Math.min(600, e.lengthSec) * 10) / 10 }
         : {}),
+      ...(e.duck === true ? { duck: true } : {}),
     });
   }
   return out.sort((a, b) => a.atSec - b.atSec).slice(0, CUT_EFFECTS_MAX);
@@ -280,16 +286,28 @@ export function withCutEffect(
   return clean.length ? { ...rest, effects: clean } : rest;
 }
 
+/** A music cue's fade in (Part 19 G4): stretches blend instead of starting on a hit. */
+export const MUSIC_CUE_FADE_IN_SEC = 1.5;
+
 /**
  * The effects in an ffmpeg graph (the encode): each from its input, at its level, delayed to its
- * time; mixed into `[fx]`, padded or cut to the film's end. Null when there are none.
+ * time; mixed into `[fx]` (or `[label]`: music cues are `cue`), padded or cut to the film's end.
+ * A music cue fades in. Null when there are none.
  */
 export function effectsFilterParts(input: {
-  effects: ReadonlyArray<{ input: number; atSec: number; level?: number; lengthSec?: number }>;
+  effects: ReadonlyArray<{
+    input: number;
+    atSec: number;
+    level?: number;
+    lengthSec?: number;
+    duck?: boolean;
+  }>;
   endSec: number;
   stereo: string;
   fadeOut: string;
+  label?: string;
 }): { parts: string[]; label: string } | null {
+  const out = input.label ?? 'fx';
   const placed = input.effects.filter(effect => effect.atSec < input.endSec);
   if (!placed.length) return null;
   const parts = placed.map((effect, k) => {
@@ -299,13 +317,14 @@ export function effectsFilterParts(input: {
       effect.lengthSec && effect.lengthSec >= 1
         ? `,atrim=0:${effect.lengthSec},afade=t=out:st=${Math.max(0, effect.lengthSec - 1)}:d=1`
         : '';
-    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${length}${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[fx${k}]`;
+    const fadeIn = effect.duck ? `,afade=t=in:st=0:d=${MUSIC_CUE_FADE_IN_SEC}` : '';
+    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${length}${fadeIn}${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[${out}${k}]`;
   });
-  const labels = placed.map((_, k) => `[fx${k}]`).join('');
+  const labels = placed.map((_, k) => `[${out}${k}]`).join('');
   parts.push(
-    `${labels}${placed.length > 1 ? `amix=inputs=${placed.length}:duration=longest:normalize=0,` : ''}apad=whole_dur=${input.endSec},atrim=0:${input.endSec},${input.fadeOut}[fx]`
+    `${labels}${placed.length > 1 ? `amix=inputs=${placed.length}:duration=longest:normalize=0,` : ''}apad=whole_dur=${input.endSec},atrim=0:${input.endSec},${input.fadeOut}[${out}]`
   );
-  return { parts, label: 'fx' };
+  return { parts, label: out };
 }
 
 const clamp = (value: unknown, min: number, max: number, fallback: number) =>

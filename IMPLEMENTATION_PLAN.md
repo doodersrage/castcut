@@ -3538,4 +3538,16 @@ The gaps between Castcut and an unattended 30-minute episode, closed in order of
   live on LM Studio (qwen3-vl-8b): a 6-minute, 5-scene episode in ~45 s, every scene parsed, no
   issues; quality is a first draft (one "MARA & LENA" speaker, an action beat that contradicts
   itself).
-- **G4 long-form music** — score cues per scene, ducked under the lines.
+- **G4 long-form music — done.** `CutEffect.duck` (cut-sound.ts): a music cue, not a sound — in
+  `buildFilterComplex` and the long-form mix the ducked effects build `[cue]` (each faded in,
+  `MUSIC_CUE_FADE_IN_SEC`), mixed into the score as `[bed]` (or the bed on its own), before the
+  sidechain duck; plain effects stay on top. temp-music.ts splits a stretch into ≤ `MAX_CUE_SEC`
+  (120 s) cues and now offers cues for a long film of one feeling; CutTempMusic ("Music by
+  scene") places them with `duck: true` at 0.6. Measured on both encode paths (a 220 Hz cue under
+  alternating tone/silent shots): −24.6 dB in the silent shots, −35.3 dB under the tone (~11 dB
+  ducked). Not done: the monitor (useCutPreview) doesn't duck cues; ACE-Step cues untried live.
+
+Part 19 status: G1–G4 done. Still between Castcut and an unattended episode: an overnight run of a
+real script on ComfyUI (none yet — it needs the user's machine and hours of GPU), the redo and
+animate paths under a real run, and Cut's order for Scenes prepared at different times (by when
+each was made, not script order).

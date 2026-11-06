@@ -8,10 +8,10 @@ import { tempMusicCues } from '@/lib/film/temp-music';
 import type { CutEffect } from '@/lib/video/cut-sound';
 
 /**
- * Cut → Temp music by scene (temp-music.ts): where the film's feeling turns — happy, then sad,
- * then tense — a cue in that style for each stretch (ACE-Step, about 10 s to render each), placed
- * on the effects track at its start. Temp music: it doesn't duck under the lines like the music
- * track does; for one feeling throughout, Score this film is the tool.
+ * Cut → Music by scene (temp-music.ts): where the film's feeling turns — happy, then sad, then
+ * tense — a cue in that style for each stretch (ACE-Step, about 10 s to render each), a long
+ * stretch in two-minute pieces, placed at its start as music: each fades in and ducks under the
+ * lines like the music track (Part 19 G4). For one feeling over a short film, Score this film.
  */
 export default function CutTempMusic({
   loaded,
@@ -57,9 +57,11 @@ export default function CutTempMusic({
         const made = await requestFilmScore({ brief: { tone: cue.tone }, cutSeconds: cue.seconds });
         onAdd(`fx-cue-${Date.now().toString(36)}${index}`, {
           url: made.url,
-          name: `Temp music · ${cue.tone}`,
+          name: `Music · ${cue.tone}`,
           atSec: cue.atSec,
-          level: 0.5,
+          level: 0.6,
+          // Music, not a sound: it joins the bed and ducks under the lines.
+          duck: true,
           // Stops where the next stretch starts (a score renders a few seconds long).
           lengthSec: cue.seconds,
         });
@@ -73,13 +75,13 @@ export default function CutTempMusic({
   return (
     <section className="mt-3 space-y-1.5" data-testid="cut-temp-music">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="type-caption font-medium">Temp music by scene · {cues.length} cues</p>
+        <p className="type-caption font-medium">Music by scene · {cues.length} cues</p>
         <Button
           size="sm"
           variant="secondary"
           disabled={disabled || busy !== null}
           data-testid="cut-temp-music-make"
-          title="A cue in each stretch's style (ACE-Step), placed on the effects track at its start — they don't duck under the lines"
+          title="A cue in each stretch's style (ACE-Step), placed at its start — each fades in and ducks under the lines like the music track"
           onClick={() => void makeAll()}
         >
           {busy ?? 'Make the cues'}
@@ -94,7 +96,8 @@ export default function CutTempMusic({
             <span className="tabular-nums text-[var(--text-muted)]">
               {formatCutTime(cue.atSec)}
             </span>{' '}
-            {cue.tone} · {Math.round(cue.seconds)} s · {cue.shots.join(', ')}
+            {cue.tone} · {Math.round(cue.seconds)} s ·{' '}
+            {cue.shots.length ? cue.shots.join(', ') : 'carries on'}
           </li>
         ))}
       </ol>
