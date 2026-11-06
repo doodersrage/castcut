@@ -17,6 +17,7 @@ import {
   settleHandedRun,
   shotsToPrepare,
   RUN_MAX_TAKES,
+  pausedAfterError,
   withRunRedo,
   withRunLog,
   withRunOutcome,
@@ -312,5 +313,15 @@ describe('an episode run (Part 19 G1)', () => {
     next = withRunRedo(next, 'a', 'the outfit', 7);
     assert.equal(next.redoOn, undefined, 'a second redo on no engine goes back to the Day’s');
     assert.equal(normalizeSceneRun({ ...run, redoOn: { a: 'flux' } })?.redoOn, undefined);
+  });
+
+  it('pauses a run whose loop failed, saying why, and leaves a stopped run alone', () => {
+    const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
+    const paused = pausedAfterError({ ...run, state: 'running' }, 'Cannot read properties of undefined', 9);
+    assert.equal(paused.state, 'paused');
+    assert.equal(paused.stopReason, 'Stopped by an error: Cannot read properties of undefined — resume to go on.');
+    assert.deepEqual(paused.log.at(-1), { at: 9, event: 'paused', detail: 'error: Cannot read properties of undefined' });
+    const done = { ...run, state: 'done' as const };
+    assert.equal(pausedAfterError(done, 'x'), done);
   });
 });

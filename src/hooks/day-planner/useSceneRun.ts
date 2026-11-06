@@ -18,6 +18,7 @@ import {
   settleHandedRun,
   withRunLog,
   withRunOutcome,
+  pausedAfterError,
   withRunRedo,
   type SceneRun,
 } from '@/lib/day/scene-run';
@@ -146,10 +147,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const pick =
         active?.id === sceneId ? bestSceneTake(active, id => checks.get(id) ?? undefined) : null;
       // The run can be missing for a moment — the page's settings reloaded under it (a sync, a
-      // remount): wait for it to come back rather than throw. A throw here ended the loop and
-      // left the 2026-11-06 episode "running" with nothing running it.
+      // remount): wait for it to come back. (Reading it at once threw, which ended the loop and
+      // left the 2026-11-06 episode "running" with nothing running it; a loop error now pauses.)
       await until(() => Boolean(runRef.current?.auto), OPEN_TIMEOUT_MS);
-      if (!runRef.current?.auto) return false;
+      if (!runRef.current?.auto) throw new Error('the run was not there to record the take');
       let run = runRef.current;
       const auto = run.auto!;
       const tries = (run.attempts?.[sceneId] ?? 0) + 1;
@@ -440,6 +441,11 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           return;
         }
       }
+    } catch (error) {
+      // Whatever went wrong, the run says so and waits to be resumed.
+      console.error('Scene run stopped:', error);
+      const run = runRef.current;
+      if (run) save(pausedAfterError(run, error instanceof Error ? error.message : String(error)));
     } finally {
       loopingRef.current = false;
       setLooping(false);

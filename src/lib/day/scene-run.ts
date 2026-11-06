@@ -530,3 +530,17 @@ export function pausedAfterReload(run: SceneRun, now = Date.now()): SceneRun {
     { at: now, event: 'paused', detail: 'page closed or reloaded' }
   );
 }
+
+/**
+ * A run whose loop failed: paused, with what went wrong — never left "running" with nothing
+ * running it (2026-11-06: an episode sat at "Running · 0 done" after the loop threw). Resume
+ * goes on from the Scene it was on.
+ */
+export function pausedAfterError(run: SceneRun, message: string, now = Date.now()): SceneRun {
+  if (run.state !== 'running') return run;
+  const why = message.replace(/\s+/g, ' ').trim().slice(0, 160) || 'an unexpected error';
+  return withRunLog(
+    { ...run, state: 'paused', stopReason: `Stopped by an error: ${why} — resume to go on.` },
+    { at: now, event: 'paused', detail: `error: ${why}` }
+  );
+}
