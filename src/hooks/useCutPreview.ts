@@ -48,7 +48,7 @@ import {
   type CutTrack,
 } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from '@/lib/film/cut-media';
-import { applyCutShotEdits, type KeyedShot } from '@/lib/film/cut-plan';
+import { applyCutShotEdits, framingAspect, type KeyedShot } from '@/lib/film/cut-plan';
 import {
   CREDITS_SHOT,
   previewFrameAt,
@@ -284,7 +284,10 @@ export function useCutPreview(input: {
           titleCard: titles,
           captions: titles,
         });
-        const framed = await frameCutStills(prepared.shots);
+        const framed = await frameCutStills(
+          prepared.shots,
+          framingAspect(filmResolutionForCutOptions(value))
+        );
         const images = new Map<number, HTMLImageElement>();
         const videos = new Map<number, HTMLVideoElement>();
         await Promise.all(

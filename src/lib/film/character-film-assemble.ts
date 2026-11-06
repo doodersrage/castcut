@@ -11,7 +11,7 @@ import type {
 } from '../video/content-credentials';
 import type { CutSoundOptions } from '@/lib/video/cut-sound';
 import { frameCutStills, prepareCutShots } from './cut-media';
-import type { FilmCutLength } from './cut-plan';
+import { framingAspect, type FilmCutLength } from './cut-plan';
 import { filmDownloadFilename, type FilmPlaylistShot } from '../media/kind';
 import { assembleFilmBlob, stampAssembledFilm, type AssembleFilmProgress } from '../video/assemble';
 import type { FilmResolutionPreset } from '../video/resolution';
@@ -120,7 +120,7 @@ export async function assembleAndStampFilm(input: {
     captions: input.captions,
   });
   // Waist-up / chest-up stills: cropped around the face before either encoder sees them.
-  const framed = await frameCutStills(prepared.shots);
+  const framed = await frameCutStills(prepared.shots, framingAspect(input.resolution));
   if (framed.notes.length > 0) prepared.notes.push(...framed.notes);
   const assembled = await assembleFilmBlob(framed.shots, {
     onProgress: input.onProgress,

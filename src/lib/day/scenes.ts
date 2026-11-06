@@ -1296,6 +1296,21 @@ export function daySlotsForScene(
 }
 
 /**
+ * The cut's framing for a Scene's still, from the shot it was planned as: a close-up is a crop
+ * around her face, a waist-up a medium crop. The engine renders a planned close-up only about
+ * thigh-up from a full-body plate (qwen-image-21-renderer withCameraFirst), so an episode's
+ * dialogue close-ups came out as wide as its establishing shots. Not for a two-person still (a
+ * crop around her face would cut the other one out).
+ */
+export function sceneStillFraming(scene: Pick<SavedScene, 'slot' | 'allowCompanions'>): {
+  framing?: 'medium' | 'close';
+} {
+  if (scene.allowCompanions) return {};
+  const shot = scene.slot.poseCamera?.shot;
+  return shot === 'head' ? { framing: 'close' } : shot === 'waist' ? { framing: 'medium' } : {};
+}
+
+/**
  * Cut's Scenes source: each of the Cast's scenes with a kept take, oldest scene first — the kept
  * take's clip when it has one, else the still. Keys are the scene ids (Cut prefixes them).
  */
@@ -1342,6 +1357,7 @@ export function sceneCutShots(
               entryId: take.promptId || scene.id,
               // Her line, for Read the lines on stills (the reply is another person's).
               ...(scene.slot.line?.trim() ? { stillLine: scene.slot.line.trim() } : {}),
+              ...sceneStillFraming(scene),
             },
           ];
     });

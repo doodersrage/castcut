@@ -7,6 +7,7 @@ import {
   captionFromBeat,
   clipTrimWindow,
   cutPosterPick,
+  framingAspect,
   framingCropRect,
   cutRunningSec,
   cutShotProblems,
@@ -259,6 +260,22 @@ describe('still framing', () => {
     assert.equal(medium.width, 338);
     // Already close: a big face keeps the whole still.
     assert.equal(framingCropRect(1104, 1472, { x: 300, y: 200, width: 300, height: 360 }, 'medium'), null);
+  });
+
+  it('crops at the film’s shape: 16:9 for a wide film (no black bars), square, 3:4 vertical', () => {
+    assert.equal(framingAspect('720p'), 16 / 9);
+    assert.equal(framingAspect('1080p-square'), 1);
+    assert.equal(framingAspect('720p-vertical'), 0.75);
+    // A widened still (1472×832), a face 120 px tall: chest up is 504 px × 16:9.
+    const face = { x: 700, y: 150, width: 100, height: 120 };
+    const wide = framingCropRect(1472, 832, face, 'close', 16 / 9)!;
+    assert.equal(wide.height, 504);
+    assert.equal(wide.width, Math.round(504 * (16 / 9)));
+    assert.ok(wide.x >= 0 && wide.x + wide.width <= 1472 && wide.y + wide.height <= 832);
+    // On a portrait still the 16:9 crop takes its whole width (never wider than the still).
+    const portrait = framingCropRect(1104, 1472, { x: 520, y: 200, width: 100, height: 160 }, 'close', 16 / 9)!;
+    assert.equal(portrait.width, 1104);
+    assert.equal(portrait.height, Math.round(1104 / (16 / 9)));
   });
 
   it('rides on still shots only', () => {

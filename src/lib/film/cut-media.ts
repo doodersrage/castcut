@@ -134,7 +134,9 @@ export async function prepareCutShots(
  * stays as shot (named in the notes).
  */
 export async function frameCutStills(
-  shots: FilmPlaylistShot[]
+  shots: FilmPlaylistShot[],
+  /** The crop's width ÷ height — the film's (framingAspect); 3:4 unless said. */
+  aspect = 0.75
 ): Promise<{ shots: FilmPlaylistShot[]; notes: string[] }> {
   if (typeof document === 'undefined' || !shots.some(shot => shot.framing)) {
     return { shots, notes: [] };
@@ -146,7 +148,7 @@ export async function frameCutStills(
       out.push(shot);
       continue;
     }
-    const framed = await cropStillToFraming(shot.url, shot.framing).catch(() => null);
+    const framed = await cropStillToFraming(shot.url, shot.framing, aspect).catch(() => null);
     if (framed === 'already') {
       out.push(shot);
     } else if (framed) {
@@ -161,7 +163,8 @@ export async function frameCutStills(
 
 async function cropStillToFraming(
   url: string,
-  framing: 'medium' | 'close'
+  framing: 'medium' | 'close',
+  aspect: number
 ): Promise<string | 'already' | null> {
   const response = await fetch(url, { credentials: 'same-origin' });
   if (!response.ok) return null;
@@ -170,7 +173,7 @@ async function cropStillToFraming(
   if (!located?.available || !located.face) return null;
   const bitmap = await createImageBitmap(blob);
   try {
-    const rect = framingCropRect(bitmap.width, bitmap.height, located.face, framing);
+    const rect = framingCropRect(bitmap.width, bitmap.height, located.face, framing, aspect);
     if (!rect) return 'already';
     const canvas = document.createElement('canvas');
     canvas.width = rect.width;

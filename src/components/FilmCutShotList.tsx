@@ -281,14 +281,17 @@ export default function FilmCutShotList({
                         aria-label={`Framing for ${shot.title}`}
                         title="A closer shot is a crop of the still around her face"
                         className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
-                        value={edit?.framing ?? 'full'}
+                        value={edit?.framing ?? shot.framing ?? 'full'}
                         data-testid={`${testIdPrefix}-shot-framing-${shot.key}`}
                         onChange={event =>
                           patchShot(shot.key, {
                             framing:
                               event.target.value === 'medium' || event.target.value === 'close'
                                 ? event.target.value
-                                : undefined,
+                                : // "As shot" is said only over a source's own framing.
+                                  shot.framing
+                                  ? 'full'
+                                  : undefined,
                           })
                         }
                       >

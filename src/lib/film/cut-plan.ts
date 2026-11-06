@@ -141,14 +141,26 @@ export const FRAMING_FACE_HEIGHTS: Record<'medium' | 'close', number> = {
 export const FRAMING_MIN_CROP_PX = 420;
 
 /**
- * The 3:4 crop for a framing, or null when the still is already that close (the crop would
- * keep most of it) — never upscaled past the still.
+ * The crop's shape for a film (width ÷ height): the film's own when it is wide (16:9) or square, so
+ * a closer shot fills the frame — a 3:4 crop sat between black bars in a widescreen episode. A
+ * vertical film keeps 3:4 (a 9:16 crop of a still is a sliver).
+ */
+export function framingAspect(resolution?: string | null): number {
+  if (resolution?.endsWith('-square')) return 1;
+  if (resolution?.endsWith('-vertical')) return 0.75;
+  return 16 / 9;
+}
+
+/**
+ * The crop for a framing at `aspect` (width ÷ height; 3:4 unless said), or null when the still is
+ * already that close (the crop would keep most of it) — never upscaled past the still.
  */
 export function framingCropRect(
   width: number,
   height: number,
   face: { x: number; y: number; width: number; height: number },
-  framing: 'medium' | 'close'
+  framing: 'medium' | 'close',
+  aspect = 0.75
 ): { x: number; y: number; width: number; height: number } | null {
   const w = Math.max(1, Math.floor(width));
   const h = Math.max(1, Math.floor(height));
@@ -159,10 +171,10 @@ export function framingCropRect(
     Math.max(FRAMING_MIN_CROP_PX, Math.round(faceH * FRAMING_FACE_HEIGHTS[framing]))
   );
   if (cropH >= h * 0.85) return null;
-  let cropW = Math.round(cropH * 0.75);
+  let cropW = Math.round(cropH * aspect);
   if (cropW > w) {
     cropW = w;
-    cropH = Math.min(h, Math.round(cropW / 0.75));
+    cropH = Math.min(h, Math.round(cropW / aspect));
   }
   const centerX = face.x + face.width / 2;
   const x = Math.round(Math.min(Math.max(0, centerX - cropW / 2), w - cropW));
@@ -308,6 +320,8 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
         ...(shot.kind === 'still' && (edit?.framing === 'medium' || edit?.framing === 'close')
           ? { framing: edit.framing }
           : {}),
+        // "As shot" over a source's own framing (a Scene planned as a close-up): no crop.
+        ...(shot.kind === 'still' && edit?.framing === 'full' ? { framing: undefined } : {}),
         ...(trim && trim.end != null ? { trimEndSec: trim.end } : {}),
         ...(shot.kind === 'clip' && typeof edit?.volume === 'number' && edit.volume !== 1
           ? { volume: Math.min(2, Math.max(0, edit.volume)) }
