@@ -162,7 +162,6 @@ import {
   DAY_ADULT_DUO_IDENTITY_LOCK_CAP,
   DAY_ADULT_SOLO_NUDE_IDENTITY_LOCK_CAP,
   type DaySlot,
-  type DaySlotEngine,
   type DaySlotId,
   setDayAvoidedBeatsSource,
 } from '@/lib/day/planner';
@@ -1378,11 +1377,6 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         coverageLine?: boolean;
         /** Queued by the player (board, slot sheet, retry) — counted in the re-roll record. */
         byPlayer?: boolean;
-        /**
-         * This take only on this engine, as if the card were pinned to it (an episode run's
-         * redo, episodeRedoEngine) — the card keeps its own engine.
-         */
-        engine?: DaySlotEngine;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -1607,9 +1601,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           }
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const { omitGarment, stillModel, poseEngineSwap } = await resolveSlotStillModel(
-          options?.engine ? { ...queueTarget, engine: options.engine } : queueTarget
-        );
+        const { omitGarment, stillModel, poseEngineSwap } =
+          await resolveSlotStillModel(queueTarget);
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
         // start this still from that plate — no clothing image, the outfit is on Image 1.

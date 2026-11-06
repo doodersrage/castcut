@@ -97,7 +97,7 @@ The classic prompt and image tools (Generate, Format, Pet, Fantasy, Topics, Vari
 
 | Job | Engines |
 | --- | --- |
-| **Stills** | Qwen-Image 2.1 Turbo (the default for Cast, Scene and Day stills when installed — about 3× faster than Edit 2511; an episode run's redo of a hand or prop it missed goes on Edit 2511), Qwen-Image-2512 / Qwen-Image-Edit 2511 (the fallback when 2.1 isn't installed), Qwen-Image 2.1 Noct-Q / Noct-Q Fast, Qwen Rapid AIO (SFW / NSFW), Bria Fibo 2.0 Edit Turbo, FLUX.2 Klein |
+| **Stills** | Qwen-Image 2.1 Turbo (the default for Cast, Scene and Day stills when installed — about 3× faster than Edit 2511), Qwen-Image-2512 / Qwen-Image-Edit 2511 (the fallback when 2.1 isn't installed), Qwen-Image 2.1 Noct-Q / Noct-Q Fast, Qwen Rapid AIO (SFW / NSFW), Bria Fibo 2.0 Edit Turbo, FLUX.2 Klein |
 | **Clips** | LTX-2.5 (talking clips, sound), MiniMax-H3 (longer clips, two people), WAN 2.2 Rapid AIO, Wan 2.1 Phantom (a new shot with a Cast member) |
 | **Finishing** | SeedVR2, RIFE, WAN 2.2 T2V low-noise 14B, Wan Animate 2 (Copy moves, the Director), Wan-Dancer, InfiniteTalk, Qwen-Edit Relight, WAN 2.2 Fun VACE (Restyle, Remove or replace), WAN-Move (Motion brush) |
 | **Music & sound** | ACE-Step 1.5 (scores, music by scene), LTX-2.5 (Make a sound) |
