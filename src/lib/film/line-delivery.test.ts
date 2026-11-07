@@ -80,7 +80,7 @@ describe('a line said in a scene, not narrated', () => {
 
   it('holds its still for the line as read and a short pick-up', async () => {
     const { holdForSpokenLine } = await import('../story/film');
-    const still = { key: 'a', url: '/a.png', kind: 'still' as const, holdSec: 3 };
+    const still = { key: 'a', title: 'A', url: '/a.png', kind: 'still' as const, holdSec: 3 };
     assert.deepEqual(holdForSpokenLine(still, 'Now.', 0.9), { ...still, holdSec: 1.5, holdFixed: true });
     assert.equal(holdForSpokenLine(still, 'A longer line.', 2.4).holdSec, 2.7);
     // Its length unknown: held as before, for the line's words.

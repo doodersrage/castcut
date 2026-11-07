@@ -2507,8 +2507,9 @@ export function useCutRoom() {
               who?.id ??
                 `${sex}:${said.speaker.lead ? 'lead' : (said.speaker as { name: string }).name}`
             );
-            // Said in the scene (acted, the scene's sound): a line read before that isn't kept.
-            const cacheKey = `sline:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
+            // Said in the scene (acted, the scene's sound at one loudness): a line read before
+            // that, or with the first (too quiet) scene sound, isn't kept.
+            const cacheKey = `sline2:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
             let url = readLineBefore(cacheKey);
             let seconds = Number(readLineBefore(`secs:${cacheKey}`)) || undefined;
             if (!url) {

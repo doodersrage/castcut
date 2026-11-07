@@ -1,7 +1,10 @@
 /**
  * Server: a read line made to sound said in a scene, not read for an audiobook (2026-11-07,
  * chosen by ear over the dry read): the silence either side trimmed, a touch quicker, less of a
- * microphone's close bass, and a light room around it. Narration over a shot stays as it is.
+ * microphone's close bass, and a light room around it — then every line to one loudness, so
+ * the mix ducks the music under voices of a known level. (The first room, aecho's out gain 0.5,
+ * took lines 6 dB down and the music drowned them, 2026-11-07.) Narration over a shot stays as
+ * it is.
  */
 
 import { promises as fs } from 'node:fs';
@@ -9,6 +12,9 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
+
+/** Every scene line's loudness (about the level a dry read came out at). */
+export const SCENE_LINE_LUFS = -16;
 
 /** The ffmpeg filter for a scene line (24 kHz mono in, 24 kHz mono out). */
 export const SCENE_LINE_FILTER = [
@@ -18,7 +24,8 @@ export const SCENE_LINE_FILTER = [
   'areverse',
   'atempo=1.07',
   'highpass=f=110',
-  'aecho=0.85:0.5:23|41:0.18|0.10',
+  'aecho=0.9:0.9:23|41:0.18|0.10',
+  `loudnorm=I=${SCENE_LINE_LUFS}:TP=-1.5:LRA=11`,
 ].join(',');
 
 const SAMPLE_RATE = 24000;

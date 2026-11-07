@@ -42,5 +42,12 @@ describe('a line said in a scene', () => {
     assert.ok(out.seconds !== null);
     // 2 s of tone at 1.07x is ~1.87 s, plus a little room tail — far less than the 4 s in.
     assert.ok(out.seconds! > 1.7 && out.seconds! < 2.4, String(out.seconds));
+    // At about the line loudness, not 6 dB under it (the first room's out gain did that).
+    const view = new DataView(out.bytes.buffer, out.bytes.byteOffset, out.bytes.byteLength);
+    let sum = 0;
+    const count = (out.bytes.byteLength - 44) / 2;
+    for (let i = 0; i < count; i += 1) sum += (view.getInt16(44 + i * 2, true) / 32768) ** 2;
+    const rmsDb = 10 * Math.log10(sum / count);
+    assert.ok(rmsDb > -20 && rmsDb < -12, `line level ${rmsDb.toFixed(1)} dBFS`);
   });
 });
