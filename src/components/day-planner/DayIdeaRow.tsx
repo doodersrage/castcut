@@ -150,7 +150,7 @@ export default function DayIdeaRow({
               ? 'One event — e.g. a dinner date at a candlelit trattoria'
               : shortOnly
                 ? 'A short from an idea — e.g. the last match of the season'
-                : 'Day from an idea — e.g. a rainy Saturday that ends at a gallery opening'
+                : 'An idea — e.g. a rainy Saturday that ends at a gallery opening'
           }
           aria-label={
             eventMode ? 'One event' : shortOnly ? 'A short from an idea' : 'Day from an idea'
@@ -175,22 +175,38 @@ export default function DayIdeaRow({
             {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write the day'}
           </Button>
         ) : null}
-        {castId && !eventMode && premise.trim() ? (
+        {castId &&
+        !eventMode &&
+        (shortOnly || dayShortMoodAvailable(dayMood, { adult: adultAllowed })) ? (
           // The idea as a script: Scene's Write an episode, a scene per moment (as many as you
-          // like there), then its run and Cut — or Make the whole episode for me.
-          <ButtonLink
-            size="sm"
-            variant="ghost"
-            href={episodeWriteHref(
-              castId,
-              dayShortSeed({ premise, mood: dayMood, moments: slotCount, adult: adultAllowed })
-            )}
-            data-testid="day-idea-short"
-          >
-            Make it a short →
-          </ButtonLink>
+          // like there), then its run and Cut — or Make the whole episode for me. Beside Write
+          // the day, the same kind of button: the same idea, written another way.
+          premise.trim() ? (
+            <ButtonLink
+              size="sm"
+              variant="secondary"
+              href={episodeWriteHref(
+                castId,
+                dayShortSeed({ premise, mood: dayMood, moments: slotCount, adult: adultAllowed })
+              )}
+              data-testid="day-idea-short"
+            >
+              Write it as a script →
+            </ButtonLink>
+          ) : (
+            <Button type="button" size="sm" variant="secondary" disabled>
+              Write it as a script →
+            </Button>
+          )
         ) : null}
       </div>
+      {castId && !eventMode ? (
+        <p className="type-caption text-[var(--text-muted)]" data-testid="day-idea-hint">
+          {writeDay
+            ? 'Write the day: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Scene — then Make the short.'
+            : 'Write it as a script: scenes with lines, any length, on Scene — rendered and cut from there.'}
+        </p>
+      ) : null}
       {note ? (
         <p
           className="type-caption text-[var(--text-muted)]"

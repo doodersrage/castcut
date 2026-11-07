@@ -125,7 +125,7 @@ whole episode — and **Make the whole episode for me**, which does every step b
 - **Write an episode…** (with the LLM on) — no script yet? Say what it's about, about how many
   minutes (a scene for every 45 seconds — what a scene comes to as Castcut cuts it: 40 for a
   half hour, the most it writes; longer, write two) — or **In scenes**, a count of 2–40 for a
-  short (Day's **Make it a short →** opens it this way) — and a tone. Where the server allows
+  short (Day's **Write it as a script →** opens it this way) — and a tone. Where the server allows
   adult content, **Adult** lets the writer write explicit scenes between consenting adults —
   told that every character is over 21 and that nothing is non-consensual; the server refuses it
   otherwise. **Write the

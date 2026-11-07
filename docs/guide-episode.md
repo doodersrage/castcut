@@ -24,7 +24,7 @@ say in each.
 
 1. **Write it.** Scene → More → Script → **Write an episode…**: what it's about, about how many
    minutes (a scene for every 45 seconds: 40 for a half hour) — or **In scenes**, a count (2–40)
-   for a short — and a tone. From [Short](guide-day.md), **Make it a short →** opens it on the Day's
+   for a short — and a tone. From [Short](guide-day.md), **Write it as a script →** opens it on the Day's
    idea, its mood as the tone and a scene per moment. **Write the outline**, change
    what you like, **Write the screenplay**, then **Put it in the script box** and **Keep this
    script**. ([Script](guide-scene.md#script))

@@ -220,7 +220,7 @@ export default function DayPlanBar({
               data-testid="day-length-more"
               title={
                 current >= DAY_LENGTH_MAX
-                  ? `${DAY_LENGTH_MAX} at most here — for more, Make it a short (up to 40 scenes)`
+                  ? `${DAY_LENGTH_MAX} at most here — for more, Write it as a script (up to 40 scenes)`
                   : 'One moment more'
               }
               onClick={() => onDayLengthChange(current + 1)}

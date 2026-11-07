@@ -14,7 +14,7 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 
 1. **Cast** — create a character once: a face plate, traits, a voice, her home and workplace.
 2. **Outfit** — dress her: a kit, your own photo, or shoes you pick — and change a piece with the **clothing** and **footwear editors** ("make it red", "a lower heel").
-3. **Short** (it was Day) — plan 2–12 moments from morning to night; each becomes a still, then a clip. **Make it a short** writes your idea as a script of any length, and **Make the short** renders it on the script road — the best take kept by its checks — and cuts it. Give a moment a **line** and she says it, lip-synced, in her voice. Light, blocking and camera per shot; day templates; printable call sheets and storyboards.
+3. **Short** (it was Day) — plan 2–12 moments from morning to night; each becomes a still, then a clip. **Write it as a script** writes your idea as a script of any length, and **Make the short** renders it on the script road — the best take kept by its checks — and cuts it. Give a moment a **line** and she says it, lip-synced, in her voice. Light, blocking and camera per shot; day templates; printable call sheets and storyboards.
 4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own. An **Outline** shows screen time, acts and the story's emotional arc, with notes from the LLM and branches.
 5. **Scene** *(optional)* — one shot, exactly as you want it: setting, beat, line, pose and camera. Render takes, ★ keep the best, then make it move.
 6. **Script** *(optional, on the Scene page)* — import a screenplay (Fountain or plain text), or **Write an episode** from a premise with the LLM; plan each scene's shots and render them all in a **run**.

@@ -11,7 +11,7 @@ Top to bottom, the way a Day is made:
 
 | Part | What's in it |
 | --- | --- |
-| **Idea** | Whole day or one event, **Write the day** from a sentence, **Make it a short →** (the idea as a script) and **Import a script… (on Scene)** — both open [Scene's Script](guide-scene.md#script) — and **This Day as a script →** (below) |
+| **Idea** | Whole day or one event, **Write the day** from a sentence, **Write it as a script →** (the idea as a script) and **Import a script… (on Scene)** — both open [Scene's Script](guide-scene.md#script) — and **This Day as a script →** (below) |
 | **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · Animate all · **Open Cut →** |
@@ -44,8 +44,8 @@ silly / raunchy.
 2. Edit any card in its **slot sheet** — Setting, Beat, pose, clothes.
 3. **Queue day** renders the stills. A card shows *#3 in queue*, then *Rendering · 45%*.
 
-!!! tip "Make it a short"
-    Typed an idea? **Make it a short →** takes it to Scene's [Write an episode](guide-scene.md#script)
+!!! tip "Write it as a script"
+    Typed an idea? **Write it as a script →** takes it to Scene's [Write an episode](guide-scene.md#script)
     as a short script — a scene per moment, starting from the Day's number and as many as you like
     there (2–40) — then planned, rendered and cut like an episode, by hand or with **Make the whole
     episode for me** ([Make an episode](guide-episode.md)). The mood goes with it — Everyday,
