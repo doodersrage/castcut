@@ -290,6 +290,13 @@ export function withCutEffect(
 export const MUSIC_CUE_FADE_IN_SEC = 1.5;
 
 /**
+ * A music cue's loudness before its level (2026-11-07): ACE-Step's cues came out at -12 LUFS
+ * (one at -26), so at their 0.6 level they played as loud as the lines (-16 LUFS) and drowned
+ * them. At -24, a cue at 0.6 sits about 11 dB under the dialogue before it ducks.
+ */
+export const MUSIC_CUE_LUFS = -24;
+
+/**
  * The effects in an ffmpeg graph (the encode): each from its input, at its level, delayed to its
  * time; mixed into `[fx]` (or `[label]`: music cues are `cue`), padded or cut to the film's end.
  * A music cue fades in. Null when there are none.
@@ -318,7 +325,9 @@ export function effectsFilterParts(input: {
         ? `,atrim=0:${effect.lengthSec},afade=t=out:st=${Math.max(0, effect.lengthSec - 1)}:d=1`
         : '';
     const fadeIn = effect.duck ? `,afade=t=in:st=0:d=${MUSIC_CUE_FADE_IN_SEC}` : '';
-    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${length}${fadeIn}${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[${out}${k}]`;
+    // A music cue at one loudness, whatever the model made (loudnorm runs at 192 kHz: back after).
+    const evened = effect.duck ? `,loudnorm=I=${MUSIC_CUE_LUFS}:TP=-2:LRA=11,${input.stereo}` : '';
+    return `[${effect.input}:a]${input.stereo},asetpts=PTS-STARTPTS${evened}${length}${fadeIn}${level !== 1 ? `,volume=${level}` : ''},adelay=${Math.round(effect.atSec * 1000)}:all=1[${out}${k}]`;
   });
   const labels = placed.map((_, k) => `[${out}${k}]`).join('');
   parts.push(

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  effectsFilterParts,
+  MUSIC_CUE_LUFS,
   levelKeyGainAt,
   levelKeysExpr,
   normalizeCutLevelKeys,
@@ -279,5 +281,23 @@ describe('cut sound', () => {
     assert.match(graph.filter, /\[1:a\][^;]*asetpts=PTS-STARTPTS,atrim=0:10,afade=t=out:st=9:d=1,volume=0\.5,adelay=2000/);
     assert.equal(normalizeCutEffects([{ id: 'a', url: '/a', atSec: 1, lengthSec: 0.5 }])[0]!.lengthSec, undefined);
     assert.equal(normalizeCutEffects([{ id: 'a', url: '/a', atSec: 1, lengthSec: 12.34 }])[0]!.lengthSec, 12.3);
+  });
+});
+
+describe('music cues in the mix', () => {
+  it('brings a music cue to one loudness before its level; a sound effect stays as it is', () => {
+    const built = effectsFilterParts({
+      effects: [
+        { input: 3, atSec: 2, level: 0.6, duck: true },
+        { input: 4, atSec: 5, level: 0.8 },
+      ],
+      endSec: 30,
+      stereo: 'aresample=48000',
+      fadeOut: 'anull',
+      label: 'cue',
+    })!;
+    const [cue, effect] = built.parts;
+    assert.match(cue!, new RegExp(`loudnorm=I=${MUSIC_CUE_LUFS}:TP=-2:LRA=11,aresample=48000.*volume=0.6`));
+    assert.doesNotMatch(effect!, /loudnorm/);
   });
 });
