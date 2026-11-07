@@ -141,6 +141,7 @@ import {
 import { renderNarrationLine } from '@/lib/film/narration-client';
 import { widenStillForFilm } from '@/lib/film/widen-client';
 import { loadWideStills, rememberWideStill } from '@/lib/film/wide-stills';
+import { loadReadLines, rememberReadLine } from '@/lib/film/read-lines';
 import { isAssembledFilmEntry } from '@/lib/media/kind';
 import { completePlayCampaign } from '@/lib/play/campaign';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
@@ -2185,6 +2186,13 @@ export function useCutRoom() {
     persisted: boolean;
   } | null>(null);
   const storyNarrationCache = useRef(new Map<string, string>());
+  // A line read before — this cut, or a cut before it (read-lines.ts): reused, not read again.
+  const readLineBefore = (key: string): string | undefined =>
+    storyNarrationCache.current.get(key) ?? loadReadLines()[key];
+  const keepReadLine = (key: string, url: string) => {
+    storyNarrationCache.current.set(key, url);
+    rememberReadLine(key, url);
+  };
   const wideCache = useRef(new Map<string, string>());
 
   const { updateToolSettings: updateDay } = day;
@@ -2366,14 +2374,15 @@ export function useCutRoom() {
                 ? ''
                 : (beat.narration?.trim() ?? '');
           if (!line) continue;
-          let url = storyNarrationCache.current.get(line);
+          const narrationKey = `narration:${storyMan ? 'man' : 'woman'}:${line}`;
+          let url = readLineBefore(narrationKey);
           if (!url) {
             setStatus(`Recording the narration for ${shot.title}…`);
             url = await renderNarrationLine({
               line,
               speaker: storyMan ? 'man' : 'woman',
             }).catch(() => undefined);
-            if (url) storyNarrationCache.current.set(line, url);
+            if (url) keepReadLine(narrationKey, url);
           }
           if (url)
             picked[index] = {
@@ -2440,8 +2449,8 @@ export function useCutRoom() {
               who?.id ??
                 `${sex}:${said.speaker.lead ? 'lead' : (said.speaker as { name: string }).name}`
             );
-            const cacheKey = `line:${who?.id ?? sex}:${sample ?? ''}:${said.text}`;
-            let url = storyNarrationCache.current.get(cacheKey);
+            const cacheKey = `line:${who?.id ?? sex}:${seed}:${sample ?? ''}:${said.text}`;
+            let url = readLineBefore(cacheKey);
             if (!url) {
               setStatus(`Reading ${shot.title}’s line…`);
               url = await renderNarrationLine({
@@ -2450,7 +2459,7 @@ export function useCutRoom() {
                 seed,
                 ...(sample ? { voiceSample: sample } : {}),
               }).catch(() => undefined);
-              if (url) storyNarrationCache.current.set(cacheKey, url);
+              if (url) keepReadLine(cacheKey, url);
             }
             if (url) {
               picked[index] = {
@@ -2470,14 +2479,15 @@ export function useCutRoom() {
             if (shot.narrationUrl || shot.spoken?.trim()) continue;
             const line = audioDescriptionLine(shotBeatText[shot.key] ?? shot.caption ?? '');
             if (!line) continue;
-            let url = storyNarrationCache.current.get(`ad:${line}`);
+            const describeKey = `ad:${leadMan ? 'woman' : 'man'}:${line}`;
+            let url = readLineBefore(describeKey);
             if (!url) {
               setStatus(`Describing ${shot.title}…`);
               url = await renderNarrationLine({
                 line,
                 speaker: leadMan ? 'woman' : 'man',
               }).catch(() => undefined);
-              if (url) storyNarrationCache.current.set(`ad:${line}`, url);
+              if (url) keepReadLine(describeKey, url);
             }
             if (url) {
               picked[index] = {
