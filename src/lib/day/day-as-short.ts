@@ -171,7 +171,16 @@ export function dayAsShort(input: {
     );
     if (before) {
       // The moment's shot as the Day has it now; every take it had, and the Day's still if new.
-      const fromDay = scene.takes.filter(take => !before.takes.some(entry => entry.id === take.id));
+      // A still the Scene already has (a take of its own the board shows, under the take's render
+      // id) isn't new — or a just-unkept take came back as kept on the next sync (live, 6 of 12).
+      const known = (take: (typeof scene.takes)[number]) =>
+        before.takes.some(
+          entry =>
+            entry.id === take.id ||
+            (Boolean(take.promptId) && entry.promptId === take.promptId) ||
+            entry.imageUrl === take.imageUrl
+        );
+      const fromDay = scene.takes.filter(take => !known(take));
       const takes = [...before.takes, ...fromDay];
       // A moment written anew (another beat or place, not a tweak): the take kept for the old
       // one isn't this moment's — it stays among the takes, unkept, and Make the short renders

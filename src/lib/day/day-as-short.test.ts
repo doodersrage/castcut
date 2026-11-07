@@ -103,8 +103,20 @@ describe('a Day as a short', () => {
     assert.deepEqual(afternoon.takes.map(take => take.id), ['a1', 'a2']);
     // Another beat: the take kept for the walk isn't the swim's — kept no more, so it's rendered.
     assert.equal(afternoon.keptTakeId, undefined);
-    // Synced again with nothing new: still unkept (the morning's old still isn't taken up either).
-    const third = dayAsShort({ day: changed, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script: again.script, scenes: again.scenes } })!;
+    // Synced again, the board still showing the old take (its still, by render id): still unkept.
+    const showing = {
+      ...changed,
+      stills: [
+        ...((changed as { stills?: unknown[] }).stills ?? []),
+        { slotId: 'afternoon', promptId: 'a1-prompt', imageUrl: '/a1.png', status: 'completed' },
+      ],
+    } as DayToolCache;
+    const withPrompt = again.scenes.map(scene =>
+      scene.fromDaySlot === 'afternoon'
+        ? { ...scene, takes: scene.takes.map(take => (take.id === 'a1' ? { ...take, promptId: 'a1-prompt' } : take)) }
+        : scene
+    ) as typeof again.scenes;
+    const third = dayAsShort({ day: showing, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script: again.script, scenes: withPrompt } })!;
     assert.equal(third.scenes.find(scene => scene.fromDaySlot === 'afternoon')!.keptTakeId, undefined);
     // A tweak (a word added) keeps it.
     const tweaked = {

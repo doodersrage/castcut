@@ -3929,7 +3929,11 @@ const phases: Record<string, Phase> = {
       if (written >= want && JSON.stringify(slots.map(slot => slot.sceneHints ?? '')) !== before) break;
       await page.waitForTimeout(3000);
     }
+    const rewritten =
+      JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? '')) !== before;
     log('day written in', Math.round((Date.now() - started) / 1000), 's:', written, 'moments');
+    // A click lost to a page still compiling leaves the board as it was: nothing to test.
+    if (!rewritten) throw new Error('Write the day did not change the board (the click was lost?)');
     for (const slot of (await dayOf()).slots ?? []) log('  ', slot.id, '·', (slot.sceneHints ?? '').slice(0, 90));
     if (written < want) problems.push(`shortmake: the day was written with ${written} of ${want} moments`);
     await shot(page, 'short-written');
@@ -3941,8 +3945,15 @@ const phases: Record<string, Phase> = {
     }
     if (!/\/scene\?/.test(page.url())) throw new Error('Make the short did not open Scene');
     const runStarted = Date.now();
-    // Halfway, a reload: the run resumes by itself (resumeOnReload).
-    await waitForRun(page, run => Object.keys(run.outcomes ?? {}).length >= 2, 60);
+    // Halfway, a reload: the run resumes by itself (resumeOnReload). A run done with nothing
+    // rendered (every moment already kept) has nothing to show.
+    const early = await waitForRun(
+      page,
+      run => Object.keys(run.outcomes ?? {}).length >= 2 || run.state === 'done',
+      60
+    );
+    if (early.state === 'done' && Object.keys(early.outcomes ?? {}).length < 2)
+      throw new Error('the run finished with nothing rendered (every moment kept?)');
     log('reloading mid-run…');
     await page.reload();
     const resumed = await waitForRun(
