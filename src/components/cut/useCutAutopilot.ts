@@ -29,6 +29,8 @@ export function useCutAutopilot(input: {
   const [note, setNote] = useState<string | null>(null);
   /** Cut film was asked for (the last step). */
   const [cutting, setCutting] = useState(false);
+  /** The music is in: cut on the next render, whose cutFilm has it. */
+  const [readyToCut, setReadyToCut] = useState(false);
   const wanted = params.get('autocut') === '1';
 
   // 1. The episode's options, and the URL without autocut.
@@ -63,12 +65,19 @@ export function useCutAutopilot(input: {
         if (made.error)
           setNote(`Autopilot: music stopped (${made.error}) — cutting without the rest.`);
       }
-      stage.current = 'cut';
-      setNote('Autopilot: cutting the film — reading the lines, widening the stills…');
-      setCutting(true);
-      await cutFilm();
+      setReadyToCut(true);
     })();
-  }, [cutFilm, feelingOf, loaded, setEffect]);
+  }, [feelingOf, loaded, setEffect]);
+
+  // 2b. Cut film — from the render after the music: the cutFilm this effect started with had
+  // the options from before the cues (the film went out with no music, CI 2026-11-07).
+  useEffect(() => {
+    if (!readyToCut || stage.current !== 'music') return;
+    stage.current = 'cut';
+    setNote('Autopilot: cutting the film — reading the lines, widening the stills…');
+    setCutting(true);
+    void cutFilm();
+  }, [cutFilm, readyToCut]);
 
   // 3. The pre-cut check found shots to look at: the run listed them already — cut anyway.
   const { problems, resolveProblems, cutDone, error } = vm;
