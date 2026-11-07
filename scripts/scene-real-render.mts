@@ -4038,6 +4038,63 @@ const phases: Record<string, Phase> = {
     await shot(page, 'short-sync');
   },
 
+  /**
+   * An adult short through the writer (the server's adult setting on): written from a short's
+   * link with the Intimate mood, the adult box ticked, its shots planned by the LLM on the adult
+   * route. Not rendered. SHORT_ADULT_IDEA.
+   */
+  async shortadult(_ctx, page) {
+    const premise =
+      process.env.SHORT_ADULT_IDEA ??
+      'Lena and her husband, both in their thirties, finally have the cottage to themselves for a rainy weekend';
+    const params = new URLSearchParams({
+      character: V2_CAST,
+      write: 'short',
+      premise,
+      scenes: '3',
+      mood: 'intimate',
+    });
+    await go(page, `/scene?${params.toString()}`);
+    const writer = page.getByTestId('episode-writer');
+    await writer.waitFor({ timeout: 60_000 });
+    const adult = writer.getByTestId('episode-adult');
+    const offered = await adult.isVisible().catch(() => false);
+    const ticked = offered && (await adult.isChecked().catch(() => false));
+    log('adult writing offered:', offered, '· ticked from the mood:', ticked);
+    if (!offered) throw new Error('adult writing not offered (is the server setting on?)');
+    if (!ticked) await adult.check();
+    const started = Date.now();
+    await writer.getByTestId('episode-write-outline').click();
+    await writer.getByTestId('episode-outline').waitFor({ timeout: 5 * 60_000 });
+    log('outline in', Math.round((Date.now() - started) / 1000), 's:');
+    log('  ', ((await writer.getByTestId('episode-outline').textContent()) ?? '').trim().slice(0, 600));
+    await writer.getByTestId('episode-write-scenes').click();
+    const use = writer.getByTestId('episode-use');
+    await use.waitFor({ timeout: 15 * 60_000 });
+    for (let waited = 0; waited < 15 * 60 && !(await use.isEnabled()); waited += 5) {
+      await page.waitForTimeout(5000);
+    }
+    log('scenes written in', Math.round((Date.now() - started) / 1000), 's');
+    await shot(page, 'adult-written');
+    await writer.getByTestId('episode-use').click();
+    await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+    const script = await v2Script(page);
+    log('script:', script.name, '· mood', (script as { mood?: string }).mood ?? '(none)');
+    const source = ((script as { source?: string }).source ?? '').slice(0, 3000);
+    log('  opening:', source.slice(0, 700).replace(/\n+/g, ' | '));
+    if ((script as { mood?: string }).mood !== 'intimate') problems.push('shortadult: the script lost its Intimate mood');
+    // Its shots, planned by the LLM on the adult route (the run is prepared, not started).
+    await page.getByTestId('script-prepare-run').first().click({ timeout: 60_000 });
+    await page.getByTestId('script-prepare-note').first().waitFor({ timeout: 10 * 60_000 });
+    log('prepare:', (await page.getByTestId('script-prepare-note').first().textContent())?.trim());
+    const after = await v2Script(page);
+    const shots = (after.shots ?? []) as Array<{ purpose?: string; action?: string; line?: string }>;
+    log('shots planned:', shots.length);
+    for (const planned of shots.slice(0, 8)) log('   ', planned.purpose, '·', (planned.action ?? planned.line ?? '').slice(0, 110));
+    if (!shots.length) problems.push('shortadult: no shots were planned');
+    await shot(page, 'adult-planned');
+  },
+
   async setup(_ctx, page) {
     const files = readdirSync(CASTS).filter(name => name.endsWith('.castcut.json'));
     for (const name of files) await importCast(page, name);

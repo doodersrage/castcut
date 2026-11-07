@@ -4,6 +4,7 @@ import { parseScript } from '../script/parse';
 import type { DayToolCache } from '../play/settings';
 import {
   dayAsShort,
+  momentRewritten,
   dayMomentHeading,
   dayShortFingerprint,
   dayShortSource,
@@ -71,7 +72,7 @@ describe('a Day as a short', () => {
     assert.equal(dayAsShort({ day: empty, castId: 'mara', leadName: 'Mara' }), null);
   });
 
-  it('carries the Day’s mood, and updates its short in place — takes and kept take kept', () => {
+  it('carries the Day’s mood, and updates its short in place — takes kept, a rewritten moment unkept', () => {
     const first = dayAsShort({ day: { ...day, dayMood: 'sport' } as DayToolCache, castId: 'mara', leadName: 'Mara', now: 1000 });
     assert.equal(first?.script.mood, 'sport');
     // On Scene, the afternoon got two takes and one was kept.
@@ -100,7 +101,18 @@ describe('a Day as a short', () => {
     assert.equal(afternoon.id, scenes.find(scene => scene.fromDaySlot === 'afternoon')!.id);
     assert.equal(afternoon.slot.sceneHints, 'swims out past the buoys');
     assert.deepEqual(afternoon.takes.map(take => take.id), ['a1', 'a2']);
-    assert.equal(afternoon.keptTakeId, 'a1');
+    // Another beat: the take kept for the walk isn't the swim's — kept no more, so it's rendered.
+    assert.equal(afternoon.keptTakeId, undefined);
+    // Synced again with nothing new: still unkept (the morning's old still isn't taken up either).
+    const third = dayAsShort({ day: changed, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script: again.script, scenes: again.scenes } })!;
+    assert.equal(third.scenes.find(scene => scene.fromDaySlot === 'afternoon')!.keptTakeId, undefined);
+    // A tweak (a word added) keeps it.
+    const tweaked = {
+      ...day,
+      slots: (day.slots ?? []).map(slot => (slot.id === 'afternoon' ? { ...slot, sceneHints: 'walks slowly along the water' } : slot)),
+    } as DayToolCache;
+    const kept = dayAsShort({ day: tweaked, castId: 'mara', leadName: 'Mara', now: 2000, existing: { script: first!.script, scenes } })!;
+    assert.equal(kept.scenes.find(scene => scene.fromDaySlot === 'afternoon')!.keptTakeId, 'a1');
     assert.equal(again.shots.find(shot => shot.madeSceneId === afternoon.id)?.action, 'swims out past the buoys');
     assert.ok(again.scenes.some(scene => scene.fromDaySlot === 'evening'));
     // Every shot names its Scene.
@@ -135,5 +147,14 @@ describe('a Day as a short', () => {
       'busy'
     );
     assert.equal(dayStillsFromShort({ ...day, stillsCharacterId: 'rob' } as DayToolCache, scenes, link), null);
+  });
+});
+
+describe('a moment written anew', () => {
+  it('is another beat or place, not the same one tweaked', () => {
+    assert.equal(momentRewritten({ sceneHints: 'walks along the water' }, { sceneHints: 'swims out past the buoys' }), true);
+    assert.equal(momentRewritten({ sceneHints: 'walks along the water' }, { sceneHints: 'walks slowly along the water' }), false);
+    assert.equal(momentRewritten({ sceneHints: 'reads', location: 'seaside café' }, { sceneHints: 'reads', location: 'old town bakery' }), true);
+    assert.equal(momentRewritten({}, {}), false);
   });
 });

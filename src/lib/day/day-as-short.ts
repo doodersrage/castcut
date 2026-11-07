@@ -171,13 +171,19 @@ export function dayAsShort(input: {
     );
     if (before) {
       // The moment's shot as the Day has it now; every take it had, and the Day's still if new.
-      const takes = [
-        ...before.takes,
-        ...scene.takes.filter(take => !before.takes.some(entry => entry.id === take.id)),
-      ];
-      const kept = before.keptTakeId ?? scene.takes[scene.takes.length - 1]?.id;
+      const fromDay = scene.takes.filter(take => !before.takes.some(entry => entry.id === take.id));
+      const takes = [...before.takes, ...fromDay];
+      // A moment written anew (another beat or place, not a tweak): the take kept for the old
+      // one isn't this moment's — it stays among the takes, unkept, and Make the short renders
+      // the moment again. (Live 2026-11-07: a seaside day's kept stills stood in for an
+      // old-town day written over it, and the run skipped seven of its twelve moments.)
+      const rewritten = momentRewritten(before.slot, scene.slot);
+      // Else its kept take, or a still the Day made since (not one the Scene had: that could be
+      // the take just unkept).
+      const kept = rewritten ? undefined : (before.keptTakeId ?? fromDay[fromDay.length - 1]?.id);
+      const { keptTakeId: _old, ...rest } = before;
       scenes.push({
-        ...before,
+        ...rest,
         slot: scene.slot,
         takes,
         ...(kept ? { keptTakeId: kept } : {}),
@@ -205,6 +211,39 @@ export function dayAsShort(input: {
   });
   if (scenes.length !== moments.length) return null;
   return { script, shots, scenes, leadSpeaker };
+}
+
+const momentWords = (value: string | undefined) =>
+  new Set(
+    (value ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9' ]+/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2)
+  );
+
+/** Under half the words in common (Jaccard): another sentence, not the same one tweaked. */
+function wordsChanged(before: string | undefined, after: string | undefined): boolean {
+  const a = momentWords(before);
+  const b = momentWords(after);
+  if (!a.size && !b.size) return false;
+  let shared = 0;
+  for (const word of a) if (b.has(word)) shared += 1;
+  return shared / (a.size + b.size - shared) < 0.5;
+}
+
+/**
+ * Whether a moment was written anew on the board: its beat or its place is another sentence
+ * (a typo fixed, a word added, is not). Pure.
+ */
+export function momentRewritten(
+  before: { sceneHints?: string; location?: string },
+  after: { sceneHints?: string; location?: string }
+): boolean {
+  return (
+    wordsChanged(before.sceneHints, after.sceneHints) ||
+    wordsChanged(before.location, after.location)
+  );
 }
 
 /**
