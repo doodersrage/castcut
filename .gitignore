@@ -65,7 +65,6 @@ comfyui-nodes/**/__pycache__/
 /__pycache__/
 .pytest_cache/
 
-.cursor/
 
 .pnpm-store/
 **/.pnpm-store/
@@ -91,3 +90,8 @@ comfyui-nodes/**/__pycache__/
 
 # Leftovers from the old in-repo Diffusers engine (now github.com/doodersrage/castcut-diffusers)
 services/
+
+# Claude Code: project skills are shared; local state is not
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
