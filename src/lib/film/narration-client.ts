@@ -10,6 +10,8 @@ export async function renderNarrationLine(input: {
    * voice engine; without the engine, on the seed alone (LTX through a sample is twice as slow).
    */
   voiceBase?: boolean;
+  /** How the line is said (line-delivery.ts): the voice engine reads it with the kept voice. */
+  delivery?: string;
   /** The speaker's own seed (still-lines.ts speakerSeed), so their lines keep one voice. */
   seed?: number;
 }): Promise<string> {

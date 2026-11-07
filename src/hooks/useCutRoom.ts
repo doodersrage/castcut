@@ -142,6 +142,8 @@ import { renderNarrationLine } from '@/lib/film/narration-client';
 import { widenStillForFilm } from '@/lib/film/widen-client';
 import { loadWideStills, rememberWideStill } from '@/lib/film/wide-stills';
 import { loadReadLines, rememberReadLine } from '@/lib/film/read-lines';
+import { requestLineDeliveries, type LineDeliveryAsk } from '@/lib/film/line-delivery';
+import { cutLineNotes } from '@/lib/film/line-delivery-cut';
 import { isAssembledFilmEntry } from '@/lib/media/kind';
 import { completePlayCampaign } from '@/lib/play/campaign';
 import { markOnboardingFirstFilmCut, markOnboardingFirstPlayCampaign } from '@/lib/play/onboarding';
@@ -2431,11 +2433,56 @@ export function useCutRoom() {
               gaveVoices.push(who.name);
             }
           }
+          // How each line is said (line-delivery.ts): the script's note above it and the shot's
+          // moment, turned by the LLM into a short delivery the voice engine reads it with —
+          // without one every line came out flat. Remembered, so cutting again asks nothing.
+          const spokenLines = picked.flatMap(shot => {
+            const said = shot.narrationUrl ? null : stillLineOf(shot);
+            return said ? [{ shot, said }] : [];
+          });
+          const deliveries: Record<string, string> = {};
+          const deliveryKey = (key: string, text: string) => `delivery:${key}:${text}`;
+          const { notes, adult } = cutLineNotes(
+            spokenLines.map(({ shot, said }) => ({ key: shot.key, text: said.text }))
+          );
+          const asks: LineDeliveryAsk[] = [];
+          for (const { shot, said } of spokenLines) {
+            const known = readLineBefore(deliveryKey(shot.key, said.text));
+            if (known) {
+              deliveries[shot.key] = known;
+              continue;
+            }
+            const who = speakerOf(said);
+            asks.push({
+              id: shot.key,
+              speaker:
+                who?.name ??
+                (said.speaker.lead ? cast?.name || 'She' : (said.speaker as { name: string }).name),
+              text: said.text,
+              ...(notes[shot.key] ? { note: notes[shot.key] } : {}),
+              context: (shot.caption ?? '').replace(/\S+ says: “[^”]*”/g, '').trim(),
+            });
+          }
+          if (asks.length) {
+            setStatus(`Directing ${asks.length} line${asks.length === 1 ? '' : 's'}…`);
+            const got = await requestLineDeliveries(
+              asks,
+              sharedLlmRequestBody(loadSettingsCache().shared),
+              { adult }
+            );
+            for (const ask of asks) {
+              const delivery = got[ask.id];
+              if (!delivery) continue;
+              deliveries[ask.id] = delivery;
+              keepReadLine(deliveryKey(ask.id, ask.text), delivery);
+            }
+          }
           for (const [index, shot] of picked.entries()) {
             if (shot.narrationUrl) continue;
             const said = stillLineOf(shot);
             if (!said) continue;
             const who = speakerOf(said);
+            const delivery = deliveries[shot.key] ?? '';
             const sex: 'woman' | 'man' =
               who?.traits?.sex === 'man'
                 ? 'man'
@@ -2455,7 +2502,7 @@ export function useCutRoom() {
               who?.id ??
                 `${sex}:${said.speaker.lead ? 'lead' : (said.speaker as { name: string }).name}`
             );
-            const cacheKey = `line:${who?.id ?? sex}:${seed}:${sample ?? ''}:${said.text}`;
+            const cacheKey = `line:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
             let url = readLineBefore(cacheKey);
             if (!url) {
               setStatus(`Reading ${shot.title}’s line…`);
@@ -2465,6 +2512,7 @@ export function useCutRoom() {
                 seed,
                 ...(sample ? { voiceSample: sample } : {}),
                 ...(castVoiceIsBase(voice) ? { voiceBase: true } : {}),
+                ...(delivery ? { delivery } : {}),
               }).catch(() => undefined);
               if (url) keepReadLine(cacheKey, url);
             }

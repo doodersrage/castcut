@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     speaker?: unknown;
     voiceSample?: unknown;
     voiceBase?: unknown;
+    delivery?: unknown;
     seed?: unknown;
     comfyUrl?: unknown;
   };
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
           ? { voiceSample: body.voiceSample }
           : {}),
         ...(body.voiceBase === true ? { voiceBase: true } : {}),
+        ...(typeof body.delivery === 'string' && body.delivery.trim()
+          ? { delivery: body.delivery.trim().slice(0, 100) }
+          : {}),
         ...(Number.isInteger(body.seed) && (body.seed as number) >= 0
           ? { seed: Math.min(body.seed as number, 2 ** 31 - 1) }
           : {}),

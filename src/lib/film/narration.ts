@@ -39,9 +39,14 @@ export function buildNarrationGraph(input: {
   prefix: string;
   /** A kept Cast voice (ComfyUI input audio), steered through the ID-LoRA. */
   voiceSample?: string;
+  /** How the line is said (line-delivery.ts); a calm voice-over without one. */
+  delivery?: string;
 }): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
   const who = input.speaker === 'man' ? 'A man' : 'A woman';
-  const text = `${who} speaks a calm voice-over, close to the microphone, warm and natural: "${input.line}" Clean studio voice-over, no music, no background noise.`;
+  const delivery = input.delivery?.trim();
+  const text = delivery
+    ? `${who} says a line, ${delivery}, close to the microphone: "${input.line}" Clean studio recording, no music, no background noise.`
+    : `${who} speaks a calm voice-over, close to the microphone, warm and natural: "${input.line}" Clean studio voice-over, no music, no background noise.`;
   // 24 fps frames for the audio latent, on LTX's 8k+1 grid.
   const frames = Math.round((narrationSeconds(input.line) * 24) / 8) * 8 + 1;
   const g: Record<string, { class_type: string; inputs: Record<string, unknown> }> = {

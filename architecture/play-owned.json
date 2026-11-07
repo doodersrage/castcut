@@ -9,6 +9,7 @@
   "src/app/api/script-episode/route.ts",
   "src/app/api/marks-check/route.ts",
   "src/app/api/film/narration/route.ts",
+  "src/app/api/film/line-delivery/route.ts",
   "src/app/review/[token]/page.tsx",
   "src/app/api/review/[token]/video/route.ts",
   "src/app/api/review/[token]/route.ts",

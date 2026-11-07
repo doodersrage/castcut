@@ -35,5 +35,8 @@ it at once.
 
 - `GET /health` → `{"ok": true, "model": …, "loaded": bool, "device": …}`
 - `POST /free` → unload the model now
-- `POST /speak` `{"text", "ref_audio": base64 WAV/FLAC, "ref_text"?, "seed"?, "language"?}` →
+- `instruct` on `/speak`: how the line is said ("teasing, a smile in her voice"), read with the
+  kept voice (the model's generate() takes a speaker embedding and an instruction together; the
+  qwen-tts clone helper doesn't pass one).
+- `POST /speak` `{"text", "ref_audio": base64 WAV/FLAC, "ref_text"?, "instruct"?, "seed"?, "language"?}` →
   `audio/wav` (24 kHz mono); `X-Voice-Seconds` is the generation time.

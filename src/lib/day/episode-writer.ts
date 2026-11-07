@@ -309,7 +309,9 @@ export function episodeSceneMessages(input: {
         'notes, no markdown. Start with the scene heading on its own line. Then action in short present-tense ' +
         'paragraphs of what the camera sees, and dialogue: the speaker’s name in CAPITALS on its own line, their ' +
         'line under it. Blank lines between elements. About one page: four to eight short beats, lines people ' +
-        'would say aloud. Do not write the next scene.' +
+        'would say aloud. Where it matters how a line is said, put it in parentheses on its own line between ' +
+        'the name and the line — how the voice sounds (amused, bristling, near tears, teasing), not only ' +
+        'quietly or softly. Do not write the next scene.' +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
     {

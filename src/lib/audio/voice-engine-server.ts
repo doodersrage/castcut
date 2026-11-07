@@ -69,6 +69,8 @@ export async function readLineWithVoiceEngine(input: {
   voiceSample: string;
   /** What the sample says, when known: it's copied closer. */
   sampleWords?: string;
+  /** How the line is said ("teasing, a smile in her voice"), read with the kept voice. */
+  delivery?: string;
   seed?: number;
   baseUrl: string;
   fetchImpl?: typeof fetch;
@@ -85,6 +87,7 @@ export async function readLineWithVoiceEngine(input: {
       text: input.line,
       ref_audio: ref,
       ...(input.sampleWords?.trim() ? { ref_text: input.sampleWords.trim() } : {}),
+      ...(input.delivery?.trim() ? { instruct: input.delivery.trim() } : {}),
       ...(Number.isInteger(input.seed) ? { seed: input.seed } : {}),
     }),
     signal: AbortSignal.timeout(SPEAK_TIMEOUT_MS),

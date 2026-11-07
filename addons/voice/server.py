@@ -5,7 +5,8 @@ beside an LLM it streams weights every step, 45-105 s a line (2026-11-07). This 
 stays loaded. Standard library HTTP only; one line at a time (one GPU).
 
   GET  /health  -> {"ok": true, "model": ..., "loaded": bool, "device": ...}
-  POST /speak   {"text", "ref_audio": base64 wav/flac, "ref_text"?, "seed"?, "language"?}
+  POST /speak   {"text", "ref_audio": base64 wav/flac, "ref_text"?, "instruct"?, "seed"?,
+                 "language"?}
                 -> audio/wav (24 kHz mono), X-Voice-Seconds: generation time
   POST /free    -> unload the model now (the GPU back for ComfyUI)
 
@@ -26,6 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MODEL_ID = os.environ.get("VOICE_ENGINE_MODEL", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
 MAX_TEXT = 600
+MAX_INSTRUCT = 200
 MAX_BODY = 20 * 1024 * 1024
 IDLE_SECONDS = float(os.environ.get("VOICE_ENGINE_IDLE_SECONDS", "180"))
 
@@ -80,6 +82,27 @@ def load_model():
     return _model
 
 
+def clone_with_instruct(model, text, language, ref_audio, instruct):
+    """The kept voice *and* how to say the line ("teasing, a smile in her voice").
+
+    qwen-tts's generate_voice_clone takes no instruction, but the model's generate() takes a
+    speaker embedding and an instruction together. Live (2026-11-07, nine episode lines): pitch
+    movement 2.26 -> 2.92 semitones SD, the voice as recognisable (WavLM 0.927 vs 0.938), every
+    word heard — chosen by ear over livelier sampling and VoiceDesign (0.81: another person).
+    """
+    items = model.create_voice_clone_prompt(ref_audio=ref_audio, x_vector_only_mode=True)
+    codes, _ = model.model.generate(
+        input_ids=model._tokenize_texts([model._build_assistant_text(text)]),
+        ref_ids=None,
+        voice_clone_prompt=model._prompt_items_to_voice_clone_prompt(items),
+        instruct_ids=[model._tokenize_texts([model._build_instruct_text(instruct)])[0]],
+        languages=[language],
+        non_streaming_mode=False,
+        **model._merge_generate_kwargs(),
+    )
+    return model.model.speech_tokenizer.decode([{"audio_codes": c} for c in codes])
+
+
 def speak(body):
     import numpy as np
     import soundfile as sf
@@ -95,6 +118,7 @@ def speak(body):
     if audio.ndim > 1:
         audio = audio.mean(axis=1)
     ref_text = str(body.get("ref_text") or "").strip()
+    instruct = str(body.get("instruct") or "").strip()[:MAX_INSTRUCT]
     seed = body.get("seed")
     language = str(body.get("language") or "English")
     global _last_used
@@ -106,13 +130,17 @@ def speak(body):
             if torch.cuda.is_available():
                 torch.cuda.manual_seed_all(seed)
         started = time.time()
-        wavs, out_rate = model.generate_voice_clone(
-            text=text,
-            language=language,
-            ref_audio=(np.asarray(audio, dtype=np.float32), int(rate)),
-            # With what the sample says, it's copied closer (ICL); without, its speaker embedding.
-            **({"ref_text": ref_text} if ref_text else {"x_vector_only_mode": True}),
-        )
+        sample = (np.asarray(audio, dtype=np.float32), int(rate))
+        if instruct:
+            wavs, out_rate = clone_with_instruct(model, text, language, sample, instruct)
+        else:
+            wavs, out_rate = model.generate_voice_clone(
+                text=text,
+                language=language,
+                ref_audio=sample,
+                # With what the sample says, it's copied closer (ICL); without, its speaker embedding.
+                **({"ref_text": ref_text} if ref_text else {"x_vector_only_mode": True}),
+            )
         seconds = time.time() - started
         _last_used = time.time()
     buffer = io.BytesIO()

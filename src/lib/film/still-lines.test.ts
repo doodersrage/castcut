@@ -43,10 +43,10 @@ describe('reading the lines on stills', () => {
     assert.ok(Number.isInteger(seed) && seed >= 0 && seed < 1_000_000_000);
   });
 
-  it('gives a base voice a few seconds of their own words', () => {
+  it('gives a base voice a few lively seconds of their own words', () => {
     assert.equal(
       baseVoiceLine('Rob Hale'),
-      'Hi, I’m Rob. This is how I sound when I talk — easy, clear, and just like this.'.replace('’', "'")
+      "Hi! I'm Rob. Honestly? This is just how I sound — happy, annoyed, all of it. Ha!"
     );
   });
 

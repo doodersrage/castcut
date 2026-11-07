@@ -46,9 +46,11 @@ export function speakerSeed(key: string): number {
 
 /**
  * What a speaker says to give them a base voice (a Cast member with none, before their lines are
- * read): a few calm seconds in their own words, kept as their voice sample like an audition.
+ * read): a few seconds in their own words, kept as their voice sample like an audition. Lively,
+ * not calm: a read line copies its sample's delivery as well as its voice (2026-11-07: the calm
+ * introduction made every line flat).
  */
 export function baseVoiceLine(name: string): string {
   const first = name.trim().split(/\s+/)[0] || 'me';
-  return `Hi, I'm ${first}. This is how I sound when I talk — easy, clear, and just like this.`;
+  return `Hi! I'm ${first}. Honestly? This is just how I sound — happy, annoyed, all of it. Ha!`;
 }

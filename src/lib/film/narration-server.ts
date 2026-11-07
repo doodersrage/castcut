@@ -24,6 +24,8 @@ export async function renderNarration(input: {
   voiceSample?: string;
   /** The sample is Cut's base voice: without the voice engine, read on the seed alone. */
   voiceBase?: boolean;
+  /** How the line is said (line-delivery.ts). */
+  delivery?: string;
   /** One speaker's lines on one seed sound like one person (a new seed is a new voice). */
   seed?: number;
   comfyUrl?: string;
@@ -40,6 +42,7 @@ export async function renderNarration(input: {
         line,
         voiceSample: input.voiceSample,
         ...(input.seed !== undefined ? { seed: input.seed } : {}),
+        ...(input.delivery ? { delivery: input.delivery } : {}),
         baseUrl,
       });
       return { url: read.url };
@@ -64,6 +67,7 @@ export async function renderNarration(input: {
       line,
       speaker: input.speaker === 'man' ? 'man' : 'woman',
       seed: input.seed ?? Math.floor(Math.random() * 1_000_000_000),
+      ...(input.delivery ? { delivery: input.delivery } : {}),
       prefix: 'audio/Castcut-narration',
       ...(voiceSample ? { voiceSample } : {}),
     }),
