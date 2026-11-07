@@ -1311,20 +1311,41 @@ export function sceneStillFraming(scene: Pick<SavedScene, 'slot' | 'allowCompani
 }
 
 /**
- * Cut's Scenes source: each of the Cast's scenes with a kept take, oldest scene first — the kept
- * take's clip when it has one, else the still. Keys are the scene ids (Cut prefixes them).
+ * One script's Scenes in its order (its planned shots'): an episode or a short cut on its own,
+ * a moment added to it later in its place, not at the end.
+ */
+export function scriptScenesInOrder(
+  scenes: ReadonlyArray<SavedScene> | undefined,
+  script: { id: string; shots?: ReadonlyArray<{ madeSceneId?: string }> }
+): SavedScene[] {
+  const mine = (scenes ?? []).filter(scene => scene.fromScript?.scriptId === script.id);
+  const rank = new Map<string, number>();
+  (script.shots ?? []).forEach((shot, index) => {
+    if (shot.madeSceneId && !rank.has(shot.madeSceneId)) rank.set(shot.madeSceneId, index);
+  });
+  return mine.sort(
+    (a, b) =>
+      (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER) ||
+      a.createdAt - b.createdAt
+  );
+}
+
+/**
+ * Cut's Scenes source: each of the Cast's scenes with a kept take, oldest scene first (or in the
+ * order given: `inOrder`) — the kept take's clip when it has one, else the still. Keys are the
+ * scene ids (Cut prefixes them).
  */
 export function sceneCutShots(
   scenes: ReadonlyArray<SavedScene> | undefined,
   castId: string,
-  stillHoldSec = 3
+  stillHoldSec = 3,
+  inOrder = false
 ): KeyedShot[] {
   const id = castId.trim();
   if (!id) return [];
-  return (scenes ?? [])
-    .filter(scene => scene.castId === id)
-    .sort((a, b) => a.createdAt - b.createdAt)
-    .flatMap((scene): KeyedShot[] => {
+  const mine = (scenes ?? []).filter(scene => scene.castId === id);
+  return (inOrder ? mine : mine.sort((a, b) => a.createdAt - b.createdAt)).flatMap(
+    (scene): KeyedShot[] => {
       const take = keptTakeOf(scene);
       if (!take) return [];
       const caption = scene.slot.sceneHints?.trim() || scene.name;
@@ -1360,7 +1381,8 @@ export function sceneCutShots(
               ...sceneStillFraming(scene),
             },
           ];
-    });
+    }
+  );
 }
 
 /** What Cut's edit holds of a scene (R7): just the parts the Scene page asks about. */

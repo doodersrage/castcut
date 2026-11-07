@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import type { DayToolCache } from '../play/settings';
-import { dayAsShort, dayMomentHeading, dayShortSource } from './day-as-short';
+import { dayAsShort, dayMomentHeading, dayShortFingerprint, dayShortSource } from './day-as-short';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -63,5 +63,41 @@ describe('a Day as a short', () => {
     assert.equal(short?.scenes[0]!.takes.length, 0);
     const empty = { ...day, slots: [{ id: 'morning', label: 'Morning' }] } as unknown as DayToolCache;
     assert.equal(dayAsShort({ day: empty, castId: 'mara', leadName: 'Mara' }), null);
+  });
+
+  it('carries the Day’s mood, and updates its short in place — takes and kept take kept', () => {
+    const first = dayAsShort({ day: { ...day, dayMood: 'sport' } as DayToolCache, castId: 'mara', leadName: 'Mara', now: 1000 });
+    assert.equal(first?.script.mood, 'sport');
+    // On Scene, the afternoon got two takes and one was kept.
+    const scenes = first!.scenes.map(scene =>
+      scene.fromDaySlot === 'afternoon'
+        ? { ...scene, takes: [{ id: 'a1', imageUrl: '/a1.png', at: 2 }, { id: 'a2', imageUrl: '/a2.png', at: 3 }], keptTakeId: 'a1' }
+        : scene
+    ) as typeof first.scenes;
+    // The Day changes: a new evening moment, the afternoon's beat rewritten.
+    const changed = {
+      ...day,
+      slots: (day.slots ?? []).map(slot =>
+        slot.id === 'evening'
+          ? { ...slot, location: 'rooftop bar', sceneHints: 'laughing at the rail' }
+          : slot.id === 'afternoon'
+            ? { ...slot, sceneHints: 'swims out past the buoys' }
+            : slot
+      ),
+    } as DayToolCache;
+    assert.notEqual(dayShortFingerprint(changed), dayShortFingerprint(day));
+    const again = dayAsShort({ day: changed, castId: 'mara', leadName: 'Mara', now: 2000, existing: { script: first!.script, scenes } });
+    assert.ok(again);
+    assert.equal(again.script.id, first!.script.id);
+    assert.equal(again.scenes.length, 4);
+    const afternoon = again.scenes.find(scene => scene.fromDaySlot === 'afternoon')!;
+    assert.equal(afternoon.id, scenes.find(scene => scene.fromDaySlot === 'afternoon')!.id);
+    assert.equal(afternoon.slot.sceneHints, 'swims out past the buoys');
+    assert.deepEqual(afternoon.takes.map(take => take.id), ['a1', 'a2']);
+    assert.equal(afternoon.keptTakeId, 'a1');
+    assert.equal(again.shots.find(shot => shot.madeSceneId === afternoon.id)?.action, 'swims out past the buoys');
+    assert.ok(again.scenes.some(scene => scene.fromDaySlot === 'evening'));
+    // Every shot names its Scene.
+    assert.deepEqual(again.shots.map(shot => shot.madeSceneId), again.scenes.map(scene => scene.id));
   });
 });

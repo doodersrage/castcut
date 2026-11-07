@@ -11,6 +11,7 @@ import {
   normalizeEpisodeHeading,
   parseEpisodeOutline,
   parseEpisodeScene,
+  dayShortMoodAvailable,
   dayShortSeed,
   episodeLengthScenes,
   episodeWriteHref,
@@ -109,12 +110,22 @@ describe('a short from Day', () => {
 
   it('carries the idea, its mood and its moments to the Scene page, and back', () => {
     const seed = dayShortSeed({ premise: '  A rainy Saturday  ', mood: 'everyday', moments: 6 });
-    assert.deepEqual(seed, { premise: 'A rainy Saturday', tone: 'everyday slice of life, warm and observant', scenes: 6 });
+    assert.deepEqual(seed, {
+      premise: 'A rainy Saturday',
+      tone: 'everyday slice of life, warm and observant',
+      scenes: 6,
+      mood: 'everyday',
+    });
     const href = episodeWriteHref('cast-1', seed);
     assert.match(href, /^\/scene\?character=cast-1&write=short&/);
     assert.deepEqual(readEpisodeWriteSeed(href.slice(href.indexOf('?'))), seed);
     // A mood with no tone of its own, and a URL with no idea, or no short asked for.
-    assert.equal(dayShortSeed({ premise: 'x', mood: 'sport', moments: 4 }).tone, undefined);
+    assert.match(dayShortSeed({ premise: 'x', mood: 'sport', moments: 4 }).tone ?? '', /sport/);
+    assert.equal(dayShortSeed({ premise: 'x', mood: 'sport', moments: 4 }).mood, 'sport');
+    // Intimate stays on Short's own board: no mood carried to the writer.
+    assert.equal(dayShortSeed({ premise: 'x', mood: 'intimate', moments: 4 }).mood, undefined);
+    assert.equal(dayShortMoodAvailable('intimate'), false);
+    assert.equal(readEpisodeWriteSeed('?write=short&premise=x&scenes=3&mood=intimate')?.mood, undefined);
     assert.equal(readEpisodeWriteSeed('?write=short&scenes=4'), null);
     assert.equal(readEpisodeWriteSeed('?premise=x&scenes=4'), null);
   });

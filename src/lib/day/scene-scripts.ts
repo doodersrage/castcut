@@ -30,6 +30,11 @@ export type SavedScript = {
   placeMap?: ScriptPlaceMap;
   /** The shot lists of its scenes (script-shots.ts), in script order. */
   shots?: PlannedShot[];
+  /**
+   * The mood its Scenes are made in (a Day mood or theme: a short from Short — Sport, Vacation…).
+   * Unset: the Scene page's own mood, as before.
+   */
+  mood?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -54,6 +59,7 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
   const castMap = normalizeScriptCastMap(script.castMap);
   const placeMap = normalizeScriptPlaceMap(script.placeMap);
   const shots = normalizePlannedShots(script.shots);
+  const mood = text(script.mood, 40);
   return {
     id,
     castId,
@@ -62,9 +68,23 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
     ...(castMap ? { castMap } : {}),
     ...(placeMap ? { placeMap } : {}),
     ...(shots ? { shots } : {}),
+    ...(mood ? { mood } : {}),
     createdAt,
     updatedAt: time(script.updatedAt, createdAt),
   };
+}
+
+/**
+ * The script one more for this Cast would drop (scripts keep the newest {@link SCRIPTS_PER_CAST}
+ * per Cast, by when they last changed), or null while there is room — asked before keeping one.
+ */
+export function scriptDroppedByAdding(
+  scripts: readonly SavedScript[] | undefined,
+  castId: string
+): SavedScript | null {
+  const mine = scriptsForCast(scripts, castId);
+  if (mine.length < SCRIPTS_PER_CAST) return null;
+  return [...mine].sort((a, b) => a.updatedAt - b.updatedAt)[0] ?? null;
 }
 
 /**
@@ -123,8 +143,11 @@ export function createScript(input: {
   name?: string;
   now?: number;
   id?: string;
+  /** The mood its Scenes are made in (unset: the Scene page's). */
+  mood?: string | null;
 }): SavedScript | null {
   const now = input.now ?? Date.now();
+  const mood = input.mood?.trim().slice(0, 40);
   const source = input.source.replace(/\r\n?/g, '\n');
   if (!input.castId.trim() || !source.trim() || source.length > SCRIPT_SOURCE_MAX) return null;
   return {
@@ -132,6 +155,7 @@ export function createScript(input: {
     castId: input.castId.trim(),
     name: (input.name?.trim() || scriptNameOf(parseScript(source))).slice(0, 80),
     source,
+    ...(mood ? { mood } : {}),
     createdAt: now,
     updatedAt: now,
   };

@@ -28,6 +28,7 @@ import {
   sceneCardBusy,
   sceneCutNote,
   sceneCutShots,
+  scriptScenesInOrder,
   sceneCutUse,
   sceneContinuing,
   sceneFromDaySlot,
@@ -1114,5 +1115,30 @@ describe('Continue scene', () => {
     assert.equal(continuedSceneName(taken, 'nora', 'Kitchen, continued 2'), 'Kitchen, continued 3');
     // Another Cast's names don't count.
     assert.equal(continuedSceneName(taken, 'tomas', 'Kitchen'), 'Kitchen, continued');
+  });
+});
+
+describe('one script’s Scenes for Cut', () => {
+  const scene = (id: string, scriptId: string | null, createdAt: number) =>
+    ({
+      id,
+      castId: 'c',
+      name: id,
+      slot: { id: 'morning', label: 'Morning' },
+      takes: [{ id: `${id}-t`, imageUrl: `/${id}.png`, at: 1 }],
+      keptTakeId: `${id}-t`,
+      ...(scriptId ? { fromScript: { scriptId, sceneId: 's', shotId: id } } : {}),
+      createdAt,
+      updatedAt: createdAt,
+    }) as SavedScene;
+
+  it('keeps the script’s own, in its shots’ order — a later moment in its place', () => {
+    const scenes = [scene('a', 'x', 1), scene('hand', null, 2), scene('c', 'x', 3), scene('b', 'x', 9), scene('o', 'y', 4)];
+    const script = { id: 'x', shots: [{ madeSceneId: 'a' }, { madeSceneId: 'b' }, { madeSceneId: 'c' }] };
+    const ordered = scriptScenesInOrder(scenes, script);
+    assert.deepEqual(ordered.map(entry => entry.id), ['a', 'b', 'c']);
+    assert.deepEqual(sceneCutShots(ordered, 'c', 3, true).map(shot => shot.key), ['a', 'b', 'c']);
+    // Unordered, Cut goes by when each was made.
+    assert.deepEqual(sceneCutShots(ordered, 'c').map(shot => shot.key), ['a', 'c', 'b']);
   });
 });

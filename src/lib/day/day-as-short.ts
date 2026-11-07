@@ -70,6 +70,28 @@ export function dayShortSource(input: {
   return [`Title: ${input.title.trim() || 'A short'}`, '', ...blocks].join('\n').trimEnd() + '\n';
 }
 
+/**
+ * What the Day's moments are, as a short reads them — when it changes, the short is out of date.
+ * (Stills count: a new take on the Day is one the short doesn't have yet.)
+ */
+export function dayShortFingerprint(day: DayToolCache): string {
+  const stills = new Map(
+    (day.stills ?? []).map(still => [
+      still.slotId,
+      still.status === 'completed' ? still.promptId : '',
+    ])
+  );
+  return JSON.stringify(
+    momentsOf(day).map(slot => [
+      slot.id,
+      slot.location ?? '',
+      slot.sceneHints ?? '',
+      slot.line ?? '',
+      stills.get(slot.id) ?? '',
+    ])
+  ).concat(String(day.dayMood ?? ''));
+}
+
 export type DayAsShort = {
   script: SavedScript;
   shots: PlannedShot[];
@@ -89,6 +111,12 @@ export function dayAsShort(input: {
   leadName: string;
   title?: string;
   now?: number;
+  /**
+   * The Day's short already made (its link): updated in place — same script, each moment's Scene
+   * matched by its slot, its takes and kept take kept, the Day's newer still added — so the Day
+   * has one short however often it's made.
+   */
+  existing?: { script: SavedScript; scenes: readonly SavedScene[] };
 }): DayAsShort | null {
   const castId = input.castId.trim();
   const moments = momentsOf(input.day);
@@ -99,8 +127,19 @@ export function dayAsShort(input: {
     (input.day.dayEvent?.text?.trim() ?? '') ||
     `${input.leadName.trim() || 'Her'}’s day`;
   const source = dayShortSource({ day: input.day, leadName: input.leadName, title });
-  const script = createScript({ castId, source, name: title, now });
-  if (!script) return null;
+  // The Day's mood (Sport, Vacation, a theme…) goes with it: Scenes made later wear it too.
+  const mood = typeof input.day.dayMood === 'string' ? input.day.dayMood : undefined;
+  const fresh = createScript({ castId, source, name: title, now, mood });
+  if (!fresh) return null;
+  const prior = input.existing?.script.castId === castId ? input.existing : undefined;
+  const script: SavedScript = prior
+    ? {
+        ...prior.script,
+        source: fresh.source,
+        ...(mood ? { mood } : {}),
+        updatedAt: now,
+      }
+    : fresh;
   const parsed = parseScript(source);
   // One scene per moment, in order (dayShortSource writes one heading each).
   if (parsed.scenes.length !== moments.length) return null;
@@ -119,13 +158,30 @@ export function dayAsShort(input: {
       now: now + index,
     });
     if (!scene) return;
-    // The Day's still is the one its cut uses: kept here too.
-    const kept = scene.takes[scene.takes.length - 1]?.id;
-    scenes.push({
-      ...scene,
-      ...(kept ? { keptTakeId: kept } : {}),
-      fromScript: { scriptId: script.id, sceneId, shotId },
-    });
+    const fromScript = { scriptId: script.id, sceneId, shotId };
+    const before = prior?.scenes.find(
+      entry => entry.fromScript?.scriptId === script.id && entry.fromDaySlot === slot.id
+    );
+    if (before) {
+      // The moment's shot as the Day has it now; every take it had, and the Day's still if new.
+      const takes = [
+        ...before.takes,
+        ...scene.takes.filter(take => !before.takes.some(entry => entry.id === take.id)),
+      ];
+      const kept = before.keptTakeId ?? scene.takes[scene.takes.length - 1]?.id;
+      scenes.push({
+        ...before,
+        slot: scene.slot,
+        takes,
+        ...(kept ? { keptTakeId: kept } : {}),
+        fromScript,
+        updatedAt: now + index,
+      });
+    } else {
+      // The Day's still is the one its cut uses: kept here too.
+      const kept = scene.takes[scene.takes.length - 1]?.id;
+      scenes.push({ ...scene, ...(kept ? { keptTakeId: kept } : {}), fromScript });
+    }
     const said = slot.line?.trim();
     const framing: CameraShot = slot.poseCamera?.shot ?? (said ? 'waist' : 'knees');
     shots.push({
@@ -137,7 +193,7 @@ export function dayAsShort(input: {
       ...(slot.sceneHints?.trim() ? { action: slot.sceneHints.trim().slice(0, 400) } : {}),
       ...(said ? { line: said.slice(0, 400), speaker: leadSpeaker } : {}),
       seconds: said ? 5 : 3,
-      madeSceneId: scene.id,
+      madeSceneId: scenes[scenes.length - 1]!.id,
     });
   });
   if (scenes.length !== moments.length) return null;

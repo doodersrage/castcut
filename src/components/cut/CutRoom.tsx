@@ -485,7 +485,7 @@ export default function CutRoom() {
   ]);
   // Face match marks on Day shots (measured on Day; keys without the "day:" prefix there).
   const dayIdentity = useDayShotIdentity(vm.dayStills, vm.dayCast?.name);
-  const { mounted, pickOnly, pickAnimatic } = vm;
+  const { mounted, pickOnly, pickAnimatic, setScenesScript } = vm;
   const arrived = useRef(false);
   useEffect(() => {
     if (!mounted || arrived.current) return;
@@ -494,7 +494,9 @@ export default function CutRoom() {
     const from = cutSourceFromParam(params.get('from'));
     if (from === 'script') pickAnimatic(params.get('script')?.trim() || undefined);
     else if (from) pickOnly(from);
-  }, [mounted, pickAnimatic, pickOnly]);
+    // Scenes from one script (an episode, a short: ?from=scenes&script=…), else all of them.
+    if (from === 'scenes') setScenesScript(params.get('script')?.trim() || null);
+  }, [mounted, pickAnimatic, pickOnly, setScenesScript]);
   const kept = applyCutShotEdits(vm.shots, vm.options.shotEdits);
   // The preflight (M4 F6): what's checked now, before the encode (cheap: no hook needed).
   const preflightCues = filmSubtitleCues(subtitleRows);
@@ -737,6 +739,25 @@ export default function CutRoom() {
               );
             })}
           </div>
+          {vm.scenesScript && vm.sources.includes('scenes') ? (
+            <div
+              className="mt-2 flex flex-wrap items-center gap-2 text-sm"
+              data-testid="cut-scenes-script"
+            >
+              <span className="type-caption text-[var(--text-muted)]">
+                Scenes: only “{vm.scenesScript.name}”&apos;s, in its order
+              </span>
+              <Button
+                size="sm"
+                variant="link"
+                disabled={busy}
+                data-testid="cut-scenes-script-all"
+                onClick={() => vm.setScenesScript(null)}
+              >
+                Every Scene
+              </Button>
+            </div>
+          ) : null}
           {vm.sources.includes('script') ? (
             <div
               className="mt-2 flex flex-wrap items-center gap-2 text-sm"

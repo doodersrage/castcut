@@ -3618,6 +3618,26 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   start-a-saved-run hook retries until the run runs (a run record changing in the same tick
   cleared its one timer — the autopilot's start shared that race).
 
+- **B2 Every mood on the script road**: a script keeps a `mood` (a Day mood or theme), and the
+  Scenes made from it — Prepare a run, Make it a Scene — are made in it, over the Scene page's.
+  Make it a short carries Short's mood and tone (Sport, Suggestive too: the idea row shows the
+  short alone where there's no Write the day); This Day as a script keeps the Day's. Intimate is
+  not written by the LLM: it stays on the board.
+- **B3 One short per Day** (`tools.day.shortLink`: the Cast, the script, the Day's fingerprint,
+  the script's updatedAt then): made again, the short is reused — synced in place when the Day
+  changed (each moment's Scene matched by slot keeps its takes and kept take; new moments get
+  Scenes; the Day's newer still added), left as it is when nothing changed, and asked about
+  (as it is / a new copy) when the script was also changed on Scene — nothing written first.
+  Scripts kept per Cast are 12 (`SCRIPTS_PER_CAST`, pruned by oldest change): Short refuses a
+  13th; Scene's Keep and the episode autopilot ask, naming the script it would drop (before,
+  Keep dropped it silently).
+- **B4 One script's Scenes in Cut** (`cut.scenesScriptId`): `/cut?from=scenes&script=<id>` cuts
+  that script's Scenes only, in its shots' order (`scriptScenesInOrder`); a chip says so and
+  **Every Scene** clears it; arriving on Scenes without a script clears it. The episode autopilot
+  and Make the short cut this way — the guide's "only the episode in the cut" limit is gone.
+- Fixed on the way: Write an episode's result went into a script box hidden under Scene's
+  folded More on a Cast with no script yet — it unfolds now.
+
 ### Next (not started — each its own reviewed step)
 
 - **S3b The Short board on Scenes.** The board's cards read and write Scenes of a short script
@@ -3628,8 +3648,7 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   reel, Play's step machine counting Day stills, the Director, plan history) ported to read the
   script's Scenes. Risk: the largest surface in the app (lib/day, ~230 commits since October) —
   do it behind the copy, page by page, with the e2e Day suites green at each step.
-- **S3c One Cut source.** When S3b is in, Cut's Day source reads the short's Scenes; retire the
-  Day source after a release with both, so a saved cut that names `day` still opens.
-- **Moods for the script path.** Sport, Suggestive and Intimate (adult-gated) have no tone in
-  Write an episode; give the writer the moods' rules (kit, places, the adult setting) before
-  Day's own writers are retired.
+- **S3c One Cut source.** When S3b is in, Cut's Short source reads the short's Scenes; retire it
+  after a release with both, so a saved cut that names `day` still opens.
+- **Intimate on the script road**, if wanted: it would need the server's adult setting checked
+  in the writer route and a model that writes it; until then it stays on the board.

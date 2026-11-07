@@ -65,7 +65,9 @@ export default function SceneScriptAndRun({
   useEffect(() => {
     if (!run || run.state !== 'done' || !run.auto?.cutWhenDone || !castId) return;
     updateRun({ ...run, auto: { ...run.auto, cutWhenDone: false } });
-    router.push(`/cut?from=scenes&character=${encodeURIComponent(castId)}&autocut=1`);
+    // Its own Scenes only, in the script's order (not the Cast's others).
+    const only = run.scriptId ? `&script=${encodeURIComponent(run.scriptId)}` : '';
+    router.push(`/cut?from=scenes&character=${encodeURIComponent(castId)}${only}&autocut=1`);
   }, [castId, router, run, updateRun]);
   return (
     <>

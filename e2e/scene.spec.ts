@@ -2744,7 +2744,7 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
         stills: [{ slotId: 'evening', promptId: 'day-evening', imageUrl: '/icon.svg', status: 'completed' }],
       },
     },
-  });
+  }, { once: true });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await page.getByTestId('day-as-short').first().click({ timeout: 30_000 });
@@ -2769,6 +2769,71 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   // The Day is as it was.
   await gotoStable(page, `/day?character=${CAST}`);
   await expect(page.getByTestId('day-progress-scene-evening').first()).toContainText('laughing', { timeout: 30_000 });
+  // Its one short: the button opens it again — no second copy.
+  await expect(page.getByTestId('day-as-short').first()).toHaveText('Its script →');
+  await page.getByTestId('day-as-short').first().click();
+  await expect(page).toHaveURL(new RegExp(`script=${script!.id}`), { timeout: 60_000 });
+  const again = JSON.parse((await storedSceneTool(page)) || '{}') as typeof tool;
+  expect(again.scripts?.filter(entry => entry.name === 'Scene Cast’s day')).toHaveLength(1);
+  expect((again.scenes ?? []).filter(scene => scene.fromScript?.scriptId === script!.id)).toHaveLength(3);
+
+  // Cut on its Scenes only: the short's kept one (the evening), not the Cast's others.
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}&script=${script!.id}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-scenes-script')).toContainText('Scene Cast’s day', { timeout: 60_000 });
+  await expect(page.getByTestId('cut-source-scenes')).toContainText('1 shot');
+  await page.getByTestId('cut-scenes-script-all').click();
+  await expect(page.getByTestId('cut-scenes-script')).toHaveCount(0);
+});
+
+// Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
+// tone and mood to the writer, and the script keeps the mood for its Scenes.
+test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: { stillsCharacterId: CAST, dayMood: 'sport' }, scene: sceneWithTakes() },
+  });
+  await page.route('**/api/script-episode', async route => {
+    const sent = route.request().postDataJSON() as { step: string; index?: number; outline?: { scenes: { heading: string }[] } };
+    if (sent.step === 'outline') {
+      await route.fulfill({
+        json: {
+          outline: {
+            title: 'Final Whistle',
+            logline: 'One last match.',
+            scenes: [
+              { heading: 'EXT. PITCH - DAY', summary: 'Warm-up.', who: [] },
+              { heading: 'INT. LOCKER ROOM - EVENING', summary: 'After.', who: [] },
+            ],
+          },
+        },
+      });
+      return;
+    }
+    await route.fulfill({ json: { text: `${sent.outline!.scenes[sent.index!]!.heading}\n\nShe laces her boots.\n` } });
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-idea-write')).toHaveCount(0);
+  await input.fill('the last match of the season');
+  await page.getByTestId('day-idea-short').first().click();
+  const sheet = page.getByTestId('episode-writer');
+  await expect(sheet).toBeVisible({ timeout: 60_000 });
+  await expect(sheet.getByTestId('episode-tone')).toHaveValue(/sport/);
+  await sheet.getByTestId('episode-write-outline').click();
+  await sheet.getByTestId('episode-write-scenes').click();
+  await sheet.getByTestId('episode-use').click();
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toContainText('PITCH');
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}') as { scripts?: Array<{ name: string; mood?: string }> };
+      return tool.scripts?.find(entry => entry.name === 'Final Whistle')?.mood ?? '';
+    })
+    .toBe('sport');
 });
 
 // Make the short: the Day as a script and its run started — the moments without a kept still

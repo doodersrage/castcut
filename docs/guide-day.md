@@ -48,7 +48,10 @@ silly / raunchy.
     Typed an idea? **Make it a short →** takes it to Scene's [Write an episode](guide-scene.md#script)
     as a short script — a scene per moment, starting from the Day's number and as many as you like
     there (2–40) — then planned, rendered and cut like an episode, by hand or with **Make the whole
-    episode for me** ([Make an episode](guide-episode.md)). Everyday and Vacation set its tone.
+    episode for me** ([Make an episode](guide-episode.md)). The mood goes with it — Everyday,
+    Vacation, Sport and Suggestive set its tone, and the script keeps the mood, so its Scenes are
+    made in it. Sport and Suggestive have no Write the day, so there the idea row is only this.
+    Intimate stays on the board (it isn't written by the LLM).
 
 !!! tip "This Day as a script"
     **This Day as a script →** copies the Day into a script: a scene for each moment with a place, a
@@ -56,9 +59,16 @@ silly / raunchy.
     Scene — the moment's still as its kept take. It opens on Scene: storyboard it, add moments,
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
+    A Day has one short. Once made, the link reads **Its script →**: the Day changed since is
+    brought into the same script — each moment's Scene keeps its takes and kept take, a new
+    moment gets one, the Day's newer still is added. If the script was changed on Scene too, it
+    asks first: **Use it as it is** or **Copy again (a new short)**. A Cast keeps 12 scripts:
+    at 12, Short won't make another (it would drop one) — delete one on Scene first. Keeping a
+    13th script on Scene asks too, naming the one it would drop.
+
     **Make the short →** does the same and starts its run on Scene: each moment without a kept
     still is rendered in turn, the best take kept by its checks (one redo when it misses one), and
-    Cut cuts the short when it's done — Queue day with the checks of an
+    Cut cuts the short when it's done — its own Scenes only, in the script's order — Queue day with the checks of an
     [episode run](guide-scene.md#episode-runs). Keep the Scene page open while it runs. It won't
     start over a run already listed, going or paused on Scene: finish or cancel that one first.
 

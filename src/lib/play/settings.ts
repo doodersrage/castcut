@@ -129,6 +129,8 @@ export type DayToolCache = {
   dayThread?: import('../day/thread').DayThread;
   /** One event (day-event.ts): every slot a moment of it; unset = an ordinary Day. */
   dayEvent?: import('../day/event').DayEvent;
+  /** This Day's short (Short's "This Day as a script", scene-links.ts): made once, kept up to date. */
+  shortLink?: import('../day/scene-links').DayShortLink;
   /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
   outfitHandoffKept?: import('../day/outfit-scope').DayOutfitHandoffNotice;
   /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */

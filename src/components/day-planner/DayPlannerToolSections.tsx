@@ -954,6 +954,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             slots={slots}
             stills={stills}
             busy={busy}
+            onLinked={shortLink => updateToolSettings({ shortLink })}
           />
           {/* The plan decides the board — chosen once, so it sits above the cards. */}
           <DayPlanBar

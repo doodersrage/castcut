@@ -82,9 +82,9 @@ on Cut the line above the status does. The film lands in **Your films** like any
   gives the others one the first time they speak.
 - **Judge the takes.** It keeps the best by the checks. _To check_ is the list of Scenes worth a
   look; after fixing some, cut again by hand.
-- **Only the episode in the cut.** Cut's Scenes are all of the Cast's kept Scenes, in the order they
-  were made — the episode's in its own order. Scenes you made by hand for the same Cast are in it
-  too: leave them out in Cut's shot list, or cut a Cast that only has the episode.
+- The cut is the episode's own Scenes, in the script's order — Cut says _Scenes: only “…”'s_;
+  **Every Scene** puts the Cast's other kept Scenes back in. Opening Cut on Scenes from anywhere
+  else cuts every Scene again.
 
 If a step fails — the LLM is down, the run can't be prepared — it stops there and says so, with
 what it did kept: carry on by hand from that step.

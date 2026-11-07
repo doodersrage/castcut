@@ -84,28 +84,46 @@ export function episodeLengthScenes(input: { minutes: number; scenes?: number | 
  * A short from Day (2026-11-06): Day's idea, mood and number of moments, carried to the Scene
  * page's Write an episode — scripts make the film now; Day's moments are its scenes.
  */
-export type EpisodeWriteSeed = { premise: string; tone?: string; scenes: number };
+export type EpisodeWriteSeed = {
+  premise: string;
+  tone?: string;
+  scenes: number;
+  /** Short's mood (or theme): kept with the script, its Scenes made in it. */
+  mood?: string;
+};
 
 const DAY_MOOD_TONES: Record<string, string> = {
   everyday: 'everyday slice of life, warm and observant',
   vacation: 'a holiday away, sunny and easy',
+  sport: 'sporty and driven: training, the match, the team, in the right kit',
+  suggestive: 'flirty and playful, glamorous, always clothed',
 };
+
+/**
+ * The moods a short can be written in (Write an episode's LLM): Intimate isn't one — its scenes
+ * stay on Short's own board, behind the server's adult setting.
+ */
+export function dayShortMoodAvailable(mood: string | null | undefined): boolean {
+  const id = String(mood ?? 'everyday')
+    .trim()
+    .toLowerCase();
+  return id !== 'intimate' && id !== 'raunchy';
+}
 
 export function dayShortSeed(input: {
   premise: string;
   mood: string | null | undefined;
   moments: number;
 }): EpisodeWriteSeed {
-  const tone =
-    DAY_MOOD_TONES[
-      String(input.mood ?? '')
-        .trim()
-        .toLowerCase()
-    ];
+  const mood = String(input.mood ?? '')
+    .trim()
+    .slice(0, 40);
+  const tone = DAY_MOOD_TONES[mood.toLowerCase()];
   return {
     premise: input.premise.trim().slice(0, 2000),
     ...(tone ? { tone } : {}),
     scenes: normalizeEpisodeScenes(input.moments) ?? EPISODE_SCENES_MIN,
+    ...(mood && dayShortMoodAvailable(mood) ? { mood } : {}),
   };
 }
 
@@ -118,6 +136,7 @@ export function episodeWriteHref(castId: string, seed: EpisodeWriteSeed): string
     scenes: String(seed.scenes),
   });
   if (seed.tone) params.set('tone', seed.tone);
+  if (seed.mood) params.set('mood', seed.mood);
   return `/scene?${params.toString()}`;
 }
 
@@ -129,7 +148,13 @@ export function readEpisodeWriteSeed(search: string): EpisodeWriteSeed | null {
   const scenes = normalizeEpisodeScenes(params.get('scenes'));
   if (!premise || !scenes) return null;
   const tone = (params.get('tone') ?? '').trim().slice(0, 60);
-  return { premise, scenes, ...(tone ? { tone } : {}) };
+  const mood = (params.get('mood') ?? '').trim().slice(0, 40);
+  return {
+    premise,
+    scenes,
+    ...(tone ? { tone } : {}),
+    ...(mood && dayShortMoodAvailable(mood) ? { mood } : {}),
+  };
 }
 
 export function episodeOutlineMessages(input: {

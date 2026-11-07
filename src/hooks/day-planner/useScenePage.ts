@@ -217,6 +217,8 @@ export function useScenePage(vm: DayEngineView) {
       input: Pick<Parameters<typeof createScene>[0], 'name' | 'slot' | 'fromScript'> & {
         partnerCharacterId?: string;
         partnerInFrame?: boolean;
+        /** The script's mood (a short's), over the page's. */
+        mood?: string;
       },
       also?: (sceneId: string) => Partial<SceneToolCache> | null
     ): string | null => {
@@ -225,12 +227,13 @@ export function useScenePage(vm: DayEngineView) {
         setNote('A take is rendering — make the scene when it lands.');
         return null;
       }
-      const { partnerCharacterId, partnerInFrame, ...shot } = input;
+      const { partnerCharacterId, partnerInFrame, mood, ...shot } = input;
       const scene = createScene({
         castId,
         ...shot,
         mood: {
           ...(cache as Record<string, unknown>),
+          ...(mood ? { dayMood: mood } : {}),
           // The script's second person, else nobody named (an invented stranger).
           partnerCharacterId: partnerCharacterId ?? '',
           ...scriptShotCompanions(partnerCharacterId, partnerInFrame),
@@ -271,6 +274,8 @@ export function useScenePage(vm: DayEngineView) {
           fromScript: { scriptId: script.id, sceneId: shot.sceneId, shotId: shot.id },
           mood: {
             ...(cache as Record<string, unknown>),
+            // A short's mood (Sport, Vacation…) over the page's own.
+            ...(script.mood ? { dayMood: script.mood } : {}),
             partnerCharacterId: draft.partnerCharacterId ?? '',
             ...scriptShotCompanions(draft.partnerCharacterId, draft.partnerInFrame),
           },

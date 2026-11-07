@@ -155,7 +155,12 @@ import {
   DEFAULT_ROLEPLAY_TOOL_CACHE,
   DEFAULT_SCENE_TOOL_CACHE,
 } from '@/lib/play/settings';
-import { keptTakeOf, normalizeSavedScenes, sceneCutShots } from '@/lib/day/scenes';
+import {
+  keptTakeOf,
+  normalizeSavedScenes,
+  sceneCutShots,
+  scriptScenesInOrder,
+} from '@/lib/day/scenes';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
@@ -306,9 +311,25 @@ export function useCutRoom() {
     [sceneTool.toolSettings.scenes]
   );
   const sceneCastId = shared.activeCharacterId?.trim() || '';
+  // The scripts (their own store): the animatic's, and the one the Scenes are cut from.
+  const [storedScripts, setStoredScripts] = useState<SavedScript[]>([]);
+  useEffect(() => {
+    const read = () => setStoredScripts(loadSceneScriptStore().scripts);
+    read();
+    window.addEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
+    return () => window.removeEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
+  }, []);
+  // Scenes: only one script's (an episode, a short), in its order — else all the Cast's.
+  const scenesScriptId = cut.toolSettings.scenesScriptId?.trim() || '';
+  const scenesScript = scenesScriptId
+    ? storedScripts.find(script => script.id === scenesScriptId && script.castId === sceneCastId)
+    : undefined;
   const sceneShots = useMemo(
-    () => sceneCutShots(savedScenes, sceneCastId),
-    [sceneCastId, savedScenes]
+    () =>
+      scenesScript
+        ? sceneCutShots(scriptScenesInOrder(savedScenes, scenesScript), sceneCastId, 3, true)
+        : sceneCutShots(savedScenes, sceneCastId),
+    [sceneCastId, savedScenes, scenesScript]
   );
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
@@ -317,13 +338,6 @@ export function useCutRoom() {
   // Text cards (added ones, the animatic's) are drawn in the cut's size.
   const resolution = filmResolutionForCutOptions(options);
   // The animatic (M9 T4): the Cast's scripts with planned shots; the picked one, else the latest.
-  const [storedScripts, setStoredScripts] = useState<SavedScript[]>([]);
-  useEffect(() => {
-    const read = () => setStoredScripts(loadSceneScriptStore().scripts);
-    read();
-    window.addEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
-    return () => window.removeEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
-  }, []);
   const animaticScripts = useMemo(
     () =>
       storedScripts
@@ -3094,6 +3108,10 @@ export function useCutRoom() {
     animaticScriptId: animaticScript?.id,
     pickAnimatic,
     setAnimaticScript: (scriptId: string) => updateCut({ scriptId }),
+    /** Scenes cut from one script only (its name), or every kept Scene of the Cast (null). */
+    scenesScript: scenesScript ? { id: scenesScript.id, name: scenesScript.name } : null,
+    setScenesScript: (scriptId: string | null) =>
+      updateCut({ scenesScriptId: scriptId ?? undefined }),
     pickOnly,
     bySource,
     shots,

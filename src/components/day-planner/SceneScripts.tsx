@@ -53,6 +53,7 @@ import {
   scriptsForCast,
   scriptSummary,
   type ScriptsCache,
+  scriptDroppedByAdding,
 } from '@/lib/day/scene-scripts';
 import {
   parseScript,
@@ -446,6 +447,7 @@ export default function SceneScripts({
   makeScene: (
     input: Pick<ShotSceneDraft, 'name' | 'slot' | 'partnerCharacterId'> & {
       fromScript: SceneScriptLink;
+      mood?: string;
     },
     also: (sceneId: string) => ScriptsCache | null
   ) => string | null;
@@ -477,7 +479,16 @@ export default function SceneScripts({
     return id === 'import' ? null : id;
   });
   const [draft, setDraft] = useState<string | null>(null);
+  /** The mood of a short written from Short, kept with its script (its Scenes made in it). */
+  const [draftMood, setDraftMood] = useState<string | null>(null);
   const [writingEpisode, setWritingEpisode] = useState(false);
+  /** The Script section unfolded (it is under the Scene page's More) and brought into view. */
+  const revealScripts = () => {
+    const section = document.querySelector<HTMLElement>('[data-testid="scene-scripts"]');
+    const fold = section?.closest('details');
+    if (fold) fold.open = true;
+    window.setTimeout(() => section?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+  };
   // A short from Day (?write=short&premise=…&scenes=…): the writer opens on it, once.
   const [writeSeed, setWriteSeed] = useState<EpisodeWriteSeed | null>(null);
   // Or Short's Import a script… (?script=import): the import box opens, once.
@@ -496,7 +507,7 @@ export default function SceneScripts({
       if (!seed && !importing) return;
       // Off the URL, so a reload doesn't open it again (in the timer: Strict Mode runs this twice).
       const url = new URL(window.location.href);
-      for (const key of ['write', 'premise', 'scenes', 'tone', 'script'])
+      for (const key of ['write', 'premise', 'scenes', 'tone', 'mood', 'script'])
         url.searchParams.delete(key);
       window.history.replaceState(window.history.state, '', url);
       if (seed) {
@@ -504,14 +515,7 @@ export default function SceneScripts({
         setWritingEpisode(true);
       } else {
         setDraft(current => current ?? '');
-        // The box is under the page's folded More: unfold it and bring the box into view.
-        const section = document.querySelector<HTMLElement>('[data-testid="scene-scripts"]');
-        const fold = section?.closest('details');
-        if (fold) fold.open = true;
-        window.setTimeout(
-          () => section?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
-          50
-        );
+        revealScripts();
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -588,9 +592,24 @@ export default function SceneScripts({
     return { byScene, total };
   }, [decisions, locations, open, openParsed, scenes]);
 
-  const keep = () => {
+  /**
+   * Room for one more script, or the one keeping another would drop (the newest 12 per Cast are
+   * kept): asked first, never dropped quietly.
+   */
+  const roomForScript = async (): Promise<boolean> => {
+    const dropped = scriptDroppedByAdding(cache.scripts, castId);
+    if (!dropped) return true;
+    return confirmAction({
+      title: `Keep a 13th script for ${castName ?? 'this Cast'}?`,
+      body: `A Cast keeps 12 scripts. Keeping this one drops the one changed longest ago: “${dropped.name}” (its Scenes stay). Delete one you don't need first to keep them all.`,
+      confirmLabel: `Keep it and drop “${dropped.name.slice(0, 30)}”`,
+    });
+  };
+
+  const keep = async () => {
     if (!draft) return;
-    const script = createScript({ castId, source: draft });
+    if (!(await roomForScript())) return;
+    const script = createScript({ castId, source: draft, mood: draftMood });
     if (!script) {
       setError(
         draft.length > SCRIPT_SOURCE_MAX
@@ -601,6 +620,7 @@ export default function SceneScripts({
     }
     update(addScriptPatch(cache, script));
     setDraft(null);
+    setDraftMood(null);
     setError(null);
     setOpenId(script.id);
   };
@@ -642,6 +662,7 @@ export default function SceneScripts({
       {
         ...draft,
         fromScript: { scriptId: open.id, sceneId: scene.id, shotId: shot.id },
+        ...(open.mood ? { mood: open.mood } : {}),
       },
       sceneId =>
         setScriptShotsPatch(
@@ -752,7 +773,12 @@ export default function SceneScripts({
    * store (not this render's).
    */
   const runAutopilot = async (source: string, pilot: EpisodeAutopilot) => {
-    const script = createScript({ castId, source });
+    if (!(await roomForScript())) {
+      setDraft(source);
+      setDraftMood(writeSeed?.mood ?? null);
+      return;
+    }
+    const script = createScript({ castId, source, mood: writeSeed?.mood });
     if (!script) {
       setError('The episode could not be kept as a script (too long?).');
       return;
@@ -933,7 +959,12 @@ export default function SceneScripts({
             setOpenId(null);
             setError(null);
             if (pilot) void runAutopilot(fountain, pilot);
-            else setDraft(fountain);
+            else {
+              setDraft(fountain);
+              setDraftMood(writeSeed?.mood ?? null);
+              // On a Cast with no script yet, the box is under the page's folded More.
+              revealScripts();
+            }
           }}
           canAutopilot={Boolean(prepareRun && onStartRun)}
         />

@@ -111,6 +111,11 @@ export type CutToolCache = {
   sources?: CutSource[];
   /** The script the animatic source plays (M9 T4); unset = the Cast's latest with planned shots. */
   scriptId?: string;
+  /**
+   * Scenes: only this script's (an episode, a short), in the script's order — unset: every kept
+   * Scene of the Cast, oldest first (the episode autopilot and Make the short cut with it).
+   */
+  scenesScriptId?: string;
   /** Shots added here (Gallery, text cards, copies) — always in the film. */
   extras?: CutExtra[];
   /** Cut options, shot list edits included (keys carry the source). */

@@ -6,7 +6,7 @@ import { TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { DAY_EVENT_MAX_LENGTH, type DayEvent } from '@/lib/day/event';
 import { DAY_PREMISE_MAX_LENGTH, dayPremiseAvailable } from '@/lib/day/premise';
-import { dayShortSeed, episodeWriteHref } from '@/lib/day/episode-writer';
+import { dayShortMoodAvailable, dayShortSeed, episodeWriteHref } from '@/lib/day/episode-writer';
 
 type IdeaMode = 'day' | 'event';
 
@@ -47,12 +47,16 @@ export default function DayIdeaRow({
   const [premise, setPremise] = useState('');
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  if (!dayPremiseAvailable(dayMood)) return null;
-  const eventMode = mode === 'event' && Boolean(onWriteEvent);
+  // Write the day is Everyday's and Vacation's; a short (the script road) is every clothed mood's.
+  const writeDay = dayPremiseAvailable(dayMood);
+  const shortOnly = !writeDay && Boolean(castId) && dayShortMoodAvailable(dayMood);
+  if (!writeDay && !shortOnly) return null;
+  const eventMode = writeDay && mode === 'event' && Boolean(onWriteEvent);
 
   const write = async () => {
     const text = premise.trim();
-    if (!text || writing) return;
+    // A mood with no Write the day (Sport, Suggestive): Enter doesn't write one.
+    if (!text || writing || !writeDay) return;
     setWriting(true);
     setNote(null);
     try {
@@ -85,7 +89,7 @@ export default function DayIdeaRow({
         void write();
       }}
     >
-      {onWriteEvent ? (
+      {onWriteEvent && writeDay ? (
         <SegmentedControl<IdeaMode>
           aria-label="Plan the Day as"
           value={mode}
@@ -140,27 +144,33 @@ export default function DayIdeaRow({
           placeholder={
             eventMode
               ? 'One event — e.g. a dinner date at a candlelit trattoria'
-              : 'Day from an idea — e.g. a rainy Saturday that ends at a gallery opening'
+              : shortOnly
+                ? 'A short from an idea — e.g. the last match of the season'
+                : 'Day from an idea — e.g. a rainy Saturday that ends at a gallery opening'
           }
-          aria-label={eventMode ? 'One event' : 'Day from an idea'}
+          aria-label={
+            eventMode ? 'One event' : shortOnly ? 'A short from an idea' : 'Day from an idea'
+          }
           data-testid="day-idea-input"
           className="min-w-0 flex-1"
           onChange={changeEvent => setPremise(changeEvent.target.value)}
         />
-        <Button
-          type="submit"
-          size="sm"
-          variant="secondary"
-          disabled={busy || writing || !premise.trim()}
-          data-testid="day-idea-write"
-          title={
-            eventMode
-              ? 'The LLM writes the event as consecutive moments in one place — one per slot'
-              : 'The LLM writes a beat and a place for every slot, morning to night'
-          }
-        >
-          {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write the day'}
-        </Button>
+        {writeDay ? (
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            disabled={busy || writing || !premise.trim()}
+            data-testid="day-idea-write"
+            title={
+              eventMode
+                ? 'The LLM writes the event as consecutive moments in one place — one per slot'
+                : 'The LLM writes a beat and a place for every slot, morning to night'
+            }
+          >
+            {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write the day'}
+          </Button>
+        ) : null}
         {castId && !eventMode && premise.trim() ? (
           // The idea as a script: Scene's Write an episode, a scene per moment (as many as you
           // like there), then its run and Cut — or Make the whole episode for me.
