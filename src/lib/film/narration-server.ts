@@ -12,11 +12,14 @@ import {
   NARRATION_SAVE_NODE,
   normalizeNarration,
 } from './narration';
+import { readLineWithVoiceEngine, voiceEngineReady } from './voice-engine-server';
 
 export async function renderNarration(input: {
   line: string;
   speaker?: 'woman' | 'man';
   voiceSample?: string;
+  /** The sample is Cut's base voice: without the voice engine, read on the seed alone. */
+  voiceBase?: boolean;
   /** One speaker's lines on one seed sound like one person (a new seed is a new voice). */
   seed?: number;
   comfyUrl?: string;
@@ -24,6 +27,22 @@ export async function renderNarration(input: {
   const line = normalizeNarration(input.line);
   if (!line) throw new Error('Write the narration line first.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
+  // A kept voice: the voice engine reads in it when it's running (seconds a line, voice-engine-
+  // server.ts) — else LTX, as below.
+  if (input.voiceSample && (await voiceEngineReady())) {
+    try {
+      const read = await readLineWithVoiceEngine({
+        line,
+        voiceSample: input.voiceSample,
+        ...(input.seed !== undefined ? { seed: input.seed } : {}),
+        baseUrl,
+      });
+      return { url: read.url };
+    } catch (error) {
+      console.warn('[narration] voice engine failed, reading with LTX:', error);
+    }
+  }
+  const voiceSample = input.voiceBase ? undefined : input.voiceSample;
   for (const node of NARRATION_REQUIRED_NODES) {
     if (!(await resolveComfyNode(baseUrl, [node]))) {
       throw new Error(
@@ -40,7 +59,7 @@ export async function renderNarration(input: {
       speaker: input.speaker === 'man' ? 'man' : 'woman',
       seed: input.seed ?? Math.floor(Math.random() * 1_000_000_000),
       prefix: 'audio/Castcut-narration',
-      ...(input.voiceSample ? { voiceSample: input.voiceSample } : {}),
+      ...(voiceSample ? { voiceSample } : {}),
     }),
     read: entry => {
       const out = (entry.outputs?.[NARRATION_SAVE_NODE] as { audio?: ComfyImageRef[] } | undefined)

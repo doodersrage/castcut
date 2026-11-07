@@ -19,6 +19,7 @@ Claude outputs
 site
 desktop/src-tauri/target
 services/**/.venv
+addons/**/.venv
 services/**/loras
 services/**/outputs
 .prompt-studio-data

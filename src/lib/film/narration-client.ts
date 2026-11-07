@@ -5,6 +5,11 @@ export async function renderNarrationLine(input: {
   line: string;
   speaker: 'woman' | 'man';
   voiceSample?: string;
+  /**
+   * The sample is a base voice Cut gave them (cast/voice.ts castVoiceIsBase): read in it by the
+   * voice engine; without the engine, on the seed alone (LTX through a sample is twice as slow).
+   */
+  voiceBase?: boolean;
   /** The speaker's own seed (still-lines.ts speakerSeed), so their lines keep one voice. */
   seed?: number;
 }): Promise<string> {

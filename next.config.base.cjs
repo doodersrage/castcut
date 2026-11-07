@@ -72,6 +72,14 @@ const baseConfig = {
   // The Castcut node pack the app serves for copy-install (src/app/api/castcut-nodes/file).
   outputFileTracingIncludes: {
     '/api/castcut-nodes/file': ['./comfyui-nodes/castcut/castcut_nodes.py'],
+    // The voice engine Castcut ships, copied into the data folder by Install (voice-engine-install.ts).
+    '/api/voice-engine/install': [
+      './addons/voice/server.py',
+      './addons/voice/install.sh',
+      './addons/voice/run.sh',
+      './addons/voice/requirements.txt',
+      './addons/voice/VERSION',
+    ],
     // Content Credentials: films are signed by a script run as its own process
     // (content-credentials-server.ts), with the C2PA WebAssembly it loads from disk.
     '/api/film/assemble': [

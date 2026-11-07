@@ -28,7 +28,7 @@ import {
 import { useCachedSettings } from '@/hooks/useCachedSettings';
 import { usePromptResultActions } from '@/hooks/usePromptResultActions';
 import { BROWSER_STORAGE_HEALTH_EVENT } from '@/lib/storage/browser-storage';
-import { castVoiceOf, castVoiceReadSample, takeCastVoiceFromClip } from '@/lib/cast/voice';
+import { castVoiceIsBase, castVoiceOf, takeCastVoiceFromClip } from '@/lib/cast/voice';
 import { baseVoiceLine, speakerSeed, stillLineOf } from '@/lib/film/still-lines';
 import { assembleAndStampFilm, downloadFilmBlob } from '@/lib/film/character-film-assemble-lazy';
 import {
@@ -2446,8 +2446,10 @@ export function useCutRoom() {
                     : cast?.traits?.sex === 'woman'
                       ? 'man'
                       : 'woman';
-            // An auditioned voice steers the line; a base voice reads on the seed alone.
-            const sample = who ? castVoiceReadSample(who.id) : undefined;
+            // Their kept voice: the voice engine reads in it; without the engine an auditioned
+            // voice steers LTX and a base voice reads on the seed alone (narration-server.ts).
+            const voice = who ? castVoiceOf(who.id) : null;
+            const sample = voice?.sample;
             // One seed a speaker: their lines keep one voice (a Cast id, else the beat's name).
             const seed = speakerSeed(
               who?.id ??
@@ -2462,6 +2464,7 @@ export function useCutRoom() {
                 speaker: sex,
                 seed,
                 ...(sample ? { voiceSample: sample } : {}),
+                ...(castVoiceIsBase(voice) ? { voiceBase: true } : {}),
               }).catch(() => undefined);
               if (url) keepReadLine(cacheKey, url);
             }

@@ -8,6 +8,7 @@
 # lives in the castcut_data volume and survives rebuilds; see docs/configuration.md#docker for
 # moving an existing install in. Optional extras: `--profile llm` (the LLM: llama.cpp with the
 # NSFWVision Qwen3-VL model on an NVIDIA GPU; set LLM_API_BASE_URL=http://llm:8080/v1 in .env),
+# `--profile voice` (the voice engine: set VOICE_ENGINE_URL=http://voice:8191 in .env),
 # `--profile ollama` and `--profile comfyui` (a ComfyUI container) — most setups point at ones
 # already running instead. (Outside Docker, Settings → LLM → Built-in LLM installs the same thing.)
 services:
@@ -65,6 +66,23 @@ services:
               capabilities: [gpu]
     restart: unless-stopped
 
+  # Castcut's voice engine (addons/voice): Cut's lines read in each Cast member's kept voice in
+  # seconds instead of LTX's minute or more. Set VOICE_ENGINE_URL=http://voice:8191 in .env.
+  voice:
+    profiles: ['voice']
+    build: ../addons/voice
+    image: castcut-voice:local
+    volumes:
+      - voice_models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
   ollama:
     profiles: ['ollama']
     image: ollama/ollama:latest
@@ -85,4 +103,5 @@ services:
 volumes:
   castcut_data:
   llm_models:
+  voice_models:
   ollama_data:

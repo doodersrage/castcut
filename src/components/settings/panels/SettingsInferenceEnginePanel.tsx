@@ -31,6 +31,7 @@ import {
 } from '@/lib/engine/capabilities';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { APP_HAS_PLAY } from '@/lib/app/profile';
+import VoiceEngineInstall from '@/components/settings/panels/VoiceEngineInstall';
 import DiffusersEngineInstall, {
   useDiffusersEngine,
 } from '@/components/settings/panels/DiffusersEngineInstall';
@@ -150,6 +151,8 @@ export default function SettingsInferenceEnginePanel({
         </div>
 
         <DiffusersEngineInstall engine={diffusersEngine} />
+
+        <VoiceEngineInstall />
 
         {activeEngine === 'comfyui' ? (
           <p className="text-xs text-[var(--text-muted)] sm:col-span-2">

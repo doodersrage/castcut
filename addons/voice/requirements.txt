@@ -1,0 +1,6 @@
+# Castcut's voice engine (addons/voice): Qwen3-TTS reads lines in a Cast member's kept voice.
+# Its own venv — these pins don't fit ComfyUI's (transformers 5.x), which is why it isn't a node.
+qwen-tts==0.1.1
+transformers==4.57.3
+accelerate==1.12.0
+soundfile

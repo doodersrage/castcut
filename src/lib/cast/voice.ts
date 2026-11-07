@@ -21,21 +21,13 @@ const BASE_VOICE_SOURCE = /Castcut-narration/;
 
 /**
  * Whether a kept voice is a base voice Cut gave them (`base`, or before the flag: cut from a read
- * line — auditions are talking clips) rather than one auditioned or recorded.
+ * line — auditions are talking clips) rather than one auditioned or recorded. Without the voice
+ * engine its lines read on the seed alone: through the sample, LTX-2.5 took twice as long a line
+ * (90 s against 45, live 2026-11-07) for lines as alike (WavLM 0.89–0.92 either way).
  */
 export function castVoiceIsBase(voice: CastVoice | null | undefined): boolean {
   if (!voice) return false;
   return voice.base === true || BASE_VOICE_SOURCE.test(voice.fromClipUrl ?? '');
-}
-
-/**
- * The sample a read line (Cut, a still's line) is said in: an auditioned or recorded voice only.
- * A base voice reads on the speaker's seed alone — through the sample, LTX-2.5 took twice as long
- * a line (90 s against 45, live 2026-11-07) for lines as alike (WavLM 0.89–0.92 either way).
- */
-export function castVoiceReadSample(castId: string | null | undefined): string | undefined {
-  const voice = castVoiceOf(castId);
-  return voice && !castVoiceIsBase(voice) ? voice.sample : undefined;
 }
 
 /**
