@@ -78,7 +78,11 @@ silly / raunchy.
     **Make the short →** does the same and starts its run on Scene: each moment without a kept
     still is rendered in turn, the best take kept by its checks (one redo when it misses one), and
     Cut cuts the short when it's done — its own Scenes only, in the script's order — Queue day with the checks of an
-    [episode run](guide-scene.md#episode-runs). Keep the Scene page open while it runs. It won't
+    [episode run](guide-scene.md#episode-runs). Beside it, what it animates: **stills** (a
+    talking animatic when cut with Read the lines), **animate the lines** (a talking clip for each
+    moment with a line) or **animate every moment** — clips take many times longer than stills.
+    Keep the Scene page open while it runs; Short says how far it has got, and **Cut this short →**
+    opens Cut on its Scenes only, in its order. It won't
     start over a run already listed, going or paused on Scene: finish or cancel that one first.
 
 !!! tip "One event instead of a whole day"

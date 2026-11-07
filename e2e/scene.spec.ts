@@ -2791,6 +2791,11 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   await expect(page.getByTestId('day-progress-scene-evening').first()).toContainText('laughing', { timeout: 30_000 });
   // Its one short: the button opens it again — no second copy.
   await expect(page.getByTestId('day-as-short').first()).toHaveText('Its script →');
+  // Cut this short: Cut on its Scenes only.
+  await expect(page.getByTestId('day-cut-short').first()).toHaveAttribute(
+    'href',
+    new RegExp(`^/cut\\?from=scenes&character=${CAST}&script=${script!.id}$`)
+  );
   await page.getByTestId('day-as-short').first().click();
   await expect(page).toHaveURL(new RegExp(`script=${script!.id}`), { timeout: 60_000 });
   const again = JSON.parse((await storedSceneTool(page)) || '{}') as typeof tool;
@@ -3143,6 +3148,8 @@ test('Make the short: Short’s moments run on Scene, the kept ones left out', a
   });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
+  // Its clips: the moments with a line (a talking clip each), after the stills.
+  await page.getByTestId('day-make-short-animate').first().selectOption('lines');
   await clickUntilAt(page, page.getByTestId('day-make-short').first(), /\/scene\?/);
   await expect
     .poll(
@@ -3153,13 +3160,13 @@ test('Make the short: Short’s moments run on Scene, the kept ones left out', a
           run.state,
           (run.items ?? []).filter((item: { include: boolean }) => item.include).length,
           (run.items ?? []).length,
-          run.auto?.keep && run.auto?.cutWhenDone,
+          run.auto?.keep && run.auto?.cutWhenDone && run.auto?.animate && run.auto?.animateOnly,
         ].join('|');
       },
       { timeout: 60_000 }
     )
     // Three moments (the empty night left out); the morning's still is kept, so two render.
-    .toBe('running|2|3|true');
+    .toBe('running|2|3|lines');
   await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
   await expect(page).not.toHaveURL(/start=/);
 });

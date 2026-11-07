@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useDayShortSync } from '@/components/day-planner/useDayShortSync';
+import type { EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
 import { loadToolSettings } from '@/lib/settings/cache';
 import { normalizeSceneRun, scriptRunProgress } from '@/lib/day/scene-run';
@@ -43,6 +44,8 @@ export default function DayAsShortButton({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  /** Make the short's clips: none (a talking animatic), the moments with a line, or all. */
+  const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('none');
   // The Day and its short kept one (useDayShortSync).
   const sync = useDayShortSync({
     character,
@@ -76,9 +79,7 @@ export default function DayAsShortButton({
       ...how,
       // Make the short: an episode run over the moments with no still kept — the best take by
       // its checks, a redo when it misses one, then the cut (episode-autopilot.ts).
-      ...(render
-        ? { render: { makeCast: false, redo: 1, animate: 'none' as const, cutWhenDone: true } }
-        : {}),
+      ...(render ? { render: { makeCast: false, redo: 1, animate, cutWhenDone: true } } : {}),
     });
     if ('error' in result) {
       setError(result.error);
@@ -106,6 +107,19 @@ export default function DayAsShortButton({
       >
         Make the short →
       </Button>
+      <select
+        aria-label="What Make the short animates"
+        className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-xs"
+        value={animate}
+        disabled={busy}
+        data-testid="day-make-short-animate"
+        title="Each kept take animated before the next (a talking clip for a line) — many times longer than stills"
+        onChange={event => setAnimate(event.target.value as EpisodeAutopilot['animate'])}
+      >
+        <option value="none">stills</option>
+        <option value="lines">animate the lines</option>
+        <option value="all">animate every moment</option>
+      </select>
       <Button
         variant="link"
         size="sm"
@@ -132,6 +146,16 @@ export default function DayAsShortButton({
             </a>
           ) : null}
         </span>
+      ) : null}
+      {linked && link && sync.scriptName ? (
+        <a
+          className="ui-text-link type-caption"
+          href={`/cut?${new URLSearchParams({ from: 'scenes', character: castId, script: link.scriptId }).toString()}`}
+          data-testid="day-cut-short"
+          title="Cut on this short's Scenes only, in its order"
+        >
+          Cut this short →
+        </a>
       ) : null}
       {linked && sync.scriptName && !choice ? (
         <span className="type-caption text-[var(--text-muted)]" data-testid="day-short-sync">
