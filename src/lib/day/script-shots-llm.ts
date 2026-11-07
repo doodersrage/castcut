@@ -10,6 +10,7 @@
 import type { CameraShot } from '../pose/camera-shot';
 import type { ScriptScene } from '../script/parse';
 import { speakerKey } from './script-cast';
+import { EPISODE_ADULT_RULES } from './episode-writer';
 import {
   lineSeconds,
   SHOT_PURPOSES,
@@ -28,7 +29,20 @@ function dialogueLines(scene: ScriptScene) {
   return scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
 }
 
-export function buildShotDraftMessages(scene: ScriptScene) {
+/** An adult script's mood (Intimate; Raunchy as it was): its shots planned as adult writing. */
+export function scriptMoodIsAdult(mood: string | null | undefined): boolean {
+  return ['intimate', 'raunchy'].includes(
+    String(mood ?? '')
+      .trim()
+      .toLowerCase()
+  );
+}
+
+export function buildShotDraftMessages(
+  scene: ScriptScene,
+  /** Adult writing (the route allows it only where the server does). */
+  options: { adult?: boolean } = {}
+) {
   const lines = dialogueLines(scene);
   const body = scene.elements
     .filter(element => element.kind === 'action' || element.kind === 'dialogue')
@@ -46,7 +60,10 @@ export function buildShotDraftMessages(scene: ScriptScene) {
     'A dialogue shot names the line it covers by its number ("line": 3) and is on the speaker; every line is covered once, in order. A reaction shot is on a listener, with no line.',
     'who: only the people named in the scene. action: one short sentence of what we see, for shots without a line.',
     'Open on where we are when it helps; use an insert for an object that matters; vary the framing; keep it to what the scene says — no new people, places or events.',
-  ].join('\n');
+    options.adult ? EPISODE_ADULT_RULES : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
   const user = [
     `Scene: ${scene.heading || scene.place || 'untitled'}`,
     scene.speakers.length ? `People: ${scene.speakers.join(', ')}` : 'Nobody speaks.',
@@ -137,13 +154,14 @@ export function parseShotDraft(
 /** Ask `/api/script-shots` for the scene's LLM draft (client); rejects with the server's message. */
 export async function requestShotDraft(
   scene: ScriptScene,
-  llmBody?: Record<string, unknown>
+  llmBody?: Record<string, unknown>,
+  options: { adult?: boolean } = {}
 ): Promise<PlannedShot[]> {
   const response = await fetch('/api/script-shots', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ scene, ...llmBody }),
+    body: JSON.stringify({ scene, ...llmBody, ...(options.adult ? { adult: true } : {}) }),
   });
   const data = (await response.json().catch(() => ({}))) as {
     shots?: PlannedShot[];

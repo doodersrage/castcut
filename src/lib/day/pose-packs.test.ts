@@ -287,3 +287,12 @@ describe('my-pose-packs storage', () => {
     );
   });
 });
+
+describe('a pose pack on a long Day (2026-11-06: 2–12 moments)', () => {
+  it('poses all twelve moments, cycling the pack', () => {
+    const result = applyPosePackToSlots(daySlotsForLength(12), fitness);
+    assert.equal(result.slots.length, 12);
+    assert.equal(result.slots.filter(slot => slot.poseLayout || slot.posePhoto).length, 12);
+    assert.ok(result.slots.find(slot => slot.id === 'night-3')?.poseLayout || result.slots.find(slot => slot.id === 'night-3')?.posePhoto);
+  });
+});

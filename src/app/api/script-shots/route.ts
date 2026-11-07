@@ -1,4 +1,5 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
+import { isNsfwGeneratorEnabledServer } from '@/lib/adult/nsfw-generator-env';
 import { writeShotDraft } from '@/lib/day/script-shots-server';
 import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import type { ScriptElement, ScriptElementKind, ScriptScene } from '@/lib/script/parse';
@@ -57,7 +58,12 @@ export async function POST(request: Request) {
     const scene = sceneFromBody(body.scene);
     if (!scene) return apiError('Send the script scene to draft.', 400);
     if (!scene.elements.length) return apiError('This scene has no action or lines to draft.', 400);
-    const shots = await writeShotDraft(scene, parseLlmRequestOptions(body));
+    // An adult script's shots only where the server allows adult content (as the writer).
+    const adult = body.adult === true;
+    if (adult && !isNsfwGeneratorEnabledServer()) {
+      return apiError('Adult writing is off on this server (its adult content setting).', 403);
+    }
+    const shots = await writeShotDraft(scene, parseLlmRequestOptions(body), { adult });
     return apiJson({ shots });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The LLM draft failed.';

@@ -12,13 +12,14 @@ import type { PlannedShot } from './script-shots';
 /** One LLM call: the scene's shot list. Throws when the LLM is off or says nothing usable. */
 export async function writeShotDraft(
   scene: ScriptScene,
-  llm?: LlmRequestOptions
+  llm?: LlmRequestOptions,
+  options: { adult?: boolean } = {}
 ): Promise<PlannedShot[]> {
   if (!resolveRequestLlmEnabled(llm)) {
     throw new Error('Draft with the LLM needs the LLM. Turn it on under Settings → LLM.');
   }
   const reply = await chatCompletion({
-    messages: buildShotDraftMessages(scene),
+    messages: buildShotDraftMessages(scene, options),
     maxTokens: 1800,
     temperature: 0.5,
     model: resolveRequestLlmModel(llm),

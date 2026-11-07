@@ -120,6 +120,25 @@ export function shotsToPrepare(
   return { fit: pending.slice(0, room), overLimit: Math.max(0, pending.length - room) };
 }
 
+/**
+ * How a script's run is going, for a page other than Scene (Short's line under its short): the
+ * Scenes it has done of those in it, and its state — or null when the run isn't that script's.
+ */
+export function scriptRunProgress(
+  run: SceneRun | null | undefined,
+  scriptId: string
+): { state: SceneRunState; done: number; of: number; flagged: number } | null {
+  if (!run || run.scriptId !== scriptId) return null;
+  const included = run.items.filter(item => item.include);
+  const outcomes = run.outcomes ?? {};
+  return {
+    state: run.state,
+    done: included.filter(item => outcomes[item.sceneId]).length,
+    of: included.length,
+    flagged: Object.keys(run.flagged ?? {}).length,
+  };
+}
+
 /** A new run over a script's Scenes (script order); kept Scenes left out when `skipKept`. */
 export function runFromScript(input: {
   script: SavedScript;

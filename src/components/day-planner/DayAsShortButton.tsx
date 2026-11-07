@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useDayShortSync } from '@/components/day-planner/useDayShortSync';
+import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import { loadToolSettings } from '@/lib/settings/cache';
+import { normalizeSceneRun, scriptRunProgress } from '@/lib/day/scene-run';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import type { DaySlot, DaySlotStill } from '@/lib/day/planner';
@@ -56,6 +59,14 @@ export default function DayAsShortButton({
   const link = normalizeDayShortLink(toolSettings.shortLink);
   const linked = link?.castId === castId;
   const onLinked = (next: DayShortLink) => updateDay({ shortLink: next });
+  // The short's run (Make the short), as Scene left it: how far it got.
+  const progress =
+    linked && link
+      ? scriptRunProgress(
+          normalizeSceneRun(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).run),
+          link.scriptId
+        )
+      : null;
   const go = (render: boolean, how: { fresh?: boolean; asIs?: boolean } = {}) => {
     const result = saveDayAsShort({
       day: { ...toolSettings, slots, stills },
@@ -104,6 +115,24 @@ export default function DayAsShortButton({
       >
         {linked ? 'Its script →' : 'This Day as a script →'}
       </Button>
+      {progress && link ? (
+        <span className="type-caption" role="status" data-testid="day-short-run">
+          {progress.state === 'done'
+            ? `Its run is done — ${progress.of} Scene${progress.of === 1 ? '' : 's'}${progress.flagged ? `, ${progress.flagged} to check on Scene` : ''}.`
+            : progress.state === 'cancelled'
+              ? `Its run was cancelled at ${progress.done} of ${progress.of}.`
+              : `Making the short: ${progress.done} of ${progress.of} done — it renders with the Scene page open.`}{' '}
+          {progress.state !== 'done' && progress.state !== 'cancelled' ? (
+            <a
+              className="ui-text-link"
+              href={`${scenePagePath()}?${new URLSearchParams({ character: castId, script: link.scriptId }).toString()}`}
+              data-testid="day-short-run-open"
+            >
+              Open Scene →
+            </a>
+          ) : null}
+        </span>
+      ) : null}
       {linked && sync.scriptName && !choice ? (
         <span className="type-caption text-[var(--text-muted)]" data-testid="day-short-sync">
           {sync.scenesOwn

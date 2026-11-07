@@ -7,6 +7,7 @@ import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
 import { createScript } from './scene-scripts';
 import {
   nextRunStep,
+  scriptRunProgress,
   runTakeSettled,
   normalizeSceneRun,
   pausedAfterReload,
@@ -313,5 +314,34 @@ describe('an episode run (Part 19 G1)', () => {
     assert.deepEqual(paused.log.at(-1), { at: 9, event: 'paused', detail: 'error: Cannot read properties of undefined' });
     const done = { ...run, state: 'done' as const };
     assert.equal(pausedAfterError(done, 'x'), done);
+  });
+});
+
+describe('a script run’s progress, for Short', () => {
+  it('counts the done Scenes of those in it, only for its own script', () => {
+    const run = {
+      id: 'r',
+      castId: 'c',
+      scriptId: 's1',
+      label: 'Short',
+      items: [
+        { sceneId: 'a', include: false },
+        { sceneId: 'b', include: true },
+        { sceneId: 'c', include: true },
+      ],
+      maxTakes: 4,
+      maxMinutes: 60,
+      skipKept: true,
+      state: 'running',
+      position: 1,
+      log: [],
+      outcomes: { b: 'landed' },
+      flagged: {},
+      createdAt: 1,
+      updatedAt: 1,
+    } as unknown as SceneRun;
+    assert.deepEqual(scriptRunProgress(run, 's1'), { state: 'running', done: 1, of: 2, flagged: 0 });
+    assert.equal(scriptRunProgress(run, 'other'), null);
+    assert.equal(scriptRunProgress(undefined, 's1'), null);
   });
 });

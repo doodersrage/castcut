@@ -3667,6 +3667,13 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   shorts then go through Make it a short; their Scenes keep every adult render gate. Without the
   setting, an adult mood isn't carried or kept.
 
+- **Adult shot planning**: Draft with the LLM (`/api/script-shots`) takes the same `adult` flag
+  behind the same server check (403 without it) and the same `EPISODE_ADULT_RULES`; Scene sends
+  it for a script whose mood is Intimate (`scriptMoodIsAdult`), in the autopilot too.
+- **Run progress on Short** (`scriptRunProgress`): the short's run as Scene left it — "Making the
+  short: 3 of 7 done — it renders with the Scene page open", **Open Scene →**; done, cancelled.
+- Templates and pose packs checked at the new lengths (a 9-moment template, a 12-moment pack).
+
 ### Next (not started — each its own reviewed step)
 
 - **Retire the board's own data** (only if wanted): with S3b the board and its short agree, so

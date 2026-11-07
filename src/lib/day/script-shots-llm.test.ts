@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { parseScript } from '../script/parse';
-import { buildShotDraftMessages, parseShotDraft } from './script-shots-llm';
+import { buildShotDraftMessages, parseShotDraft, scriptMoodIsAdult } from './script-shots-llm';
 
 const scene = parseScript(
   'INT. KITCHEN - MORNING\n\nNora pours coffee. A letter lies on the table.\n\nNORA\nYou opened it?\n\nSAM\nIt was addressed to me.\n'
@@ -48,5 +48,19 @@ describe('an LLM shot draft, held to the scene', () => {
     assert.equal(parseShotDraft('no json here', scene), null);
     assert.equal(parseShotDraft('{"shots":[{"purpose":"montage"}]}', scene), null);
     assert.equal(parseShotDraft('{"shots":"lots"}', scene), null);
+  });
+});
+
+describe('an adult script’s shots', () => {
+  it('are planned with the adults-only rules, and only when asked', () => {
+    const scene = parseScript('INT. LOFT - NIGHT\n\nThey kiss by the window.\n').scenes[0]!;
+    assert.doesNotMatch(buildShotDraftMessages(scene)[0]!.content, /over 21/);
+    const [system] = buildShotDraftMessages(scene, { adult: true });
+    assert.match(system!.content, /every character is an adult over 21/i);
+    assert.match(system!.content, /nothing non-consensual/);
+    assert.equal(scriptMoodIsAdult('intimate'), true);
+    assert.equal(scriptMoodIsAdult('Raunchy'), true);
+    assert.equal(scriptMoodIsAdult('suggestive'), false);
+    assert.equal(scriptMoodIsAdult(undefined), false);
   });
 });

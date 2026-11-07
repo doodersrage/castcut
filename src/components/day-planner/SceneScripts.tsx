@@ -24,7 +24,7 @@ import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
 import { storyboard } from '@/lib/day/storyboard';
 import { orphanedShots } from '@/lib/day/script-reimport';
-import { requestShotDraft } from '@/lib/day/script-shots-llm';
+import { requestShotDraft, scriptMoodIsAdult } from '@/lib/day/script-shots-llm';
 import { RUN_MAX_ITEMS, shotsToPrepare, type SceneRun } from '@/lib/day/scene-run';
 import { autopilotRun, partsToConfirm, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 import type { PlannedShot } from '@/lib/day/script-shots';
@@ -825,7 +825,10 @@ export default function SceneScripts({
       for (const [index, scene] of parsed.scenes.entries()) {
         setAutopilotNote(`Planning the shots: scene ${index + 1} of ${parsed.scenes.length}…`);
         let shots: PlannedShot[] = [];
-        if (llmBody) shots = await requestShotDraft(scene, llmBody).catch(() => []);
+        if (llmBody)
+          shots = await requestShotDraft(scene, llmBody, {
+            adult: adultAllowed && scriptMoodIsAdult(now().mood),
+          }).catch(() => []);
         if (!shots.length) shots = draftShots(scene);
         apply(
           setScriptShotsPatch(current, script.id, withSceneShots(now().shots, scene.id, shots))
@@ -1228,7 +1231,14 @@ export default function SceneScripts({
                     }}
                     onMake={(shot, shotIndex) => makeFromShot(scene, sceneIndex, shot, shotIndex)}
                     onOpenScene={openScene}
-                    {...(llmBody ? { onDraftWithLlm: () => requestShotDraft(scene, llmBody) } : {})}
+                    {...(llmBody
+                      ? {
+                          onDraftWithLlm: () =>
+                            requestShotDraft(scene, llmBody, {
+                              adult: adultAllowed && scriptMoodIsAdult(open.mood),
+                            }),
+                        }
+                      : {})}
                     {...(prepareRun && sceneShots.length
                       ? { onPrepareRun: () => prepare(scene.id) }
                       : {})}

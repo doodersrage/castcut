@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { applyDayTemplate, normalizeDayTemplates, templateFromDay } from './day-templates';
+import { daySlotsForLength } from './planner';
 
 describe('Day templates', () => {
   const slots = [
@@ -27,5 +28,17 @@ describe('Day templates', () => {
     assert.equal(next[0]!.wardrobeId, 'kit-9');
     assert.equal(next[1]!.line, 'Hi!');
     assert.equal(normalizeDayTemplates([{ id: 'a', name: 'b', slots: [] }, 'junk']).length, 0);
+  });
+});
+
+describe('a template of a long Day (2026-11-06: 2–12 moments)', () => {
+  it('keeps every one of nine moments, the third morning too, and lays them on a shorter Day', () => {
+    const nine = daySlotsForLength(9).map((slot, index) => ({ ...slot, sceneHints: `beat ${index + 1}` }));
+    const template = templateFromDay({ name: 'Long', slots: nine, now: 1 });
+    assert.equal(template.slots.length, 9);
+    assert.equal(normalizeDayTemplates([template]).length, 1);
+    const onFour = applyDayTemplate(daySlotsForLength(4), template);
+    assert.deepEqual(onFour.map(slot => slot.id), nine.map(slot => slot.id));
+    assert.equal(onFour.find(slot => slot.id === 'morning-3')?.sceneHints, 'beat 3');
   });
 });

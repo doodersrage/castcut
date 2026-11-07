@@ -1390,12 +1390,14 @@ test('Make it a short: Day’s idea opens the writer, counted in scenes', async 
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-short')).toHaveCount(0);
-  // Typed before the page hydrates, the text is wiped: again until the short link shows.
+  // Typed before the page settles, the text is wiped: type, open, until Scene opens.
   await expect(async () => {
-    await input.fill('a slow Sunday in Lisbon');
-    await expect(page.getByTestId('day-idea-short').first()).toBeVisible({ timeout: 2000 });
-  }).toPass({ timeout: 60_000 });
-  await clickUntilAt(page, page.getByTestId('day-idea-short').first(), /\/scene\?/);
+    if (!/\/scene\?/.test(page.url())) {
+      await input.fill('a slow Sunday in Lisbon');
+      await page.getByTestId('day-idea-short').first().click({ timeout: 2000 });
+    }
+    await expect(page).toHaveURL(/\/scene\?/, { timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
   await expect(sheet).toContainText('Write a short');
@@ -2963,6 +2965,50 @@ test('adult writing: refused without the server’s adult setting, offered with 
   await expect(adult).not.toBeChecked();
 });
 
+// Short says how its short's run is going (it renders on Scene) — and links back to it.
+test('Short shows its short’s run: how far, and that it renders with Scene open', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        dayMood: 'everyday',
+        slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        shortLink: { castId: CAST, scriptId: 'script-short', fingerprint: '', syncedAt: 0 },
+      },
+      scene: {
+        run: {
+          id: 'run-short',
+          castId: CAST,
+          scriptId: 'script-short',
+          label: 'Her day',
+          items: [
+            { sceneId: 'a', include: true },
+            { sceneId: 'b', include: true },
+            { sceneId: 'c', include: false },
+          ],
+          outcomes: { a: 'landed' },
+          maxTakes: 4,
+          maxMinutes: 60,
+          skipKept: true,
+          state: 'paused',
+          position: 1,
+          log: [],
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const line = page.getByTestId('day-short-run').first();
+  await expect(line).toContainText('Making the short: 1 of 2 done', { timeout: 30_000 });
+  await expect(line).toContainText('with the Scene page open');
+  await expect(page.getByTestId('day-short-run-open').first()).toHaveAttribute('href', /\/scene\?.*script=script-short/);
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {
@@ -2995,12 +3041,14 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-write')).toHaveCount(0);
-  // Typed before the page hydrates, the text is wiped: again until the short link shows.
+  // Typed before the page settles, the text is wiped: type, open, until Scene opens.
   await expect(async () => {
-    await input.fill('the last match of the season');
-    await expect(page.getByTestId('day-idea-short').first()).toBeVisible({ timeout: 2000 });
-  }).toPass({ timeout: 60_000 });
-  await page.getByTestId('day-idea-short').first().click();
+    if (!/\/scene\?/.test(page.url())) {
+      await input.fill('the last match of the season');
+      await page.getByTestId('day-idea-short').first().click({ timeout: 2000 });
+    }
+    await expect(page).toHaveURL(/\/scene\?/, { timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
   await expect(sheet.getByTestId('episode-tone')).toHaveValue(/sport/);
