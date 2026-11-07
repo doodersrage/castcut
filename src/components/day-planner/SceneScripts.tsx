@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import {
   decideFinding,
   findingDecisionMap,
@@ -18,7 +18,11 @@ import {
 import { loadSettingsCache } from '@/lib/settings/cache';
 import EpisodeWriterSheet from '@/components/day-planner/EpisodeWriterSheet';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
-import { readEpisodeWriteSeed, type EpisodeWriteSeed } from '@/lib/day/episode-writer';
+import {
+  nextEpisodeSeed,
+  readEpisodeWriteSeed,
+  type EpisodeWriteSeed,
+} from '@/lib/day/episode-writer';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
 import ScriptStoryboard from '@/components/day-planner/ScriptStoryboard';
@@ -500,6 +504,18 @@ export default function SceneScripts({
   };
   // A short from Day (?write=short&premise=…&scenes=…): the writer opens on it, once.
   const [writeSeed, setWriteSeed] = useState<EpisodeWriteSeed | null>(null);
+  /** A new writer for each seed (its fields start from it). */
+  const [writeSeedKey, setWriteSeedKey] = useState(0);
+  const scriptsRef = useRef(cache.scripts);
+  useEffect(() => {
+    scriptsRef.current = cache.scripts;
+  });
+  /** Write the next one: the writer seeded to go on from this script (nextEpisodeSeed). */
+  const writeNext = (script: SavedScript) => {
+    setWriteSeed(nextEpisodeSeed({ ...script, scenes: parseScript(script.source).scenes }));
+    setWriteSeedKey(key => key + 1);
+    setWritingEpisode(true);
+  };
   // Or Short's Import a script… (?script=import): the import box opens, once.
   useEffect(() => {
     const asked = () => {
@@ -507,22 +523,28 @@ export default function SceneScripts({
       return {
         seed: readEpisodeWriteSeed(window.location.search, { adult: true }),
         importing: params.get('script') === 'import',
+        // Short's "Its next short →": ?script=<id>&write=next.
+        next: params.get('write') === 'next' ? params.get('script')?.trim() || '' : '',
       };
     };
     const first = asked();
-    if (!first.seed && !first.importing) return;
+    if (!first.seed && !first.importing && !first.next) return;
     const timer = window.setTimeout(() => {
-      const { seed, importing } = asked();
-      if (!seed && !importing) return;
+      const { seed, importing, next } = asked();
+      if (!seed && !importing && !next) return;
       // Off the URL, so a reload doesn't open it again (in the timer: Strict Mode runs this twice).
       const url = new URL(window.location.href);
       for (const key of ['write', 'premise', 'scenes', 'tone', 'mood', 'script'])
         url.searchParams.delete(key);
       window.history.replaceState(window.history.state, '', url);
-      if (seed) {
+      const following = next ? scriptsRef.current?.find(entry => entry.id === next) : undefined;
+      if (following) {
+        writeNext(following);
+      } else if (seed) {
         setWriteSeed(seed);
+        setWriteSeedKey(key => key + 1);
         setWritingEpisode(true);
-      } else {
+      } else if (importing) {
         setDraft(current => current ?? '');
         revealScripts();
       }
@@ -991,7 +1013,7 @@ export default function SceneScripts({
       </div>
       {llmBody ? (
         <EpisodeWriterSheet
-          key={writeSeed ? 'short' : 'episode'}
+          key={writeSeedKey}
           seed={writeSeed}
           open={writingEpisode}
           lead={castName ?? 'the lead'}
@@ -1116,6 +1138,17 @@ export default function SceneScripts({
             >
               Import a new version
             </Button>
+            {llmBody ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                data-testid="script-write-next"
+                title="Write an episode that goes on from this one — how it ended, as many scenes, its mood"
+                onClick={() => writeNext(open)}
+              >
+                Write the next one…
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"

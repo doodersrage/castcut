@@ -370,3 +370,47 @@ export function episodeFountain(
 ): string {
   return `Title: ${outline.title}\n\n${scenes.map(scene => scene.trim()).join('\n\n')}\n`;
 }
+
+/**
+ * The next one (2026-11-06: a series): Write an episode seeded to go on from a script — the
+ * premise says what it follows and how its last scene ended (to be edited: what happens next),
+ * the same number of scenes, the same mood. The writer knows the Cast already.
+ */
+export function nextEpisodeSeed(script: {
+  name: string;
+  mood?: string;
+  scenes: ReadonlyArray<{
+    heading: string;
+    elements: ReadonlyArray<{ kind: string; text: string; speaker?: string }>;
+  }>;
+}): EpisodeWriteSeed {
+  const last = script.scenes[script.scenes.length - 1];
+  const ending = last
+    ? episodeSceneTail(
+        [
+          last.heading,
+          ...last.elements
+            .filter(element => element.kind === 'action' || element.kind === 'dialogue')
+            .map(element =>
+              element.kind === 'dialogue' && element.speaker
+                ? `${element.speaker}: ${element.text}`
+                : element.text
+            ),
+        ].join('\n'),
+        6
+      )
+    : '';
+  const premise = [
+    `The next episode after “${script.name.trim() || 'the last one'}”.`,
+    ending ? `How it ended:\n${ending}` : '',
+    'What happens next: ',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 2000);
+  return {
+    premise,
+    scenes: normalizeEpisodeScenes(script.scenes.length) ?? EPISODE_SCENES_MIN,
+    ...(script.mood?.trim() ? { mood: script.mood.trim().slice(0, 40) } : {}),
+  };
+}

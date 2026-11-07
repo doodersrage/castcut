@@ -3674,6 +3674,17 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   short: 3 of 7 done — it renders with the Scene page open", **Open Scene →**; done, cancelled.
 - Templates and pose packs checked at the new lengths (a 9-moment template, a 12-moment pack).
 
+- **While the episode ran** (user, 2026-11-06: "do all"):
+  - Runs **resume by themselves after a reload** (`resumeOnReload`: Autopilot and Make the
+    short set it; a checkbox on any run) — 4 s after the page opens, once (Strict Mode-safe).
+  - **A notice when a run ends or stops by itself** (`runEndNotice`): a sticky tray note and
+    `notifyDesktop` (Settings → ComfyUI's notify switch); not for a pause you clicked.
+  - **Make the short animates** (stills / the lines / every moment) and **Cut this short →**.
+  - **Archive a script** to `.castcut-script.json` (the whole record) and Import a script brings
+    it back — same id, newer than its deletion, its Scenes linked again.
+  - **Write the next one…** (`nextEpisodeSeed`) on a script, and **Its next short →** on Short:
+    how it ended, as many scenes, its mood.
+
 ### Next (not started — each its own reviewed step)
 
 - **Retire the board's own data** (only if wanted): with S3b the board and its short agree, so

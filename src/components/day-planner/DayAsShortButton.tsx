@@ -157,6 +157,16 @@ export default function DayAsShortButton({
           Cut this short →
         </a>
       ) : null}
+      {linked && link && sync.scriptName ? (
+        <a
+          className="ui-text-link type-caption"
+          href={`${scenePagePath()}?${new URLSearchParams({ character: castId, script: link.scriptId, write: 'next' }).toString()}`}
+          data-testid="day-next-short"
+          title="Write the short that comes after this one — how it ended, as many scenes, its mood"
+        >
+          Its next short →
+        </a>
+      ) : null}
       {linked && sync.scriptName && !choice ? (
         <span className="type-caption text-[var(--text-muted)]" data-testid="day-short-sync">
           {sync.scenesOwn

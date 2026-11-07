@@ -3093,6 +3093,31 @@ test('a script archived to a file and imported back is the same script', async (
   await expect(page.getByTestId('script-reading')).toContainText('CAFE');
 });
 
+// A series: Write the next one opens the writer going on from a script — how it ended, as many
+// scenes — and the Day's short has the same as "Its next short →".
+test('Write the next one: the writer goes on from the script', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await page.getByTestId('script-import').click({ timeout: 60_000 });
+  await page
+    .getByTestId('script-import-text')
+    .fill('Title: Her Day\n\nINT. KITCHEN - MORNING\n\nShe pours coffee.\n\nEXT. PIER - NIGHT\n\nSCENE CAST\nTomorrow, then.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toContainText('PIER');
+  await page.getByTestId('script-write-next').click();
+  const sheet = page.getByTestId('episode-writer');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByTestId('episode-premise')).toHaveValue(/^The next episode after “Her Day”\./);
+  await expect(sheet.getByTestId('episode-premise')).toHaveValue(/SCENE CAST: Tomorrow, then\./);
+  await expect(sheet.getByTestId('episode-scenes')).toHaveValue('2');
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {

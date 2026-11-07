@@ -177,6 +177,10 @@ whole episode — and **Make the whole episode for me**, which does every step b
   script** and come back if the scene does. Right after, **Undo — back to the version before**
   puts the old text and every shot back (until the script is changed again).
 
+**Write the next one…** on an open script opens the writer going on from it — the premise says what
+it follows and how its last scene ended (write what happens next), with as many scenes and its
+mood: a series, one episode after another.
+
 Scripts are kept with the Cast (up to 12) and sync like the scenes. **Archive** saves the open
 script as a file (`.castcut-script.json`: its text, shots, Who's who, places and mood) and frees
 its place — its Scenes stay. **Import a script** with that file brings it back as it was, linked to

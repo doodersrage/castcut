@@ -15,6 +15,7 @@ import {
   dayShortSeed,
   episodeLengthScenes,
   episodeWriteHref,
+  nextEpisodeSeed,
   normalizeEpisodeScenes,
   readEpisodeWriteSeed,
 } from './episode-writer';
@@ -149,5 +150,19 @@ describe('adult writing', () => {
     assert.match(dayShortSeed({ premise: 'x', mood: 'intimate', moments: 4, adult: true }).tone ?? '', /consenting adults/);
     assert.equal(dayShortMoodAvailable('intimate', { adult: true }), true);
     assert.equal(readEpisodeWriteSeed('?write=short&premise=x&scenes=3&mood=intimate', { adult: true })?.mood, 'intimate');
+  });
+});
+
+describe('the next one', () => {
+  it('follows the script: how it ended, as many scenes, its mood', () => {
+    const parsed = parseScript(
+      'Title: Her Day\n\nINT. KITCHEN - MORNING\n\nShe pours coffee.\n\nEXT. PIER - NIGHT\n\nShe looks at the sea.\n\nMARA\nTomorrow, then.\n'
+    );
+    const seed = nextEpisodeSeed({ name: 'Her Day', mood: 'vacation', scenes: parsed.scenes });
+    assert.match(seed.premise, /^The next episode after “Her Day”\./);
+    assert.match(seed.premise, /How it ended:\nEXT\. PIER - NIGHT\nShe looks at the sea\.\nMARA: Tomorrow, then\./);
+    assert.match(seed.premise, /What happens next: $/);
+    assert.equal(seed.scenes, 2);
+    assert.equal(seed.mood, 'vacation');
   });
 });

@@ -82,7 +82,8 @@ silly / raunchy.
     talking animatic when cut with Read the lines), **animate the lines** (a talking clip for each
     moment with a line) or **animate every moment** — clips take many times longer than stills.
     Keep the Scene page open while it runs; Short says how far it has got, and **Cut this short →**
-    opens Cut on its Scenes only, in its order. It won't
+    opens Cut on its Scenes only, in its order. **Its next short →** writes the one after it — how
+    it ended, as many scenes, the same mood — on Scene's writer. It won't
     start over a run already listed, going or paused on Scene: finish or cancel that one first.
 
 !!! tip "One event instead of a whole day"
