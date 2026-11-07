@@ -250,7 +250,9 @@ A cut of a whole episode's kept stills becomes a talking animatic ([Make an epis
 on their own seed, so they keep one voice (a new seed each line made each line someone slightly
 new). A Cast member who speaks and has no kept voice is given one first — a few seconds of them
 introducing themselves, kept like an audition, so their talking clips use it too; the status line
-names them, and Cast → Voice changes it.
+names them, and Cast → Voice changes it. Their lines still read on their seed alone, which is
+about twice as fast and sounds as alike; a voice you audition or record in Cast → Voice is the
+one read lines are said in.
 
 **Music by scene**: where the film's feeling turns — happy, then sad, then tense — a cue in that
 style for each stretch (ACE-Step, about ten seconds each), placed at its start and stopped where

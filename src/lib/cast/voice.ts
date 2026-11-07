@@ -16,6 +16,28 @@ export function castVoiceOf(castId: string | null | undefined): CastVoice | null
   return voice?.sample?.trim() ? voice : null;
 }
 
+/** Cut's base voices were cut from a read line (narration-server.ts's prefix), never a clip. */
+const BASE_VOICE_SOURCE = /Castcut-narration/;
+
+/**
+ * Whether a kept voice is a base voice Cut gave them (`base`, or before the flag: cut from a read
+ * line — auditions are talking clips) rather than one auditioned or recorded.
+ */
+export function castVoiceIsBase(voice: CastVoice | null | undefined): boolean {
+  if (!voice) return false;
+  return voice.base === true || BASE_VOICE_SOURCE.test(voice.fromClipUrl ?? '');
+}
+
+/**
+ * The sample a read line (Cut, a still's line) is said in: an auditioned or recorded voice only.
+ * A base voice reads on the speaker's seed alone — through the sample, LTX-2.5 took twice as long
+ * a line (90 s against 45, live 2026-11-07) for lines as alike (WavLM 0.89–0.92 either way).
+ */
+export function castVoiceReadSample(castId: string | null | undefined): string | undefined {
+  const voice = castVoiceOf(castId);
+  return voice && !castVoiceIsBase(voice) ? voice.sample : undefined;
+}
+
 /**
  * Queue params for a talking clip with the Cast's kept voice: its sample (LTX-2.5 speaks in it as
  * reference tokens, M11 T17 — or through the ID-LoRA when Steer is on, which can warp a face) and
@@ -184,6 +206,8 @@ export async function takeCastVoiceFromClip(input: {
   castId: string;
   clipUrl: string;
   comfyUrl?: string;
+  /** Cut's base voice for a speaker with none (castVoiceIsBase). */
+  base?: boolean;
 }): Promise<string | null> {
   let response: Response;
   try {
@@ -210,6 +234,7 @@ export async function takeCastVoiceFromClip(input: {
     ...(data.clip ? { clip: data.clip } : {}),
     ...(data.clip && typeof data.clipWords === 'string' ? { clipWords: data.clipWords } : {}),
     fromClipUrl: input.clipUrl,
+    ...(input.base ? { base: true } : {}),
     at: Date.now(),
   });
   return saved ? null : 'That Cast member is gone — pick them again.';

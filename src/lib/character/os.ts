@@ -167,6 +167,11 @@ export type CastVoice = {
    * faces around the mouth at full strength (live 2026-10-10); kept voices are never lost.
    */
   steer?: boolean;
+  /**
+   * A base voice Cut gave them (one introduction line on their own seed, before their lines were
+   * read), not one auditioned or recorded: read lines go on their seed alone (cast/voice.ts).
+   */
+  base?: boolean;
   at: number;
 };
 

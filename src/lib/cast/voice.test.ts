@@ -6,6 +6,7 @@ import {
   castConversationVoiceFields,
   castPartnerExtendFields,
   castVoiceExtendFields,
+  castVoiceIsBase,
   castVoiceSampleFor,
   ensureCastVoiceClip,
   shiftCastVoice,
@@ -129,5 +130,25 @@ describe('a kept voice clip’s words', () => {
         undefined
       );
     });
+  });
+});
+
+describe('a base voice Cut gave them', () => {
+  it('is marked, or cut from a read line before the mark; an audition or recording is not', () => {
+    assert.equal(castVoiceIsBase({ sample: 'a.wav', base: true, at: 1 }), true);
+    assert.equal(
+      castVoiceIsBase({
+        sample: 'a.wav',
+        fromClipUrl: '/api/comfyui/view?filename=Castcut-narration_00012_.flac&subfolder=audio',
+        at: 1,
+      }),
+      true
+    );
+    assert.equal(
+      castVoiceIsBase({ sample: 'a.wav', fromClipUrl: '/api/comfyui/view?filename=Castcut-talk_00003_.mp4', at: 1 }),
+      false
+    );
+    assert.equal(castVoiceIsBase({ sample: 'a.wav', fromFile: 'me.m4a', at: 1 }), false);
+    assert.equal(castVoiceIsBase(null), false);
   });
 });
