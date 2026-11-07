@@ -111,6 +111,19 @@ export default function SceneRunPanel({
             />
             Leave out Scenes with a kept take
           </label>
+          <label
+            className="flex items-center gap-1"
+            title="A reload, a restart or a crash pauses the run — this resumes it a few seconds after the page opens again"
+          >
+            <input
+              type="checkbox"
+              checked={run.resumeOnReload === true}
+              disabled={disabled}
+              data-testid="scene-run-resume-on-reload"
+              onChange={event => set({ resumeOnReload: event.target.checked || undefined })}
+            />
+            Resume by itself after a reload
+          </label>
         </div>
         <fieldset
           className="flex flex-wrap items-center gap-3 text-sm"

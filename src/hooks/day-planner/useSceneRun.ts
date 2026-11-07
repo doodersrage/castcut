@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { notifyDesktop } from '@/lib/app/desktop-notify';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
@@ -21,6 +23,7 @@ import {
   pausedAfterError,
   withRunRedo,
   type SceneRun,
+  runEndNotice,
 } from '@/lib/day/scene-run';
 import { bestSceneTake, episodeAnimates } from '@/lib/day/episode-run';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
@@ -64,6 +67,9 @@ async function until(ready: () => boolean, timeoutMs: number): Promise<boolean> 
  * close. Each lands on its own Scene (SavedScene.renderingTakeIds) and the run settles from the
  * Gallery; Cancel then takes the jobs not started yet out of ComfyUI's queue.
  */
+/** A run set to resume by itself goes on this long after the reload (the page's queue is up). */
+const RESUME_AFTER_RELOAD_MS = 4000;
+
 export function useSceneRun(vm: DayEngineView, page: ScenePage) {
   const runRef = useRef<SceneRun | undefined>(page.run);
   const pageRef = useRef(page);
@@ -84,12 +90,19 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     pageRef.current.updateRun(next);
   }, []);
 
-  // A run left "running" when the page closed has nothing running it now: it shows as paused.
+  // A run left "running" when the page closed has nothing running it now: it shows as paused —
+  // and one set to resume by itself (resumeOnReload) goes on a moment later, once the page is up.
   const checkedReloadRef = useRef(false);
+  const [resumeAfterReload, setResumeAfterReload] = useState(false);
   useEffect(() => {
     if (checkedReloadRef.current || !page.run || loopingRef.current) return;
     checkedReloadRef.current = true;
-    if (page.run.state === 'running') save(pausedAfterReload(page.run));
+    if (page.run.state !== 'running') return;
+    save(pausedAfterReload(page.run));
+    // Not cleared with the effect: it runs once (Strict Mode's second pass returns above).
+    if (page.run.resumeOnReload) {
+      window.setTimeout(() => setResumeAfterReload(true), RESUME_AFTER_RELOAD_MS);
+    }
   }, [page.run, save]);
 
   // Takes handed to ComfyUI: their polls (re)started once, then settled as the Gallery hears.
@@ -447,6 +460,34 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     );
     void loop();
   }, [loop, save]);
+
+  // Said when it ends or stops by itself (not a pause you clicked): a note in Castcut, and a
+  // desktop notification when Settings → ComfyUI's "Notify when jobs complete" is on — an
+  // overnight run says it's done, or why it stopped.
+  const lastStateRef = useRef<SceneRun['state'] | null>(null);
+  const runState = page.run?.state ?? null;
+  useEffect(() => {
+    const before = lastStateRef.current;
+    lastStateRef.current = runState;
+    const notice = runEndNotice(before, runRef.current);
+    if (!notice) return;
+    const text = notice.text;
+    const runStateDone = notice.done;
+    pushSystemTrayMessage({ text, tone: runStateDone ? 'success' : 'warning', ttlMs: 0 });
+    notifyDesktop({
+      title: runStateDone ? 'Run done' : 'Run stopped',
+      body: text,
+      href: '/scene',
+    });
+  }, [runState]);
+
+  // The resume a reload asked for (resumeOnReload): once, if the run is still paused by it.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (!resumeAfterReload || resumedRef.current) return;
+    resumedRef.current = true;
+    if (runRef.current?.state === 'paused') start();
+  }, [resumeAfterReload, start]);
 
   /** Start a prepared run as Queue all: the Scenes the limits allow now, each handed once. */
   const queueAll = useCallback(() => {

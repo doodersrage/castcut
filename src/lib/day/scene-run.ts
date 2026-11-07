@@ -51,6 +51,11 @@ export type SceneRun = {
   maxMinutes: number;
   /** Leave out a Scene that already has a kept take. */
   skipKept: boolean;
+  /**
+   * Resume by itself after the page reloads (a restart, a crash, a closed tab opened again) — an
+   * overnight run goes on without anyone clicking Resume. Autopilot and Make the short set it.
+   */
+  resumeOnReload?: boolean;
   state: SceneRunState;
   /** Items done so far (W4). */
   position: number;
@@ -137,6 +142,26 @@ export function scriptRunProgress(
     of: included.length,
     flagged: Object.keys(run.flagged ?? {}).length,
   };
+}
+
+/**
+ * What to say when a run that was running stops: done (how many, how many to check) or stopped
+ * by itself (why). Null for anything else — a pause you clicked, a run that wasn't running.
+ */
+export function runEndNotice(
+  before: SceneRunState | null,
+  run: SceneRun | null | undefined
+): { text: string; done: boolean } | null {
+  if (before !== 'running' || !run || (run.state !== 'done' && run.state !== 'paused')) return null;
+  if (run.state === 'paused' && run.log[run.log.length - 1]?.detail === 'by you') return null;
+  const done = Object.keys(run.outcomes ?? {}).length;
+  const flagged = Object.keys(run.flagged ?? {}).length;
+  return run.state === 'done'
+    ? {
+        done: true,
+        text: `“${run.label}” is done — ${done} Scene${done === 1 ? '' : 's'}${flagged ? `, ${flagged} to check` : ''}.`,
+      }
+    : { done: false, text: `“${run.label}” stopped: ${run.stopReason ?? 'paused'}` };
 }
 
 /** A new run over a script's Scenes (script order); kept Scenes left out when `skipKept`. */
@@ -262,6 +287,7 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     maxTakes: whole(run.maxTakes, 1, RUN_MAX_TAKES, RUN_DEFAULT_MAX_TAKES),
     maxMinutes: whole(run.maxMinutes, 1, 24 * 60, RUN_DEFAULT_MAX_MINUTES),
     skipKept: run.skipKept !== false,
+    ...(run.resumeOnReload === true ? { resumeOnReload: true } : {}),
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
     ...(run.outcomes && typeof run.outcomes === 'object'
@@ -536,7 +562,13 @@ export function settleHandedRun(
 export function pausedAfterReload(run: SceneRun, now = Date.now()): SceneRun {
   if (run.state !== 'running') return run;
   return withRunLog(
-    { ...run, state: 'paused', stopReason: 'The page was closed or reloaded — resume to go on.' },
+    {
+      ...run,
+      state: 'paused',
+      stopReason: run.resumeOnReload
+        ? 'The page was closed or reloaded — going on by itself in a moment.'
+        : 'The page was closed or reloaded — resume to go on.',
+    },
     { at: now, event: 'paused', detail: 'page closed or reloaded' }
   );
 }

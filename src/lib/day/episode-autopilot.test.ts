@@ -43,6 +43,8 @@ describe('episode autopilot', () => {
     // Ten Scenes in it (one left out), a take each and two redos.
     assert.equal(started.maxTakes, 30);
     assert.equal(started.maxMinutes, 24 * 60);
+    // Unattended: a reload goes on by itself.
+    assert.equal(started.resumeOnReload, true);
     assert.deepEqual(started.auto, {
       keep: true,
       redo: 2,

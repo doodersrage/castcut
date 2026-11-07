@@ -3009,6 +3009,50 @@ test('Short shows its short’s run: how far, and that it renders with Scene ope
   await expect(page.getByTestId('day-short-run-open').first()).toHaveAttribute('href', /\/scene\?.*script=script-short/);
 });
 
+// A run set to resume by itself (Autopilot, Make the short, or the checkbox): a reload — a
+// restart, a crash — pauses it, and a few seconds later it goes on, with nobody at the page.
+test('a run set to resume by itself goes on after a reload', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const scene = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...scene,
+        run: {
+          id: 'run-resume',
+          castId: CAST,
+          label: 'Overnight',
+          items: [{ sceneId: scene.scenes[0]!.id, include: true }],
+          maxTakes: 4,
+          maxMinutes: 60,
+          skipKept: false,
+          resumeOnReload: true,
+          state: 'running',
+          position: 0,
+          log: [],
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect
+    .poll(
+      async () => {
+        const run = JSON.parse((await storedSceneTool(page)) || '{}').run ?? {};
+        const events = (run.log ?? []).map((entry: { event: string }) => entry.event);
+        return [events.includes('paused'), events.includes('resumed'), run.state].join('|');
+      },
+      { timeout: 60_000 }
+    )
+    .toMatch(/^true\|true\|(running|done)$/);
+  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {

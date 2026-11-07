@@ -7,6 +7,7 @@ import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
 import { createScript } from './scene-scripts';
 import {
   nextRunStep,
+  runEndNotice,
   scriptRunProgress,
   runTakeSettled,
   normalizeSceneRun,
@@ -343,5 +344,39 @@ describe('a script run’s progress, for Short', () => {
     assert.deepEqual(scriptRunProgress(run, 's1'), { state: 'running', done: 1, of: 2, flagged: 0 });
     assert.equal(scriptRunProgress(run, 'other'), null);
     assert.equal(scriptRunProgress(undefined, 's1'), null);
+  });
+});
+
+describe('a run that resumes by itself after a reload', () => {
+  it('keeps the setting and says it goes on by itself', () => {
+    const base = normalizeSceneRun({
+      id: 'r',
+      castId: 'c',
+      items: [{ sceneId: 'a', include: true }],
+      state: 'running',
+      resumeOnReload: true,
+    })!;
+    assert.equal(base.resumeOnReload, true);
+    const paused = pausedAfterReload(base);
+    assert.equal(paused.state, 'paused');
+    assert.match(paused.stopReason ?? '', /going on by itself/);
+    const plain = pausedAfterReload({ ...base, resumeOnReload: undefined });
+    assert.match(plain.stopReason ?? '', /resume to go on/);
+    assert.equal(normalizeSceneRun({ ...base, resumeOnReload: 'yes' })?.resumeOnReload, undefined);
+  });
+});
+
+describe('what a run says when it stops', () => {
+  const run = (patch: Partial<SceneRun>) =>
+    ({ id: 'r', castId: 'c', label: 'Overnight', items: [], log: [], state: 'done', ...patch }) as SceneRun;
+  it('says done with its counts, or why it stopped — not a pause you clicked', () => {
+    assert.deepEqual(runEndNotice('running', run({ outcomes: { a: 'landed', b: 'landed' }, flagged: { b: 'pose' } })), {
+      done: true,
+      text: '“Overnight” is done — 2 Scenes, 1 to check.',
+    });
+    assert.equal(runEndNotice('running', run({ state: 'paused', stopReason: 'A take failed.' }))?.text, '“Overnight” stopped: A take failed.');
+    assert.equal(runEndNotice('running', run({ state: 'paused', log: [{ at: 1, event: 'paused', detail: 'by you' }] })), null);
+    assert.equal(runEndNotice('paused', run({})), null);
+    assert.equal(runEndNotice(null, run({})), null);
   });
 });

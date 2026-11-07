@@ -72,5 +72,7 @@ export function autopilotRun(run: SceneRun, pilot: EpisodeAutopilot): SceneRun {
     auto,
     maxTakes: Math.min(RUN_MAX_TAKES, Math.max(1, included * (1 + pilot.redo))),
     maxMinutes: 24 * 60,
+    // Unattended: a reload (a restart, a crash) goes on by itself.
+    resumeOnReload: true,
   };
 }
