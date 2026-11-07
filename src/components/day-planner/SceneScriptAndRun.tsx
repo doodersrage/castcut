@@ -42,21 +42,31 @@ export default function SceneScriptAndRun({
   useEffect(() => {
     const want = startRunId.current;
     if (!want || run?.id !== want) return;
+    // Off the URL: a reload resumes the run (Resume), it doesn't start it again. Asked again a
+    // beat later too — arriving by router.push, Next writes the URL after this has run.
+    const unstart = () => {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has('start')) return;
+      url.searchParams.delete('start');
+      window.history.replaceState(window.history.state, '', url);
+    };
     if (run.state !== 'prepared') {
       // Started (or changed by hand): done asking.
       startRunId.current = null;
+      unstart();
+      // Not cleared with the effect: the run's record changes all the time now.
+      window.setTimeout(unstart, 500);
+      window.setTimeout(unstart, 2000);
       return;
     }
-    // Off the URL: a reload resumes the run (Resume), it doesn't start it again.
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('start')) {
-      url.searchParams.delete('start');
-      window.history.replaceState(window.history.state, '', url);
-    }
+    unstart();
     // Asked again until it runs: the runner reads the run a commit later, and the run record
     // changing meanwhile re-runs this (and clears a single timer before it fired).
     start();
-    const timer = window.setInterval(start, 500);
+    const timer = window.setInterval(() => {
+      unstart();
+      start();
+    }, 500);
     return () => window.clearInterval(timer);
   }, [run, start]);
   // Done, with the cut asked for: Cut opens on the Scenes and cuts the episode (useCutAutopilot).

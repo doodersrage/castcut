@@ -1042,7 +1042,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           slots={slots}
           stills={stills}
           busy={busy}
-          onLinked={shortLink => updateToolSettings({ shortLink })}
+          updateDay={updateToolSettings}
         />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton

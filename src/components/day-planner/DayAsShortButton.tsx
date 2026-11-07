@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { useDayShortSync } from '@/components/day-planner/useDayShortSync';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import type { DaySlot, DaySlotStill } from '@/lib/day/planner';
@@ -25,11 +26,11 @@ export default function DayAsShortButton({
   slots,
   stills,
   busy,
-  onLinked,
+  updateDay,
   className = '',
 }: {
-  /** The short made or updated: kept on the Day (its shortLink). */
-  onLinked: (link: DayShortLink) => void;
+  /** The Day's settings written (its shortLink, the short's kept takes as its stills). */
+  updateDay: (patch: Partial<DayToolCache>) => void;
   character: CharacterRecord | null | undefined;
   toolSettings: DayToolCache;
   slots: DaySlot[];
@@ -39,12 +40,22 @@ export default function DayAsShortButton({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  // The Day and its short kept one (useDayShortSync).
+  const sync = useDayShortSync({
+    character,
+    toolSettings,
+    slots,
+    stills,
+    link: normalizeDayShortLink(toolSettings.shortLink),
+    updateDay,
+  });
   /** The short was changed on Scene and the Day since: which to go on with (render or not). */
   const [choice, setChoice] = useState<{ note: string; render: boolean } | null>(null);
   if (!character?.id) return null;
   const castId = character.id;
   const link = normalizeDayShortLink(toolSettings.shortLink);
   const linked = link?.castId === castId;
+  const onLinked = (next: DayShortLink) => updateDay({ shortLink: next });
   const go = (render: boolean, how: { fresh?: boolean; asIs?: boolean } = {}) => {
     const result = saveDayAsShort({
       day: { ...toolSettings, slots, stills },
@@ -93,6 +104,24 @@ export default function DayAsShortButton({
       >
         {linked ? 'Its script →' : 'This Day as a script →'}
       </Button>
+      {linked && sync.scriptName && !choice ? (
+        <span className="type-caption text-[var(--text-muted)]" data-testid="day-short-sync">
+          {sync.scenesOwn
+            ? `“${sync.scriptName}” has been changed on Scene, so the board's changes stay here — Copy again for a new short.`
+            : `Its short: “${sync.scriptName}” — the board and its Scenes stay in step.`}
+        </span>
+      ) : null}
+      {sync.scenesOwn && !choice ? (
+        <Button
+          variant="link"
+          size="sm"
+          disabled={busy}
+          data-testid="day-short-copy-again"
+          onClick={() => go(false, { fresh: true })}
+        >
+          Copy again (a new short)
+        </Button>
+      ) : null}
       {choice ? (
         <span className="inline-flex flex-wrap items-center gap-x-3" data-testid="day-short-choice">
           <span className="type-caption" role="status">

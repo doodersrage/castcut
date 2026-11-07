@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import type { DayToolCache } from '../play/settings';
-import { dayAsShort, dayMomentHeading, dayShortFingerprint, dayShortSource } from './day-as-short';
+import {
+  dayAsShort,
+  dayMomentHeading,
+  dayShortFingerprint,
+  dayShortSource,
+  dayStillsFromShort,
+} from './day-as-short';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -99,5 +105,35 @@ describe('a Day as a short', () => {
     assert.ok(again.scenes.some(scene => scene.fromDaySlot === 'evening'));
     // Every shot names its Scene.
     assert.deepEqual(again.shots.map(shot => shot.madeSceneId), again.scenes.map(scene => scene.id));
+  });
+
+  it('brings the short’s kept takes back to the board, once, and leaves a rendering still alone', () => {
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1 })!;
+    const link = { castId: 'mara', scriptId: short.script.id };
+    // Scene kept a take for the afternoon (the run), and a new one for the morning.
+    const scenes = short.scenes.map(scene =>
+      scene.fromDaySlot === 'afternoon'
+        ? { ...scene, takes: [{ id: 'a1', promptId: 'a1', imageUrl: '/a1.png', at: 2 }], keptTakeId: 'a1' }
+        : scene.fromDaySlot === 'morning'
+          ? { ...scene, takes: [...scene.takes, { id: 'm2', promptId: 'm2', imageUrl: '/m2.png', at: 3 }], keptTakeId: 'm2' }
+          : scene
+    ) as typeof short.scenes;
+    const stills = dayStillsFromShort(day, scenes, link);
+    assert.ok(stills);
+    const bySlot = new Map(stills.map(still => [still.slotId, still]));
+    assert.equal(bySlot.get('afternoon')?.promptId, 'a1');
+    assert.equal(bySlot.get('afternoon')?.status, 'completed');
+    assert.equal(bySlot.get('morning')?.promptId, 'm2');
+    // The Day's own still is kept as the one before (Back to the last take).
+    assert.equal(bySlot.get('morning')?.previousTake?.promptId, 'p-m');
+    // Applied, nothing more to bring.
+    assert.equal(dayStillsFromShort({ ...day, stills }, scenes, link), null);
+    // A still rendering on the Day isn't replaced; nor are another Cast's.
+    const rendering = { ...day, stills: [{ slotId: 'afternoon', promptId: 'busy', status: 'running' }] } as unknown as DayToolCache;
+    assert.equal(
+      dayStillsFromShort(rendering, scenes, link)?.find(still => still.slotId === 'afternoon')?.promptId,
+      'busy'
+    );
+    assert.equal(dayStillsFromShort({ ...day, stillsCharacterId: 'rob' } as DayToolCache, scenes, link), null);
   });
 });

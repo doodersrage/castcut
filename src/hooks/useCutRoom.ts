@@ -161,6 +161,7 @@ import {
   sceneCutShots,
   scriptScenesInOrder,
 } from '@/lib/day/scenes';
+import { normalizeDayShortLink } from '@/lib/day/scene-links';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
@@ -324,12 +325,25 @@ export function useCutRoom() {
   const scenesScript = scenesScriptId
     ? storedScripts.find(script => script.id === scenesScriptId && script.castId === sceneCastId)
     : undefined;
+  // A Day with a short (Short's link): its moments are in through the Short source — the same
+  // pictures (useDayShortSync) — so with Short on, the Scenes source leaves that short's out.
+  const dayShort = normalizeDayShortLink(day.toolSettings.shortLink);
+  const cutSources = cut.toolSettings.sources;
+  const shortInByDay =
+    dayShort?.castId === sceneCastId && (!cutSources || cutSources.includes('day'))
+      ? dayShort.scriptId
+      : '';
   const sceneShots = useMemo(
     () =>
       scenesScript
         ? sceneCutShots(scriptScenesInOrder(savedScenes, scenesScript), sceneCastId, 3, true)
-        : sceneCutShots(savedScenes, sceneCastId),
-    [sceneCastId, savedScenes, scenesScript]
+        : sceneCutShots(
+            shortInByDay
+              ? savedScenes.filter(scene => scene.fromScript?.scriptId !== shortInByDay)
+              : savedScenes,
+            sceneCastId
+          ),
+    [sceneCastId, savedScenes, scenesScript, shortInByDay]
   );
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),

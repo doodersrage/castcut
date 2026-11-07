@@ -1,8 +1,8 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { ensureAuthenticated } from './helpers/auth';
 import { replaceGalleryIdb, seedSettingsCacheOnNextLoad } from './helpers/idb';
-import { openDaySlotSheet } from './helpers/day';
+import { closeDaySheets, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
@@ -179,10 +179,27 @@ async function storedScene(page: Page): Promise<string> {
 }
 
 /**
+ * Click until the page moves there: a button drawn before the page hydrates does nothing when
+ * clicked that early (Short's links to Scene, on a busy dev server).
+ */
+async function clickUntilAt(page: Page, target: Locator, url: RegExp): Promise<void> {
+  await expect(async () => {
+    if (url.test(page.url())) return;
+    await target.click({ timeout: 10_000 });
+    await expect(page).toHaveURL(url, { timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
+}
+
+/**
  * The Scene page's stored settings (tools.scene), as JSON, read from the app's IndexedDB — with
  * `scripts` from their own store (M6 V6: castcut-scene-scripts-v1) once they have moved there.
  */
 async function storedSceneTool(page: Page): Promise<string> {
+  // A read during a reload (the dev server's) is "nothing yet": polls ask again.
+  return readSceneTool(page).catch(() => '');
+}
+
+async function readSceneTool(page: Page): Promise<string> {
   return page.evaluate(
     () =>
       new Promise<string>(resolve => {
@@ -1373,9 +1390,12 @@ test('Make it a short: Day’s idea opens the writer, counted in scenes', async 
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-short')).toHaveCount(0);
-  await input.fill('a slow Sunday in Lisbon');
-  await page.getByTestId('day-idea-short').first().click();
-  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  // Typed before the page hydrates, the text is wiped: again until the short link shows.
+  await expect(async () => {
+    await input.fill('a slow Sunday in Lisbon');
+    await expect(page.getByTestId('day-idea-short').first()).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 60_000 });
+  await clickUntilAt(page, page.getByTestId('day-idea-short').first(), /\/scene\?/);
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
   await expect(sheet).toContainText('Write a short');
@@ -1406,8 +1426,7 @@ test('Import a script from Short opens Scene’s import box', async ({ page }) =
   });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await page.getByTestId('day-script-open').first().click({ timeout: 30_000 });
-  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  await clickUntilAt(page, page.getByTestId('day-script-open').first(), /\/scene\?/);
   await expect(page.getByTestId('script-import-text')).toBeVisible({ timeout: 60_000 });
   await expect(page).not.toHaveURL(/script=import/);
   await page.getByTestId('script-import-text').fill('INT. CAFE - DAY\n\nShe sits by the window.\n');
@@ -2747,8 +2766,7 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   }, { once: true });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await page.getByTestId('day-as-short').first().click({ timeout: 30_000 });
-  await expect(page).toHaveURL(/\/scene\?.*script=/, { timeout: 60_000 });
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/scene\?.*script=/);
   const reading = page.getByTestId('script-reading');
   await expect(reading).toBeVisible({ timeout: 60_000 });
   await expect(reading).toContainText('SMALL KITCHEN');
@@ -2786,6 +2804,106 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   await expect(page.getByTestId('cut-scenes-script')).toHaveCount(0);
 });
 
+// The board on the script road: a Day with a short and the short stay one — the short's kept
+// takes come back as the board's stills, and the board's edits go into the short's Scenes.
+test('Short and its short stay in step: kept takes back, beats out', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          isolateSubject: false,
+          dayMood: 'everyday',
+          slots: [
+            { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+            { id: 'afternoon', label: 'Afternoon', location: 'park', sceneHints: 'reading on a bench' },
+            { id: 'evening', label: 'Evening', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+            { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+          ],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/scene\?.*script=/);
+  await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
+
+  // On Scene, the night's Scene gets a take, kept (as a run would) — written with no app page open.
+  await page.goto('/manifest.json');
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const store = db.transaction('kv', 'readwrite').objectStore('kv');
+          const get = store.get('comfy-prompt-tool-settings-tools-v1');
+          get.onsuccess = () => {
+            const row = get.result;
+            const scenes = row.value.tools.scene.scenes as Array<Record<string, unknown>>;
+            const night = scenes.find(scene => scene.fromDaySlot === 'night')!;
+            night.takes = [{ id: 'night-take', promptId: 'night-take', imageUrl: '/icon.svg', at: Date.now() }];
+            night.keptTakeId = 'night-take';
+            row.value.updatedAt = Date.now();
+            const put = store.put(row);
+            put.onsuccess = () => {
+              db.close();
+              resolve();
+            };
+            put.onerror = () => reject(put.error);
+          };
+        };
+      })
+  );
+
+  // Back on Short: the night shows that take, and the line says they're in step.
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
+  const dayStills = async () =>
+    page.evaluate(
+      () =>
+        new Promise<string>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onsuccess = () => {
+            const db = request.result;
+            const get = db.transaction('kv', 'readonly').objectStore('kv').get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              db.close();
+              const tools = get.result?.value?.tools ?? {};
+              resolve(
+                JSON.stringify({
+                  night: (tools.day?.stills ?? []).find((still: { slotId: string }) => still.slotId === 'night')?.promptId ?? null,
+                  beat: (tools.scene?.scenes ?? []).find((scene: { fromDaySlot?: string }) => scene.fromDaySlot === 'night')?.slot?.sceneHints ?? null,
+                })
+              );
+            };
+          };
+        })
+    );
+  await expect.poll(dayStills, { timeout: 30_000 }).toContain('"night":"night-take"');
+
+  // The board's edit goes into the short: the night's beat, a moment later.
+  await openDaySlotSheet(page, 'night');
+  await page.getByTestId('day-slot-sheet').getByTestId('day-slot-beat').fill('asleep over the book');
+  await closeDaySheets(page);
+  await expect.poll(dayStills, { timeout: 30_000 }).toContain('"beat":"asleep over the book"');
+  // The kept take survives the sync.
+  expect(await dayStills()).toContain('"night":"night-take"');
+
+  // In Cut once: through Short — the Scenes source doesn't bring the short's in again.
+  await gotoStable(page, `/cut?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-source-day')).toContainText('1 shot', { timeout: 60_000 });
+  await expect(page.getByTestId('cut-source-scenes')).toContainText('no shots yet');
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {
@@ -2818,7 +2936,11 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-write')).toHaveCount(0);
-  await input.fill('the last match of the season');
+  // Typed before the page hydrates, the text is wiped: again until the short link shows.
+  await expect(async () => {
+    await input.fill('the last match of the season');
+    await expect(page.getByTestId('day-idea-short').first()).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 60_000 });
   await page.getByTestId('day-idea-short').first().click();
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
@@ -2870,8 +2992,7 @@ test('Make the short: Short’s moments run on Scene, the kept ones left out', a
   });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await page.getByTestId('day-make-short').first().click({ timeout: 30_000 });
-  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
+  await clickUntilAt(page, page.getByTestId('day-make-short').first(), /\/scene\?/);
   await expect
     .poll(
       async () => {

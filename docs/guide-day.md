@@ -59,10 +59,16 @@ silly / raunchy.
     Scene — the moment's still as its kept take. It opens on Scene: storyboard it, add moments,
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
-    A Day has one short. Once made, the link reads **Its script →**: the Day changed since is
-    brought into the same script — each moment's Scene keeps its takes and kept take, a new
-    moment gets one, the Day's newer still is added. If the script was changed on Scene too, it
-    asks first: **Use it as it is** or **Copy again (a new short)**. A Cast keeps 12 scripts:
+    A Day has one short, and once made the two stay in step by themselves (_Its short: “…” — the
+    board and its Scenes stay in step_): a take kept on a moment's Scene — by Make the short's run,
+    or by hand — becomes that moment's still on the board (the one before stays as **Back to the
+    last take**), and the board's edits (Suggest day, One event, a beat, a template) go into the
+    short's Scenes a moment later, each keeping its takes and kept take; a new moment gets a
+    Scene. The link reads **Its script →**. Once the script itself is changed on Scene (shots
+    planned, a line added), it is Scene's: the board's edits stay on the board, and **Copy again
+    (a new short)** starts a new one. Making the short then asks first: **Use it as it is** or
+    **Copy again**. In Cut, a Day with a short is in once — through Short; the Scenes source
+    leaves that short's Scenes out while Short is on. A Cast keeps 12 scripts:
     at 12, Short won't make another (it would drop one) — delete one on Scene first. Keeping a
     13th script on Scene asks too, naming the one it would drop.
 

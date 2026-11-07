@@ -3638,17 +3638,24 @@ door onto it. Small steps; nothing a user made is moved or deleted.
 - Fixed on the way: Write an episode's result went into a script box hidden under Scene's
   folded More on a Cast with no script yet — it unfolds now.
 
+- **S3b The board on the script road** (`useDayShortSync`, `dayStillsFromShort`): rather than
+  porting every Day feature to read Scenes, a Day with a short and the short are kept one, both
+  ways — the short's kept takes become the board's stills (a still rendering on the Day, or
+  another Cast's, left alone; matched by prompt id so the Day's own reframe/finish doesn't
+  ping-pong), and the board's edits sync into the short 1.5 s after the last (one trigger: the
+  Day's fingerprint, read through a ref — the page re-renders all the time while it renders).
+  Stops when the script is changed on Scene (it's Scene's then; said, with Copy again). Every
+  Day feature (Suggest day, One event, templates, Queue day, the reel, Play's steps) works on the
+  short through the board, unchanged. Only Days with a short; nothing migrated.
+- **S3c One Cut source, in effect**: with Short on, Cut's Scenes source leaves a Day's short's
+  Scenes out (the same pictures, in through Short) unless that script is the one picked.
+- Fixed: the run-start hook's URL clean-up ran before Next wrote the pushed URL (`start=` came
+  back); it is repeated on the retry ticks and after the run starts.
+
 ### Next (not started — each its own reviewed step)
 
-- **S3b The Short board on Scenes.** The board's cards read and write Scenes of a short script
-  (the Day's slots become its scenes, the stills their takes) instead of `tools.day.slots/stills`.
-  Needs: a one-way, idempotent copy of each Cast's Day into a script on first open (S3a's
-  `dayAsShort`, marked so it runs once), the Day's settings kept untouched as the rollback; the
-  Day-only parts (moods' Suggest day, One event, templates, Queue the rest, Animate all, the
-  reel, Play's step machine counting Day stills, the Director, plan history) ported to read the
-  script's Scenes. Risk: the largest surface in the app (lib/day, ~230 commits since October) —
-  do it behind the copy, page by page, with the e2e Day suites green at each step.
-- **S3c One Cut source.** When S3b is in, Cut's Short source reads the short's Scenes; retire it
-  after a release with both, so a saved cut that names `day` still opens.
+- **Retire the board's own data** (only if wanted): with S3b the board and its short agree, so
+  `tools.day.slots/stills` could later be derived from the short entirely. Not needed for the
+  workflow; it would be the risky migration S3b avoided.
 - **Intimate on the script road**, if wanted: it would need the server's adult setting checked
   in the writer route and a model that writes it; until then it stays on the board.

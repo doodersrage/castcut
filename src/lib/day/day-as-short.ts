@@ -9,8 +9,15 @@
 import { parseScript } from '../script/parse';
 import type { CameraShot } from '../pose/camera-shot';
 import type { DayToolCache } from '../play/settings';
-import { dayPartOf, normalizeDaySlots, type DaySlot } from './planner';
-import { sceneFromDaySlot, type SavedScene } from './scenes';
+import {
+  dayPartOf,
+  dayStillShownImage,
+  normalizeDaySlotStills,
+  normalizeDaySlots,
+  type DaySlot,
+  type DaySlotStill,
+} from './planner';
+import { keptTakeOf, sceneFromDaySlot, takeAsStill, type SavedScene } from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
 import type { PlannedShot } from './script-shots';
 
@@ -198,4 +205,59 @@ export function dayAsShort(input: {
   });
   if (scenes.length !== moments.length) return null;
   return { script, shots, scenes, leadSpeaker };
+}
+
+/**
+ * Short ← its short (the board on the script road, 2026-11-06): each moment's kept take on its
+ * Scene as the moment's still on the Day — Make the short's renders show on the board, its reel
+ * and Cut's Short source. Null when nothing changes. A still rendering on the Day now is left
+ * alone, and only the Day's own Cast's stills are touched.
+ */
+export function dayStillsFromShort(
+  day: Pick<DayToolCache, 'slots' | 'dayLength' | 'stills' | 'stillsCharacterId'>,
+  scenes: readonly SavedScene[],
+  link: { castId: string; scriptId: string }
+): DaySlotStill[] | null {
+  const owner = day.stillsCharacterId?.trim();
+  if (owner && owner !== link.castId) return null;
+  const slots = normalizeDaySlots(day.slots, day.dayLength);
+  let stills = normalizeDaySlotStills(day.stills, slots);
+  let changed = false;
+  for (const scene of scenes) {
+    if (scene.fromScript?.scriptId !== link.scriptId || scene.castId !== link.castId) continue;
+    const slotId = scene.fromDaySlot;
+    if (!slotId || !slots.some(slot => slot.id === slotId)) continue;
+    const kept = keptTakeOf(scene);
+    if (!kept) continue;
+    const before = stills.find(still => still.slotId === slotId);
+    if (before && before.status !== 'completed' && before.status !== 'error' && before.promptId)
+      continue;
+    const next = takeAsStill(slotId, kept);
+    // Already the Day's still: the same take (by its prompt — the Day may have reframed or
+    // finished its picture since), else the same picture.
+    if (
+      before?.status === 'completed' &&
+      (next.promptId
+        ? before.promptId === next.promptId
+        : !before.promptId && before.imageUrl === next.imageUrl)
+    )
+      continue;
+    const shown = dayStillShownImage(before);
+    stills = [
+      ...stills.filter(still => still.slotId !== slotId),
+      {
+        ...next,
+        ...(before?.status === 'completed' && shown && shown !== kept.imageUrl
+          ? {
+              previousTake: {
+                imageUrl: shown,
+                ...(before.promptId ? { promptId: before.promptId } : {}),
+              },
+            }
+          : {}),
+      },
+    ];
+    changed = true;
+  }
+  return changed ? stills : null;
 }
