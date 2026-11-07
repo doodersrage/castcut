@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
+import { dayLengthSlotIds } from './planner';
 import type { DayToolCache } from '../play/settings';
 import {
   dayAsShort,
@@ -168,5 +169,33 @@ describe('a moment written anew', () => {
     assert.equal(momentRewritten({ sceneHints: 'walks along the water' }, { sceneHints: 'walks slowly along the water' }), false);
     assert.equal(momentRewritten({ sceneHints: 'reads', location: 'seaside café' }, { sceneHints: 'reads', location: 'old town bakery' }), true);
     assert.equal(momentRewritten({}, {}), false);
+  });
+});
+
+describe('a short whose board grows between its moments', () => {
+  it('gives each new moment its own Scene: no id taken from one already there', () => {
+    const ids = dayLengthSlotIds(6);
+    const firstFilled = [ids[0], ids[2], ids[5]];
+    const first = {
+      stillsCharacterId: 'mara',
+      dayLength: 6,
+      slots: ids.map(id => ({ id, label: id, ...(firstFilled.includes(id) ? { location: 'beach', sceneHints: `old ${id}` } : {}) })),
+    } as unknown as DayToolCache;
+    const short = dayAsShort({ day: first, castId: 'mara', leadName: 'Mara', now: 1 })!;
+    assert.equal(short.scenes.length, 3);
+    // Every moment written now: morning-2 and afternoon come between the old ones.
+    const grown = {
+      ...first,
+      slots: ids.map(id => ({ id, label: id, location: 'old town', sceneHints: `new ${id}` })),
+    } as unknown as DayToolCache;
+    const again = dayAsShort({ day: grown, castId: 'mara', leadName: 'Mara', now: 2, existing: { script: short.script, scenes: short.scenes } })!;
+    assert.equal(again.scenes.length, 6);
+    assert.equal(new Set(again.scenes.map(scene => scene.id)).size, 6);
+    for (const scene of again.scenes) assert.equal(scene.slot.sceneHints, `new ${scene.fromDaySlot}`);
+    // The Scenes already there keep their ids.
+    for (const old of short.scenes) {
+      assert.equal(again.scenes.find(scene => scene.fromDaySlot === old.fromDaySlot)!.id, old.id);
+    }
+    assert.deepEqual(again.shots.map(shot => shot.madeSceneId), again.scenes.map(scene => scene.id));
   });
 });

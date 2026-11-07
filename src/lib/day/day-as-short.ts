@@ -153,22 +153,33 @@ export function dayAsShort(input: {
   const leadSpeaker = speakerKey(input.leadName);
   const shots: PlannedShot[] = [];
   const scenes: SavedScene[] = [];
+  // Ids the short's Scenes have: a new moment's Scene takes none of them. (By position alone, a
+  // moment written between two old ones got the id of the one after — two Scenes, one id, one
+  // lost on save; live 2026-11-07, 10 Scenes for 12 moments.)
+  const taken = new Set(
+    (prior?.scenes ?? [])
+      .filter(entry => entry.fromScript?.scriptId === script.id)
+      .map(entry => entry.id)
+  );
   moments.forEach((slot, index) => {
     const sceneId = parsed.scenes[index]!.id;
     const shotId = `${sceneId}-moment`;
+    const before = prior?.scenes.find(
+      entry => entry.fromScript?.scriptId === script.id && entry.fromDaySlot === slot.id
+    );
+    const byPosition = `scene-${script.id}-${index + 1}`;
+    const id = before?.id ?? (taken.has(byPosition) ? `scene-${script.id}-${slot.id}` : byPosition);
+    taken.add(id);
     const scene = sceneFromDaySlot({
       day: input.day,
       slotId: slot.id,
       castId,
       name: slot.label?.trim() || `Moment ${index + 1}`,
-      id: `scene-${script.id}-${index + 1}`,
+      id,
       now: now + index,
     });
     if (!scene) return;
     const fromScript = { scriptId: script.id, sceneId, shotId };
-    const before = prior?.scenes.find(
-      entry => entry.fromScript?.scriptId === script.id && entry.fromDaySlot === slot.id
-    );
     if (before) {
       // The moment's shot as the Day has it now; every take it had, and the Day's still if new.
       // A still the Scene already has (a take of its own the board shows, under the take's render
