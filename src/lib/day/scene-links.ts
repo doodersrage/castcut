@@ -178,7 +178,7 @@ export function saveDayAsShort(input: {
       const dropped = scriptDroppedByAdding(scripts.scripts, castId);
       if (dropped) {
         return {
-          error: `${input.leadName.trim() || 'This Cast'} has 12 scripts, the most kept — delete one on Scene (More → Script) first; making another would drop “${dropped.name}”.`,
+          error: `${input.leadName.trim() || 'This Cast'} has 12 scripts, the most kept — archive one on Scene first (More → Script → Archive: saved as a file, its Scenes stay); making another would drop “${dropped.name}”.`,
         };
       }
     }

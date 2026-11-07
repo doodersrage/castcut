@@ -3,6 +3,9 @@ import { describe, it } from 'node:test';
 import { withMergedToolRecords } from '../storage/tool-record-merge';
 import { parseScript } from '../script/parse';
 import {
+  readScriptArchive,
+  scriptArchiveFilename,
+  scriptArchiveText,
   addScriptPatch,
   createScript,
   normalizeSavedScripts,
@@ -79,5 +82,24 @@ describe("a Cast's screenplays (M3 S2)", () => {
       merged.scripts.map(s => s.id),
       ['desk', 'phone']
     );
+  });
+});
+
+describe('a script archived and brought back', () => {
+  it('comes back whole, newer than its deletion, as this Cast’s', () => {
+    const script = {
+      ...createScript({ castId: 'mara', source: 'INT. KITCHEN - MORNING\n\nShe pours.\n', name: 'Her day', now: 5, mood: 'sport' })!,
+      shots: [{ id: 's1', sceneId: 'int-kitchen-morning', purpose: 'action' as const, framing: 'full' as const, who: [], seconds: 3, madeSceneId: 'scene-1' }],
+    };
+    const text = scriptArchiveText(script);
+    assert.equal(scriptArchiveFilename(script), 'Her-day.castcut-script.json');
+    const back = readScriptArchive(text, 'mara', 1000)!;
+    assert.equal(back.id, script.id);
+    assert.equal(back.mood, 'sport');
+    assert.equal(back.shots?.[0]?.madeSceneId, 'scene-1');
+    assert.equal(back.updatedAt, 1000);
+    assert.equal(readScriptArchive(text, 'rob', 1000)?.castId, 'rob');
+    assert.equal(readScriptArchive('INT. KITCHEN - DAY', 'mara'), null);
+    assert.equal(readScriptArchive('{"kind":"other"}', 'mara'), null);
   });
 });

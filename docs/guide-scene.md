@@ -177,7 +177,10 @@ whole episode — and **Make the whole episode for me**, which does every step b
   script** and come back if the scene does. Right after, **Undo — back to the version before**
   puts the old text and every shot back (until the script is changed again).
 
-Scripts are kept with the Cast (up to 12) and sync like the scenes.
+Scripts are kept with the Cast (up to 12) and sync like the scenes. **Archive** saves the open
+script as a file (`.castcut-script.json`: its text, shots, Who's who, places and mood) and frees
+its place — its Scenes stay. **Import a script** with that file brings it back as it was, linked to
+its Scenes again. Keeping a 13th asks first, naming the one it would drop.
 
 ## Runs
 

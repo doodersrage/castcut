@@ -45,7 +45,10 @@ import {
   addScriptPatch,
   createScript,
   normalizeSavedScripts,
+  readScriptArchive,
   removeScriptPatch,
+  scriptArchiveFilename,
+  scriptArchiveText,
   renameScriptPatch,
   setScriptCastPatch,
   setScriptPlacePatch,
@@ -536,6 +539,8 @@ export default function SceneScripts({
   } | null>(null);
   const [prepareNote, setPrepareNote] = useState<string | null>(null);
   const [casting, setCasting] = useState<string | null>(null);
+  /** Said after Archive or bringing an archived script back (no script need be open). */
+  const [shelfNote, setShelfNote] = useState<string | null>(null);
   /** Where the episode autopilot is (null: not running). */
   const [autopilotNote, setAutopilotNote] = useState<string | null>(null);
   // M9 T3: the open script as a storyboard instead of its reading.
@@ -607,7 +612,7 @@ export default function SceneScripts({
     if (!dropped) return true;
     return confirmAction({
       title: `Keep a 13th script for ${castName ?? 'this Cast'}?`,
-      body: `A Cast keeps 12 scripts. Keeping this one drops the one changed longest ago: “${dropped.name}” (its Scenes stay). Delete one you don't need first to keep them all.`,
+      body: `A Cast keeps 12 scripts. Keeping this one drops the one changed longest ago: “${dropped.name}” (its Scenes stay). Archive one first (saved as a file, brought back any time) to keep them all.`,
       confirmLabel: `Keep it and drop “${dropped.name.slice(0, 30)}”`,
     });
   };
@@ -642,6 +647,39 @@ export default function SceneScripts({
     if (!ok) return;
     update(removeScriptPatch(cache, open.id));
     setOpenId(null);
+  };
+
+  /**
+   * Archive: the whole script saved as a file (scene-scripts.ts) and its place freed — a Cast
+   * keeps 12. Its Scenes stay; Import a script with the file brings it back, linked to them.
+   */
+  const archive = () => {
+    if (!open) return;
+    const blob = new Blob([scriptArchiveText(open)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = scriptArchiveFilename(open);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    update(removeScriptPatch(cache, open.id));
+    setOpenId(null);
+    setShelfNote(
+      `“${open.name}” is archived to ${scriptArchiveFilename(open)} — its Scenes stay. Import a script with that file brings it back.`
+    );
+  };
+
+  /** An archived script's file, brought back (asked first at 12 scripts), and opened. */
+  const restore = async (script: SavedScript) => {
+    const known = cache.scripts?.some(entry => entry.id === script.id);
+    if (!known && !(await roomForScript())) return;
+    update(addScriptPatch(cache, script));
+    setDraft(null);
+    setError(null);
+    setOpenId(script.id);
+    setShelfNote(`“${script.name}” is back, with its shots and Scenes.`);
   };
 
   /** "Make it a Scene" from a planned shot — the shot list's and the storyboard's (M9 T3). */
@@ -979,6 +1017,11 @@ export default function SceneScripts({
         />
       ) : null}
 
+      {shelfNote ? (
+        <p className="type-caption mt-2" role="status" data-testid="script-shelf-note">
+          {shelfNote}
+        </p>
+      ) : null}
       {draft !== null ? (
         <div className="mt-3 space-y-2" data-testid="script-import-form">
           <textarea
@@ -992,9 +1035,16 @@ export default function SceneScripts({
           <div className="flex flex-wrap items-center gap-2">
             <UploadButton
               label="Upload a file…"
-              accept=".fountain,.spmd,.txt,.md,text/plain"
+              accept=".fountain,.spmd,.txt,.md,.json,text/plain,application/json"
               testId="script-import-file"
-              onFile={file => void file.text().then(text => setDraft(text))}
+              onFile={file =>
+                void file.text().then(text => {
+                  // An archived script (Archive's file) comes back whole; anything else reads.
+                  const archived = readScriptArchive(text, castId);
+                  if (archived) void restore(archived);
+                  else setDraft(text);
+                })
+              }
             />
             <Button
               size="sm"
@@ -1065,6 +1115,15 @@ export default function SceneScripts({
               onClick={() => setReimporting(!reimporting)}
             >
               Import a new version
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              data-testid="script-archive"
+              title="Save it as a file and free its place (a Cast keeps 12) — its Scenes stay; Import a script brings it back"
+              onClick={archive}
+            >
+              Archive
             </Button>
             <Button
               size="sm"

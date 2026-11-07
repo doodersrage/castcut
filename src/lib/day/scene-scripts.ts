@@ -273,3 +273,47 @@ export function scriptSummary(parsed: ParsedScript): string {
     .filter(Boolean)
     .join(' · ');
 }
+
+/**
+ * A script as a file (2026-11-06: a Cast keeps 12 scripts — shorts use them up): the whole
+ * record — text, shots, Who's who, places, mood — so it comes back as it was, its Scenes linked
+ * to it again by its id. Archive saves it and frees its place; Import a script reads it back.
+ */
+export const SCRIPT_ARCHIVE_KIND = 'castcut-script';
+
+export function scriptArchiveText(script: SavedScript): string {
+  return JSON.stringify({ kind: SCRIPT_ARCHIVE_KIND, version: 1, script }, null, 1);
+}
+
+/** The filename an archive is saved as. */
+export function scriptArchiveFilename(script: Pick<SavedScript, 'name'>): string {
+  const base = script.name
+    .trim()
+    .replace(/[^\p{L}\p{N} _-]/gu, '')
+    .replace(/\s+/g, '-')
+    .slice(0, 60);
+  return `${base || 'script'}.castcut-script.json`;
+}
+
+/**
+ * The script in an archive's text, for this Cast — or null when it isn't one. Brought back as
+ * changed now: newer than its deletion, so the store (and another device) keep it.
+ */
+export function readScriptArchive(
+  text: string,
+  castId: string,
+  now = Date.now()
+): SavedScript | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const archive = value as { kind?: unknown; script?: unknown } | null;
+  if (!archive || archive.kind !== SCRIPT_ARCHIVE_KIND) return null;
+  const script = normalizeSavedScript(archive.script, now);
+  if (!script || !castId.trim()) return null;
+  // A script archived from another Cast comes back as this one's (its Scenes stay theirs).
+  return { ...script, castId: castId.trim(), updatedAt: Math.max(now, script.updatedAt + 1) };
+}

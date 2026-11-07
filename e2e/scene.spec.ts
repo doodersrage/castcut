@@ -3058,6 +3058,41 @@ test('a run set to resume by itself goes on after a reload', async ({ page }) =>
   await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
 });
 
+// A Cast keeps 12 scripts: Archive saves one whole as a file and frees its place; Import a script
+// with that file brings it back — the same script, its shots and Who's who, its Scenes linked.
+test('a script archived to a file and imported back is the same script', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { isolateSubject: false } },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await page.getByTestId('script-import').click({ timeout: 60_000 });
+  await page.getByTestId('script-import-text').fill('Title: Her Day\n\nINT. CAFE - DAY\n\nShe sits by the window.\n');
+  await page.getByTestId('script-keep').click();
+  await expect(page.getByTestId('script-reading')).toContainText('CAFE');
+  const scripts = async () =>
+    (JSON.parse((await storedSceneTool(page)) || '{}').scripts ?? []) as Array<{ id: string; name: string }>;
+  await expect.poll(async () => (await scripts()).map(entry => entry.name)).toEqual(['Her Day']);
+  const id = (await scripts())[0]!.id;
+
+  const download = page.waitForEvent('download');
+  await page.getByTestId('script-archive').click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('Her-Day.castcut-script.json');
+  const path = await file.path();
+  await expect(page.getByTestId('script-shelf-note')).toContainText('is archived');
+  await expect.poll(async () => (await scripts()).length).toBe(0);
+
+  await page.getByTestId('script-import').click();
+  await page.getByTestId('script-import-file').setInputFiles(path);
+  await expect(page.getByTestId('script-shelf-note')).toContainText('is back');
+  await expect.poll(async () => (await scripts()).map(entry => `${entry.id}|${entry.name}`)).toEqual([`${id}|Her Day`]);
+  await expect(page.getByTestId('script-reading')).toContainText('CAFE');
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {
