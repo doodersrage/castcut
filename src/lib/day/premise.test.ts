@@ -67,3 +67,18 @@ describe('Day from an idea', () => {
     assert.equal(next[1]!.sceneHints, 'keep me');
   });
 });
+
+describe('the adult check on a written day', () => {
+  it('keeps a striped awning or umbrella; still drops undressing', () => {
+    const reply = JSON.stringify([
+      { slot: 'morning', beat: 'standing in the fish market gripping a paper bag', setting: 'wet dock under striped awnings' },
+      { slot: 'afternoon', beat: 'lying on a towel with arms behind her head', setting: 'beach with a striped umbrella' },
+      { slot: 'evening', beat: 'standing by the stage watching the stripper', setting: 'dim club' },
+      { slot: 'night', beat: 'sitting on the bed, stripped to her underwear', setting: 'hotel room' },
+    ]);
+    assert.deepEqual(
+      parseDayPremiseBeats(reply, SLOTS, { companions: false }).map(beat => beat.slotId),
+      ['morning', 'afternoon']
+    );
+  });
+});

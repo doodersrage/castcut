@@ -112,7 +112,7 @@ export type DayEventPlan = {
 };
 
 const ADULT_RE =
-  /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip\w*|undress\w*)\b/i;
+  /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip(?:per|pers|ping|tease|s?\s*club)|stripped|undress\w*)\b/i;
 /** The beat opens with her body position (the Everyday recipe and the re-pose edit read it). */
 /**
  * Moving to another spot. The edit recomposes the picture around her new spot (the user's beach

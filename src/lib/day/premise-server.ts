@@ -27,20 +27,33 @@ export async function writeDayPremiseBeats(options: {
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('Day from an idea needs the LLM. Turn it on under Settings → LLM.');
   }
-  const reply = await chatCompletion({
-    messages: buildDayPremiseMessages({
-      premise,
-      slotIds: options.slotIds,
-      companions: options.companions,
-      previousBeats,
-    }),
-    maxTokens: 120 + 90 * options.slotIds.length,
-    temperature: 0.7,
-    model: resolveRequestLlmModel(options.llm),
-    endpoint: resolveRequestLlmEndpoint(options.llm),
-    usageContext: { route: 'day-premise' },
-  });
-  const beats = parseDayPremiseBeats(reply, options.slotIds, { companions: options.companions });
+  const ask = async (slotIds: string[]) =>
+    parseDayPremiseBeats(
+      await chatCompletion({
+        messages: buildDayPremiseMessages({
+          premise,
+          slotIds,
+          companions: options.companions,
+          previousBeats,
+        }),
+        maxTokens: 120 + 90 * slotIds.length,
+        temperature: 0.7,
+        model: resolveRequestLlmModel(options.llm),
+        endpoint: resolveRequestLlmEndpoint(options.llm),
+        usageContext: { route: 'day-premise' },
+      }),
+      slotIds,
+      { companions: options.companions }
+    );
+  const beats = await ask(options.slotIds);
+  // A beat the checks drop leaves its moment empty — on a long board, several (5 of 9 written,
+  // 2026-11-07). The ones missing are asked for once more, on their own.
+  const missing = options.slotIds.filter(id => !beats.some(beat => beat.slotId === id));
+  if (beats.length > 0 && missing.length > 0) {
+    const more = await ask(missing).catch(() => []);
+    beats.push(...more.filter(beat => missing.includes(beat.slotId)));
+    beats.sort((a, b) => options.slotIds.indexOf(a.slotId) - options.slotIds.indexOf(b.slotId));
+  }
   if (beats.length === 0) {
     throw new Error('The LLM did not write usable beats for that idea. Try again or reword it.');
   }

@@ -23,8 +23,12 @@ export function dayPremiseAvailable(mood: string | null | undefined): boolean {
   return normalized === 'everyday' || normalized === 'vacation';
 }
 
+/**
+ * Words a clothed Day's beat can't have. "strip" only as undressing: `strip\w*` took "striped
+ * awnings" and "a striped umbrella" for adult and dropped those moments (2026-11-07).
+ */
 const ADULT_RE =
-  /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip\w*|undress\w*)\b/i;
+  /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip(?:per|pers|ping|tease|s?\s*club)|stripped|undress\w*)\b/i;
 /** The stance words the prompt asks the beat to open with (dayEverydayPoseClass reads them). */
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|curled|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|squatting|dancing|dances|twirling|climbing|climbs)\b/i;
