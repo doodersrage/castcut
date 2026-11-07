@@ -1,6 +1,6 @@
 # Castcut
 
-**Local character films with ComfyUI.** Cast → Outfit → Day → (Story · Scene · Script) → **Cut**.
+**Local character films with ComfyUI.** Cast → Outfit → Short → (Story · Scene · Script) → **Cut**.
 
 Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo are now [`castcut`](https://github.com/doodersrage/castcut). The classic prompt and image tools, without the film loop, live on as [**Prompt Studio**](https://github.com/doodersrage/prompt-studio), built on the shared core package [`prompt-studio-core`](https://www.npmjs.com/package/prompt-studio-core).
 
@@ -14,11 +14,11 @@ Formerly shipped as Prompt Studio / `llm-prompt-studio`. Package and GitHub repo
 
 1. **Cast** — create a character once: a face plate, traits, a voice, her home and workplace.
 2. **Outfit** — dress her: a kit, your own photo, or shoes you pick — and change a piece with the **clothing** and **footwear editors** ("make it red", "a lower heel").
-3. **Day** — plan 2–8 moments from morning to night; each becomes a still, then a clip. Give a moment a **line** and she says it, lip-synced, in her voice. Light, blocking and camera per shot; day templates; printable call sheets and storyboards.
+3. **Short** (it was Day) — plan 2–12 moments from morning to night; each becomes a still, then a clip. **Make it a short** writes your idea as a script of any length, and **Make the short** renders it on the script road — the best take kept by its checks — and cuts it. Give a moment a **line** and she says it, lip-synced, in her voice. Light, blocking and camera per shot; day templates; printable call sheets and storyboards.
 4. **Story** *(optional)* — the LLM offers four next scenes; pick one or write your own. An **Outline** shows screen time, acts and the story's emotional arc, with notes from the LLM and branches.
 5. **Scene** *(optional)* — one shot, exactly as you want it: setting, beat, line, pose and camera. Render takes, ★ keep the best, then make it move.
 6. **Script** *(optional, on the Scene page)* — import a screenplay (Fountain or plain text), or **Write an episode** from a premise with the LLM; plan each scene's shots and render them all in a **run**.
-7. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Day, Story and Scenes, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
+7. **Cut** — the film's own step: watch the cut, drag the shots into order, trim and frame them, mix Short, Story and Scenes, add music (or **Score this film**), subtitles, narration and titles; export vertical, square or widescreen, or for an editor.
 
 **Whole episodes:** write a half-hour script from a premise, then let an **episode run** render every shot unattended — it keeps the best take by its checks, redoes the ones that fail, can animate each kept take, and lists the few it wasn't sure of for you. Cut renders long films in pieces, lays **Music by scene** under the lines, and can **read the lines on stills** in each speaker's voice for a talking animatic.
 
@@ -41,9 +41,9 @@ On Linux, prefer the **`.deb`** (system WebKit, snappier UI) — details in [doc
 | | |
 | --- | --- |
 | ![Film: the film so far, its Cast lead and the steps](docs/screenshots/film.png) | ![Day: four stills of one character from morning to night, ready to cut](docs/screenshots/day.png) |
-| **Film** — your film so far, its lead, and the steps: Cast → Outfit → Day → Cut. | **Day** — one character from morning to night, stills in a reel, then **Cut film**. |
+| **Film** — your film so far, its lead, and the steps: Cast → Outfit → Short → Cut. | **Short** — one character from morning to night, stills in a reel, then **Cut film**. |
 | ![Story: a reel of scenes picked one at a time](docs/screenshots/story.png) | ![Cut: Day and Story mixed into one cut, with the monitor and options](docs/screenshots/cut.png) |
-| **Story** — pick what happens next; each scene becomes a still (and a clip). | **Cut** — mix Day, Story and Scenes; watch it, set the shape, music and titles, then cut. |
+| **Story** — pick what happens next; each scene becomes a still (and a clip). | **Cut** — mix Short, Story and Scenes; watch it, set the shape, music and titles, then cut. |
 | ![Cast page: the Bible tab's Appearance traits for one character](docs/screenshots/cast.png) | ![3D pose editor: a figure over the Cast's picture, with the Camera panel](docs/screenshots/pose-editor.png) |
 | **Cast** — the Bible tab's Appearance: sex, ethnicity, age, height, body and hair, used in every picture. | **3D pose editor** — drag a hand or foot, start from a quick pose, set the camera. |
 
@@ -80,7 +80,7 @@ Docker: `cd docker && cp .env.example .env && docker compose up -d --build` — 
 | **Film** | `/play` | Start or resume a film on a Cast lead |
 | **Cast** | `/characters` | Characters: looks, plates, voice, places, films, seasons |
 | **Outfit** | `/fitting` | Clothing, shoes, try-ons, the dressed plate |
-| **Day** | `/day` | The day plan, stills, clips, Cut film |
+| **Short** | `/day` | The moments, stills, clips, Cut film — and its short as a script |
 | **Story** | `/story` | Scene-by-scene stories with stills and clips |
 | **Scene** | `/scene` | One shot as you want it — takes, keep the best, make it move; scripts, locations and runs |
 | **Cut** | `/cut` | Put the film together: order, trim, colour, sound, titles, export |

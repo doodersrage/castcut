@@ -17,6 +17,7 @@ import {
 } from '@/lib/day/script-coverage';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import EpisodeWriterSheet from '@/components/day-planner/EpisodeWriterSheet';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { readEpisodeWriteSeed, type EpisodeWriteSeed } from '@/lib/day/episode-writer';
 import SceneScriptReimport from '@/components/day-planner/SceneScriptReimport';
 import SceneScriptShots from '@/components/day-planner/SceneScriptShots';
@@ -480,7 +481,12 @@ export default function SceneScripts({
   });
   const [draft, setDraft] = useState<string | null>(null);
   /** The mood of a short written from Short, kept with its script (its Scenes made in it). */
-  const [draftMood, setDraftMood] = useState<string | null>(null);
+  const [draftMoodAsked, setDraftMood] = useState<string | null>(null);
+  // An adult mood (Intimate) is kept only where the server allows adult content.
+  const adultAllowed = useNsfwGeneratorEnabled();
+  const moodKept = (mood: string | null | undefined) =>
+    mood && (adultAllowed || !['intimate', 'raunchy'].includes(mood.toLowerCase())) ? mood : null;
+  const draftMood = moodKept(draftMoodAsked);
   const [writingEpisode, setWritingEpisode] = useState(false);
   /** The Script section unfolded (it is under the Scene page's More) and brought into view. */
   const revealScripts = () => {
@@ -496,7 +502,7 @@ export default function SceneScripts({
     const asked = () => {
       const params = new URLSearchParams(window.location.search);
       return {
-        seed: readEpisodeWriteSeed(window.location.search),
+        seed: readEpisodeWriteSeed(window.location.search, { adult: true }),
         importing: params.get('script') === 'import',
       };
     };
@@ -778,7 +784,7 @@ export default function SceneScripts({
       setDraftMood(writeSeed?.mood ?? null);
       return;
     }
-    const script = createScript({ castId, source, mood: writeSeed?.mood });
+    const script = createScript({ castId, source, mood: moodKept(writeSeed?.mood) });
     if (!script) {
       setError('The episode could not be kept as a script (too long?).');
       return;

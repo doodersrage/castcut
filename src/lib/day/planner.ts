@@ -125,14 +125,18 @@ export { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart };
  */
 export type DaySlotId = DayPart | `${DayPart}-${number}`;
 
-/** Supported Day lengths (slots on the board). */
+/** The Day lengths offered as one tap (slots on the board); any count from 2 to 12 can be set. */
 export const DAY_LENGTHS = [2, 3, 4, 6, 8] as const;
-export type DayLength = (typeof DAY_LENGTHS)[number];
+/** Moments on the board: 2–12 (longer, Make it a short writes them as a script, up to 40). */
+export type DayLength = number;
+export const DAY_LENGTH_MIN = 2;
+export const DAY_LENGTH_MAX = 12;
 export const DEFAULT_DAY_LENGTH: DayLength = 4;
 
 export function normalizeDayLength(value: unknown): DayLength {
   const n = Math.round(Number(value));
-  return (DAY_LENGTHS as readonly number[]).includes(n) ? (n as DayLength) : DEFAULT_DAY_LENGTH;
+  if (!Number.isFinite(n) || n < DAY_LENGTH_MIN) return DEFAULT_DAY_LENGTH;
+  return Math.min(DAY_LENGTH_MAX, n);
 }
 
 const DAY_PART_LABELS: Record<DayPart, string> = {
@@ -142,8 +146,8 @@ const DAY_PART_LABELS: Record<DayPart, string> = {
   night: 'Night',
 };
 
-/** Slot ids for each Day length, in board (morning → night) order. */
-const DAY_LENGTH_SLOT_IDS: Record<DayLength, DaySlotId[]> = {
+/** Slot ids for the one-tap Day lengths, in board (morning → night) order — as saved Days have them. */
+const DAY_LENGTH_SLOT_IDS: Record<(typeof DAY_LENGTHS)[number], DaySlotId[]> = {
   2: ['morning', 'night'],
   3: ['morning', 'afternoon', 'night'],
   4: ['morning', 'afternoon', 'evening', 'night'],
@@ -160,26 +164,46 @@ const DAY_LENGTH_SLOT_IDS: Record<DayLength, DaySlotId[]> = {
   ],
 };
 
-/** Board label: "Morning", or "Late morning" for the second slot in a daypart. */
+/**
+ * Slot ids for any Day length, in board order. The one-tap lengths are as they always were;
+ * the rest add moments in the same order those do — a late morning, a late night, then the
+ * afternoon and evening, then a third of each (`morning-3`…) — so 5 sits between 4 and 6.
+ */
+export function dayLengthSlotIds(length: number): DaySlotId[] {
+  const n = normalizeDayLength(length);
+  const fixed = (DAY_LENGTH_SLOT_IDS as Record<number, DaySlotId[] | undefined>)[n];
+  if (fixed) return [...fixed];
+  const order: DayPart[] = ['morning', 'night', 'afternoon', 'evening'];
+  const counts: Record<DayPart, number> = { morning: 1, afternoon: 1, evening: 1, night: 1 };
+  for (let extra = 0; extra < n - 4; extra += 1) counts[order[extra % 4]!] += 1;
+  return DAY_PARTS.flatMap(part =>
+    Array.from({ length: counts[part] }, (_, index) =>
+      index === 0 ? part : (`${part}-${index + 1}` as DaySlotId)
+    )
+  );
+}
+
+/** Board label: "Morning", "Late morning" for the second in a daypart, "Morning 3" after that. */
 export function daySlotDefaultLabel(slotId: DaySlotId | string): string {
   const part = dayPartOf(slotId);
   const label = DAY_PART_LABELS[part];
-  return /-\d+$/.test(String(slotId)) ? `Late ${label.toLowerCase()}` : label;
+  const nth = Number(/-(\d+)$/.exec(String(slotId))?.[1] ?? 1);
+  return nth >= 3 ? `${label} ${nth}` : nth === 2 ? `Late ${label.toLowerCase()}` : label;
 }
 
 /** Default (empty) slots for a Day of `length` slots. */
 export function daySlotsForLength(length: DayLength | number): DaySlot[] {
-  return DAY_LENGTH_SLOT_IDS[normalizeDayLength(length)].map(id => ({
+  return dayLengthSlotIds(length).map(id => ({
     id,
     label: daySlotDefaultLabel(id),
   }));
 }
 
+/** A daypart, or its 2nd–4th slot (`morning-2` … `night-4`: a 12-moment Day at most). */
+const DAY_SLOT_ID_RE = /^(?:morning|afternoon|evening|night)(?:-[2-4])?$/;
+
 export function isDaySlotId(value: unknown): value is DaySlotId {
-  return (
-    typeof value === 'string' &&
-    Object.values(DAY_LENGTH_SLOT_IDS).some(ids => (ids as string[]).includes(value))
-  );
+  return typeof value === 'string' && DAY_SLOT_ID_RE.test(value);
 }
 
 /**
@@ -919,12 +943,19 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
 export function inferDayLength(ids: Array<DaySlotId | string>): DayLength {
   const present = ids.filter(isDaySlotId);
   if (present.length === 0) return DEFAULT_DAY_LENGTH;
-  const fits = DAY_LENGTHS.filter(length =>
-    present.every(id => (DAY_LENGTH_SLOT_IDS[length] as string[]).includes(id))
-  );
+  const covers = (length: number) => {
+    const slotIds = dayLengthSlotIds(length) as string[];
+    return present.every(id => slotIds.includes(id));
+  };
   // Prefer four when it fits (every legacy save), else the smallest length that holds them all.
-  if (fits.includes(DEFAULT_DAY_LENGTH)) return DEFAULT_DAY_LENGTH;
-  return fits[0] ?? 8;
+  if (covers(DEFAULT_DAY_LENGTH)) return DEFAULT_DAY_LENGTH;
+  // The one-tap lengths first, as saves before any count could be set were read; then any.
+  const fixed = DAY_LENGTHS.find(covers);
+  if (fixed) return fixed;
+  for (let length = DAY_LENGTH_MIN; length <= DAY_LENGTH_MAX; length += 1) {
+    if (covers(length)) return length;
+  }
+  return DAY_LENGTH_MAX;
 }
 
 /** Soft img2img denoise for Day+plate — high enough to restage, not polish the plate. */

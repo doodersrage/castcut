@@ -18,6 +18,7 @@ import {
   type EpisodeWriteSeed,
 } from '@/lib/day/episode-writer';
 import { DEFAULT_EPISODE_AUTOPILOT, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const AREA =
   'w-full rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] p-2 text-sm';
@@ -74,9 +75,21 @@ export default function EpisodeWriterSheet({
   const [error, setError] = useState<string | null>(null);
   const stopRef = useRef(false);
   const [autopilotOn, setAutopilotOn] = useState(false);
+  // Adult writing: offered only where the server allows adult content; on for an Intimate short.
+  const adultAllowed = useNsfwGeneratorEnabled();
+  const [adultAsked, setAdultAsked] = useState<boolean>(() =>
+    ['intimate', 'raunchy'].includes(String(seed?.mood ?? '').toLowerCase())
+  );
+  const adult = adultAllowed && adultAsked;
   const [pilot, setPilot] = useState<EpisodeAutopilot>(DEFAULT_EPISODE_AUTOPILOT);
 
-  const base = { lead, cast, tone: tone.trim() || undefined, ...llmBody };
+  const base = {
+    lead,
+    cast,
+    tone: tone.trim() || undefined,
+    ...llmBody,
+    ...(adult ? { adult: true } : {}),
+  };
 
   const writeOutline = async () => {
     setBusy('Writing the outline…');
@@ -230,6 +243,21 @@ export default function EpisodeWriterSheet({
             >
               {scenes ? 'In minutes' : 'In scenes'}
             </Button>
+            {adultAllowed ? (
+              <label
+                className="flex items-center gap-1"
+                title="Explicit scenes between consenting adults — every character over 21 (the server allows adult content)"
+              >
+                <input
+                  type="checkbox"
+                  checked={adultAsked}
+                  disabled={busy !== null}
+                  data-testid="episode-adult"
+                  onChange={event => setAdultAsked(event.target.checked)}
+                />
+                Adult
+              </label>
+            ) : null}
             <label className="flex min-w-48 flex-1 items-center gap-1">
               Tone
               <TextInput

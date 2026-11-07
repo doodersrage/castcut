@@ -7,12 +7,15 @@ import {
   type DayQualityPreset,
   type DayQualityPresetChoice,
 } from '@/lib/day/quality-preset';
+import { Button } from '@/components/ui/Button';
 import { DAY_THEME_OPTIONS, dayThemeOf } from '@/lib/day/themes';
 import { DAY_WEATHER_OPTIONS } from '@/lib/day/weather';
 import type { DayPartnerNoun } from '@/lib/day/partner';
 import {
   DAY_INTIMATE_PLAYFUL_HINT,
   DAY_INTIMATE_PLAYFUL_LABEL,
+  DAY_LENGTH_MAX,
+  DAY_LENGTH_MIN,
   DAY_LENGTHS,
   DAY_MOOD_OPTIONS,
   DEFAULT_DAY_LENGTH,
@@ -162,6 +165,7 @@ export default function DayPlanBar({
       hint: adultPeople ? 'Partner scenes only' : 'Every still with a friend or partner',
     },
   ];
+  const current = dayLength;
   const groupLabel = 'type-caption shrink-0 text-[var(--text-muted)]';
   const group = 'flex items-center gap-x-2';
 
@@ -192,6 +196,37 @@ export default function DayPlanBar({
                 </button>
               ))}
             </div>
+            {/* Any count in between and past them (2–12): a moment less, a moment more. */}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || current <= DAY_LENGTH_MIN}
+              aria-label="One moment fewer"
+              data-testid="day-length-less"
+              onClick={() => onDayLengthChange(current - 1)}
+            >
+              −
+            </Button>
+            {(DAY_LENGTHS as readonly number[]).includes(current) ? null : (
+              <span className="type-caption font-medium" data-testid="day-length-count">
+                {current}
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || current >= DAY_LENGTH_MAX}
+              aria-label="One moment more"
+              data-testid="day-length-more"
+              title={
+                current >= DAY_LENGTH_MAX
+                  ? `${DAY_LENGTH_MAX} at most here — for more, Make it a short (up to 40 scenes)`
+                  : 'One moment more'
+              }
+              onClick={() => onDayLengthChange(current + 1)}
+            >
+              +
+            </Button>
           </div>
         ) : null}
         <label className={group}>

@@ -25,8 +25,29 @@ describe('variable Day length', () => {
       ['Morning', 'Late morning', 'Afternoon', 'Evening', 'Night', 'Late night']
     );
     assert.equal(daySlotsForLength(8).length, 8);
-    assert.equal(normalizeDayLength(5), 4);
     assert.equal(normalizeDayLength('6'), 6);
+    // Any count from 2 to 12 (2026-11-06): the one-tap ones as they were, the rest in between.
+    assert.equal(normalizeDayLength(5), 5);
+    assert.equal(normalizeDayLength(1), 4);
+    assert.equal(normalizeDayLength(30), 12);
+    assert.deepEqual(
+      daySlotsForLength(5).map(slot => slot.id),
+      ['morning', 'morning-2', 'afternoon', 'evening', 'night']
+    );
+    assert.deepEqual(
+      daySlotsForLength(7).map(slot => slot.id),
+      ['morning', 'morning-2', 'afternoon', 'afternoon-2', 'evening', 'night', 'night-2']
+    );
+    const twelve = daySlotsForLength(12);
+    assert.equal(twelve.length, 12);
+    assert.equal(new Set(twelve.map(slot => slot.id)).size, 12);
+    assert.deepEqual(twelve.slice(0, 3).map(slot => slot.label), ['Morning', 'Late morning', 'Morning 3']);
+    // Every length keeps time order, and each holds the one before it.
+    for (let n = 3; n <= 12; n += 1) {
+      const ids = daySlotsForLength(n).map(slot => slot.id as string);
+      const before = daySlotsForLength(n - 1).map(slot => slot.id as string);
+      assert.ok(before.every(id => ids.includes(id)), `${n} holds ${n - 1}`);
+    }
   });
 
   it('maps late slots onto their daypart', () => {
@@ -40,6 +61,8 @@ describe('variable Day length', () => {
     assert.equal(inferDayLength(['morning', 'night']), 4);
     assert.equal(inferDayLength(['morning-2']), 6);
     assert.equal(inferDayLength(['afternoon-2']), 8);
+    assert.equal(inferDayLength(['morning-3']), 9);
+    assert.equal(normalizeDaySlots([{ id: 'night-4', label: 'Night 4' }], 12).length, 12);
     assert.deepEqual(
       normalizeDaySlots(DEFAULT_DAY_SLOTS).map(slot => slot.id),
       ['morning', 'afternoon', 'evening', 'night']

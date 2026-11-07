@@ -49,6 +49,18 @@ export function episodeSceneCount(minutes: number): number {
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
+/**
+ * Adult writing (2026-11-06, the user: "give the option to send adult content to the script
+ * writer"): only when the server allows adult content (the route checks), and only ever about
+ * adults — the same over-21 line the stills are held to (adult-appearance-gate.ts).
+ */
+export const EPISODE_ADULT_RULES =
+  'This is adult fiction for consenting adults, and explicit intimate scenes are allowed. Every ' +
+  'character is an adult over 21 — never give anyone an age under 21, never a school, a ' +
+  'classroom, a teenager or a child, never describe anyone as childlike or young-looking. ' +
+  'Intimacy is only ever between consenting adults: nothing non-consensual, coerced or with ' +
+  'anyone unable to consent.';
+
 function castLine(lead: string, cast: readonly EpisodeCastMember[]): string {
   const named = [
     { name: lead, sex: cast.find(member => member.name === lead)?.sex },
@@ -97,23 +109,29 @@ const DAY_MOOD_TONES: Record<string, string> = {
   vacation: 'a holiday away, sunny and easy',
   sport: 'sporty and driven: training, the match, the team, in the right kit',
   suggestive: 'flirty and playful, glamorous, always clothed',
+  intimate: 'intimate and sensual, between consenting adults',
 };
 
 /**
- * The moods a short can be written in (Write an episode's LLM): Intimate isn't one — its scenes
- * stay on Short's own board, behind the server's adult setting.
+ * The moods a short can be written in (Write an episode's LLM): Intimate only with adult
+ * writing allowed (the server's adult setting) — else its scenes stay on Short's own board.
  */
-export function dayShortMoodAvailable(mood: string | null | undefined): boolean {
+export function dayShortMoodAvailable(
+  mood: string | null | undefined,
+  options: { adult?: boolean } = {}
+): boolean {
   const id = String(mood ?? 'everyday')
     .trim()
     .toLowerCase();
-  return id !== 'intimate' && id !== 'raunchy';
+  return options.adult === true || (id !== 'intimate' && id !== 'raunchy');
 }
 
 export function dayShortSeed(input: {
   premise: string;
   mood: string | null | undefined;
   moments: number;
+  /** Adult writing allowed (the server's adult setting): Intimate's mood goes too. */
+  adult?: boolean;
 }): EpisodeWriteSeed {
   const mood = String(input.mood ?? '')
     .trim()
@@ -123,7 +141,7 @@ export function dayShortSeed(input: {
     premise: input.premise.trim().slice(0, 2000),
     ...(tone ? { tone } : {}),
     scenes: normalizeEpisodeScenes(input.moments) ?? EPISODE_SCENES_MIN,
-    ...(mood && dayShortMoodAvailable(mood) ? { mood } : {}),
+    ...(mood && dayShortMoodAvailable(mood, { adult: input.adult }) ? { mood } : {}),
   };
 }
 
@@ -140,8 +158,14 @@ export function episodeWriteHref(castId: string, seed: EpisodeWriteSeed): string
   return `/scene?${params.toString()}`;
 }
 
-/** The seed in a Scene page URL (`?write=short&…`), or null. */
-export function readEpisodeWriteSeed(search: string): EpisodeWriteSeed | null {
+/**
+ * The seed in a Scene page URL (`?write=short&…`), or null. An adult mood is read only with
+ * adult writing allowed (`adult`: the server's setting, as the page knows it).
+ */
+export function readEpisodeWriteSeed(
+  search: string,
+  options: { adult?: boolean } = {}
+): EpisodeWriteSeed | null {
   const params = new URLSearchParams(search);
   if (params.get('write') !== 'short') return null;
   const premise = (params.get('premise') ?? '').trim().slice(0, 2000);
@@ -153,7 +177,7 @@ export function readEpisodeWriteSeed(search: string): EpisodeWriteSeed | null {
     premise,
     scenes,
     ...(tone ? { tone } : {}),
-    ...(mood && dayShortMoodAvailable(mood) ? { mood } : {}),
+    ...(mood && dayShortMoodAvailable(mood, options) ? { mood } : {}),
   };
 }
 
@@ -165,6 +189,8 @@ export function episodeOutlineMessages(input: {
   /** A short counted in scenes: overrides the minutes. */
   scenes?: number | null;
   tone?: string;
+  /** Adult writing ({@link EPISODE_ADULT_RULES}) — the route allows it only when the server does. */
+  adult?: boolean;
 }): ChatMessage[] {
   const scenes = normalizeEpisodeScenes(input.scenes);
   const count = scenes ?? episodeSceneCount(input.minutes);
@@ -178,7 +204,8 @@ export function episodeOutlineMessages(input: {
         'Each heading is a screenplay scene heading in capitals — INT. or EXT., the place, a dash, the time of day ' +
         '(MORNING, DAY, EVENING or NIGHT) — e.g. "INT. KITCHEN - MORNING". Each summary is one or two sentences of ' +
         'what is seen and what changes. "who" names the people in the scene. Give the story a clear set-up, a turn ' +
-        'in the middle and an ending; places can repeat; keep each scene to one place and time.',
+        'in the middle and an ending; places can repeat; keep each scene to one place and time.' +
+        (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
     {
       role: 'user',
@@ -268,6 +295,7 @@ export function episodeSceneMessages(input: {
   /** The end of the scene before, as written (its last lines). */
   before?: string;
   tone?: string;
+  adult?: boolean;
 }): ChatMessage[] {
   const scene = input.outline.scenes[input.index]!;
   const list = input.outline.scenes
@@ -281,7 +309,8 @@ export function episodeSceneMessages(input: {
         'notes, no markdown. Start with the scene heading on its own line. Then action in short present-tense ' +
         'paragraphs of what the camera sees, and dialogue: the speaker’s name in CAPITALS on its own line, their ' +
         'line under it. Blank lines between elements. About one page: four to eight short beats, lines people ' +
-        'would say aloud. Do not write the next scene.',
+        'would say aloud. Do not write the next scene.' +
+        (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
     {
       role: 'user',

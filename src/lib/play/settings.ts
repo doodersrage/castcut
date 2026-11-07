@@ -133,7 +133,7 @@ export type DayToolCache = {
   shortLink?: import('../day/scene-links').DayShortLink;
   /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
   outfitHandoffKept?: import('../day/outfit-scope').DayOutfitHandoffNotice;
-  /** Stills on the Day board (2, 3, 4, 6 or 8); default four dayparts. */
+  /** Moments on the board (2–12; 2, 3, 4, 6 and 8 one tap); default four dayparts. */
   dayLength?: import('../day/planner').DayLength;
   /** Completed / in-flight stills for the day reel and Cut film. */
   stills?: import('../day/planner').DaySlotStill[];

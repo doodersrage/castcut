@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import { TextInput } from '@/components/ui/Field';
 import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { DAY_EVENT_MAX_LENGTH, type DayEvent } from '@/lib/day/event';
@@ -47,9 +48,12 @@ export default function DayIdeaRow({
   const [premise, setPremise] = useState('');
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // Intimate's short is written by the LLM only where the server allows adult content.
+  const adultAllowed = useNsfwGeneratorEnabled();
   // Write the day is Everyday's and Vacation's; a short (the script road) is every clothed mood's.
   const writeDay = dayPremiseAvailable(dayMood);
-  const shortOnly = !writeDay && Boolean(castId) && dayShortMoodAvailable(dayMood);
+  const shortOnly =
+    !writeDay && Boolean(castId) && dayShortMoodAvailable(dayMood, { adult: adultAllowed });
   if (!writeDay && !shortOnly) return null;
   const eventMode = writeDay && mode === 'event' && Boolean(onWriteEvent);
 
@@ -179,7 +183,7 @@ export default function DayIdeaRow({
             variant="ghost"
             href={episodeWriteHref(
               castId,
-              dayShortSeed({ premise, mood: dayMood, moments: slotCount })
+              dayShortSeed({ premise, mood: dayMood, moments: slotCount, adult: adultAllowed })
             )}
             data-testid="day-idea-short"
           >

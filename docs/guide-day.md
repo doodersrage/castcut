@@ -12,7 +12,7 @@ Top to bottom, the way a Day is made:
 | Part | What's in it |
 | --- | --- |
 | **Idea** | Whole day or one event, **Write the day** from a sentence, **Make it a short →** (the idea as a script) and **Import a script… (on Scene)** — both open [Scene's Script](guide-scene.md#script) — and **This Day as a script →** (below) |
-| **Plan bar** | Stills (2–8) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
+| **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · Animate all · **Open Cut →** |
 | **Reel** | The finished stills and clips, from the first frame |
@@ -51,7 +51,10 @@ silly / raunchy.
     episode for me** ([Make an episode](guide-episode.md)). The mood goes with it — Everyday,
     Vacation, Sport and Suggestive set its tone, and the script keeps the mood, so its Scenes are
     made in it. Sport and Suggestive have no Write the day, so there the idea row is only this.
-    Intimate stays on the board (it isn't written by the LLM).
+    Intimate too where the server allows adult content (`PROMPT_NSFW_GENERATOR_ENABLED`): the
+    writer's **Adult** box is then on for it — explicit scenes between consenting adults, every
+    character over 21, the script's Scenes held to the same adult checks as Intimate's stills.
+    Without that setting, Intimate stays on the board.
 
 !!! tip "This Day as a script"
     **This Day as a script →** copies the Day into a script: a scene for each moment with a place, a

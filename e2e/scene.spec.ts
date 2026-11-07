@@ -2904,6 +2904,65 @@ test('Short and its short stay in step: kept takes back, beats out', async ({ pa
   await expect(page.getByTestId('cut-source-scenes')).toContainText('no shots yet');
 });
 
+// Any number of moments on the board (2–12): the one-tap lengths, then − and + in between and
+// past them — a 9-moment Day has a third morning; its plans kept as it grows and shrinks.
+test('Short’s board takes any number of moments, 2 to 12', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        dayMood: 'everyday',
+        slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+      },
+    },
+  });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const more = page.getByTestId('day-length-more').first();
+  await expect(more).toBeVisible({ timeout: 30_000 });
+  // Four to nine, a moment at a time (retried: a tap before the page hydrates does nothing).
+  for (const n of [5, 6, 7, 8, 9]) {
+    await expect(async () => {
+      if ((await page.locator('[data-testid^="day-progress-edit-"]').count()) < n) await more.click();
+      await expect(page.locator('[data-testid^="day-progress-edit-"]')).toHaveCount(n, { timeout: 3000 });
+    }).toPass({ timeout: 30_000 });
+  }
+  await expect(page.getByTestId('day-length-count').first()).toHaveText('9');
+  await expect(page.getByTestId('day-progress-edit-morning-3').first()).toBeAttached();
+  await page.getByTestId('day-length-less').first().click();
+  await expect(page.locator('[data-testid^="day-progress-edit-"]')).toHaveCount(8);
+  await expect(page.getByTestId('day-progress-edit-morning-3')).toHaveCount(0);
+  // The morning's plan stayed through it all.
+  await openDaySlotSheet(page, 'morning');
+  await expect(page.getByTestId('day-slot-sheet').getByTestId('day-slot-beat')).toHaveValue('making coffee');
+});
+
+// Adult writing goes to the script writer only where the server allows adult content: refused
+// without the server's setting; with it (an install that has it on), the writer offers Adult.
+test('adult writing: refused without the server’s adult setting, offered with it', async ({ page }) => {
+  const response = await page.request.post('/api/script-episode', {
+    data: { step: 'outline', premise: 'x', lead: 'Mara', cast: [], minutes: 5, adult: true },
+  });
+  if (response.status() === 403) {
+    expect(((await response.json()) as { error?: string }).error).toContain('Adult writing is off');
+    return;
+  }
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: sceneWithTakes() },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await openSceneMore(page);
+  await page.getByTestId('script-write-episode').click({ timeout: 60_000 });
+  const adult = page.getByTestId('episode-writer').getByTestId('episode-adult');
+  await expect(adult).toBeVisible({ timeout: 30_000 });
+  await expect(adult).not.toBeChecked();
+});
+
 // Every clothed mood writes a short: Sport has no Write the day, but Make it a short carries its
 // tone and mood to the writer, and the script keeps the mood for its Scenes.
 test('Make it a short in Sport: the mood goes with the script', async ({ page }) => {

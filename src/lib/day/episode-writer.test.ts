@@ -130,3 +130,24 @@ describe('a short from Day', () => {
     assert.equal(readEpisodeWriteSeed('?premise=x&scenes=4'), null);
   });
 });
+
+describe('adult writing', () => {
+  it('asks for adults only — over 21, consenting — and only when asked', () => {
+    const plain = episodeOutlineMessages({ premise: 'x', lead: 'Mara', cast: [], minutes: 10 });
+    assert.doesNotMatch(plain[0]!.content, /adult fiction/);
+    const adult = episodeOutlineMessages({ premise: 'x', lead: 'Mara', cast: [], minutes: 10, adult: true });
+    assert.match(adult[0]!.content, /every character is an adult over 21/i);
+    assert.match(adult[0]!.content, /never a school, a classroom, a teenager or a child/);
+    assert.match(adult[0]!.content, /consenting adults: nothing non-consensual/);
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. ROOM - NIGHT', summary: 's', who: [] }, { heading: 'INT. ROOM - DAY', summary: 's', who: [] }] };
+    assert.match(episodeSceneMessages({ outline, index: 0, lead: 'Mara', cast: [], adult: true })[0]!.content, /over 21/);
+    assert.doesNotMatch(episodeSceneMessages({ outline, index: 0, lead: 'Mara', cast: [] })[0]!.content, /over 21/);
+  });
+
+  it('carries Intimate to the writer only with adult writing allowed', () => {
+    assert.equal(dayShortSeed({ premise: 'x', mood: 'intimate', moments: 4, adult: true }).mood, 'intimate');
+    assert.match(dayShortSeed({ premise: 'x', mood: 'intimate', moments: 4, adult: true }).tone ?? '', /consenting adults/);
+    assert.equal(dayShortMoodAvailable('intimate', { adult: true }), true);
+    assert.equal(readEpisodeWriteSeed('?write=short&premise=x&scenes=3&mood=intimate', { adult: true })?.mood, 'intimate');
+  });
+});

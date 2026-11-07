@@ -1,4 +1,5 @@
 import { apiError, apiJson } from '@/lib/api/response';
+import { isNsfwGeneratorEnabledServer } from '@/lib/adult/nsfw-generator-env';
 import { resolveRequestUser } from '@/lib/auth/access';
 import { isAuthEnabled } from '@/lib/auth/store';
 import {
@@ -94,6 +95,11 @@ export async function POST(request: Request) {
       endpoint: resolveRequestLlmEndpoint(llm),
       usageContext: { route: 'script-episode' },
     });
+  // Adult writing only where the server allows adult content (PROMPT_NSFW_GENERATOR_ENABLED).
+  const adult = body.adult === true;
+  if (adult && !isNsfwGeneratorEnabledServer()) {
+    return apiError('Adult writing is off on this server (its adult content setting).', 403);
+  }
   try {
     if (body.step === 'outline') {
       const premise = text(body.premise, 2000);
@@ -107,7 +113,7 @@ export async function POST(request: Request) {
       const outline = parseEpisodeOutline(
         // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
         await call(
-          episodeOutlineMessages({ premise, lead, cast, minutes, scenes, tone }),
+          episodeOutlineMessages({ premise, lead, cast, minutes, scenes, tone, adult }),
           episodeOutlineTokens(episodeLengthScenes({ minutes, scenes }))
         )
       );
@@ -122,7 +128,15 @@ export async function POST(request: Request) {
         return apiError('Send the outline and which scene to write.', 400);
       }
       const reply = await call(
-        episodeSceneMessages({ outline, index, lead, cast, before: text(body.before, 1200), tone }),
+        episodeSceneMessages({
+          outline,
+          index,
+          lead,
+          cast,
+          before: text(body.before, 1200),
+          tone,
+          adult,
+        }),
         1400
       );
       const written = parseEpisodeScene(reply, outline.scenes[index]!.heading);

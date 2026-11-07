@@ -3652,10 +3652,23 @@ door onto it. Small steps; nothing a user made is moved or deleted.
 - Fixed: the run-start hook's URL clean-up ran before Next wrote the pushed URL (`start=` came
   back); it is repeated on the retry ticks and after the run starts.
 
+- **Any number of moments on the board** (user: "keep working on short until it's done"): 2–12
+  (`DAY_LENGTH_MIN/MAX`, `dayLengthSlotIds`): the one-tap 2/3/4/6/8 keep their ids; other counts
+  add moments in the order those do (late morning, late night, then afternoon and evening, then
+  `-3`, `-4`), labelled "Morning 3"…; − and + on the plan bar. `isDaySlotId` accepts `-2`…`-4`;
+  `inferDayLength` tries the one-tap lengths first, so older saves read as before. Late slots
+  (`-N`) already draw on every mood's later-hours pools. Past 12, Make it a short (40 scenes).
+- **Adult writing** (user: "give the option to send adult content to the script writer"): the
+  writer's **Adult** box, shown where the server allows adult content (`useNsfwGeneratorEnabled`),
+  on for an Intimate short. `/api/script-episode` refuses `adult` with 403 unless
+  `isNsfwGeneratorEnabledServer()` — as Story's roleplay route does — and adds
+  `EPISODE_ADULT_RULES` to the outline and scene prompts: consenting adults only, every character
+  over 21 (the stills' own line), no school, teenager or child, nothing non-consensual. Intimate
+  shorts then go through Make it a short; their Scenes keep every adult render gate. Without the
+  setting, an adult mood isn't carried or kept.
+
 ### Next (not started — each its own reviewed step)
 
 - **Retire the board's own data** (only if wanted): with S3b the board and its short agree, so
   `tools.day.slots/stills` could later be derived from the short entirely. Not needed for the
   workflow; it would be the risky migration S3b avoided.
-- **Intimate on the script road**, if wanted: it would need the server's adult setting checked
-  in the writer route and a model that writes it; until then it stays on the board.
