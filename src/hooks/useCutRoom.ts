@@ -138,7 +138,7 @@ import {
   type CutShotProblem,
   type KeyedShot,
 } from '@/lib/film/cut-plan';
-import { renderNarrationLine } from '@/lib/film/narration-client';
+import { renderNarrationLine, renderSpokenLine } from '@/lib/film/narration-client';
 import { widenStillForFilm } from '@/lib/film/widen-client';
 import { loadWideStills, rememberWideStill } from '@/lib/film/wide-stills';
 import { loadReadLines, rememberReadLine } from '@/lib/film/read-lines';
@@ -233,7 +233,12 @@ import {
   storyRealismLabel,
 } from '@/lib/story/roleplay-pose-check';
 import { REALISM_MISS_REASON } from '@/lib/still/realism';
-import { holdForNarration, storyNarrationLine, storyPreviouslyOnShots } from '@/lib/story/film';
+import {
+  holdForNarration,
+  holdForSpokenLine,
+  storyNarrationLine,
+  storyPreviouslyOnShots,
+} from '@/lib/story/film';
 import { resolveStoryFilmCast, storyFilmName } from '@/lib/story/film-cast';
 import { filmResolutionForCutOptions, filmShapeOf } from '@/lib/video/resolution';
 import { filmEngineNames } from '@/lib/video/content-credentials';
@@ -2502,23 +2507,30 @@ export function useCutRoom() {
               who?.id ??
                 `${sex}:${said.speaker.lead ? 'lead' : (said.speaker as { name: string }).name}`
             );
-            const cacheKey = `line:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
+            // Said in the scene (acted, the scene's sound): a line read before that isn't kept.
+            const cacheKey = `sline:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
             let url = readLineBefore(cacheKey);
+            let seconds = Number(readLineBefore(`secs:${cacheKey}`)) || undefined;
             if (!url) {
               setStatus(`Reading ${shot.title}’s line…`);
-              url = await renderNarrationLine({
+              const read = await renderSpokenLine({
                 line: said.text,
                 speaker: sex,
                 seed,
+                inScene: true,
                 ...(sample ? { voiceSample: sample } : {}),
                 ...(castVoiceIsBase(voice) ? { voiceBase: true } : {}),
                 ...(delivery ? { delivery } : {}),
               }).catch(() => undefined);
+              url = read?.url;
+              seconds = read?.seconds;
               if (url) keepReadLine(cacheKey, url);
+              if (url && seconds) keepReadLine(`secs:${cacheKey}`, String(seconds));
             }
             if (url) {
               picked[index] = {
-                ...holdForNarration(shot, said.text),
+                // Held for the line as read and a short pick-up, as dialogue plays.
+                ...holdForSpokenLine(shot, said.text, seconds),
                 narrationUrl: url,
                 narrationText: said.text,
               };

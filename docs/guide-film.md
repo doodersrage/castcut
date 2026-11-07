@@ -258,7 +258,10 @@ seconds, beside ComfyUI, and lets go of the GPU three minutes after the last lin
 also *directed*: the script's note above it ("(voice tight)") and what is happening in the shot
 become a short delivery ("bristling, holding back tears") that the line is read with, written by
 the LLM before the lines are read and kept for the next cut. Without the LLM the script's notes
-are used as written. Without it, LTX in ComfyUI reads them — a minute or more a line on a
+are used as written. Lines are read as acting, not narration — an actor talking to someone in
+the room — and sound like the scene: the silence either side trimmed, a touch quicker, a light
+room around the voice. Each still with a line is held for the line as read and a short pick-up
+(0.3 s, never under 1.5 s), so dialogue moves like a show's rather than an audiobook's. Without it, LTX in ComfyUI reads them — a minute or more a line on a
 24 GB GPU shared with an LLM; there a base voice's lines read on their seed alone (about twice as
 fast and as alike), and a voice you audition or record in Cast → Voice steers them.
 

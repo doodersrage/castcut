@@ -71,10 +71,12 @@ export async function readLineWithVoiceEngine(input: {
   sampleWords?: string;
   /** How the line is said ("teasing, a smile in her voice"), read with the kept voice. */
   delivery?: string;
+  /** The read WAV reshaped before it's kept (a scene line's sound, scene-line-sound.ts). */
+  shape?: (bytes: Uint8Array) => Promise<{ bytes: Uint8Array; seconds: number | null }>;
   seed?: number;
   baseUrl: string;
   fetchImpl?: typeof fetch;
-}): Promise<{ url: string; seconds: number | null }> {
+}): Promise<{ url: string; seconds: number | null; lineSeconds: number | null }> {
   const fetchImpl = input.fetchImpl ?? fetch;
   const params = new URLSearchParams({ filename: input.voiceSample, type: 'input' });
   const sample = await fetchImpl(`${input.baseUrl}/view?${params.toString()}`);
@@ -100,9 +102,12 @@ export async function readLineWithVoiceEngine(input: {
     );
   }
   const seconds = Number(response.headers.get('x-voice-seconds'));
+  let bytes: Uint8Array = new Uint8Array(await response.arrayBuffer());
+  let lineSeconds: number | null = null;
+  if (input.shape) ({ bytes, seconds: lineSeconds } = await input.shape(bytes));
   const uploaded = await uploadComfyInputContent({
     baseUrl: input.baseUrl,
-    bytes: new Uint8Array(await response.arrayBuffer()),
+    bytes,
     filename: 'castcut-line.wav',
     mimeType: 'audio/wav',
     keepCopy: true,
@@ -116,5 +121,6 @@ export async function readLineWithVoiceEngine(input: {
   return {
     url: `/api/comfyui/view?${view.toString()}`,
     seconds: Number.isFinite(seconds) ? seconds : null,
+    lineSeconds,
   };
 }

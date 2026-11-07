@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     voiceSample?: unknown;
     voiceBase?: unknown;
     delivery?: unknown;
+    inScene?: unknown;
     seed?: unknown;
     comfyUrl?: unknown;
   };
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
           ? { voiceSample: body.voiceSample }
           : {}),
         ...(body.voiceBase === true ? { voiceBase: true } : {}),
+        ...(body.inScene === true ? { inScene: true } : {}),
         ...(typeof body.delivery === 'string' && body.delivery.trim()
           ? { delivery: body.delivery.trim().slice(0, 100) }
           : {}),

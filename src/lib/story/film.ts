@@ -45,6 +45,30 @@ export function holdForNarration<T extends FilmPlaylistShot>(shot: T, line: stri
   return { ...shot, holdSec: Math.max(shot.holdSec ?? 0, need), holdFixed: true };
 }
 
+/** A spoken line's still is never shorter than this. */
+export const SPOKEN_LINE_MIN_HOLD = 1.5;
+/** The beat after a spoken line before the next shot: dialogue picks up its cues. */
+export const SPOKEN_LINE_PICKUP = 0.3;
+
+/**
+ * A still with a line said in a scene: held for the line as read (its real length) and a short
+ * pick-up — not the still's default hold, which left seconds of silence after every short line
+ * and played like an audiobook (2026-11-07). Without the length, as {@link holdForNarration}.
+ */
+export function holdForSpokenLine<T extends FilmPlaylistShot>(
+  shot: T,
+  line: string,
+  seconds: number | undefined
+): T {
+  if (shot.kind !== 'still' || !line) return shot;
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return holdForNarration(shot, line);
+  return {
+    ...shot,
+    holdSec: Math.max(SPOKEN_LINE_MIN_HOLD, Math.round((seconds + SPOKEN_LINE_PICKUP) * 100) / 100),
+    holdFixed: true,
+  };
+}
+
 /**
  * "Previously on" for a Story: the first, middle and last shot of the Cast's most recent earlier
  * Story (another library session whose scenes are this Cast's), 2 s each, the first captioned.
