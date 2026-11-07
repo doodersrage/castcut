@@ -3914,19 +3914,27 @@ const phases: Record<string, Phase> = {
       'A slow Sunday by the sea: coffee at the café, the fish market, a swim, dinner on the pier';
     const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
     const started = Date.now();
-    for (let tries = 0; tries < 5; tries += 1) {
-      await page.getByTestId('day-idea-input').first().fill(idea);
-      await page.waitForTimeout(500);
-      if ((await page.getByTestId('day-idea-input').first().inputValue()) !== idea) continue;
-      await page.getByTestId('day-idea-write').first().click();
-      break;
-    }
-    const until = Date.now() + 8 * 60_000;
+    // Typed before hydration, the idea is wiped and the click lost: type, check it stayed, click,
+    // and give it a minute to change the board — again if it didn't.
+    const slotsNow = async () => JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
     let written = 0;
-    while (Date.now() < until) {
-      const slots = (await dayOf()).slots ?? [];
-      written = slots.filter(slot => slot.sceneHints?.trim()).length;
-      if (written >= want && JSON.stringify(slots.map(slot => slot.sceneHints ?? '')) !== before) break;
+    for (let tries = 0; tries < 6; tries += 1) {
+      const input = page.getByTestId('day-idea-input').first();
+      await input.fill(idea);
+      await page.waitForTimeout(1500);
+      if ((await input.inputValue()) !== idea) continue;
+      await page.getByTestId('day-idea-write').first().click();
+      for (let waited = 0; waited < 60; waited += 3) {
+        await page.waitForTimeout(3000);
+        if ((await slotsNow()) !== before) break;
+      }
+      if ((await slotsNow()) !== before) break;
+      log('Write the day changed nothing — again');
+    }
+    // The LLM's beats land together; a retry for missing ones a little later.
+    for (let waited = 0; waited < 60; waited += 3) {
+      written = ((await dayOf()).slots ?? []).filter(slot => slot.sceneHints?.trim()).length;
+      if (written >= want) break;
       await page.waitForTimeout(3000);
     }
     const rewritten =

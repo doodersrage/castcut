@@ -29,6 +29,11 @@ rm -rf .next/standalone/.next/static .next/standalone/public
 mkdir -p .next/standalone/.next
 cp -r .next/static .next/standalone/.next/static
 cp -r public .next/standalone/public
+# The standalone server reads .env files from its own folder only: without them it has no LLM
+# (Write the day failed with "Can't reach … the language model", 2026-11-07).
+for env in .env .env.local .env.production .env.production.local; do
+  if [ -f "$env" ]; then cp "$env" ".next/standalone/$env"; fi
+done
 
 cd .next/standalone
 PORT="$PORT" HOSTNAME=127.0.0.1 exec node server.js
