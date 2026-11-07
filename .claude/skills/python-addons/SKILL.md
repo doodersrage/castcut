@@ -28,6 +28,10 @@ other nodes. Read the package's requirements first (`curl -s https://pypi.org/py
   in `next.config.base.cjs`. Venvs never go in the repo: Turbopack panics on their symlinks, and
   `**/.venv/` is git- and docker-ignored.
 - Always **fall back** to the ComfyUI path when the add-on is missing or fails.
+- **Never hold the GPU while idle.** ComfyUI and the LLM share it. Unload the model after a
+  short idle time (`torch.cuda.empty_cache()`), and when Castcut started the process, exit, since a
+  live process keeps its CUDA context. Castcut starts it again on demand and retries a request
+  once if it meets the engine on its way out.
 
 ## Testing
 

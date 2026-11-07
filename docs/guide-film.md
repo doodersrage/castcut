@@ -254,7 +254,7 @@ names them, and Cast → Voice changes it.
 
 Lines are read fastest by the **voice engine** (Settings → Inference engine → Voice engine →
 Install; in Docker, `--profile voice`): Qwen3-TTS reads each line in the speaker's kept voice in
-seconds, beside ComfyUI. Without it, LTX in ComfyUI reads them — a minute or more a line on a
+seconds, beside ComfyUI, and lets go of the GPU three minutes after the last line. Without it, LTX in ComfyUI reads them — a minute or more a line on a
 24 GB GPU shared with an LLM; there a base voice's lines read on their seed alone (about twice as
 fast and as alike), and a voice you audition or record in Cast → Voice steers them.
 

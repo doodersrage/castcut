@@ -171,7 +171,13 @@ export function startVoiceEngine(port: number): boolean {
   if (!dir) return false;
   child = spawn(/* turbopackIgnore: true */ path.join(dir, 'run.sh'), [], {
     cwd: dir,
-    env: { ...process.env, VOICE_ENGINE_PORT: String(port), VOICE_ENGINE_HOST: '127.0.0.1' },
+    // It exits when idle (GPU and all — ComfyUI gets it back); the next line starts it again.
+    env: {
+      ...process.env,
+      VOICE_ENGINE_PORT: String(port),
+      VOICE_ENGINE_HOST: '127.0.0.1',
+      VOICE_ENGINE_EXIT_IDLE: '1',
+    },
     stdio: 'ignore',
   });
   child.on('exit', () => {

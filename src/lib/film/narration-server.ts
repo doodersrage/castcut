@@ -12,7 +12,11 @@ import {
   NARRATION_SAVE_NODE,
   normalizeNarration,
 } from './narration';
-import { readLineWithVoiceEngine, voiceEngineReady } from '../audio/voice-engine-server';
+import {
+  forgetVoiceEngineHealth,
+  readLineWithVoiceEngine,
+  voiceEngineReady,
+} from '../audio/voice-engine-server';
 
 export async function renderNarration(input: {
   line: string;
@@ -29,7 +33,8 @@ export async function renderNarration(input: {
   const baseUrl = comfyBaseUrl(input.comfyUrl);
   // A kept voice: the voice engine reads in it when it's running (seconds a line, voice-engine-
   // server.ts) — else LTX, as below.
-  if (input.voiceSample && (await voiceEngineReady())) {
+  // It exits when idle: a line that meets it going is tried once more after it's started again.
+  for (let attempt = 0; attempt < 2 && input.voiceSample && (await voiceEngineReady()); attempt++) {
     try {
       const read = await readLineWithVoiceEngine({
         line,
@@ -39,7 +44,8 @@ export async function renderNarration(input: {
       });
       return { url: read.url };
     } catch (error) {
-      console.warn('[narration] voice engine failed, reading with LTX:', error);
+      forgetVoiceEngineHealth();
+      console.warn('[narration] voice engine failed:', error);
     }
   }
   const voiceSample = input.voiceBase ? undefined : input.voiceSample;

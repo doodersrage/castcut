@@ -7,6 +7,11 @@ stays loaded. Standard library HTTP only; one line at a time (one GPU).
   GET  /health  -> {"ok": true, "model": ..., "loaded": bool, "device": ...}
   POST /speak   {"text", "ref_audio": base64 wav/flac, "ref_text"?, "seed"?, "language"?}
                 -> audio/wav (24 kHz mono), X-Voice-Seconds: generation time
+  POST /free    -> unload the model now (the GPU back for ComfyUI)
+
+It never keeps the GPU while idle: VOICE_ENGINE_IDLE_SECONDS (180) after the last line the model
+is unloaded; with --exit-when-idle (run.sh, the install Castcut starts) the process exits too —
+a live process keeps its CUDA context — and Castcut starts it again for the next line.
 """
 
 import argparse
@@ -14,6 +19,7 @@ import base64
 import io
 import json
 import os
+import gc
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,10 +27,44 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 MODEL_ID = os.environ.get("VOICE_ENGINE_MODEL", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
 MAX_TEXT = 600
 MAX_BODY = 20 * 1024 * 1024
+IDLE_SECONDS = float(os.environ.get("VOICE_ENGINE_IDLE_SECONDS", "180"))
 
 _model = None
 _device = None
 _lock = threading.Lock()
+_last_used = time.time()
+
+
+def unload_model():
+    """Drop the model and give its GPU memory back (call with _lock held)."""
+    global _model
+    if _model is None:
+        return
+    _model = None
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+    print("voice engine: model unloaded", flush=True)
+
+
+def watch_idle(exit_when_idle):
+    """Unload after IDLE_SECONDS without a line; exit too when asked (run.sh)."""
+    while True:
+        time.sleep(min(15.0, max(1.0, IDLE_SECONDS / 4)))
+        if time.time() - _last_used < IDLE_SECONDS:
+            continue
+        with _lock:
+            if time.time() - _last_used < IDLE_SECONDS:
+                continue
+            unload_model()
+            if exit_when_idle:
+                print("voice engine: idle, exiting", flush=True)
+                os._exit(0)
 
 
 def load_model():
@@ -57,7 +97,9 @@ def speak(body):
     ref_text = str(body.get("ref_text") or "").strip()
     seed = body.get("seed")
     language = str(body.get("language") or "English")
+    global _last_used
     with _lock:
+        _last_used = time.time()
         model = load_model()
         if isinstance(seed, int) and seed >= 0:
             torch.manual_seed(seed)
@@ -72,6 +114,7 @@ def speak(body):
             **({"ref_text": ref_text} if ref_text else {"x_vector_only_mode": True}),
         )
         seconds = time.time() - started
+        _last_used = time.time()
     buffer = io.BytesIO()
     sf.write(buffer, wavs[0], out_rate, format="WAV", subtype="PCM_16")
     return buffer.getvalue(), seconds
@@ -93,6 +136,11 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": "not found"})
 
     def do_POST(self):
+        if self.path.rstrip("/") == "/free":
+            with _lock:
+                unload_model()
+            self._json(200, {"ok": True, "loaded": False})
+            return
         if self.path.rstrip("/") != "/speak":
             self._json(404, {"error": "not found"})
             return
@@ -125,9 +173,16 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8191)
     parser.add_argument("--preload", action="store_true", help="load the model before serving")
+    parser.add_argument(
+        "--exit-when-idle",
+        action="store_true",
+        help="exit after VOICE_ENGINE_IDLE_SECONDS without a line (Castcut starts it again)",
+    )
     args = parser.parse_args()
     if args.preload:
         load_model()
+    if IDLE_SECONDS > 0:
+        threading.Thread(target=watch_idle, args=(args.exit_when_idle,), daemon=True).start()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"voice engine on http://{args.host}:{args.port} ({MODEL_ID})", flush=True)
     server.serve_forever()

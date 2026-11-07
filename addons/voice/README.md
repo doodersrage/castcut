@@ -23,8 +23,17 @@ Why: LTX-2.5 in ComfyUI reads a line with a 20 GB transformer and a 14.6 GB text
 
 `VOICE_ENGINE_URL=off` turns it off. Without it, lines are read with LTX in ComfyUI as before.
 
+## The GPU when idle
+
+It never holds the GPU between jobs. `VOICE_ENGINE_IDLE_SECONDS` (180) after the last line it
+unloads the model. Started by Castcut (`VOICE_ENGINE_EXIT_IDLE=1`) it then exits, CUDA context
+and all, and Castcut starts it again for the next line (about 10–15 s to start and load). Run by
+hand, in Docker or on another machine, it stays up with the model unloaded. `POST /free` unloads
+it at once.
+
 ## API
 
 - `GET /health` → `{"ok": true, "model": …, "loaded": bool, "device": …}`
+- `POST /free` → unload the model now
 - `POST /speak` `{"text", "ref_audio": base64 WAV/FLAC, "ref_text"?, "seed"?, "language"?}` →
   `audio/wav` (24 kHz mono); `X-Voice-Seconds` is the generation time.
