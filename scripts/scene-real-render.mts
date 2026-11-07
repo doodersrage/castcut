@@ -3859,7 +3859,7 @@ const phases: Record<string, Phase> = {
         await page.getByTestId('cut-problems-cut-anyway').click();
       }
     }
-    const until = Date.now() + 240 * 60_000;
+    const until = Date.now() + 720 * 60_000;
     let said = '';
     while (Date.now() < until) {
       if ((await page.getByTestId('cut-film-entry').count()) > filmsBefore) break;
@@ -3882,6 +3882,160 @@ const phases: Record<string, Phase> = {
         throw new Error(said || 'no film');
     });
     await shot(page, 'episode-cut-done');
+  },
+
+  /**
+   * Short (the Day page) for real: nine moments written from an idea, then Make the short — a run
+   * on Scene over them (checks, the best take kept, a redo) that cuts itself — reloaded once
+   * mid-run (it resumes), and the kept takes back on the board. SHORT_IDEA, SHORT_MOMENTS (9).
+   */
+  async shortmake(_ctx, page) {
+    const want = Number(process.env.SHORT_MOMENTS ?? 9);
+    await go(page, `/day?character=${V2_CAST}`);
+    const dayOf = async () =>
+      ((await toolSettings(page).catch(() => ({}))) as {
+        day?: {
+          slots?: Array<{ id: string; sceneHints?: string }>;
+          stills?: Array<{ slotId: string; status?: string }>;
+          shortLink?: { scriptId: string };
+        };
+      }).day ?? {};
+    // The board's length: + / − until it has the moments asked for.
+    for (let i = 0; i < 16; i += 1) {
+      const n = (await dayOf()).slots?.length ?? 0;
+      if (n === want) break;
+      await page.getByTestId(n < want ? 'day-length-more' : 'day-length-less').first().click();
+      await page.waitForTimeout(600);
+    }
+    log('moments on the board:', (await dayOf()).slots?.length);
+    // Write the day from an idea (the LLM fills each moment). Typing before hydration is wiped.
+    const idea =
+      process.env.SHORT_IDEA ??
+      'A slow Sunday by the sea: coffee at the café, the fish market, a swim, dinner on the pier';
+    const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
+    const started = Date.now();
+    for (let tries = 0; tries < 5; tries += 1) {
+      await page.getByTestId('day-idea-input').first().fill(idea);
+      await page.waitForTimeout(500);
+      if ((await page.getByTestId('day-idea-input').first().inputValue()) !== idea) continue;
+      await page.getByTestId('day-idea-write').first().click();
+      break;
+    }
+    const until = Date.now() + 8 * 60_000;
+    let written = 0;
+    while (Date.now() < until) {
+      const slots = (await dayOf()).slots ?? [];
+      written = slots.filter(slot => slot.sceneHints?.trim()).length;
+      if (written >= want && JSON.stringify(slots.map(slot => slot.sceneHints ?? '')) !== before) break;
+      await page.waitForTimeout(3000);
+    }
+    log('day written in', Math.round((Date.now() - started) / 1000), 's:', written, 'moments');
+    for (const slot of (await dayOf()).slots ?? []) log('  ', slot.id, '·', (slot.sceneHints ?? '').slice(0, 90));
+    if (written < want) problems.push(`shortmake: the day was written with ${written} of ${want} moments`);
+    await shot(page, 'short-written');
+
+    await page.getByTestId('day-make-short-animate').first().selectOption('none');
+    for (let tries = 0; tries < 6 && !/\/scene\?/.test(page.url()); tries += 1) {
+      await page.getByTestId('day-make-short').first().click();
+      await page.waitForTimeout(2500);
+    }
+    if (!/\/scene\?/.test(page.url())) throw new Error('Make the short did not open Scene');
+    const runStarted = Date.now();
+    // Halfway, a reload: the run resumes by itself (resumeOnReload).
+    await waitForRun(page, run => Object.keys(run.outcomes ?? {}).length >= 2, 60);
+    log('reloading mid-run…');
+    await page.reload();
+    const resumed = await waitForRun(
+      page,
+      run => run.state === 'running' || run.state === 'done',
+      3
+    ).catch(() => null);
+    if (!resumed) problems.push('shortmake: the run did not resume after a reload');
+    else log('resumed after the reload:', resumed.state);
+    const run = await waitForRun(page, entry => entry.state === 'done' || entry.state === 'cancelled', 120);
+    const flagged = Object.keys(run.flagged ?? {}).length;
+    const redos = Object.values(run.attempts ?? {}).reduce((sum, n) => sum + Math.max(0, n - 1), 0);
+    log(
+      'short run',
+      run.state,
+      'in',
+      Math.round((Date.now() - runStarted) / 60_000),
+      'min ·',
+      Object.keys(run.outcomes ?? {}).length,
+      'Scenes ·',
+      flagged,
+      'flagged ·',
+      redos,
+      'redos'
+    );
+    for (const [id, why] of Object.entries(run.flagged ?? {})) log('   flagged', id, why);
+    // The run cuts it: Cut opens with autocut and cuts the short's Scenes.
+    const cutUntil = Date.now() + 40 * 60_000;
+    let said = '';
+    while (Date.now() < cutUntil) {
+      if (/\/cut/.test(page.url())) {
+        said =
+          (await page
+            .getByTestId('cut-autopilot')
+            .textContent()
+            .catch(() => '')) ?? '';
+        if (/the episode is cut|the cut stopped/.test(said)) break;
+      }
+      await page.waitForTimeout(10_000);
+    }
+    log('cut:', said.trim() || '(no autopilot note)', '· at', page.url());
+    if (!/the episode is cut/.test(said)) problems.push(`shortmake: the short was not cut (${said.trim()})`);
+    await shot(page, 'short-cut');
+    // Back on Short: the kept takes are the board's stills, and it says how the run went.
+    await go(page, `/day?character=${V2_CAST}`);
+    await page.waitForTimeout(5000);
+    const day = await dayOf();
+    const stills = (day.stills ?? []).filter(still => still.status === 'completed').length;
+    log(
+      'on Short:',
+      stills,
+      'stills of',
+      day.slots?.length,
+      '·',
+      (await page.getByTestId('day-short-run').first().textContent().catch(() => ''))?.trim(),
+      '·',
+      (await page.getByTestId('day-short-sync').first().textContent().catch(() => ''))?.trim()
+    );
+    if (stills < (day.slots?.length ?? 0) - flagged)
+      problems.push(`shortmake: only ${stills} kept takes came back to the board`);
+    await shot(page, 'short-back-on-board');
+  },
+
+  /** Short → its short: a moment's beat edited on the board reaches its Scene a moment later. */
+  async shortsync(_ctx, page) {
+    await go(page, `/day?character=${V2_CAST}`);
+    const tools = (await toolSettings(page)) as {
+      day?: { slots?: Array<{ id: string; sceneHints?: string }>; shortLink?: { scriptId: string } };
+    };
+    const link = tools.day?.shortLink;
+    if (!link) throw new Error('no short on this Day — run shortmake first');
+    // A moment of the short (it has a Scene): its sheet, from the board's edit button.
+    const slotId = tools.day?.slots?.find(slot => slot.sceneHints?.trim())?.id ?? 'morning';
+    await page.getByTestId(`day-progress-edit-${slotId}`).first().click({ timeout: 30_000 });
+    const sheet = page.getByTestId('day-slot-sheet');
+    await sheet.waitFor({ timeout: 30_000 });
+    const edited = `standing at a stall buying a paper cone of salted almonds (${Date.now() % 10000})`;
+    await sheet.getByTestId('day-slot-beat').fill(edited);
+    await page.keyboard.press('Escape');
+    let reached = false;
+    for (let i = 0; i < 10 && !reached; i += 1) {
+      await page.waitForTimeout(2000);
+      const scenes = (((await toolSettings(page)) as { scene?: { scenes?: V2Scene[] } }).scene
+        ?.scenes ?? []) as Array<{ fromScript?: { scriptId: string }; slot?: { sceneHints?: string } }>;
+      reached = scenes.some(
+        scene =>
+          scene.fromScript?.scriptId === link.scriptId &&
+          Boolean(scene.slot?.sceneHints?.includes(edited.slice(0, 40)))
+      );
+    }
+    log('the edit', reached ? 'reached its Scene' : 'did NOT reach its Scene');
+    if (!reached) problems.push('shortsync: a board edit did not reach the short');
+    await shot(page, 'short-sync');
   },
 
   async setup(_ctx, page) {
