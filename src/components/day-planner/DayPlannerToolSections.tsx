@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import DayAsShortButton from '@/components/day-planner/DayAsShortButton';
+import { DayShortPanel, useDayShort } from '@/components/day-planner/DayShort';
 import DayTemplatesMenu from '@/components/day-planner/DayTemplatesMenu';
 import { applyDayTemplate } from '@/lib/day/day-templates';
 import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
@@ -342,6 +342,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance();
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const quality = useDayQualityPreset({ shared, updateShared, toolSettings, updateToolSettings });
+  // The Day's short (DayShort.tsx): Make the short in the action bar, Its short under the cards.
+  const short = useDayShort({
+    character,
+    toolSettings,
+    slots,
+    stills,
+    updateDay: updateToolSettings,
+  });
   const slotTotal = slots.length || 4;
   const completedClipCount = useMemo(
     () =>
@@ -947,15 +955,6 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               Import a script… (on Scene)
             </Link>
           ) : null}
-          <DayAsShortButton
-            className="ml-3"
-            character={character}
-            toolSettings={toolSettings}
-            slots={slots}
-            stills={stills}
-            busy={busy}
-            updateDay={updateToolSettings}
-          />
           {/* The plan decides the board — chosen once, so it sits above the cards. */}
           <DayPlanBar
             className="mb-2"
@@ -1148,6 +1147,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               sketch: slotMedia.applySketchToSlot,
             }}
           />
+          <DayShortPanel short={short} busy={busy} />
           {/*
             One place for the next step (it was three: a Ready-to-cut box above the cards, buttons
             under them and the phase strip), kept in view while the cards are worked on.
@@ -1233,8 +1233,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
                     data-testid="day-animate-files-missing"
                   >
-                    Animate needs a few ComfyUI files (listed in Day reel). Cut film works without
-                    them.
+                    Animate needs a few ComfyUI files (listed in Reel). Cut film works without them.
                   </p>
                 ) : null}
                 {/* Offline or no Cast: said here, beside the buttons it holds back (a missing plate is
@@ -1278,7 +1277,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     data-testid="day-animate-all"
                     title={
                       animateFilesMissing
-                        ? 'ComfyUI is missing files clips need — see the note in Day reel'
+                        ? 'ComfyUI is missing files clips need — see the note in Reel'
                         : 'Animate every finished still into a clip — clips preferred, Cut works from stills alone'
                     }
                     onClick={() => void animateAllClips()}
@@ -1336,7 +1335,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         </ToolSection>
 
         <ToolSection
-          title="Day reel"
+          title="Reel"
           description="Stills and clips land here as you Queue — watch them in order."
           data-testid="day-reel"
         >

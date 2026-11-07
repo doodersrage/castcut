@@ -22,7 +22,7 @@ import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import type { KeyedShot } from '@/lib/film/cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
-import DayAsShortButton from '@/components/day-planner/DayAsShortButton';
+import { DayShortPanel, useDayShort } from '@/components/day-planner/DayShort';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import CharacterOsPicker from '@/components/shared-tool-controls/CharacterOsPicker';
@@ -321,6 +321,14 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const { softAdvance, cancelSoftAdvance } = usePlaySoftAdvance({ mobile: true });
   const sampleShots = useMemo(() => welcomeSampleFilmShots(), []);
   const quality = useDayQualityPreset({ shared, updateShared, toolSettings, updateToolSettings });
+  // The Day's short (DayShort.tsx): Make the short by Queue day, Its short above them.
+  const short = useDayShort({
+    character,
+    toolSettings,
+    slots,
+    stills,
+    updateDay: updateToolSettings,
+  });
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
     [activeSlot.wardrobeId, filteredWardrobeOptions]
@@ -614,7 +622,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           />
         </div>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-          Plan the scenes, render the stills, then cut the film.
+          A short film: plan the moments, render the stills, then cut it.
         </p>
       </div>
 
@@ -1035,15 +1043,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             Import a script… (on Scene)
           </Link>
         ) : null}
-        <DayAsShortButton
-          className="ml-3"
-          character={character}
-          toolSettings={toolSettings}
-          slots={slots}
-          stills={stills}
-          busy={busy}
-          updateDay={updateToolSettings}
-        />
+        <DayShortPanel short={short} busy={busy} />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
             disabled={busy || queueBlocked}
@@ -1124,7 +1124,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
             data-testid="day-animate-files-missing"
           >
-            Animate needs a few ComfyUI files (listed in Day reel). Cut film works without them.
+            Animate needs a few ComfyUI files (listed in Reel). Cut film works without them.
           </p>
         ) : null}
         {shownQueueBlockReason ? (
@@ -1138,7 +1138,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
       </div>
 
       <div className="space-y-2" data-testid="day-reel">
-        <p className="type-caption text-[var(--text-muted)]">Day reel</p>
+        <p className="type-caption text-[var(--text-muted)]">Reel</p>
         <TaskRequirementsCard
           task="Animate"
           testId="day-animate-requirements"

@@ -1165,7 +1165,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           setFirstCutCelebrate(true);
           setFilmStatus(
             character
-              ? `First film cut — watch it on Cast, then cut another Day reel.`
+              ? `First film cut — watch it on Cast, then cut another short.`
               : `First film cut — pick a Cast lead to save it, or download above.`
           );
         }

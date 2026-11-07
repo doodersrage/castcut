@@ -55,7 +55,7 @@ export function AppNavSidebarGroups({
           />
         </Link>
         <p className="type-caption mt-1.5 px-3 text-[var(--text-tertiary)]">
-          {APP_HAS_PLAY ? 'Cast · Day · film' : 'Prompt · queue · gallery'}
+          {APP_HAS_PLAY ? 'Cast · Short · film' : 'Prompt · queue · gallery'}
           <span className="mx-1.5 text-[var(--border-strong)]">·</span>
           <kbd className="ui-kbd">⌘K</kbd>
         </p>

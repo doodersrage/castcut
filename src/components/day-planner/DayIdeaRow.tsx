@@ -156,7 +156,8 @@ export default function DayIdeaRow({
             eventMode ? 'One event' : shortOnly ? 'A short from an idea' : 'Day from an idea'
           }
           data-testid="day-idea-input"
-          className="min-w-0 flex-1"
+          // A line of its own on a phone: two buttons beside it left it a sliver.
+          className="min-w-0 flex-1 max-sm:basis-full"
           onChange={changeEvent => setPremise(changeEvent.target.value)}
         />
         {writeDay ? (
