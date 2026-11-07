@@ -299,7 +299,7 @@ const ADDITIONAL_ROUTES: Array<{
   { path: '/inpaint', heading: /^Inpaint$/i },
   { path: '/play', heading: /^Your film$/i },
   { path: '/fitting', heading: /^Outfit$/i, level: 1 as const },
-  { path: '/day', heading: /^Day$/i, level: 1 as const },
+  { path: '/day', heading: /^Short$/i, level: 1 as const },
   { path: '/profile', heading: /^Profile$/i, level: 1 as const },
 ];
 

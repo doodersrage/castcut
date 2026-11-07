@@ -1,8 +1,8 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { readSessionFromRequest } from '@/lib/auth/session';
 import { findUserById, isAuthEnabled } from '@/lib/auth/store';
-import { voiceEngineReady } from '@/lib/film/voice-engine-server';
-import { startVoiceEngineInstall, voiceEngineAvailability } from '@/lib/film/voice-engine-install';
+import { voiceEngineReady } from '@/lib/audio/voice-engine-server';
+import { startVoiceEngineInstall, voiceEngineAvailability } from '@/lib/audio/voice-engine-install';
 
 export const runtime = 'nodejs';
 

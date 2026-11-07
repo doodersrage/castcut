@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import type { VoiceEngineAvailability } from '@/lib/film/voice-engine-install';
+import type { VoiceEngineAvailability } from '@/lib/audio/voice-engine-install';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 
 type VoiceEngineState = VoiceEngineAvailability & { running?: boolean };

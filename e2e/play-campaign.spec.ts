@@ -827,7 +827,7 @@ test('forgetting a Cast lead asks first', async ({ page }) => {
 test('day planner happy path chrome loads', async ({ page }) => {
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Day$/i, level: 1 })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Short$/i, level: 1 })).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByTestId('day-plan-bar')).toBeVisible();
@@ -1862,7 +1862,7 @@ test('look pack from=look seeds Day slot location', async ({ page }) => {
   });
   await gotoStable(page, '/day?from=look&character=e2e-char&wardrobe=kit-linen');
   await dismissBlockingOverlays(page);
-  await expect(page.getByRole('heading', { name: /^Day$/i, level: 1 })).toBeVisible({
+  await expect(page.getByRole('heading', { name: /^Short$/i, level: 1 })).toBeVisible({
     timeout: 30_000,
   });
   const location = page.getByTestId('day-slot-location');

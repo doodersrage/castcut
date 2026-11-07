@@ -12,7 +12,7 @@ import {
   NARRATION_SAVE_NODE,
   normalizeNarration,
 } from './narration';
-import { readLineWithVoiceEngine, voiceEngineReady } from './voice-engine-server';
+import { readLineWithVoiceEngine, voiceEngineReady } from '../audio/voice-engine-server';
 
 export async function renderNarration(input: {
   line: string;
