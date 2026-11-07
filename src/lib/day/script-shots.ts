@@ -366,6 +366,22 @@ export type ShotSceneDraft = {
 };
 
 /**
+ * The text without its sentences led by someone else ("Rob leans against the doorway…"), for a
+ * shot of the lead alone. All of it when nothing would be left.
+ */
+export function withoutOthersSentences(text: string, others: readonly string[]): string {
+  const names = others.map(name => name.trim().split(/\s+/)[0]).filter(Boolean);
+  if (!names.length) return text;
+  const escaped = names.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const led = new RegExp(
+    `^(?:(?:then|now|meanwhile|behind her|behind him),?\\s+)?(?:${escaped.join('|')})\\b(?!\\s+and\\b)`,
+    'i'
+  );
+  const kept = text.split(/(?<=[.!?…])\s+/).filter(sentence => !led.test(sentence.trim()));
+  return kept.length ? kept.join(' ') : text;
+}
+
+/**
  * What a planned shot becomes as a Scene: its setting from the script scene's place (home or
  * office as you set them), the beat from the shot (a line or reaction without one: the scene's
  * action), the lead's line said on camera (anyone else's written into the beat), the framing on
@@ -408,10 +424,23 @@ export function shotSceneDraft(input: {
     : undefined;
   // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
   // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
-  const sceneAction =
+  const sceneActionText =
     !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
       ? scene.elements.find(element => element.kind === 'action')?.text
       : undefined;
+  // Her alone: what someone else does isn't in the picture ("Rob leans against the doorway, arms
+  // crossed" drew her arms crossed, and 40 episode shots failed that check, 2026-11-07).
+  const sceneAction =
+    sceneActionText && !partnerInFrame
+      ? withoutOthersSentences(
+          sceneActionText,
+          // As the Cast names them and as the script does ("Tomás Ruiz", "TOMAS").
+          scene.speakers
+            .filter(speaker => castOf(speaker) !== castId)
+            .flatMap(speaker => [nameOf(speaker), speaker])
+            .filter(name => name !== leadName)
+        )
+      : sceneActionText;
   const beat = [
     // "The two of them" is what the people count reads as a pair (pose map and prompt alike).
     partnerInFrame && leadName && partnerName

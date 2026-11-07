@@ -17,6 +17,7 @@ import {
   normalizePlannedShots,
   scriptShotCompanions,
   splitShot,
+  withoutOthersSentences,
   withSceneShots,
   type PlannedShot,
 } from './script-shots';
@@ -105,14 +106,15 @@ describe('shot lists from a script (M3 S4)', () => {
       placeMap: undefined,
     });
     assert.equal(lead.name, '1B KITCHEN · Dialogue');
-    // M6 D7: the line is said during the scene's action, not a beat the engine makes up.
+    // M6 D7: the line is said during the scene's action, not a beat the engine makes up — hers:
+    // on her alone, what he does isn't in the picture (2026-11-07).
     const action = 'Nora pours coffee. Tomas leans in the doorway.';
     assert.deepEqual(lead.slot, {
       id: 'morning',
       label: '1B',
       location: 'kitchen at home',
-      sceneHints: action,
-      sceneHintsTyped: action,
+      sceneHints: 'Nora pours coffee.',
+      sceneHintsTyped: 'Nora pours coffee.',
       poseCamera: { shot: 'waist' },
       line: 'Coffee first.',
     });
@@ -319,5 +321,23 @@ describe('shot lists from a script (M3 S4)', () => {
         ['nice', undefined]
       );
     });
+  });
+});
+
+describe('a shot of the lead alone', () => {
+  it('leaves out the sentences led by someone else, never all of it', () => {
+    const text =
+      'Sunlight slants through the windows as Lena wipes a counter. Rob leans against the doorway, arms crossed, watching her.';
+    assert.equal(
+      withoutOthersSentences(text, ['Rob Hale', 'ROB']),
+      'Sunlight slants through the windows as Lena wipes a counter.'
+    );
+    assert.equal(withoutOthersSentences('Rob and Lena laugh.', ['Rob']), 'Rob and Lena laugh.');
+    assert.equal(withoutOthersSentences('Rob waves.', ['Rob']), 'Rob waves.');
+    assert.equal(withoutOthersSentences(text, []), text);
+    assert.equal(
+      withoutOthersSentences('Lena sips. Robin hums.', ['Rob']),
+      'Lena sips. Robin hums.'
+    );
   });
 });
