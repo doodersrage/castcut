@@ -2,6 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   assembleFilmBlob,
+  SERVER_ENCODE_MAX_MS,
+  SERVER_ENCODE_STALL_MS,
+  serverEncodeGivenUp,
   stampAssembledFilm,
   stitchSelectedGalleryVideos,
 } from "./assemble";
@@ -42,5 +45,21 @@ describe("character-film-assemble", () => {
         /Select at least two completed clips to stitch\./
       );
     });
+  });
+});
+
+describe('waiting for a server encode', () => {
+  it('waits while it reports progress, gives up on a stall or past the longest wait', () => {
+    const start = 1_000_000;
+    // A 30-minute episode encoding for 6.5 minutes, still reporting: keep waiting.
+    assert.equal(serverEncodeGivenUp(start, start + 6 * 60_000, start + 6.5 * 60_000), false);
+    // Nothing new for over ten minutes: stalled.
+    assert.equal(
+      serverEncodeGivenUp(start, start + 60_000, start + 60_000 + SERVER_ENCODE_STALL_MS + 1),
+      true
+    );
+    // Still reporting, but past the longest wait.
+    const late = start + SERVER_ENCODE_MAX_MS + 1;
+    assert.equal(serverEncodeGivenUp(start, late - 1000, late), true);
   });
 });

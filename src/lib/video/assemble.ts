@@ -164,6 +164,20 @@ function pickRecorderMime(): { mimeType: string; extension: string } {
   return { mimeType: '', extension: 'webm' };
 }
 
+/** A server encode with no new progress this long has stalled (a long episode keeps reporting). */
+export const SERVER_ENCODE_STALL_MS = 10 * 60_000;
+/** The longest any server encode is waited for. */
+export const SERVER_ENCODE_MAX_MS = 4 * 60 * 60_000;
+
+/**
+ * Whether to stop waiting for a server encode: no change in its progress for
+ * {@link SERVER_ENCODE_STALL_MS}, or {@link SERVER_ENCODE_MAX_MS} in all. A fixed count of polls
+ * (about five minutes) gave up on a 30-minute episode that took 6.5 (2026-11-07).
+ */
+export function serverEncodeGivenUp(startedAt: number, lastChangeAt: number, now: number): boolean {
+  return now - lastChangeAt > SERVER_ENCODE_STALL_MS || now - startedAt > SERVER_ENCODE_MAX_MS;
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
     window.setTimeout(resolve, ms);
@@ -397,6 +411,9 @@ async function assembleFilmBlobOnServer(
   if (typeof window === 'undefined' || options?.preferServer === false) {
     return null;
   }
+  // Once the server has the job, its failure is the answer: the browser recorder draws pictures
+  // only (no narration, music or clip sound), so it is a fallback for no server, not for a slow one.
+  let started = false;
   try {
     const availableRes = await fetch('/api/film/assemble', { method: 'GET' });
     if (!availableRes.ok) {
@@ -457,8 +474,12 @@ async function assembleFilmBlobOnServer(
     if (!jobId) {
       throw new Error('Server film encode did not return a job id.');
     }
+    started = true;
 
-    for (let attempt = 0; attempt < 600; attempt += 1) {
+    const startedAt = Date.now();
+    let lastChangeAt = startedAt;
+    let lastSeen = '';
+    while (!serverEncodeGivenUp(startedAt, lastChangeAt, Date.now())) {
       await wait(500);
       const statusRes = await fetch(`/api/film/assemble?jobId=${encodeURIComponent(jobId)}`, {
         credentials: 'same-origin',
@@ -483,6 +504,11 @@ async function assembleFilmBlobOnServer(
       const job = statusJson.job;
       if (!job) {
         throw new Error('Server film job disappeared.');
+      }
+      const seen = `${job.status}|${job.ratio}|${job.label}`;
+      if (seen !== lastSeen) {
+        lastSeen = seen;
+        lastChangeAt = Date.now();
       }
       options?.onProgress?.({
         ratio: typeof job.ratio === 'number' ? Math.min(0.98, Math.max(0.05, job.ratio)) : 0.2,
@@ -526,10 +552,11 @@ async function assembleFilmBlobOnServer(
         };
       }
     }
-    throw new Error('Server film encode timed out.');
+    throw new Error('The server film encode stopped making progress.');
   } catch (error) {
-    // Prefer browser MediaRecorder whenever server assemble fails or is unavailable.
-    if (typeof document !== 'undefined' && typeof MediaRecorder !== 'undefined') {
+    // No server encode to be had: record in the browser. A server encode that started and
+    // failed says so instead.
+    if (!started && typeof document !== 'undefined' && typeof MediaRecorder !== 'undefined') {
       return null;
     }
     throw error instanceof Error ? error : new Error('Server film encode failed.');
