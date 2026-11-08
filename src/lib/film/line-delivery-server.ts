@@ -18,16 +18,26 @@ export async function writeLineDeliveries(
   options: { adult?: boolean } = {}
 ): Promise<Record<string, string>> {
   if (!asks.length || !resolveRequestLlmEnabled(llm)) return {};
+  // The model sees the lines numbered 1…n, not by their keys: a Scene key is ~20 tokens the reply
+  // writes back on every line, and the reply is what takes the time (30 lines: 34-38 s with keys).
+  const numbered = asks.map((ask, index) => ({
+    ...ask,
+    id: String(index + 1),
+    ...(ask.context ? { context: ask.context.slice(0, 160) } : {}),
+  }));
   const reply = await chatCompletion({
-    messages: buildLineDeliveryMessages(asks, options),
-    maxTokens: 60 + asks.length * 40,
+    messages: buildLineDeliveryMessages(numbered, options),
+    maxTokens: 60 + asks.length * 24,
     temperature: 0.6,
     model: resolveRequestLlmModel(llm),
     endpoint: resolveRequestLlmEndpoint(llm),
     usageContext: { route: 'film-line-delivery' },
   });
-  return parseLineDelivery(
+  const byNumber = parseLineDelivery(
     reply,
-    asks.map(ask => ask.id)
+    numbered.map(ask => ask.id)
+  );
+  return Object.fromEntries(
+    Object.entries(byNumber).map(([number, delivery]) => [asks[Number(number) - 1]!.id, delivery])
   );
 }
