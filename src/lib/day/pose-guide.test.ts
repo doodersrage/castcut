@@ -1699,3 +1699,20 @@ describe('the arms the words state (Story, 2026-10-15)', () => {
     assert.deepEqual([statue.base, statue.armLeft], ['stand', 'crossed']);
   });
 });
+
+describe('two people standing', () => {
+  const gap = (text: string) => {
+    const [a, b] = synthesizeSceneStickFigures(text).figures;
+    return Math.abs(b!.lWrist.x - a!.rWrist.x);
+  };
+
+  it('keep their near hands apart, so the still does not make a handshake of it', () => {
+    // Live 2026-11-07: hands 0.03 apart in the guide, three of four two-shots shook hands.
+    assert.ok(gap('Lena and Rob, the two of them together. Sunlight through the windows.') > 0.1);
+    assert.ok(gap('Lena and Rob, the two of them together. Rob says: “You kept the sign.”') > 0.1);
+  });
+
+  it('keep the hands the pose drew when the words put them together', () => {
+    assert.ok(gap('Lena and Rob, the two of them together, hand in hand on the pier.') < 0.1);
+  });
+});

@@ -5877,6 +5877,33 @@ function applyScenePoseSpec(
   return next;
 }
 
+/** Words that put two people's hands together: their hands stay where the pose drew them. */
+const HANDS_MEET_RE =
+  /\b(hand in hand|holding hands|hold(?:s|ing)? (?:her|his|their|each other's) hands?|shak(?:e|es|ing) hands|handshake|hands? (?:clasped|joined|linked)|link(?:s|ing)? arms|arm in arm|high[- ]five|dance|dancing|waltz|hug|embrace|pass(?:es|ing)? (?:her|him) (?:the|a))\b/i;
+
+/**
+ * The figure's arm on `side` ('l' / 'r') hanging by its own body: the wrist just outside its hip,
+ * the elbow between — for the arm nearest the other person, so their hands don't meet.
+ */
+function withHandBySide(figure: StickSkeleton, side: 'l' | 'r'): StickSkeleton {
+  const shoulder = side === 'l' ? figure.lShoulder : figure.rShoulder;
+  const hip = side === 'l' ? figure.lHip : figure.rHip;
+  const wrist = side === 'l' ? figure.lWrist : figure.rWrist;
+  const elbow = side === 'l' ? figure.lElbow : figure.rElbow;
+  if (!shoulder || !hip || !wrist || !elbow) return figure;
+  // Only an arm reaching out past its hip toward the other person is brought in.
+  const outward = side === 'l' ? -1 : 1;
+  if ((wrist.x - hip.x) * outward <= 0.03) return figure;
+  const nextWrist = point(hip.x + outward * 0.03, Math.max(wrist.y, hip.y + 0.02));
+  const nextElbow = point(
+    (shoulder.x + nextWrist.x) / 2 + outward * 0.01,
+    (shoulder.y + nextWrist.y) / 2
+  );
+  return side === 'l'
+    ? { ...figure, lWrist: nextWrist, lElbow: nextElbow }
+    : { ...figure, rWrist: nextWrist, rElbow: nextElbow };
+}
+
 function synthesizeSceneStickFiguresBase(
   text: string | null | undefined,
   fallbackIndex: number,
@@ -5927,11 +5954,17 @@ function synthesizeSceneStickFiguresBase(
 
   const people = clamp(intent.people, 1, 3);
   const centers = people === 3 ? TRIO_CENTERS : people === 2 ? DUO_CENTERS : ([0.5] as const);
+  // Turned to each other: a kiss, a talk — or a line said in the beat ("Rob says: “…”", a
+  // script's dialogue shot). Drawn square to the camera, a talking pair came out shaking hands
+  // (three of four episode two-shots, 2026-11-07).
   const facePartner =
     people >= 2 &&
-    /\b(kiss|argue|talk|speak|face[- ]to[- ]face|each other|knee[- ]to[- ]knee|confront)\b/i.test(
+    (/\b(kiss|argue|talk|speak|face[- ]to[- ]face|each other|knee[- ]to[- ]knee|confront)\b/i.test(
       text?.trim() || ''
-    );
+    ) ||
+      /\b(?:says|asks|replies|answers|tells|whispers|murmurs)\b[^.]{0,30}[:,]\s*[“"]/i.test(
+        text?.trim() || ''
+      ));
 
   const figures = centers.map((centerX, index) => {
     const personIntent: PoseGuideIntent = {
@@ -5956,6 +5989,16 @@ function synthesizeSceneStickFiguresBase(
     }
     return skeleton;
   });
+  // Two people standing with nothing between their hands: the near arms hang by their own sides.
+  // Drawn as they came, the near wrists met in the middle (0.03 apart) and the still made a
+  // handshake of it — three of four episode two-shots, whatever the scene (2026-11-07).
+  if (people === 2 && !HANDS_MEET_RE.test(text?.trim() || '')) {
+    const [left, right] = figures as [StickSkeleton, StickSkeleton];
+    if (left && right) {
+      figures[0] = withHandBySide(left, 'r');
+      figures[1] = withHandBySide(right, 'l');
+    }
+  }
 
   return {
     intent: {
