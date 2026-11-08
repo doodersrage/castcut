@@ -4096,7 +4096,10 @@ const phases: Record<string, Phase> = {
     log('scenes written in', Math.round((Date.now() - started) / 1000), 's');
     await shot(page, 'adult-written');
     await writer.getByTestId('episode-use').click();
-    await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+    // The written script lands in the Script box: kept with Keep this script.
+    await page.getByTestId('script-keep').first().click({ timeout: 60_000 });
+    await page.getByTestId('script-reading').first().waitFor({ timeout: 60_000 }).catch(() => undefined);
+    await page.waitForTimeout(3000);
     const script = await v2Script(page);
     log('script:', script.name, '· mood', (script as { mood?: string }).mood ?? '(none)');
     const source = ((script as { source?: string }).source ?? '').slice(0, 3000);
