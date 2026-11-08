@@ -64,8 +64,8 @@ silly / raunchy.
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
     Every Short is a script: the first change you make to a Day — Write it, a beat, a
-    template — makes its short by itself, a moment later. Opening an older Day makes nothing until
-    you change it.
+    template — makes its short by itself, a moment later. An older Day with moments gets its short the first time
+    you open it (once — a short you delete on Script isn't made back by opening Short).
 
     The short is the record: a moment changed on its Scene — a beat, a line, its time — is
     changed on the board too when you open Short. (The script's own words edited on Script are

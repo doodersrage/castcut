@@ -140,6 +140,12 @@ export type DayToolCache = {
   dayEvent?: import('../day/event').DayEvent;
   /** This Day's short (Short's "This Day as a script", scene-links.ts): made once, kept up to date. */
   shortLink?: import('../day/scene-links').DayShortLink;
+  /**
+   * The Cast whose Short was linked by the one-time pass (step 4c, 2026-11-08): a Short with
+   * moments but no short got one when it was opened — once per Cast, never again (a short
+   * deleted on Script isn't made back by opening Short; an edit makes one, as any).
+   */
+  shortLinkedFor?: string[];
   /** Slots that kept their own (hand-picked) outfit through Outfit's last hand-off. */
   outfitHandoffKept?: import('../day/outfit-scope').DayOutfitHandoffNotice;
   /** Moments on the board (2–12; 2, 3, 4, 6 and 8 one tap); default four dayparts. */

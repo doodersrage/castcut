@@ -4023,8 +4023,9 @@ test('the Scene list shows a script’s Scenes by its scenes, filters them, and 
   expect(await axeBlocking(page)).toEqual([]);
 });
 
-// Every Short is a script (2026-11-08): opening Short makes nothing; its first edit makes its short.
-test('a Short’s first edit makes its short script; opening it makes nothing', async ({ page }) => {
+// Every Short is a script (2026-11-08): a Short with moments gets its short once when opened
+// (step 4c's one-time pass); after that its edits keep it in step — no second short.
+test('a Short with moments gets its short when opened, once; its edits keep that one', async ({ page }) => {
   await page.route('**/api/day-premise', route =>
     route.fulfill({
       json: {
@@ -4056,9 +4057,8 @@ test('a Short’s first edit makes its short script; opening it makes nothing', 
   await dismissBlockingOverlays(page);
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
-  await page.waitForTimeout(4000);
-  expect(await storedScripts(page)).toBe('0');
-  // An edit: Write the day.
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(new RegExp(`^1\\|${CAST}\\|`));
+  // An edit: Write it — the same short, not a second.
   await expect(async () => {
     await input.fill('a slow Sunday at home');
     await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
