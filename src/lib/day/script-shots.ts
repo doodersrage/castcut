@@ -51,6 +51,8 @@ export type PlannedShot = {
   /** The dialogue it covers, and who says it. */
   line?: string;
   speaker?: string;
+  /** The speaker is heard, not seen (V.O., O.S. — a phone call, a voice from the next room). */
+  offscreen?: boolean;
   /** About how long, in seconds. */
   seconds: number;
   /** The Scene made from it (unset: not yet, or that Scene is gone). */
@@ -75,6 +77,44 @@ export function lineSeconds(text: string): number {
 }
 
 /** The deterministic draft for one script scene. */
+/** A cue's extension for a voice heard, not seen: V.O., O.S., O.C. (any dots). */
+const OFFSCREEN_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
+
+/** Who hears a line heard, not seen: the one who spoke last, or next, or anyone else here. */
+function hearerOf(
+  dialogue: readonly ScriptScene['elements'][number][],
+  index: number,
+  everyone: readonly string[]
+): string | undefined {
+  const speaker = speakerKey(dialogue[index]!.speaker!);
+  return (
+    [...dialogue.slice(0, index).reverse(), ...dialogue.slice(index + 1)]
+      .map(entry => speakerKey(entry.speaker!))
+      .find(name => name !== speaker) ?? everyone.find(name => name !== speaker)
+  );
+}
+
+/**
+ * Shots planned another way (the LLM's draft) with the scene's lines heard, not seen (V.O., O.S.)
+ * marked and put on who hears them, as draftShots does. Pure.
+ */
+export function withOffscreenLines(shots: PlannedShot[], scene: ScriptScene): PlannedShot[] {
+  const dialogue = scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
+  const everyone = scene.speakers.map(speakerKey);
+  return shots.map(shot => {
+    if (!shot.line || !shot.speaker || shot.offscreen) return shot;
+    const index = dialogue.findIndex(
+      element =>
+        speakerKey(element.speaker!) === shot.speaker &&
+        OFFSCREEN_RE.test(element.extension ?? '') &&
+        clean(element.text) === shot.line
+    );
+    if (index < 0) return shot;
+    const hearer = hearerOf(dialogue, index, everyone);
+    return { ...shot, offscreen: true, who: hearer ? [hearer] : [] };
+  });
+}
+
 export function draftShots(scene: ScriptScene): PlannedShot[] {
   const shots: Omit<PlannedShot, 'id'>[] = [];
   const action = scene.elements.filter(element => element.kind === 'action');
@@ -92,13 +132,18 @@ export function draftShots(scene: ScriptScene): PlannedShot[] {
     const spoken = new Set<string>();
     dialogue.forEach((element, index) => {
       const speaker = speakerKey(element.speaker!);
+      // Heard, not seen (V.O., O.S.): the shot is on whoever hears it — the one who spoke last,
+      // or next, or anyone else here — not on the speaker (a phone call drew him in the room).
+      const offscreen = OFFSCREEN_RE.test(element.extension ?? '');
+      const hearer = offscreen ? hearerOf(dialogue, index, everyone) : undefined;
       shots.push({
         sceneId: scene.id,
         purpose: 'dialogue',
         framing: spoken.has(speaker) ? 'head' : 'waist',
-        who: [speaker],
+        who: offscreen ? (hearer ? [hearer] : []) : [speaker],
         line: clean(element.text),
         speaker,
+        ...(offscreen ? { offscreen: true } : {}),
         seconds: lineSeconds(element.text),
       });
       spoken.add(speaker);
@@ -172,6 +217,7 @@ export function normalizePlannedShots(value: unknown): PlannedShot[] | undefined
       seconds: Number.isFinite(seconds) ? Math.min(120, Math.max(1, Math.round(seconds))) : 3,
       ...(madeSceneId ? { madeSceneId } : {}),
       ...(shot.priority === 'must' || shot.priority === 'nice' ? { priority: shot.priority } : {}),
+      ...(shot.offscreen === true ? { offscreen: true } : {}),
     });
     if (out.length >= SHOTS_PER_SCRIPT) break;
   }
@@ -452,7 +498,9 @@ export function shotSceneDraft(input: {
     const member = id ? cast.find(entry => entry.id === id) : undefined;
     return member?.name ?? speaker.charAt(0) + speaker.slice(1).toLowerCase();
   };
-  const leadSpeaks = Boolean(shot.line && castOf(shot.speaker) === castId);
+  // Her line heard, not seen, is her voice over the picture (narration), not said on screen.
+  const leadVoiceOver = Boolean(shot.offscreen && shot.line && castOf(shot.speaker) === castId);
+  const leadSpeaks = Boolean(shot.line && castOf(shot.speaker) === castId) && !leadVoiceOver;
   const partner =
     parts.find(part => part.castId !== castId && shot.who.includes(part.speaker)) ??
     parts.find(part => part.castId !== castId);
@@ -488,7 +536,9 @@ export function shotSceneDraft(input: {
       ? `${leadName} and ${partnerName}, the two of them together.`
       : '',
     shot.action ?? (sceneAction ? clean(sceneAction) : ''),
-    shot.line && !leadSpeaks && shot.speaker ? `${nameOf(shot.speaker)} says: “${shot.line}”` : '',
+    shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
+      ? `${nameOf(shot.speaker)} says: “${shot.line}”${shot.offscreen ? ` ${nameOf(shot.speaker)} is heard, not seen.` : ''}`
+      : '',
     shot.purpose === 'reaction' && shot.who[0] ? `${nameOf(shot.who[0])} reacts.` : '',
   ]
     .filter(Boolean)
@@ -514,6 +564,7 @@ export function shotSceneDraft(input: {
       ...(beat ? { sceneHints: beat, sceneHintsTyped: beat } : {}),
       poseCamera: { shot: shot.framing },
       ...(leadSpeaks && shot.line ? { line: shot.line } : {}),
+      ...(leadVoiceOver && shot.line ? { narration: shot.line } : {}),
     },
     ...(partner?.castId ? { partnerCharacterId: partner.castId } : {}),
     ...(partnerInFrame ? { partnerInFrame: true } : {}),

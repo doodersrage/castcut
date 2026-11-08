@@ -17,6 +17,7 @@ import {
   SHOTS_PER_SCENE,
   type PlannedShot,
   type ShotPurpose,
+  withOffscreenLines,
 } from './script-shots';
 
 const FRAMINGS: readonly CameraShot[] = ['full', 'knees', 'waist', 'head'];
@@ -146,9 +147,13 @@ export function parseShotDraft(
     }
   }
   if (!shots.length) return null;
-  return shots
-    .slice(0, SHOTS_PER_SCENE)
-    .map((shot, index) => ({ ...shot, id: `${scene.id}~${index + 1}` }));
+  // Lines heard, not seen (V.O., O.S.) on who hears them, as the rules' draft has them.
+  return withOffscreenLines(
+    shots
+      .slice(0, SHOTS_PER_SCENE)
+      .map((shot, index) => ({ ...shot, id: `${scene.id}~${index + 1}` })),
+    scene
+  );
 }
 
 /** Ask `/api/script-shots` for the scene's LLM draft (client); rejects with the server's message. */

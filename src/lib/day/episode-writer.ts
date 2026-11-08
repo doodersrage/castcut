@@ -233,8 +233,9 @@ export const EPISODE_CRAFT_SCENE =
   'a decision or a line that lands — not on a goodbye or a walk out. Each action paragraph is one moment: ' +
   'who is where, doing what. Dialogue: mostly under fifteen words a line; people do not say exactly what they ' +
   'feel, they talk around it; no speeches that explain the plot; people rarely say each other’s names; each ' +
-  'person sounds like themselves. Nobody talks to themselves for long. Only the people in the scene speak, and ' +
-  'they are seen — on a phone call we hear her side only. Pay off what the outline planted. ' +
+  'person sounds like themselves. Nobody talks to themselves for long. Someone heard but not seen (on the ' +
+  'phone, from another room) has (V.O.) after their name — the shot stays on who hears them. Pay off what the ' +
+  'outline planted. ' +
   EPISODE_FILMABLE;
 
 export function episodeOutlineMessages(input: {

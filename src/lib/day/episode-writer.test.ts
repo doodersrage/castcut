@@ -188,7 +188,7 @@ describe('the writer’s craft (2026-11-08)', () => {
     const text = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [] as never })[0]!.content;
     assert.match(text, /Come in late and leave early/);
     assert.match(text, /under fifteen words a line/);
-    assert.match(text, /on a phone call we hear her side only/);
+    assert.match(text, /\(V\.O\.\) after their name/);
     assert.match(text, /no camera directions/);
   });
 });

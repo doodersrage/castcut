@@ -406,6 +406,8 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
         kind: 'dialogue',
         text: spoken.map(line => line.text.trim()).join('\n'),
         speaker,
+        // V.O., O.S.: heard, not seen — the shot shows who hears it (script-shots.ts).
+        ...(extension ? { extension } : {}),
         from: spoken[0]!.n,
         to: spoken.at(-1)!.n,
       });

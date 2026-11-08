@@ -7,6 +7,7 @@ import { createScript, normalizeSavedScript, setScriptShotsPatch } from './scene
 import {
   addedShot,
   draftShots,
+  withOffscreenLines,
   lineSeconds,
   sceneLocationOf,
   shotLabel,
@@ -354,5 +355,57 @@ describe('another place in the background', () => {
     const here = 'Behind her, the café’s espresso machine hisses.';
     assert.equal(withoutOtherPlaces(here, 'SALT & SEA CAFÉ', places), here);
     assert.equal(withoutOtherPlaces(beat, 'BEACH', []), beat);
+  });
+});
+
+describe('a voice heard, not seen (V.O., O.S.)', () => {
+  const call = parseScript(
+    [
+      'INT. FLAT - NIGHT',
+      '',
+      'Nora holds the phone to her ear.',
+      '',
+      'NORA',
+      'Where are you?',
+      '',
+      'TOMAS (V.O.)',
+      'Still at the station.',
+      '',
+      'NORA (O.S.)',
+      'Come home.',
+      '',
+    ].join('\n')
+  ).scenes[0]!;
+  const castMap = { NORA: 'nora', TOMAS: 'tomas' };
+
+  it('is shot on who hears it, not on the speaker', () => {
+    const shots = draftShots(call).filter(shot => shot.purpose === 'dialogue');
+    assert.deepEqual(
+      shots.map(shot => [shot.speaker, shot.who.join('+'), shot.offscreen ?? false]),
+      [
+        ['NORA', 'NORA', false],
+        ['TOMAS', 'NORA', true],
+        ['NORA', 'TOMAS', true],
+      ]
+    );
+  });
+
+  it('is said over her alone — his line read in his voice; hers off screen is her voice-over', () => {
+    const shots = draftShots(call).filter(shot => shot.purpose === 'dialogue');
+    const his = shotSceneDraft({ shot: shots[1]!, scene: call, sceneIndex: 0, shotIndex: 2, castId: 'nora', cast, castMap, placeMap: undefined });
+    assert.match(his.slot.sceneHints ?? '', /Tomás Ruiz says: “Still at the station\.” Tomás Ruiz is heard, not seen\./);
+    assert.equal(his.partnerInFrame, undefined);
+    const hers = shotSceneDraft({ shot: shots[2]!, scene: call, sceneIndex: 0, shotIndex: 3, castId: 'nora', cast, castMap, placeMap: undefined });
+    assert.equal(hers.slot.narration, 'Come home.');
+    assert.equal(hers.slot.line, undefined);
+  });
+
+  it('is marked the same in a draft planned another way (the LLM’s)', () => {
+    const planned = [
+      { id: 'a', sceneId: call.id, purpose: 'dialogue' as const, framing: 'waist' as const, who: ['TOMAS'], line: 'Still at the station.', speaker: 'TOMAS', seconds: 3 },
+      { id: 'b', sceneId: call.id, purpose: 'dialogue' as const, framing: 'waist' as const, who: ['NORA'], line: 'Where are you?', speaker: 'NORA', seconds: 3 },
+    ];
+    const marked = withOffscreenLines(planned, call);
+    assert.deepEqual(marked.map(shot => [shot.who.join('+'), shot.offscreen ?? false]), [['NORA', true], ['NORA', false]]);
   });
 });
