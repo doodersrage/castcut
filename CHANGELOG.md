@@ -9,6 +9,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.10.0] - 2026-11-08
+
+- A Short moment's time of day is chosen, not fixed by where it falls
+- One renderer per run: a run rendering in another tab is left to it
+- Script: a shot made a Scene stays listed; CI's two Script e2e failures fixed
+- Short drops the day framing; Next short starts a short of its own
+- Render the short: a Short's run renders on Short
+- Every Short is a script: its first edit makes its short
+- Stills are 16:9 by default, with Portrait to choose
+- e2e skill: the copy's dev script needs the free port too
+- Write the day says it's written, and shows the moments it wrote
+- Script gets its own page; Scene's list shows a script's Scenes by its scenes
+
 ## [v3.9.1] - 2026-11-08
 
 - A Cast's first plate renders on Qwen-Image 2.1, not UltraReal Fine-Tune v4
