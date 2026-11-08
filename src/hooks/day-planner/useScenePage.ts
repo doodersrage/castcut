@@ -6,7 +6,7 @@ import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOr
 import type { DayToolCache } from '@/lib/play/settings';
 import { pushAppToast } from '@/lib/app/toast';
 import { dayPartOf, type DayPart } from '@/lib/day/parts';
-import type { DaySlotId } from '@/lib/day/planner';
+import { daySlotDefaultLabel, type DaySlotId } from '@/lib/day/planner';
 import {
   addScenePatch,
   continuedSceneName,
@@ -379,8 +379,11 @@ export function useScenePage(vm: DayEngineView) {
   /** Its time of day (the slot id): the still goes with the slot. */
   const setTimeOfDay = useCallback(
     (part: DayPart) => {
-      if (dayPartOf(slot.id) === part && !slot.id.includes('-')) return;
-      const nextSlot = sceneSlotAt(slot, part as DaySlotId);
+      if (dayPartOf(slot.id) === part && !slot.id.includes('-') && !slot.timeOfDay) return;
+      // Scene keeps a shot's time in its slot id; a time chosen on Short goes with the change.
+      const { timeOfDay: chosen, ...rest } = sceneSlotAt(slot, part as DaySlotId);
+      // Its label said the chosen time: it says the new one (a label of its own stays).
+      const nextSlot = chosen ? { ...rest, label: daySlotDefaultLabel(part) } : rest;
       const moved = still ? [{ ...still, slotId: nextSlot.id }] : [];
       write({ slots: [nextSlot], stills: moved });
     },

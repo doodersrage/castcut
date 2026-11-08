@@ -10,7 +10,7 @@ import { poseLayoutFromGuideName } from '@/lib/still/references';
 import { daySlotPoseOverride } from '@/lib/day/slot-pose';
 import { spokenLineHeat } from '@/lib/audio/spoken-line';
 import { normalizeSpokenLineTone } from '@/lib/video/ltx25-renderer';
-import { isDayAdultMood } from '@/lib/day/planner';
+import { daySlotDefaultLabel, isDayAdultMood } from '@/lib/day/planner';
 import { activeCastHasVoice, suggestLineForActiveCast } from '@/lib/audio/spoken-line-context';
 import NarrationField from '@/components/NarrationField';
 import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
@@ -37,6 +37,8 @@ import {
   type DaySlotStill,
 } from '@/lib/day/planner';
 import type { PoseMissView } from '@/lib/pose/coaching';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
+import { DAY_PARTS, slotDayPart, type DayPart } from '@/lib/day/parts';
 import { ROLEPLAY_SETTING_PRESETS } from '@/lib/story/roleplay';
 
 export type DaySlotEditorProps = {
@@ -56,6 +58,8 @@ export type DaySlotEditorProps = {
   /** The Day plate, shown behind the figure in the pose editor. */
   plateUrl?: string | null;
   updateSlot: (slotId: DaySlotId, patch: Partial<DaySlot>) => void;
+  /** Short's moments: a Time of day to choose (Scene keeps its own above the shot). */
+  withTime?: boolean;
   /** "Boxy chocolate habit · black pumps" — the Clothing row's one line. */
   clothingSummary: string;
   /** Kit packshot / photo / shoe photo beside it (clothing-summary). */
@@ -109,6 +113,7 @@ export default function DaySlotEditor({
   poseMiss,
   plateUrl,
   updateSlot,
+  withTime = false,
   clothingSummary,
   clothingThumbs,
   differsFromDay = false,
@@ -207,6 +212,25 @@ export default function DaySlotEditor({
             ([field-sizing:content]), and an implicit grid column grew to a long placeholder —
             every field ran under the Takes column beside it (2026-11-05). */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3" data-testid="day-active-plan">
+          {withTime ? (
+            // Its light, setting and presets follow it (slotDayPart); its label says it.
+            <div className="flex flex-wrap items-center gap-2" data-testid="day-slot-time">
+              <FieldLabel>Time of day</FieldLabel>
+              <SegmentedControl<DayPart>
+                aria-label="Time of day"
+                value={slotDayPart(slot)}
+                onChange={part => {
+                  if (!busy)
+                    updateSlot(slot.id, { timeOfDay: part, label: daySlotDefaultLabel(part) });
+                }}
+                options={DAY_PARTS.map(part => ({
+                  value: part,
+                  label: daySlotDefaultLabel(part),
+                  testId: `day-slot-time-${part}`,
+                }))}
+              />
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             {/* The presets at the top, beside the field they fill. */}
             <div

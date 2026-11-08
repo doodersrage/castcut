@@ -13,7 +13,7 @@ import {
   type DayMoodSetting,
   type DaySlot,
 } from '@/lib/day/planner';
-import { dayPartOf } from '@/lib/day/parts';
+import { slotDayPart } from '@/lib/day/parts';
 import { applyDayPremiseBeats, type DayPremiseBeat } from '@/lib/day/premise';
 
 export type DayThread = {
@@ -42,7 +42,7 @@ export function dayThreadBeats(slots: DaySlot[]): string[] {
   return slots
     .map(slot => {
       const beat = slot.sceneHints?.replace(/\s+/g, ' ').trim();
-      return beat ? `${dayPartOf(slot.id)}: ${beat.slice(0, 240)}` : '';
+      return beat ? `${slotDayPart(slot)}: ${beat.slice(0, 240)}` : '';
     })
     .filter(Boolean);
 }

@@ -153,7 +153,7 @@ export default function DaySlotSheet({
         </div>
       }
     >
-      <DaySlotEditor {...editor} />
+      <DaySlotEditor {...editor} withTime />
     </SideSheet>
   );
 }

@@ -7,7 +7,7 @@
  */
 import type { CastProp } from '../character/os';
 import { castPropMentioned } from '../cast/props';
-import { dayPartOf, type DayPart } from '../day/parts';
+import { slotDayPart, type DayPart } from '../day/parts';
 import type { DaySlot } from '../day/planner';
 import type { StoryStateItem } from '../day/story-state';
 import type { RoleplayStoryBeat } from '../story/roleplay';
@@ -108,7 +108,7 @@ export function slotShotState(
     changeStated: Boolean(clean(slot.lookId) || slot.outfitByHand) || undefined,
     shoes: clean(input.outfit?.footwear),
     place: clean(slot.location),
-    time: dayPartOf(slot.id),
+    time: slotDayPart(slot),
     leadSide: others.length ? slot.poseLead : undefined,
     props: propsIn(castId, `${slot.sceneHints ?? ''} ${slot.location ?? ''}`, resolve),
     line: clean(slot.line),

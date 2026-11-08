@@ -27,7 +27,7 @@ import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import SceneScriptAndRun from '@/components/day-planner/SceneScriptAndRun';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
-import { DAY_PARTS, dayPartOf } from '@/lib/day/parts';
+import { DAY_PARTS, slotDayPart } from '@/lib/day/parts';
 import {
   DAY_MOOD_OPTIONS,
   dayPickerMood,
@@ -177,7 +177,8 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const advancedId = useId();
   const takeCount = active?.takes.length ?? 0;
-  const timeOfDay = dayPartOf(slot.id);
+  // A moment's chosen time (from Short) shows until it's changed here.
+  const timeOfDay = slotDayPart(slot);
   const scenesInOrder = [...castScenes].sort((a, b) => a.createdAt - b.createdAt);
   const picked = dayPickerMood(normalizeDayMood(dayMood));
   const moodLabel =

@@ -11,7 +11,7 @@
 
 import type { ChatMessage } from '@/lib/llm/client';
 import { normalizeDayMood, type DaySlot } from '@/lib/day/planner';
-import { dayPartOf } from '@/lib/day/parts';
+import { slotDayPart } from '@/lib/day/parts';
 
 export const DAY_PREMISE_MAX_LENGTH = 240;
 const BEAT_MAX = 200;
@@ -43,6 +43,8 @@ export type DayPremiseBeat = { slotId: string; beat: string; setting: string };
 export function buildDayPremiseMessages(input: {
   premise: string;
   slotIds: string[];
+  /** A moment's chosen time of day, by its id (DaySlot.timeOfDay); else where it falls. */
+  slotTimes?: Record<string, string>;
   companions: boolean;
   /** Tomorrow: yesterday's beats ("morning: …"), so today follows on from them. */
   previousBeats?: string[];
@@ -52,7 +54,9 @@ export function buildDayPremiseMessages(input: {
     .map(beat => beat.replace(/\s+/g, ' ').trim().slice(0, BEAT_MAX))
     .filter(Boolean)
     .slice(0, 8);
-  const slots = input.slotIds.map(id => `"${id}" (${dayPartOf(id)})`).join(', ');
+  const slots = input.slotIds
+    .map(id => `"${id}" (${slotDayPart({ id, timeOfDay: input.slotTimes?.[id] })})`)
+    .join(', ');
   const people = input.companions
     ? 'Some beats may include her partner or a friend; say so plainly ("with her partner").'
     : 'She is alone in every beat: no other people.';
@@ -167,6 +171,7 @@ export function applyDayPremiseBeats<T extends DaySlot>(slots: T[], beats: DayPr
 export async function requestDayPremiseBeats(input: {
   premise: string;
   slotIds: string[];
+  slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
   llmBody?: Record<string, unknown>;
@@ -178,6 +183,7 @@ export async function requestDayPremiseBeats(input: {
     body: JSON.stringify({
       premise: input.premise,
       slotIds: input.slotIds,
+      ...(input.slotTimes ? { slotTimes: input.slotTimes } : {}),
       companions: input.companions,
       previousBeats: input.previousBeats,
       ...input.llmBody,

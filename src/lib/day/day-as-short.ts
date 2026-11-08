@@ -10,13 +10,13 @@ import { parseScript } from '../script/parse';
 import type { CameraShot } from '../pose/camera-shot';
 import type { DayToolCache } from '../play/settings';
 import {
-  dayPartOf,
   dayStillShownImage,
   normalizeDaySlotStills,
   normalizeDaySlots,
   type DaySlot,
   type DaySlotStill,
 } from './planner';
+import { slotDayPart } from './parts';
 import { keptTakeOf, sceneFromDaySlot, takeAsStill, type SavedScene } from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
 import type { PlannedShot } from './script-shots';
@@ -38,7 +38,7 @@ export function dayMomentHeading(slot: Pick<DaySlot, 'id' | 'label' | 'location'
     .replace(/\s+-\s+/g, ' ')
     .slice(0, 60)
     .toUpperCase();
-  const time = TIME_OF_PART[dayPartOf(slot.id)] ?? 'DAY';
+  const time = TIME_OF_PART[slotDayPart(slot)] ?? 'DAY';
   return `${OUTSIDE.test(place) ? 'EXT.' : 'INT.'} ${place} - ${time}`;
 }
 

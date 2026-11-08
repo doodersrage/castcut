@@ -30,7 +30,7 @@ import { FieldError, FieldLabel, SelectInput, TextInput } from '@/components/ui/
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
-import { DAY_PARTS, dayPartOf } from '@/lib/day/parts';
+import { DAY_PARTS, slotDayPart } from '@/lib/day/parts';
 import { isDayAdultMood, type DaySlotId } from '@/lib/day/planner';
 import { sceneSummary } from '@/lib/day/scenes';
 
@@ -135,7 +135,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const takeCount = active?.takes.length ?? 0;
-  const timeOfDay = dayPartOf(slot.id);
+  // A moment's chosen time (from Short) shows until it's changed here.
+  const timeOfDay = slotDayPart(slot);
   const scenesInOrder = [...castScenes].sort((a, b) => a.createdAt - b.createdAt);
   // Keys (not while typing, nor over a dialog): ← → the take before / after onto the card, K keeps
   // it, X rejects it, N another take, [ ] the scene before / after.

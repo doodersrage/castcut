@@ -3548,6 +3548,10 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       const beats = await requestDayPremiseBeats({
         premise,
         slotIds: slots.map(slot => slot.id),
+        // Moments at a chosen time of day are written at that time.
+        slotTimes: Object.fromEntries(
+          slots.flatMap(slot => (slot.timeOfDay ? [[slot.id, slot.timeOfDay]] : []))
+        ),
         companions: toolSettings.allowCompanions === true,
         llmBody: sharedLlmRequestBody(shared),
       });

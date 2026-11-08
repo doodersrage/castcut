@@ -4169,3 +4169,48 @@ test('a run rendering in another tab is left to it', async ({ page }) => {
   expect((run.log ?? []).map((entry: { event: string }) => entry.event)).not.toContain('paused');
   expect(queued).toHaveLength(0);
 });
+
+// A moment's time of day, chosen on Short (2026-11-08): its label says it, and it is kept.
+test('a Short moment’s time of day is chosen in its editor', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-idea-input').first()).toBeVisible({ timeout: 30_000 });
+  await openDaySlotSheet(page, 'morning');
+  const time = page.getByTestId('day-slot-sheet').getByTestId('day-slot-time');
+  await expect(time).toBeVisible();
+  await time.getByTestId('day-slot-time-night').click();
+  await expect(page.getByTestId('day-progress-morning').first()).toContainText('Night', { timeout: 10_000 });
+  const stored = () =>
+    page.evaluate(
+      () =>
+        new Promise<string>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => resolve('');
+          request.onsuccess = () => {
+            const get = request.result.transaction('kv', 'readonly').objectStore('kv').get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              request.result.close();
+              const slot = get.result?.value?.tools?.day?.slots?.[0];
+              resolve(slot ? `${slot.id}|${slot.timeOfDay}|${slot.label}` : '');
+            };
+            get.onerror = () => resolve('');
+          };
+        })
+    );
+  await expect.poll(stored, { timeout: 15_000 }).toBe('morning|night|Night');
+});

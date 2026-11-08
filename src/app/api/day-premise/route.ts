@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       premise?: string;
       slotIds?: unknown;
+      slotTimes?: unknown;
       companions?: boolean;
       previousBeats?: unknown;
       llmTemperature?: number;
@@ -31,6 +32,15 @@ export async function POST(request: Request) {
     const beats = await writeDayPremiseBeats({
       premise: typeof body.premise === 'string' ? body.premise : '',
       slotIds,
+      // A moment's chosen time of day, by its id (dayparts only).
+      slotTimes: Object.fromEntries(
+        Object.entries(
+          body.slotTimes && typeof body.slotTimes === 'object' ? body.slotTimes : {}
+        ).filter(
+          ([id, part]) =>
+            slotIds.includes(id) && /^(morning|afternoon|evening|night)$/.test(String(part))
+        )
+      ) as Record<string, string>,
       companions: body.companions === true,
       previousBeats: Array.isArray(body.previousBeats)
         ? body.previousBeats

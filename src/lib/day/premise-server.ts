@@ -16,6 +16,7 @@ import {
 export async function writeDayPremiseBeats(options: {
   premise: string;
   slotIds: string[];
+  slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
   llm?: LlmRequestOptions;
@@ -33,6 +34,7 @@ export async function writeDayPremiseBeats(options: {
         messages: buildDayPremiseMessages({
           premise,
           slotIds,
+          ...(options.slotTimes ? { slotTimes: options.slotTimes } : {}),
           companions: options.companions,
           previousBeats,
         }),

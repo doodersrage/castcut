@@ -102,7 +102,14 @@ import {
 } from '@/lib/engine/qwen-rapid-nude-edit';
 import { isDayVacationFaceRestorePrompt } from '@/lib/day/vacation-face-restore';
 
-import { DAY_PARTS, dayPartOf, isLateDaySlot, type DayPart } from '@/lib/day/parts';
+import {
+  DAY_PARTS,
+  dayPartOf,
+  isLateDaySlot,
+  slotDayPart,
+  slotPoolId,
+  type DayPart,
+} from '@/lib/day/parts';
 import {
   DAY_THEMES,
   DAY_THEME_OPTIONS,
@@ -385,6 +392,12 @@ export function normalizeDaySlotEngine(value: unknown): DaySlotEngine | undefine
 export type DaySlot = {
   id: DaySlotId;
   label: string;
+  /**
+   * The time of day chosen for this moment (2026-11-08); unset, it is where the moment falls
+   * (its id). Its label says it — the still's light and setting read the label — and its
+   * presets follow it (slotDayPart / slotPoolId).
+   */
+  timeOfDay?: DayPart;
   wardrobeId?: string;
   /** The kit was auto-picked at queue time (not chosen) — the outfit arc may re-align it. */
   wardrobeAuto?: boolean;
@@ -927,6 +940,9 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       engine: normalizeDaySlotEngine(slot.engine),
       outfitByHand: slot.outfitByHand === true || undefined,
       eventMove: readEditableText(slot.eventMove, 160) || undefined,
+      timeOfDay: (DAY_PARTS as readonly string[]).includes(String(slot.timeOfDay))
+        ? slot.timeOfDay
+        : undefined,
     });
   }
   const resolvedLength =
@@ -1492,13 +1508,13 @@ export function resolveDaySlotPoseBaseline(
   slot: Pick<DaySlot, 'id' | 'location' | 'sceneHints'>,
   fitSetting?: string | null
 ): string {
-  const all = DAY_SLOT_POSE_PRESETS[dayPartOf(slot.id)] ?? [
-    DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)],
+  const all = DAY_SLOT_POSE_PRESETS[slotDayPart(slot)] ?? [
+    DEFAULT_DAY_SLOT_POSES[slotDayPart(slot)],
   ];
   const fitting = fitSetting ? all.filter(pose => beatFitsSetting(pose, fitSetting)) : all;
   const pool = fitting.length > 0 ? fitting : all;
   const salt = `${slot.id}|${slot.location?.trim() ?? ''}|${slot.sceneHints?.trim() ?? ''}`;
-  const pose = pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[dayPartOf(slot.id)];
+  const pose = pickDayPresetFromSalt(pool, salt) || DEFAULT_DAY_SLOT_POSES[slotDayPart(slot)];
   return fitSetting ? fitBeatToSetting(pose, fitSetting) : pose;
 }
 
@@ -2635,6 +2651,7 @@ export function diversifyDaySlotScenes(
   const heatClass = (beat: string) => dayHeatPoseClass(beat, dayMood);
   let changed = false;
 
+  // A moment at a chosen time of day draws on that time's presets (slotPoolId).
   const normalized = normalizeDaySlots(slots);
   for (const slot of normalized) {
     const location = slot.location?.trim();
@@ -2670,7 +2687,7 @@ export function diversifyDaySlotScenes(
               beat: sceneHints,
               setting: pickUnusedPreset(keptVenues, usedLocations, random) ?? keptVenues[0]!,
             }
-          : pickDaySportScenePair(slot.id, {
+          : pickDaySportScenePair(slotPoolId(slot) as DaySlotId, {
               usedBeats,
               usedLocations,
               random,
@@ -2708,7 +2725,7 @@ export function diversifyDaySlotScenes(
       const pair = keepBeat
         ? { beat: sceneHints, setting: keepBeat, poseClass: dayEverydayPoseClass(sceneHints) }
         : fillBeats && (forceBeats || !sceneHints)
-          ? pickDayThemeScenePair(theme, slot.id, {
+          ? pickDayThemeScenePair(theme, slotPoolId(slot) as DaySlotId, {
               companions: allowCompanions,
               duoOnly: allowCompanions && intimateMix === 'duo',
               usedBeats,
@@ -2753,7 +2770,7 @@ export function diversifyDaySlotScenes(
             setting: keptSetting,
             poseClass: vacationPoseClassFromBeat(sceneHints),
           }
-        : pickDayVacationScenePair(slot.id, {
+        : pickDayVacationScenePair(slotPoolId(slot) as DaySlotId, {
             usedBeats,
             usedLocations,
             usedPoseClasses: usedVacationPoseClasses,
@@ -2814,7 +2831,7 @@ export function diversifyDaySlotScenes(
     const drawsLocation = !location || forceLocations;
     if (drawsLocation) {
       const picked = pickUnusedPreset(
-        hostsBeat(settingPoolForDayMood(slot.id, dayMood, intimateMix)),
+        hostsBeat(settingPoolForDayMood(slotPoolId(slot) as DaySlotId, dayMood, intimateMix)),
         usedLocations,
         random
       );
@@ -2828,7 +2845,13 @@ export function diversifyDaySlotScenes(
     }
 
     if (fillBeats && (!sceneHints || forceBeats)) {
-      const pools = pickDayBeatPools(slot.id, dayMood, intimateMix, allowCompanions, random);
+      const pools = pickDayBeatPools(
+        slotPoolId(slot) as DaySlotId,
+        dayMood,
+        intimateMix,
+        allowCompanions,
+        random
+      );
       const fitsPlace = (pool: string[]) => {
         if (isDayAdultMood(dayMood) || !location) return pool;
         const fitting = pool.filter(beat => beatFitsSetting(beat, location));
@@ -2870,7 +2893,10 @@ export function diversifyDaySlotScenes(
       ) {
         usedLocations.delete(location.toLowerCase());
         const redrawn = pickUnusedPreset(
-          hostsBeat(settingPoolForDayMood(slot.id, dayMood, intimateMix), sceneHints),
+          hostsBeat(
+            settingPoolForDayMood(slotPoolId(slot) as DaySlotId, dayMood, intimateMix),
+            sceneHints
+          ),
           usedLocations,
           random
         );
@@ -5150,7 +5176,7 @@ export function buildDaySlotMotionSubject(slot: DaySlot, characterName?: string)
   const name = characterName?.trim() || 'the character';
   const hints = slot.sceneHints?.trim();
   const location = slot.location?.trim();
-  const motion = DAY_SLOT_MOTION_CUES[dayPartOf(slot.id)] || 'subtle natural motion, cinematic';
+  const motion = DAY_SLOT_MOTION_CUES[slotDayPart(slot)] || 'subtle natural motion, cinematic';
   return [
     `${name} during ${slot.label.toLowerCase()}`,
     location ? `at ${location}` : null,
