@@ -81,10 +81,10 @@ export function lineSeconds(text: string): number {
  * Someone doing something a still can show: a stance or an act. An action line without one is
  * atmosphere (“The café glows warm under string lights.”) — the pose guide guesses, and the
  * overnight episode's shots on such text missed their pose twice as often (2026-11-08: solo 5% vs
- * 0%, two-shots 10% vs 6%). Words as often nouns (sigh, hands, steps, waves, looks) left out.
+ * 0%, two-shots 10% vs 6%). Words as often nouns (sigh, hands, steps, waves) left out; “looks” only when it acts (looks at, around, up…).
  */
 export const DOING_RE =
-  /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?)\b/i;
+  /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?|looks? (?:at|around|up|down|out|away|back|over))\b/i;
 
 /** A cue's extension for a voice heard, not seen: V.O., O.S., O.C. (any dots). */
 const OFFSCREEN_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;

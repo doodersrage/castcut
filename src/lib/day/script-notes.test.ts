@@ -75,3 +75,10 @@ describe('script notes', () => {
   });
 });
 
+
+describe('looking counts when it acts', () => {
+  it('“She looks around.” is someone doing something', () => {
+    const scene = parseScript('INT. CAFE - DAY\n\nShe looks around.\n\nLENA\nHello?\n').scenes[0]!;
+    assert.deepEqual(scriptNotes({ scriptId: 's', scene }), []);
+  });
+});
