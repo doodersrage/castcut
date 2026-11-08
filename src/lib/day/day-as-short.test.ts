@@ -240,3 +240,34 @@ describe('the board from its short (step 4a)', () => {
   });
 });
 
+describe('the board’s edits and its short (the 3D pose fix)', () => {
+  it('counts any edit to a moment — a pose too — as one the short must take', () => {
+    const posed = {
+      ...day,
+      slots: day.slots!.map(slot =>
+        slot.id === 'morning' ? { ...slot, poseLayout: 'arms-up' } : slot
+      ),
+    } as DayToolCache;
+    assert.notEqual(dayShortFingerprint(posed), dayShortFingerprint(day));
+  });
+
+  it('keeps what a Scene doesn’t (the event’s move) when the board takes its short', () => {
+    const evented = {
+      ...day,
+      slots: day.slots!.map(slot =>
+        slot.id === 'afternoon' ? { ...slot, eventMove: 'puts down her cup' } : slot
+      ),
+    } as DayToolCache;
+    const short = dayAsShort({ day: evented, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const scenes = short.scenes.map(scene =>
+      scene.fromDaySlot === 'afternoon'
+        ? { ...scene, slot: { ...scene.slot, line: 'Hi.' } }
+        : scene
+    );
+    const slots = dayMomentsFromShort(evented, scenes, { castId: 'mara', scriptId: short.script.id })!;
+    const afternoon = slots.find(slot => slot.id === 'afternoon')!;
+    assert.equal(afternoon.line, 'Hi.');
+    assert.equal(afternoon.eventMove, 'puts down her cup');
+  });
+});
+
