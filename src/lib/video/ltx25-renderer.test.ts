@@ -238,11 +238,21 @@ describe('LTX-2.5 talking clips', () => {
   });
 
   it('the kept voice as reference tokens: no LoRA, the first pass only, its audio kept (M11 T17)', () => {
-    for (const endImage of [undefined, 'end.png']) {
+    // With the face pass too (on by default): its node once took the encoder's id.
+    for (const [endImage, restoreFace] of [
+      [undefined, undefined],
+      ['end.png', undefined],
+      [undefined, 'codeformer-v0.1.0.pth'],
+    ] as const) {
       const { workflow } = convertVideoWorkflowToLtx25(wanClipGraph(), {
         ...(endImage ? { endImage } : {}),
-        speech: { voiceSample: 'castcut-voice-nora.wav', voiceTokens: true },
+        speech: {
+          voiceSample: 'castcut-voice-nora.wav',
+          voiceTokens: true,
+          ...(restoreFace ? { restoreFace } : {}),
+        },
       }) as { workflow: G };
+      if (restoreFace) assert.equal(byClass(workflow, 'ReActorRestoreFace').length, 1);
       assert.equal(byClass(workflow, 'LTXVReferenceAudio').length, 0);
       assert.equal(byClass(workflow, 'LoraLoaderModelOnly').some(node => node.inputs!.lora_name === LTX25_ID_LORA), false);
       const tokens = byClass(workflow, 'LTXVSetAudioRefTokens');

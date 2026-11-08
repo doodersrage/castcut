@@ -703,13 +703,15 @@ function addLtx25Speech(
         next['57'] = { class_type: 'LTXVDualCFGGuider', inputs: { ...pass1 } };
         if (next['27']?.inputs) next['27'].inputs.guider = ['57', 0];
       }
-      next['59'] = {
+      // Its own id: '59' is the face pass below, which replaced this node — the tokens got a
+      // picture for an audio latent and every talking clip with a kept voice failed (2026-11-07).
+      next['63'] = {
         class_type: 'LTXVAudioVAEEncode',
         inputs: { audio: ['51', 0], audio_vae: ['4', 0] },
       };
       next['52'] = {
         class_type: LTX25_VOICE_TOKENS_NODE,
-        inputs: { positive: pass1.positive, negative: pass1.negative, audio_latent: ['59', 0] },
+        inputs: { positive: pass1.positive, negative: pass1.negative, audio_latent: ['63', 0] },
       };
       pass1.positive = ['52', 0];
       pass1.negative = ['52', 1];
