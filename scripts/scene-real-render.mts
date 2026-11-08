@@ -280,6 +280,9 @@ async function waitForClip(page: Page, label: string, before?: string, minutes =
     }
     const fresh = still?.clipPromptId && still.clipPromptId !== before;
     if (fresh && (still?.clipStatus === 'completed' || still?.clipStatus === 'error')) return still;
+    // Refused at queue: an error and no job of its own — nothing more will come.
+    if (!fresh && still?.clipStatus === 'error' && Date.now() - (until - minutes * 60_000) > 10_000)
+      return still;
     await page.waitForTimeout(5000);
   }
   throw new Error(`${label}: no clip within ${minutes} min (${last})`);
@@ -4115,6 +4118,110 @@ const phases: Record<string, Phase> = {
     for (const planned of shots.slice(0, 8)) log('   ', planned.purpose, '·', (planned.action ?? planned.line ?? '').slice(0, 110));
     if (!shots.length) problems.push('shortadult: no shots were planned');
     await shot(page, 'adult-planned');
+  },
+
+  /**
+   * How long a clip takes (whole-episode animation): three of the episode's Scenes animated one
+   * at a time — an action, a line (a talking clip) and a two-shot — each timed queue to clip.
+   */
+  async cliptime(_ctx, page) {
+    await go(page, `/scene?character=${V2_CAST}`);
+    const scenes = (await v2Scenes(page)) as Array<
+      V2Scene & { slot?: { sceneHints?: string; line?: string }; fromScript?: { scriptId: string } }
+    >;
+    const kept = scenes.filter(scene => scene.keptTakeId && scene.fromScript);
+    const picks = [
+      kept.find(scene => /Action/.test(scene.name) && !scene.slot?.line),
+      kept.find(scene => scene.slot?.line?.trim()),
+      kept.find(scene => scene.slot?.sceneHints?.includes('the two of them together')),
+    ].filter((scene): scene is (typeof kept)[number] => Boolean(scene));
+    for (const scene of picks) {
+      await go(page, `/scene?character=${V2_CAST}&scene=${scene.id}`);
+      await page.getByTestId('scene-animate').waitFor({ timeout: 60_000 });
+      const before = (await sceneStill(page))?.clipPromptId;
+      const started = Date.now();
+      await page.getByTestId('scene-animate').click();
+      await page.getByTestId('day-animate-sheet').waitFor({ timeout: 30_000 });
+      await page.getByTestId('day-animate-submit').click();
+      const still = await waitForClip(page, scene.name, before, 30);
+      log(
+        'clip',
+        scene.name,
+        scene.slot?.line ? '(a line)' : '',
+        '·',
+        still.clipStatus,
+        'in',
+        Math.round((Date.now() - started) / 1000),
+        's'
+      );
+    }
+  },
+
+  /**
+   * Make … Cast, live: the episode script's recurring parts not in the Cast, cast by the LLM and
+   * made Cast members with a plate each. SCENE_SCRIPT_ID picks the script (else the Cast's
+   * longest).
+   */
+  async makecast(_ctx, page) {
+    await go(page, `/scene?character=${V2_CAST}`);
+    const scripts = (await storedScripts(page)).filter(entry => entry.castId === V2_CAST) as Array<
+      StoredScript & { shots?: unknown[] }
+    >;
+    const script =
+      scripts.find(entry => entry.id === process.env.SCENE_SCRIPT_ID) ??
+      [...scripts].sort((a, b) => (b.shots?.length ?? 0) - (a.shots?.length ?? 0))[0];
+    if (!script) throw new Error('no script for the Cast');
+    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await openMore(page);
+    const recurring = page.getByTestId('script-recurring');
+    await recurring.waitFor({ timeout: 60_000 });
+    log('who comes back:', ((await recurring.textContent()) ?? '').trim().slice(0, 300));
+    const people = async () =>
+      page.evaluate(
+        () =>
+          new Promise<Array<{ id: string; name: string; plate?: string }>>(resolve => {
+            const request = indexedDB.open('comfy-prompt-studio-v1');
+            request.onsuccess = () => {
+              const get = request.result
+                .transaction('kv', 'readonly')
+                .objectStore('kv')
+                .get('comfy-prompt-characters-v1');
+              get.onsuccess = () => {
+                request.result.close();
+                const list = (get.result?.value?.characters ?? []) as Array<Record<string, unknown>>;
+                resolve(
+                  list.map(entry => ({
+                    id: String(entry.id),
+                    name: String(entry.name ?? ''),
+                    // The plate: the Cast's reference picture (or its active look's).
+                    plate: JSON.stringify(
+                      entry.reference ??
+                        (entry.looks as Array<{ reference?: unknown }> | undefined)?.[0]?.reference ??
+                        ''
+                    ).replace(/^""$/, ''),
+                  }))
+                );
+              };
+            };
+          })
+      );
+    const before = new Set((await people()).map(entry => entry.id));
+    const button = page.getByTestId('script-make-cast');
+    const started = Date.now();
+    await button.click();
+    // The button says what it is doing while it casts; it is itself again when done.
+    for (let waited = 0; waited < 40 * 60; waited += 10) {
+      await page.waitForTimeout(10_000);
+      const label = ((await button.textContent().catch(() => '')) ?? '').trim();
+      if (waited % 60 === 0) log('  ', label.slice(0, 120));
+      if (/^Make /.test(label) || !(await button.isVisible().catch(() => false))) break;
+    }
+    const made = (await people()).filter(entry => !before.has(entry.id));
+    log('made', made.length, 'Cast members in', Math.round((Date.now() - started) / 1000), 's');
+    for (const entry of made) log('   ', entry.name, '· plate', entry.plate ? 'yes' : 'NO');
+    if (!made.length) problems.push('makecast: no Cast member was made');
+    if (made.some(entry => !entry.plate)) problems.push('makecast: a Cast member has no plate');
+    await shot(page, 'make-cast');
   },
 
   async setup(_ctx, page) {

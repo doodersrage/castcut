@@ -83,7 +83,9 @@ export async function POST(request: Request) {
     return apiError('Writing an episode needs the LLM — turn it on in Settings → LLM.', 503);
   }
   const lead = text(body.lead, 40);
-  if (!lead) return apiError('Pick the Cast lead first.', 400);
+  // Casting a part (step 'part') reads its own lines; writing needs the lead. Asked of every step,
+  // Make … Cast was refused every time (it sends no lead; live 2026-11-07).
+  if (!lead && body.step !== 'part') return apiError('Pick the Cast lead first.', 400);
   const cast = castFrom(body.cast);
   const tone = text(body.tone, 60) || undefined;
   const call = (messages: ReturnType<typeof episodeOutlineMessages>, maxTokens: number) =>
