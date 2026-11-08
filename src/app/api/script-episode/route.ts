@@ -11,6 +11,7 @@ import {
   episodeLengthScenes,
   normalizeEpisodeScenes,
   episodeSceneMessages,
+  episodeReviseMessages,
   normalizeEpisodeHeading,
   parseEpisodeOutline,
   parseEpisodeScene,
@@ -156,6 +157,27 @@ export async function POST(request: Request) {
       );
       const written = parseEpisodeScene(reply, outline.scenes[index]!.heading);
       if (!written) return apiError('The model did not write that scene — try again.', 502);
+      return apiJson({ text: written });
+    }
+    if (body.step === 'revise') {
+      // A scene rewritten to fix its script notes (script-notes.ts).
+      const scene = text(body.scene, 8000);
+      const notes = (Array.isArray(body.notes) ? body.notes : [])
+        .map(note => text(note, 300))
+        .filter(Boolean)
+        .slice(0, 6);
+      const heading =
+        scene
+          .split('\n')
+          .find(line => line.trim())
+          ?.trim() ?? '';
+      if (!scene || !notes.length || !heading) {
+        return apiError('Send the scene and what to fix.', 400);
+      }
+      const reply = await call(episodeReviseMessages({ scene, notes, lead, cast, adult }), 1600);
+      const written = parseEpisodeScene(reply, normalizeEpisodeHeading(heading));
+      if (!written)
+        return apiError('The model did not rewrite the scene this time — try again.', 502);
       return apiJson({ text: written });
     }
     if (body.step === 'part') {

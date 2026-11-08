@@ -42,7 +42,17 @@ export type ContinuityRule =
   /** A shot drops what an earlier shot at the same story time carries over (M8 T6). */
   | 'state-dropped'
   /** Two shots of the same two people, same place and time: the lead swaps sides (180° rule). */
-  | 'crossed-line';
+  | 'crossed-line'
+  /** Script notes (day/script-notes.ts): three or more people speak on screen in one scene. */
+  | 'script-many'
+  /** A spoken line over NOTE_LINE_WORDS words. */
+  | 'script-long-line'
+  /** A montage, flashback, crowd, a car driving off… in the action. */
+  | 'script-unfilmable'
+  /** A camera direction in the action (shots are planned). */
+  | 'script-camera'
+  /** Lines with no action line: nothing seen happening. */
+  | 'script-no-action';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

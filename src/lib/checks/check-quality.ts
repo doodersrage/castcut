@@ -30,6 +30,11 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'location-unset': 'Script: recurring place with no location',
   'state-dropped': 'Cut: carried state dropped',
   'crossed-line': 'Cut: crosses the line (180°)',
+  'script-many': 'Script: three or more on screen',
+  'script-long-line': 'Script: long lines',
+  'script-unfilmable': 'Script: hard to film',
+  'script-camera': 'Script: camera direction',
+  'script-no-action': 'Script: nothing seen happening',
 };
 
 const RULES = Object.keys(CONTINUITY_RULE_LABELS) as ContinuityRule[];

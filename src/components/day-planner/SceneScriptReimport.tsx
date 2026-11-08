@@ -34,6 +34,7 @@ export default function SceneScriptReimport({
   madeSceneIds,
   onApply,
   onClose,
+  initialText,
 }: {
   script: SavedScript;
   parsed: ParsedScript;
@@ -41,8 +42,10 @@ export default function SceneScriptReimport({
   madeSceneIds: ReadonlySet<string>;
   onApply: (next: SavedScript) => void;
   onClose: () => void;
+  /** A new version to review, written already (a script note fixed by the LLM). */
+  initialText?: string;
 }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initialText ?? '');
   const [drop, setDrop] = useState<ReadonlySet<string>>(new Set());
   const next = useMemo(() => (text.trim() ? parseScript(text) : null), [text]);
   const rows = useMemo(

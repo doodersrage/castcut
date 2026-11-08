@@ -435,6 +435,38 @@ export function episodeSceneMessages(input: {
 }
 
 /**
+ * A scene rewritten to fix its script notes (script-notes.ts, 2026-11-08): as little changed as
+ * the notes need — its heading, people, what happens and how it ends kept.
+ */
+export function episodeReviseMessages(input: {
+  scene: string;
+  notes: readonly string[];
+  lead: string;
+  cast: readonly EpisodeCastMember[];
+  adult?: boolean;
+}): ChatMessage[] {
+  return [
+    {
+      role: 'system',
+      content:
+        'You are a script editor. Rewrite ONE scene of a screenplay in Fountain format to fix the notes you are ' +
+        'given, changing as little as you can: keep its heading, its people, what happens and how it ends, and every ' +
+        'line that is fine. Reply with the scene only — no notes, no markdown. ' +
+        EPISODE_CRAFT_SCENE +
+        (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
+    },
+    {
+      role: 'user',
+      content: [
+        `The cast: ${castLine(input.lead, input.cast)}.`,
+        `The notes:\n${input.notes.map(note => `- ${note}`).join('\n')}`,
+        `The scene:\n${input.scene.trim()}`,
+      ].join('\n\n'),
+    },
+  ];
+}
+
+/**
  * A written scene, cleaned: fences and chatter gone, its own heading first (the outline's, when
  * the model wrote none or another), cut before a second heading. Null when there's nothing a
  * script reader takes as a scene.

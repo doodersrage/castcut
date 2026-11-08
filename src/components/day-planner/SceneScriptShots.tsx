@@ -57,6 +57,8 @@ export default function SceneScriptShots({
   onOpenScene,
   coverage,
   findings = [],
+  onFixNote,
+  fixingNote,
   onDecide,
   orphans = false,
   scriptShots,
@@ -79,6 +81,10 @@ export default function SceneScriptShots({
   /** What looks missing from its coverage, with your decision about each (S5). */
   findings?: ReadonlyArray<{ finding: ContinuityFinding; decision?: FindingDecision }>;
   onDecide?: (id: string, kind: FindingDecisionKind | null) => void;
+  /** A script note fixed by the LLM (a revision of this scene, reviewed before it's used). */
+  onFixNote?: (finding: ContinuityFinding) => void;
+  /** The note being fixed now. */
+  fixingNote?: string | null;
   /** Shots of scenes no longer in the script (S6): shown and removable, not drafted or made. */
   orphans?: boolean;
   /** Prepare a run over this scene's shots alone (nothing renders yet). */
@@ -422,6 +428,20 @@ export default function SceneScriptShots({
                 </Button>
               ) : (
                 <>
+                  {onFixNote && finding.source === 'Script notes' ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      loading={fixingNote === finding.id}
+                      loadingLabel="Rewriting"
+                      disabled={Boolean(fixingNote)}
+                      data-testid={`script-finding-fix-${finding.rule}`}
+                      title="Rewrite this scene with the LLM to fix it — you see the new version before it's used"
+                      onClick={() => onFixNote(finding)}
+                    >
+                      Fix with the LLM
+                    </Button>
+                  ) : null}
                   <Button
                     size="sm"
                     variant="ghost"

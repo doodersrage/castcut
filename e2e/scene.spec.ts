@@ -4334,3 +4334,53 @@ test('Write it titles each moment at one time; Time sets every moment', async ({
   await expect(page.getByTestId('day-progress-morning').first()).toContainText('Night');
   await expect(page.getByTestId('day-progress-morning').first()).toContainText('Last touches');
 });
+
+// Script notes (2026-11-08): what a still can't hold, flagged by rule; Fix with the LLM writes a
+// new version of that scene, reviewed before it's used.
+test('script notes flag a crowded scene; Fix with the LLM offers a new version to review', async ({ page }) => {
+  const asked: Array<Record<string, unknown>> = [];
+  await page.route('**/api/script-episode', async route => {
+    const body = route.request().postDataJSON() as Record<string, unknown>;
+    asked.push(body);
+    await route.fulfill({
+      json: { text: 'INT. CAFE - DAY\n\nLena wipes the counter while Rob counts the till.\n\nLENA\nFull day.\n\nROB\nBelieve it.\n' },
+    });
+  });
+  const source = [
+    'INT. CAFE - DAY',
+    '',
+    'A montage of the café filling up.',
+    '',
+    'LENA',
+    'Full day.',
+    '',
+    'ROB',
+    'Believe it.',
+    '',
+    'MAYA',
+    'Me too.',
+    '',
+    'EXT. BEACH - NIGHT',
+    '',
+    'Lena walks the shore.',
+    '',
+  ].join('\n');
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { scene: { scripts: [{ id: 'script-notes', castId: CAST, name: 'Notes', source, createdAt: 1, updatedAt: 1 }] } },
+  });
+  await openScriptPage(page, `character=${CAST}&script=script-notes`);
+  const cafe = page.getByTestId('script-scene-int-cafe-day');
+  await expect(cafe).toBeVisible({ timeout: 60_000 });
+  if ((await cafe.getAttribute('open')) === null) await cafe.locator('summary').click();
+  await expect(page.getByTestId('script-finding-script-many')).toContainText('3 people speak on screen here');
+  await expect(page.getByTestId('script-finding-script-unfilmable')).toContainText('montage');
+  await page.getByTestId('script-finding-fix-script-many').click();
+  // The rewrite comes back as a new version to review, nothing replaced yet.
+  await expect(page.getByTestId('script-reimport-text')).toHaveValue(/Lena wipes the counter while Rob counts the till/, { timeout: 30_000 });
+  await expect(page.getByTestId('script-reimport-text')).toHaveValue(/EXT\. BEACH - NIGHT/);
+  expect(asked[0]).toMatchObject({ step: 'revise' });
+  expect(String(asked[0]!.scene)).toContain('A montage of the café filling up.');
+  expect(String(asked[0]!.scene)).not.toContain('BEACH');
+});

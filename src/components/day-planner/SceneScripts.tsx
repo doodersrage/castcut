@@ -11,10 +11,13 @@ import {
 } from '@/lib/checks/finding-decisions';
 import {
   coverageFindings,
+  coverageSubject,
   coverageSummary,
   sceneCoverage,
   unsetPlaceShots,
 } from '@/lib/day/script-coverage';
+import { scriptNotes } from '@/lib/day/script-notes';
+import type { ContinuityFinding } from '@/lib/checks/findings';
 import { loadSettingsCache } from '@/lib/settings/cache';
 import EpisodeWriterSheet from '@/components/day-planner/EpisodeWriterSheet';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
@@ -554,6 +557,10 @@ export default function SceneScripts({
   }, []);
   const [error, setError] = useState<string | null>(null);
   const [reimporting, setReimporting] = useState(false);
+  /** A new version written by "Fix with the LLM", for the review to show (script-notes.ts). */
+  const [reimportText, setReimportText] = useState<string | undefined>(undefined);
+  const [fixingNote, setFixingNote] = useState<string | null>(null);
+  const [fixError, setFixError] = useState<string | null>(null);
   // The script as it was before the last new version went in, and the version that replaced it:
   // Undo is offered until the script changes again.
   const [reimportUndo, setReimportUndo] = useState<{
@@ -596,13 +603,17 @@ export default function SceneScripts({
       openParsed.scenes.map(scene => {
         const shots = shotsForScene(open.shots, scene.id);
         const counts = sceneCoverage(shots, scenes, cut);
-        const findings = coverageFindings({
-          scriptId: open.id,
-          scene,
-          shots,
-          coverage: counts,
-          unsetPlaces,
-        }).map(finding => ({ finding, decision: decided.get(finding.id) }));
+        // Script notes (what can't be filmed, by rule) from the words; coverage once it has shots.
+        const findings = [
+          ...scriptNotes({ scriptId: open.id, scene }),
+          ...coverageFindings({
+            scriptId: open.id,
+            scene,
+            shots,
+            coverage: counts,
+            unsetPlaces,
+          }),
+        ].map(finding => ({ finding, decision: decided.get(finding.id) }));
         return [scene.id, { counts, findings }] as const;
       })
     );
@@ -912,6 +923,57 @@ export default function SceneScripts({
   };
 
   /** Make the script's (or one scene's) planned shots into Scenes and list the run. */
+  /**
+   * A script note fixed by the LLM (script-notes.ts): its scene rewritten as little as the note
+   * needs, put back in the script, and shown as a new version to review (Reimport) — nothing is
+   * replaced until you apply it there.
+   */
+  const fixNote = async (finding: ContinuityFinding) => {
+    if (!open || !openParsed || !llmBody || fixingNote) return;
+    const scene = openParsed.scenes.find(
+      entry => coverageSubject(open.id, entry.id) === finding.subject
+    );
+    if (!scene) return;
+    setFixingNote(finding.id);
+    setFixError(null);
+    try {
+      const lines = open.source.split('\n');
+      const response = await fetch('/api/script-episode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          ...llmBody,
+          step: 'revise',
+          lead: castName ?? 'the lead',
+          cast: cast.map(member => ({
+            name: member.name,
+            ...(member.sex ? { sex: member.sex } : {}),
+          })),
+          ...(open.mood && scriptMoodIsAdult(open.mood) && adultAllowed ? { adult: true } : {}),
+          scene: lines.slice(scene.from - 1, scene.to).join('\n'),
+          notes: [`${finding.evidence} — ${finding.suggestion}`],
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { text?: string; error?: string };
+      if (!response.ok || !data.text) throw new Error(data.error ?? 'not rewritten');
+      const next = [
+        ...lines.slice(0, scene.from - 1),
+        ...data.text.trimEnd().split('\n'),
+        '',
+        ...lines.slice(scene.to),
+      ].join('\n');
+      setReimportText(next);
+      setReimporting(true);
+    } catch (error) {
+      setFixError(
+        `Not fixed: ${error instanceof Error ? error.message : 'the LLM did not answer'} — try again.`
+      );
+    } finally {
+      setFixingNote(null);
+    }
+  };
+
   const prepare = (onlySceneId?: string) => {
     if (open && openParsed) prepareFor(open, openParsed, onlySceneId);
   };
@@ -1202,12 +1264,26 @@ export default function SceneScripts({
               {prepareNote}
             </p>
           ) : null}
+          {fixError ? (
+            <p
+              className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
+              role="status"
+              data-testid="script-fix-error"
+            >
+              {fixError}
+            </p>
+          ) : null}
           {reimporting ? (
             <SceneScriptReimport
+              key={reimportText ?? 'by-hand'}
+              initialText={reimportText}
               script={open}
               parsed={openParsed}
               madeSceneIds={madeSceneIds}
-              onClose={() => setReimporting(false)}
+              onClose={() => {
+                setReimporting(false);
+                setReimportText(undefined);
+              }}
               onApply={next => {
                 setReimportUndo({ before: open, applied: next });
                 update({
@@ -1216,6 +1292,7 @@ export default function SceneScripts({
                   ),
                 });
                 setReimporting(false);
+                setReimportText(undefined);
               }}
             />
           ) : null}
@@ -1317,6 +1394,10 @@ export default function SceneScripts({
                     coverage={sceneCov ? coverageSummary(sceneCov.counts) : ''}
                     findings={sceneCov?.findings}
                     onDecide={(id, kind) => (kind ? decideFinding(id, kind) : undecideFinding(id))}
+                    {...(llmBody
+                      ? { onFixNote: (finding: ContinuityFinding) => void fixNote(finding) }
+                      : {})}
+                    fixingNote={fixingNote}
                     scene={scene}
                     sceneIndex={sceneIndex}
                     shots={sceneShots}
