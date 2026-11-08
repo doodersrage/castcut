@@ -9,6 +9,75 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.9.0] - 2026-11-08
+
+- README: read lines are directed and acted; the optional voice engine
+- Make … Cast works: casting a part no longer asks for a Cast lead
+- Talking clips with a kept voice render again: the voice encoder had the face pass's node id
+- README screenshots retaken with Short; the Film page's last 'Day' labels say Short
+- Driver: shortadult keeps the written script (Keep this script) before reading it
+- A Scene from a '-3' moment keeps its place and beat
+- episode-server.sh copies the .env files in; the driver retries Write the day
+- scripts/episode-server.sh: a production server for long unattended runs
+- A short's new moment gets its own Scene, not the id of the one after it
+- A rewritten moment's old take stays unkept on the next sync too
+- A moment written anew on Short is rendered again, not shown with its old take
+- Real-render driver: Short phases (shortmake, shortsync); a long cut is waited for 12 hours
+- Write the day fills every moment: 'striped' isn't adult, and dropped beats are asked again
+- Music cues at one loudness, under the dialogue
+- Scene lines at full level: the music no longer drowns them
+- Read lines sound acted in a scene, not read for an audiobook
+- Read lines are directed: each is said the way its moment asks
+- A long server encode is waited for, and a failed one isn't re-recorded without its sound
+- The voice engine lets go of the GPU when it isn't reading
+- Cut's autopilot cuts with the music it just made
+- Six more Claude Code skills: unit tests, run review, lib layout, stored data, Python add-ons, Docker
+- CI back to green: the voice engine is shared code, and Short's specs say Short
+- Claude Code project skills replace the Cursor rules
+- Voice engine: Cut's lines read in each kept voice with Qwen3-TTS, shipped with Castcut
+- A shot of the lead alone leaves out what someone else does
+- Read lines go on the speaker's seed alone when their voice is Cut's base voice
+- Cut remembers the lines it read: cutting again reuses them
+- Short's layout: the idea row starts it, one panel above the action bar renders it
+- Short's idea row: two buttons side by side, and a line saying which makes what
+- Write the next one: a script, and a short, go on to the next
+- Archive a script to a file and bring it back
+- Make the short can animate; Cut this short opens Cut on the short alone
+- Runs resume by themselves after a reload, and say when they finish
+- Short: adult shot planning, the short's run progress on Short, long-Day checks
+- Short: any number of moments on the board, and adult writing for the script writer
+- Short and its short stay in step
+- Short buildout: every mood, one short per Day, and one script's Scenes in Cut
+- Make the short: Short renders through the script road
+- Day is now Short, on the script road: one import, and a Day as a script
+- Make it a short: Day's idea becomes a script of any number of scenes
+- Make the episode: an autopilot from the written episode to its cut, and the guide
+- Scene shots keep their planned framing in the cut, cropped to the film's shape
+- e2e: retired Look links wait for a dev server's streamed redirect
+- Who's who makes recurring parts Cast members; an episode run can animate only the shots with a line
+- Remove the episode redo on Edit 2511
+- A run whose loop fails pauses and says why
+- Shot card menus open above sticky bars (portalled)
+- Episode run: wait out a moment without the run instead of throwing; driver skips a set engine
+- An episode run takes up to 600 Scenes
+- Episode driver: wait for the Cast chip before checking it; write only for the lead
+- Write an episode: an outline's token room grows with its scenes; a cut-off one keeps its whole scenes
+- Episode driver: eprun sets the stills' engine before the run (EPISODE_ENGINE)
+- Read lines keep one voice a speaker: their own seed, and a base voice when they have none
+- Action check: ask only what she does — not the sea, a title, a memory or the crowd
+- Write an episode: a scene for every 45 seconds, as Castcut cuts one
+- A script Scene keeps its line through new takes
+- A script's Scenes keep one outfit for the day and one for the evening
+- Outfit check: the second look runs on the still alone when the review is an identity pair
+- Widen stills to 16:9 for every wide cut, kept between cuts
+- Read the lines on stills reads the lead's lines too; the episode driver fails without music
+- Script Scenes show the partner: a shot of them renders the two of them
+- Content Credentials (C2PA): rendered films are signed as made with AI, in Castcut
+- Episode runs redo a Qwen-Image 2.1 hand-and-prop miss on Edit 2511; phone take cards fit
+- Episode driver: count kept, flagged and redos from the run's records, not its capped log
+- README: retake the screenshots on the current UI
+- README: Script and episodes, Cut in depth, Film Director, Node 24, engines as they are
+
 ## [v3.8.0] - 2026-11-06
 
 - Part 19 G4: music by scene ducks under the lines, in cues a long film can use
