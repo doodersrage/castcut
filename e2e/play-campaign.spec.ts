@@ -4918,7 +4918,7 @@ test('Day from an idea writes every slot from one line', async ({ page }) => {
   await expect(input).toBeVisible({ timeout: 30_000 });
   await input.fill('a slow Sunday in Lisbon');
   await page.getByTestId('day-idea-write').first().click();
-  await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 20_000 });
+  await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 20_000 });
   await expect(page.getByTestId('day-progress-scene-morning').first()).toContainText('ferry');
   await expect(page.getByTestId('day-progress-scene-night').first()).toContainText('windowsill');
 });

@@ -166,3 +166,28 @@ describe('the next one', () => {
     assert.equal(seed.mood, 'vacation');
   });
 });
+
+describe('the writer’s craft (2026-11-08)', () => {
+  it('asks the outline for wants, turns, planted details and a shape for its length', () => {
+    const base = { premise: 'x', lead: 'Lena', cast: [] as never, minutes: 10 };
+    const short = episodeOutlineMessages({ ...base, scenes: 6 })[0]!.content;
+    const episode = episodeOutlineMessages(base)[0]!.content;
+    for (const text of [short, episode]) {
+      assert.match(text, /what she wants and what stands in her way/);
+      assert.match(text, /every scene turns something/);
+      assert.match(text, /pay off near the end/);
+      assert.match(text, /at most two people seen together/);
+    }
+    assert.match(short, /set-up, a complication, a turn, a resolution/);
+    assert.match(episode, /three acts/);
+  });
+
+  it('asks each scene to start late, end on a turn, keep lines short and be filmable', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. CAFE - DAY', summary: 's', who: [] }] };
+    const text = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [] as never })[0]!.content;
+    assert.match(text, /Come in late and leave early/);
+    assert.match(text, /under fifteen words a line/);
+    assert.match(text, /on a phone call we hear her side only/);
+    assert.match(text, /no camera directions/);
+  });
+});

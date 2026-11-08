@@ -22,6 +22,8 @@ import {
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
+  daySlotDefaultLabel,
+  daySlotTimePhrase,
   daySlotClipProgressState,
   daySlotPlanLabel,
   daySlotProgressState,
@@ -934,7 +936,12 @@ export default function DaySlotBoard({
                     {/* Screen-reader only: the accent border already marks the slot being edited. */}
                     {selected ? <span className="sr-only">Editing</span> : null}
                   </div>
-                  <p className="type-caption text-[var(--text-muted)]">{label}</p>
+                  <p className="type-caption text-[var(--text-muted)]">
+                    {/* A titled moment says its time here (an untitled one's title is its time). */}
+                    {slot.label.trim().toLowerCase() !== daySlotTimePhrase(slot)
+                      ? `${daySlotDefaultLabel(slot.timeOfDay ?? slot.id)} · ${label}`
+                      : label}
+                  </p>
                   {job?.percent != null ? (
                     <div
                       className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--bg-muted)]"

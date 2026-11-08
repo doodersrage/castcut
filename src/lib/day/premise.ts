@@ -11,7 +11,7 @@
 
 import type { ChatMessage } from '@/lib/llm/client';
 import { normalizeDayMood, type DaySlot } from '@/lib/day/planner';
-import { slotDayPart } from '@/lib/day/parts';
+import { DAY_PARTS, slotDayPart, type DayPart } from '@/lib/day/parts';
 
 export const DAY_PREMISE_MAX_LENGTH = 240;
 const BEAT_MAX = 200;
@@ -38,7 +38,15 @@ const IN_WATER_RE =
 const SECOND_PERSON_RE =
   /\b(partner|boyfriend|girlfriend|husband|wife|friend|friends|date|together|with (?:him|her|them)|both|couple|guests?|neighbou?rs?|strangers?|crowd)\b/i;
 
-export type DayPremiseBeat = { slotId: string; beat: string; setting: string };
+export type DayPremiseBeat = {
+  slotId: string;
+  beat: string;
+  setting: string;
+  /** The moment's title (2–5 words) — its card's and its Scene's name. */
+  title?: string;
+  /** When it happens, as the story has it (a short need not span a day). */
+  timeOfDay?: DayPart;
+};
 
 export function buildDayPremiseMessages(input: {
   premise: string;
@@ -54,8 +62,12 @@ export function buildDayPremiseMessages(input: {
     .map(beat => beat.replace(/\s+/g, ' ').trim().slice(0, BEAT_MAX))
     .filter(Boolean)
     .slice(0, 8);
+  // A moment's time is the story's to choose — unless one was chosen for it, then it is fixed.
   const slots = input.slotIds
-    .map(id => `"${id}" (${slotDayPart({ id, timeOfDay: input.slotTimes?.[id] })})`)
+    .map(id => {
+      const fixed = input.slotTimes?.[id];
+      return fixed ? `"${id}" (at ${slotDayPart({ id, timeOfDay: fixed })})` : `"${id}"`;
+    })
     .join(', ');
   const people = input.companions
     ? 'Some beats may include her partner or a friend; say so plainly ("with her partner").'
@@ -64,33 +76,33 @@ export function buildDayPremiseMessages(input: {
     {
       role: 'system',
       content: [
-        "You plan a photo story of one woman's day, one still photo per time slot.",
+        'You plan a short film about one woman: a handful of moments, one still photo each, in story order.',
+        'The moments are one continuous stretch of the story, close together — within an hour or two — so her clothes and the light carry from one to the next: give them the same time of day (morning, afternoon, evening or night), moving on at most once, gently (evening into night). A moment marked "at …" happens then. Each moment also gets a short title (2–5 words).',
         'Write each beat as ONE short line (under 25 words) that STARTS with her body position:',
         'sitting, standing, walking, leaning, lying, kneeling, crouching, dancing, or climbing the stairs —',
         'then what she is doing with her hands and where she is looking. One moment only, no sequence.',
         'Give each beat a short room / place (under 12 words) with its light.',
         'Fully clothed in every beat, everyday, non-sexual; never in a bath, shower or hot tub.',
-        'Follow the premise in time order, morning to night.',
+        'Follow the premise in story order.',
         people,
-        'Answer with JSON only: [{"slot":"<slot id>","beat":"...","setting":"..."}], one entry per slot.',
+        'Answer with JSON only: [{"slot":"<slot id>","title":"...","time":"morning|afternoon|evening|night","beat":"...","setting":"..."}], one entry per slot.',
       ].join(' '),
     },
     {
       role: 'user',
-      content:
-        'Premise: a lazy Sunday that ends with a dinner party\nSlots: "morning" (morning), "evening" (evening)',
+      content: 'Premise: she hosts her first dinner party\nSlots: "morning", "evening"',
     },
     {
       role: 'assistant',
       content:
-        '[{"slot":"morning","beat":"sitting cross-legged on the bed with a mug in both hands, looking out of the window","setting":"sunny bedroom with rumpled white sheets"},{"slot":"evening","beat":"standing at the set table raising a glass of wine, smiling at the guests off camera","setting":"candlelit dining room with a long table"}]',
+        '[{"slot":"morning","title":"Last touches","time":"evening","beat":"standing at the set table straightening a napkin, glancing at the door","setting":"candlelit dining room with a long table"},{"slot":"evening","title":"A toast","time":"evening","beat":"standing at the table raising a glass of wine, smiling at the guests off camera","setting":"candlelit dining room with a long table"}]',
     },
     {
       role: 'user',
       content: yesterday.length
         ? [
-            `Yesterday she was: ${yesterday.join('; ')}.`,
-            `Today is the next day${premise ? ` — ${premise}` : ''}. Continue her story: one beat follows on from something yesterday, and today's places are new, not yesterday's.`,
+            `In the short before, she was: ${yesterday.join('; ')}.`,
+            `This is the next short${premise ? ` — ${premise}` : ''}. Continue her story: one moment follows on from something in the last one, and its places are new.`,
             `Slots: ${slots}`,
           ].join('\n')
         : `Premise: ${premise}\nSlots: ${slots}`,
@@ -143,7 +155,15 @@ export function parseDayPremiseBeats(
     // one; keep Day's beat instead.
     if (!STANCE_LEAD_RE.test(beat)) return;
     seen.add(slotId);
-    out.push({ slotId, beat, setting });
+    const title = cleanLine(record.title, 40);
+    const time = cleanLine(record.time, 12).toLowerCase();
+    out.push({
+      slotId,
+      beat,
+      setting,
+      ...(title ? { title } : {}),
+      ...((DAY_PARTS as readonly string[]).includes(time) ? { timeOfDay: time as DayPart } : {}),
+    });
   });
   return out;
 }
@@ -158,6 +178,9 @@ export function applyDayPremiseBeats<T extends DaySlot>(slots: T[], beats: DayPr
       ...slot,
       sceneHints: beat.beat,
       location: beat.setting,
+      // Its title and when it happens, as the story has them (a time chosen for it was kept).
+      ...(beat.title ? { label: beat.title } : {}),
+      ...(beat.timeOfDay ? { timeOfDay: beat.timeOfDay } : {}),
       sceneHintsTyped: undefined,
       sceneHintsDay: undefined,
       // A pose picked for the old beat would fight the new one.

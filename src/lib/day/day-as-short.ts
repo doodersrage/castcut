@@ -88,15 +88,12 @@ export function dayShortFingerprint(day: DayToolCache): string {
       still.status === 'completed' ? still.promptId : '',
     ])
   );
-  return JSON.stringify(
-    momentsOf(day).map(slot => [
-      slot.id,
-      slot.location ?? '',
-      slot.sceneHints ?? '',
-      slot.line ?? '',
-      stills.get(slot.id) ?? '',
-    ])
-  ).concat(String(day.dayMood ?? ''));
+  // The whole moment (2026-11-08): a pose, camera, clothes or time edited on the board is a change
+  // the short must take — with the short as the record (4b), one it didn't take came back as the
+  // old pose when Short opened again (CI: the 3D pose editor's saved pose reverted to the preset).
+  return JSON.stringify(momentsOf(day).map(slot => [slot, stills.get(slot.id) ?? ''])).concat(
+    String(day.dayMood ?? '')
+  );
 }
 
 export type DayAsShort = {
@@ -348,7 +345,14 @@ export function dayMomentsFromShort(
     // Its time moved on Scene (the slot id there is its time): this moment, at that time.
     const part = slotDayPart(scene.slot);
     const timeOfDay = chosen ?? (part !== slotDayPart({ id: slot.id }) ? part : undefined);
-    return { ...held, id: slot.id, ...(timeOfDay ? { timeOfDay } : {}) } as DaySlot;
+    // What a Scene doesn't keep (the Day's event wiring, sceneFromDaySlot) stays the board's.
+    return {
+      ...held,
+      id: slot.id,
+      ...(timeOfDay ? { timeOfDay } : {}),
+      ...(slot.eventMove ? { eventMove: slot.eventMove } : {}),
+      ...(slot.sceneHintsDay ? { sceneHintsDay: slot.sceneHintsDay } : {}),
+    } as DaySlot;
   });
   const next = normalizeDaySlots(raw, day.dayLength);
   return JSON.stringify(next) === JSON.stringify(slots) ? null : next;

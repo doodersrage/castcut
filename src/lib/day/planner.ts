@@ -198,6 +198,35 @@ export function daySlotDefaultLabel(slotId: DaySlotId | string): string {
   return nth >= 3 ? `${label} ${nth}` : nth === 2 ? `Late ${label.toLowerCase()}` : label;
 }
 
+/**
+ * A moment's time as words ("late morning", "night") — its chosen time of day, else where it
+ * falls. The still's light and setting and the clip's motion read this, not the moment's label:
+ * the label is its title (2026-11-08 — it had to stay "Morning" for the light to be right).
+ */
+export function daySlotTimePhrase(slot: Pick<DaySlot, 'id' | 'timeOfDay'>): string {
+  return daySlotDefaultLabel(slot.timeOfDay ?? slot.id).toLowerCase();
+}
+
+/**
+ * The time of day a short's moments share, or null when they don't (2026-11-08: a short is one
+ * continuous stretch — moments jumping through a day don't cut together).
+ */
+export function shortTimeOf(slots: readonly Pick<DaySlot, 'id' | 'timeOfDay'>[]): DayPart | null {
+  const parts = new Set(slots.map(slot => slotDayPart(slot)));
+  return parts.size === 1 ? [...parts][0]! : null;
+}
+
+/** Every moment at one time of day; an untitled moment's title (its time) follows. */
+export function slotsAtTime<T extends DaySlot>(slots: readonly T[], part: DayPart): T[] {
+  return slots.map(slot => {
+    const untitled =
+      !slot.label.trim() ||
+      slot.label === daySlotDefaultLabel(slot.id) ||
+      slot.label === daySlotDefaultLabel(slotDayPart(slot));
+    return { ...slot, timeOfDay: part, ...(untitled ? { label: daySlotDefaultLabel(part) } : {}) };
+  });
+}
+
 /** Default (empty) slots for a Day of `length` slots. */
 export function daySlotsForLength(length: DayLength | number): DaySlot[] {
   return dayLengthSlotIds(length).map(id => ({
@@ -3663,7 +3692,7 @@ export function buildDaySlotPrompt(input: {
   const hints = slot.sceneHints?.trim();
   const notes = input.notes?.trim();
   const garmentDescription = input.garmentDescription?.trim();
-  const timeOfDay = slot.label.toLowerCase();
+  const timeOfDay = daySlotTimePhrase(slot);
   const dayMood = normalizeDayMood(input.dayMood);
   // Clothed moods: a baseline the Setting can host (adult beats own their rooms).
   const defaultPose = resolveDaySlotPoseBaseline(
@@ -5178,7 +5207,7 @@ export function buildDaySlotMotionSubject(slot: DaySlot, characterName?: string)
   const location = slot.location?.trim();
   const motion = DAY_SLOT_MOTION_CUES[slotDayPart(slot)] || 'subtle natural motion, cinematic';
   return [
-    `${name} during ${slot.label.toLowerCase()}`,
+    `${name} during ${daySlotTimePhrase(slot)}`,
     location ? `at ${location}` : null,
     hints ? hints : null,
     motion,

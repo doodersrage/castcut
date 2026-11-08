@@ -146,6 +146,7 @@ import {
   rerollDaySlotScene,
   upsertDaySlotStill,
   daySlotDefaultLabel,
+  slotsAtTime,
   clearDaySlotLine,
   dayStillShownImage,
   type DaySlotStill,
@@ -336,6 +337,7 @@ import {
 import { getReformatTargetModel } from '@/lib/edit/reformat-target';
 import { rememberDraftFields } from '@/lib/app/remember-draft-fields';
 import { isGalleryClipEntry } from '@/lib/story/roleplay-film';
+import { slotDayPart } from '@/lib/day/parts';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   DEFAULT_DAY_TOOL_CACHE,
@@ -3518,7 +3520,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     // New scenes for the whole day leave an event: its labels and moves go with it, or the event's
     // chained edits and flag-only reviews would carry on under the new scenes.
     const whole = slotsForWholeDay(slots, toolSettings.dayEvent, daySlotDefaultLabel);
-    const diversified = diversifyDaySlotScenes(whole.slots, {
+    // One stretch of time, not a tour of the day: with no time chosen on any moment, they all
+    // take the first one's before their scenes are picked (its presets for every moment).
+    const timed =
+      whole.slots.length && !whole.slots.some(slot => slot.timeOfDay)
+        ? slotsAtTime(whole.slots, slotDayPart(whole.slots[0]!))
+        : whole.slots;
+    const diversified = diversifyDaySlotScenes(timed, {
       forceLocations: true,
       forceBeats: true,
       fillBeats: true,
@@ -3526,13 +3534,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       dayMood: toolSettings.dayMood,
       intimateMix: toolSettings.intimateMix,
     });
-    if (diversified.changed || whole.leaves) {
+    if (diversified.changed || whole.leaves || timed !== whole.slots) {
       updateToolSettings({
         slots: diversified.slots,
         ...(whole.leaves ? { dayEvent: undefined } : {}),
       });
     }
-    return diversified.changed || whole.leaves;
+    return diversified.changed || whole.leaves || timed !== whole.slots;
   }, [
     slots,
     toolSettings.allowCompanions,

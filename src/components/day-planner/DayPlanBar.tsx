@@ -1,6 +1,7 @@
 'use client';
 
 import QualityPresetSegments from '@/components/ui/QualityPresetSegments';
+import { DAY_PARTS, type DayPart } from '@/lib/day/parts';
 import { SelectInput } from '@/components/ui/Field';
 import {
   DAY_QUALITY_PRESET_OPTIONS,
@@ -31,6 +32,12 @@ export type DayPlanBarProps = {
   busy?: boolean;
   dayLength?: DayLength;
   onDayLengthChange: (next: DayLength) => void;
+  /**
+   * The time of day the short's moments share (null: they differ) and setting it on them all —
+   * a short is one stretch of time (2026-11-08). Short only; Scene has its own.
+   */
+  shortTime?: DayPart | null;
+  onShortTimeChange?: (next: DayPart) => void;
   /** The mood flavor: `'raunchy'` shows as Intimate with Playful on. */
   dayMood: DayMoodSetting;
   onDayMoodChange: (next: DayMoodSetting) => void;
@@ -111,6 +118,8 @@ export default function DayPlanBar({
   busy = false,
   dayLength = DEFAULT_DAY_LENGTH,
   onDayLengthChange,
+  shortTime,
+  onShortTimeChange,
   dayMood,
   onDayMoodChange,
   onIntimatePlayfulChange,
@@ -228,6 +237,29 @@ export default function DayPlanBar({
               +
             </Button>
           </div>
+        ) : null}
+        {onShortTimeChange ? (
+          <label className={group}>
+            <span className={groupLabel}>Time</span>
+            <SelectInput
+              value={shortTime ?? ''}
+              disabled={busy}
+              aria-label="Time of day for every moment"
+              data-testid="day-short-time"
+              title="Every moment at this time of day — a short is one stretch of time, so its stills cut together"
+              className="!w-auto"
+              onChange={event => {
+                if (event.target.value) onShortTimeChange(event.target.value as DayPart);
+              }}
+            >
+              {shortTime ? null : <option value="">Mixed</option>}
+              {DAY_PARTS.map(part => (
+                <option key={part} value={part}>
+                  {part[0]!.toUpperCase() + part.slice(1)}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
         ) : null}
         <label className={group}>
           <span className={groupLabel}>Mood</span>
