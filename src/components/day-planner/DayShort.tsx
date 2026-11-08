@@ -274,13 +274,13 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           </Button>
         </div>
       ) : null}
-      {error ? (
+      {error || sync.autoError ? (
         <p
           className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
           role="status"
           data-testid="day-as-short-error"
         >
-          {error}
+          {error ?? sync.autoError}
         </p>
       ) : null}
     </div>

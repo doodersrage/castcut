@@ -60,8 +60,12 @@ silly / raunchy.
 !!! tip "This Day as a script"
     **This Day as a script →** copies the Day into a script: a scene for each moment with a place, a
     beat or a line (its place and time as the heading, the lead saying the line), each with its
-    Scene — the moment's still as its kept take. It opens on Scene: storyboard it, add moments,
+    Scene — the moment's still as its kept take. It opens on Script: storyboard it, add moments,
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
+
+    Every Short is a script: the first change you make to a Day — Write the day, a beat, a
+    template — makes its short by itself, a moment later. Opening an older Day makes nothing until
+    you change it.
 
     A Day has one short, and once made the two stay in step by themselves (_Its short: “…” — the
     board and its Scenes stay in step_): a take kept on a moment's Scene — by Make the short's run,

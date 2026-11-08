@@ -21,7 +21,9 @@ const SYNC_AFTER_MS = 1500;
  * - Short → short: the board's edits (Suggest day, One event, a beat, a template) go into the
  *   short's Scenes a moment after the last one — until the script is changed on Scene, when it
  *   is Scene's: then nothing is written, and this says so.
- * Only a Day with a short (its link) for this Cast; nothing is made here.
+ * - Every Short is a script (2026-11-08): a Day with no short for this Cast gets one at its
+ *   first edit — what it held when the page opened is not an edit, so opening an old Day makes
+ *   nothing; it links on its next change. Never drops another script to make room (said instead).
  */
 export function useDayShortSync(input: {
   character: CharacterRecord | null | undefined;
@@ -30,11 +32,12 @@ export function useDayShortSync(input: {
   stills: DaySlotStill[];
   link: DayShortLink | undefined;
   updateDay: (patch: Partial<DayToolCache>) => void;
-}): { scriptName: string | null; scenesOwn: boolean } {
+}): { scriptName: string | null; scenesOwn: boolean; autoError: string | null } {
   const { character, toolSettings, slots, stills, link, updateDay } = input;
   const castId = character?.id ?? '';
   const scriptId = castId && link?.castId === castId ? link.scriptId : '';
   const [scenesOwn, setScenesOwn] = useState(false);
+  const [autoError, setAutoError] = useState<string | null>(null);
   const script = scriptId
     ? loadSceneScriptStore().scripts.find(entry => entry.id === scriptId)
     : undefined;
@@ -78,5 +81,32 @@ export function useDayShortSync(input: {
     return () => window.clearTimeout(timer);
   }, [castId, fingerprint, linkedFingerprint, script]);
 
-  return { scriptName: script?.name ?? null, scenesOwn };
+  // No short for this Cast yet: the board's first edit makes it (the Day as it was when the page
+  // opened, or the Cast was picked, is the baseline — not an edit).
+  const dayPrint = castId ? dayShortFingerprint(day) : '';
+  const [baseline, setBaseline] = useState<{ castId: string; print: string } | null>(null);
+  if (script ? baseline !== null : Boolean(castId) && baseline?.castId !== castId) {
+    setBaseline(script ? null : { castId, print: dayPrint });
+  }
+  const edited =
+    !script &&
+    Boolean(castId && dayPrint) &&
+    baseline?.castId === castId &&
+    baseline.print !== dayPrint;
+  useEffect(() => {
+    if (!edited) return;
+    const timer = window.setTimeout(() => {
+      const { day: now, updateDay: update, leadName } = latest.current;
+      const result = saveDayAsShort({ day: now, castId, leadName });
+      if ('link' in result) {
+        setAutoError(null);
+        update({ shortLink: result.link });
+      } else if ('error' in result && !/^Nothing to make/.test(result.error)) {
+        setAutoError(result.error);
+      }
+    }, SYNC_AFTER_MS);
+    return () => window.clearTimeout(timer);
+  }, [castId, dayPrint, edited]);
+
+  return { scriptName: script?.name ?? null, scenesOwn, autoError: script ? null : autoError };
 }

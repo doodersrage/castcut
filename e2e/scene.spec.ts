@@ -4009,3 +4009,48 @@ test('the Scene list shows a script’s Scenes by its scenes, filters them, and 
   await expect(page.getByTestId('scene-list-source')).toHaveValue('loose');
   expect(await axeBlocking(page)).toEqual([]);
 });
+
+// Every Short is a script (2026-11-08): opening Short makes nothing; its first edit makes its short.
+test('a Short’s first edit makes its short script; opening it makes nothing', async ({ page }) => {
+  await page.route('**/api/day-premise', route =>
+    route.fulfill({
+      json: {
+        beats: [
+          { slotId: 'morning', beat: 'pouring coffee at the counter', setting: 'small kitchen' },
+          { slotId: 'afternoon', beat: 'reading on a bench', setting: 'park' },
+          { slotId: 'evening', beat: 'laughing at the rail', setting: 'rooftop bar' },
+          { slotId: 'night', beat: 'reading in bed', setting: 'bedroom' },
+        ],
+      },
+    })
+  );
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(4000);
+  expect(await storedScripts(page)).toBe('0');
+  // An edit: Write the day.
+  await expect(async () => {
+    await input.fill('a slow Sunday at home');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+  }).toPass({ timeout: 60_000 });
+  await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(new RegExp(`^1\\|${CAST}\\|`));
+});
