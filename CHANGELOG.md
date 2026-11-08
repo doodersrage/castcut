@@ -9,6 +9,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.11.0] - 2026-11-08
+
+- Looking around counts as doing something; the writer specs answer a scene's rewrite
+- A line is said during what someone does, not during the scene's atmosphere
+- Script writer: the story so far, newcomers introduced, each scene checked, a series remembered
+- Script notes: what a still can't hold, flagged by rule — and fixed by the LLM on request
+- A voice heard, not seen: V.O. and O.S. lines are shot on who hears them
+- Script writer knows the Cast and places, sees an example, and splits long lines
+- Short ↔ its short: every edit to a moment goes in, not only its words
+- Script writer: screenwriting craft and what Castcut can film
+- A short is one stretch of time: Write it titles its moments; one Time for them all
+- Short step 4c (1 of 2): every Short with moments has its short
+- Short step 4b: the short is the record — a moment edited on its Scene is the board's
+- Short step 4a: the board's moments can be read back from its short
+
 ## [v3.10.0] - 2026-11-08
 
 - A Short moment's time of day is chosen, not fixed by where it falls
