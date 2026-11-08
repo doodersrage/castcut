@@ -35,6 +35,13 @@ export type SavedScript = {
    * Unset: the Scene page's own mood, as before.
    */
   mood?: string;
+  /**
+   * What the episode made true, as its writer noted it scene by scene (2026-11-08) — the next
+   * one in a series is written knowing it. Written episodes only.
+   */
+  summary?: string;
+  /** The script this one follows on from (Write the next one): a series, read back for its summary. */
+  follows?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -60,6 +67,8 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
   const placeMap = normalizeScriptPlaceMap(script.placeMap);
   const shots = normalizePlannedShots(script.shots);
   const mood = text(script.mood, 40);
+  const summary = text(script.summary, 1600);
+  const follows = text(script.follows, 80);
   return {
     id,
     castId,
@@ -69,6 +78,8 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
     ...(placeMap ? { placeMap } : {}),
     ...(shots ? { shots } : {}),
     ...(mood ? { mood } : {}),
+    ...(summary ? { summary } : {}),
+    ...(follows ? { follows } : {}),
     createdAt,
     updatedAt: time(script.updatedAt, createdAt),
   };
@@ -145,9 +156,14 @@ export function createScript(input: {
   id?: string;
   /** The mood its Scenes are made in (unset: the Scene page's). */
   mood?: string | null;
+  /** A written episode's summary (its story notes) and the script it follows on from. */
+  summary?: string | null;
+  follows?: string | null;
 }): SavedScript | null {
   const now = input.now ?? Date.now();
   const mood = input.mood?.trim().slice(0, 40);
+  const summary = input.summary?.trim().slice(0, 1600);
+  const follows = input.follows?.trim().slice(0, 80);
   const source = input.source.replace(/\r\n?/g, '\n');
   if (!input.castId.trim() || !source.trim() || source.length > SCRIPT_SOURCE_MAX) return null;
   return {
@@ -156,9 +172,39 @@ export function createScript(input: {
     name: (input.name?.trim() || scriptNameOf(parseScript(source))).slice(0, 80),
     source,
     ...(mood ? { mood } : {}),
+    ...(summary ? { summary } : {}),
+    ...(follows ? { follows } : {}),
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/**
+ * A series so far (2026-11-08): the summaries of the episodes `script` follows on from, oldest
+ * first, then its own — up to `depth` back. Episodes with no summary (imported, from Short) are
+ * named with nothing more. Pure.
+ */
+export function seriesSoFar(
+  script: Pick<SavedScript, 'name' | 'summary' | 'follows'>,
+  scripts: readonly Pick<SavedScript, 'id' | 'name' | 'summary' | 'follows'>[],
+  depth = 3
+): string {
+  const chain: Array<Pick<SavedScript, 'name' | 'summary'>> = [script];
+  const seen = new Set<string>();
+  let at = script.follows;
+  while (at && chain.length <= depth && !seen.has(at)) {
+    seen.add(at);
+    const earlier = scripts.find(entry => entry.id === at);
+    if (!earlier) break;
+    chain.unshift(earlier);
+    at = earlier.follows;
+  }
+  return chain
+    .map(
+      entry => `“${entry.name.trim()}”${entry.summary?.trim() ? `: ${entry.summary.trim()}` : ''}`
+    )
+    .join('\n')
+    .slice(-2400);
 }
 
 export type ScriptsCache = {

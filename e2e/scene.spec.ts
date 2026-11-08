@@ -1316,6 +1316,8 @@ test('Write an episode: an outline, scenes written one by one, kept as a script'
   let sceneCalls = 0;
   await page.route('**/api/script-episode', async route => {
     const sent = route.request().postDataJSON() as { step: string; index?: number; before?: string; outline?: { scenes: { heading: string }[] } };
+    // The story-so-far note after each scene (2026-11-08): nothing to add here.
+    if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     steps.push(sent.index === undefined ? sent.step : `${sent.step}:${sent.index}`);
     if (sent.step === 'outline') {
       await route.fulfill({
@@ -1456,6 +1458,8 @@ test('Make the episode: the autopilot keeps, plans, prepares and starts the run'
       index?: number;
       outline?: { scenes: { heading: string }[] };
     };
+    // The story-so-far note after each scene (2026-11-08): nothing to add here.
+    if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     if (sent.step === 'outline') {
       await route.fulfill({
         json: {
@@ -3142,6 +3146,8 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
   });
   await page.route('**/api/script-episode', async route => {
     const sent = route.request().postDataJSON() as { step: string; index?: number; outline?: { scenes: { heading: string }[] } };
+    // The story-so-far note after each scene (2026-11-08): nothing to add here.
+    if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     if (sent.step === 'outline') {
       await route.fulfill({
         json: {

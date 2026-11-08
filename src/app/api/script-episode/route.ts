@@ -12,6 +12,7 @@ import {
   normalizeEpisodeScenes,
   episodeSceneMessages,
   episodeReviseMessages,
+  episodeStoryNoteMessages,
   normalizeEpisodeHeading,
   parseEpisodeOutline,
   parseEpisodeScene,
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
             scenes,
             tone,
             adult,
+            series: text(body.series, 2400) || undefined,
             places: (Array.isArray(body.places) ? body.places : [])
               .map(place => text(place, 60))
               .filter(Boolean)
@@ -150,6 +152,7 @@ export async function POST(request: Request) {
           lead,
           cast,
           before: text(body.before, 1200),
+          story: text(body.story, 1600) || undefined,
           tone,
           adult,
         }),
@@ -158,6 +161,21 @@ export async function POST(request: Request) {
       const written = parseEpisodeScene(reply, outline.scenes[index]!.heading);
       if (!written) return apiError('The model did not write that scene — try again.', 502);
       return apiJson({ text: written });
+    }
+    if (body.step === 'note') {
+      // The story so far: what this scene made true, for the next ones (2026-11-08).
+      const scene = text(body.scene, 8000);
+      if (!scene) return apiError('Send the scene.', 400);
+      const reply = await call(
+        episodeStoryNoteMessages({ scene, story: text(body.story, 1600) || undefined }),
+        220
+      );
+      const note = (reply ?? '')
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
+      return apiJson({ text: note });
     }
     if (body.step === 'revise') {
       // A scene rewritten to fix its script notes (script-notes.ts).

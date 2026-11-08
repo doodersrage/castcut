@@ -119,6 +119,10 @@ export type EpisodeWriteSeed = {
   scenes: number;
   /** Short's mood (or theme): kept with the script, its Scenes made in it. */
   mood?: string;
+  /** Write the next one: the script it follows on from (kept with the new one). */
+  follows?: string;
+  /** The series so far (seriesSoFar): the episodes before, for the outline to follow on from. */
+  series?: string;
 };
 
 const DAY_MOOD_TONES: Record<string, string> = {
@@ -235,7 +239,9 @@ export const EPISODE_CRAFT_SCENE =
   'feel, they talk around it; no speeches that explain the plot; people rarely say each other’s names; each ' +
   'person sounds like themselves. Nobody talks to themselves for long. Someone heard but not seen (on the ' +
   'phone, from another room) has (V.O.) after their name — the shot stays on who hears them. Pay off what the ' +
-  'outline planted. ' +
+  'outline planted. Someone not in the cast list is introduced the first time they appear, in the action: ' +
+  'their name in capitals, their age and a few words of how they look and what they wear. The cast are dressed ' +
+  'already — never describe their clothes. ' +
   EPISODE_FILMABLE;
 
 export function episodeOutlineMessages(input: {
@@ -250,6 +256,8 @@ export function episodeOutlineMessages(input: {
   adult?: boolean;
   /** The film's places (its Locations' names). */
   places?: readonly string[];
+  /** The series so far: the episodes this one follows on from. */
+  series?: string;
 }): ChatMessage[] {
   const scenes = normalizeEpisodeScenes(input.scenes);
   const count = scenes ?? episodeSceneCount(input.minutes);
@@ -269,6 +277,9 @@ export function episodeOutlineMessages(input: {
     {
       role: 'user',
       content: [
+        input.series?.trim()
+          ? `The series so far — this episode follows on, keeping it true:\n${input.series.trim()}`
+          : '',
         `Premise: ${input.premise.trim()}`,
         `The lead: ${input.lead}. The cast to use: ${castLine(input.lead, input.cast)}. Add other people only if the story needs them.`,
         placesLine(input.places),
@@ -392,6 +403,8 @@ export function episodeSceneMessages(input: {
   cast: readonly EpisodeCastMember[];
   /** The end of the scene before, as written (its last lines). */
   before?: string;
+  /** What the scenes so far made true (episodeStoryNoteMessages), for this one to keep. */
+  story?: string;
   tone?: string;
   adult?: boolean;
 }): ChatMessage[] {
@@ -424,6 +437,7 @@ export function episodeSceneMessages(input: {
         `The cast: ${castLine(input.lead, input.cast)}.`,
         input.tone?.trim() ? `Tone: ${input.tone.trim()}.` : '',
         `The episode's scenes:\n${list}`,
+        input.story?.trim() ? `The story so far — keep it true:\n${input.story.trim()}` : '',
         input.before?.trim() ? `How the scene before ended:\n${input.before.trim()}` : '',
         `Write scene ${input.index + 1}: ${scene.heading} — ${scene.summary}` +
           (scene.who.length ? ` (with ${scene.who.join(', ')})` : ''),
@@ -432,6 +446,46 @@ export function episodeSceneMessages(input: {
         .join('\n\n'),
     },
   ];
+}
+
+/**
+ * The story so far (2026-11-08): after each scene, what the next ones must keep true — who now
+ * knows or has what, promises, what someone now wears or carries — so a script doesn't drift
+ * (an outline had her inherit the café and him be its owner). One small call a scene.
+ */
+export function episodeStoryNoteMessages(input: { scene: string; story?: string }): ChatMessage[] {
+  return [
+    {
+      role: 'system',
+      content:
+        'You keep a script’s continuity. From the scene below, write what the next scenes must keep true, in one ' +
+        'to three short plain sentences: what changed, who now knows or has what, promises made, anything someone ' +
+        'now wears, carries or has been through. Only what this scene adds. Plain text, no lists.',
+    },
+    {
+      role: 'user',
+      content: [
+        input.story?.trim() ? `Already true:\n${input.story.trim()}` : '',
+        `The scene:\n${input.scene.trim()}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    },
+  ];
+}
+
+/** The story so far: the notes in order, the oldest dropped past `max` characters. */
+export function episodeStorySoFar(notes: readonly string[], max = 1400): string {
+  const kept: string[] = [];
+  let length = 0;
+  for (const note of [...notes].reverse()) {
+    const clean = note.replace(/\s+/g, ' ').trim();
+    if (!clean) continue;
+    if (length + clean.length > max) break;
+    kept.unshift(clean);
+    length += clean.length + 1;
+  }
+  return kept.join('\n');
 }
 
 /**
@@ -559,8 +613,11 @@ export function episodeFountain(
  * the same number of scenes, the same mood. The writer knows the Cast already.
  */
 export function nextEpisodeSeed(script: {
+  id?: string;
   name: string;
   mood?: string;
+  /** The series so far, up to and including this one (seriesSoFar). */
+  series?: string;
   scenes: ReadonlyArray<{
     heading: string;
     elements: ReadonlyArray<{ kind: string; text: string; speaker?: string }>;
@@ -594,5 +651,7 @@ export function nextEpisodeSeed(script: {
     premise,
     scenes: normalizeEpisodeScenes(script.scenes.length) ?? EPISODE_SCENES_MIN,
     ...(script.mood?.trim() ? { mood: script.mood.trim().slice(0, 40) } : {}),
+    ...(script.id ? { follows: script.id } : {}),
+    ...(script.series?.trim() ? { series: script.series.trim() } : {}),
   };
 }

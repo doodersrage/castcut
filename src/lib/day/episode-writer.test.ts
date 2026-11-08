@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
+import { createScript, normalizeSavedScript, seriesSoFar } from './scene-scripts';
 import {
   episodeFountain,
   episodeOutlineMessages,
   episodeOutlineTokens,
   episodeSceneCount,
   episodeSceneMessages,
+  episodeStoryNoteMessages,
+  episodeStorySoFar,
   splitLongLines,
   episodeSceneTail,
   normalizeEpisodeHeading,
@@ -239,5 +242,55 @@ describe('long lines', () => {
     ]);
     assert.match(out, /LENA\n\(dry\)\nI came here/);
     assert.equal(splitLongLines('INT. CAFE - DAY\n\nShe sits.'), 'INT. CAFE - DAY\n\nShe sits.');
+  });
+});
+
+describe('the story so far', () => {
+  it('keeps the latest notes within its length, in order', () => {
+    assert.equal(episodeStorySoFar(['She inherits the café.', '', 'Rob  owns the van.']), 'She inherits the café.\nRob owns the van.');
+    const long = Array.from({ length: 50 }, (_, i) => `Note ${i} ${'x'.repeat(40)}.`);
+    const kept = episodeStorySoFar(long, 200);
+    assert.ok(kept.length <= 200);
+    assert.match(kept, /Note 49/);
+    assert.doesNotMatch(kept, /Note 0 /);
+  });
+
+  it('is given to each scene, and asked of each written scene', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. CAFE - DAY', summary: 's', who: [] }] };
+    const scene = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [], story: 'She inherits the café.' }).at(-1)!;
+    assert.match(scene.content, /The story so far — keep it true:\nShe inherits the café\./);
+    const [system, user] = episodeStoryNoteMessages({ scene: 'INT. CAFE - DAY\n\nShe signs.', story: 'Earlier.' });
+    assert.match(system!.content, /what the next scenes must keep true/);
+    assert.match(user!.content, /Already true:\nEarlier\./);
+  });
+
+  it('introduces newcomers by how they look and wear; never dresses the cast', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. CAFE - DAY', summary: 's', who: [] }] };
+    const system = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [] })[0]!.content;
+    assert.match(system, /not in the cast list is introduced the first time they appear/);
+    assert.match(system, /never describe their clothes/);
+  });
+});
+
+describe('a series', () => {
+  it('reads the episodes a script follows on from, and keeps the summary with a script', () => {
+    const scripts = [
+      { id: 'e1', name: 'One', summary: 'She inherits the café.' },
+      { id: 'e2', name: 'Two', summary: 'Rob fixes the grinder.', follows: 'e1' },
+      { id: 'e3', name: 'Three', follows: 'e2' },
+    ];
+    assert.equal(
+      seriesSoFar(scripts[2]!, scripts),
+      '“One”: She inherits the café.\n“Two”: Rob fixes the grinder.\n“Three”'
+    );
+    const kept = normalizeSavedScript({ ...createScript({ castId: 'c', source: 'INT. A - DAY\n\nx.', summary: 'S.', follows: 'e2' })! });
+    assert.deepEqual([kept?.summary, kept?.follows], ['S.', 'e2']);
+  });
+
+  it('is what the next episode is written knowing', () => {
+    const seed = nextEpisodeSeed({ id: 'e3', name: 'Three', series: '“One”: x', scenes: [] });
+    assert.deepEqual([seed.follows, seed.series], ['e3', '“One”: x']);
+    const [, user] = episodeOutlineMessages({ premise: 'p', lead: 'Lena', cast: [], minutes: 10, series: '“One”: x' });
+    assert.match(user!.content, /The series so far — this episode follows on, keeping it true:\n“One”: x/);
   });
 });

@@ -10,6 +10,7 @@ import {
   episodeFountain,
   episodeSceneCount,
   episodeSceneTail,
+  episodeStorySoFar,
   EPISODE_SCENES_MAX,
   EPISODE_SCENES_MIN,
   EPISODE_SECONDS_PER_SCENE,
@@ -18,6 +19,8 @@ import {
   type EpisodeWriteSeed,
 } from '@/lib/day/episode-writer';
 import { DEFAULT_EPISODE_AUTOPILOT, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
+import { scriptNotes } from '@/lib/day/script-notes';
+import { parseScript } from '@/lib/script/parse';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const AREA =
@@ -63,8 +66,15 @@ export default function EpisodeWriterSheet({
   places?: readonly string[];
   llmBody: Record<string, unknown>;
   onClose: () => void;
-  /** The screenplay, as Fountain — and the autopilot's settings when it is to make the episode. */
-  onDone: (fountain: string, autopilot: EpisodeAutopilot | null) => void;
+  /**
+   * The screenplay, as Fountain — and the autopilot's settings when it is to make the episode;
+   * with what it made true (its story notes) and the script it follows, kept with it.
+   */
+  onDone: (
+    fountain: string,
+    autopilot: EpisodeAutopilot | null,
+    kept?: { summary?: string; follows?: string }
+  ) => void;
 }) {
   const [premise, setPremise] = useState(seed?.premise ?? '');
   const [minutes, setMinutes] = useState(30);
@@ -74,6 +84,10 @@ export default function EpisodeWriterSheet({
   const [outline, setOutline] = useState<EpisodeOutline | null>(null);
   // Written scenes, by outline index.
   const [written, setWritten] = useState<string[]>([]);
+  // What each written scene made true (the story so far, episodeStoryNoteMessages), by index.
+  const notesRef = useRef<string[]>([]);
+  // Each scene checked by the script notes' rules, and rewritten once if they find something.
+  const [checkScenes, setCheckScenes] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stopRef = useRef(false);
@@ -102,6 +116,7 @@ export default function EpisodeWriterSheet({
         ...base,
         step: 'outline',
         premise,
+        ...(seed?.series ? { series: seed.series } : {}),
         ...(places?.length ? { places } : {}),
         minutes,
         ...(scenes ? { scenes } : {}),
@@ -134,6 +149,7 @@ export default function EpisodeWriterSheet({
               outline,
               index,
               before: index > 0 ? episodeSceneTail(done[index - 1] ?? '') : '',
+              story: episodeStorySoFar(notesRef.current.slice(0, index)),
             })
           ).text;
         } catch (err) {
@@ -145,8 +161,38 @@ export default function EpisodeWriterSheet({
         }
       }
       if (!text) break;
+      // Checked by rule (script-notes.ts): one rewrite when it finds something, kept if better.
+      if (checkScenes) {
+        const notesOf = (fountain: string) => {
+          const parsed = parseScript(fountain).scenes[0];
+          return parsed ? scriptNotes({ scriptId: 'draft', scene: parsed }) : [];
+        };
+        const found = notesOf(text);
+        if (found.length) {
+          setBusy(`Checking scene ${index + 1} of ${outline.scenes.length}…`);
+          const revised = await post<{ text: string }>({
+            ...base,
+            step: 'revise',
+            scene: text,
+            notes: found.map(note => `${note.evidence} — ${note.suggestion}`),
+          })
+            .then(data => data.text)
+            .catch(() => null);
+          if (revised && notesOf(revised).length < found.length) text = revised;
+        }
+      }
       done.push(text);
       setWritten([...done]);
+      // What it made true, for the scenes after it.
+      const note = await post<{ text: string }>({
+        ...base,
+        step: 'note',
+        scene: text,
+        story: episodeStorySoFar(notesRef.current.slice(0, index)),
+      })
+        .then(data => data.text)
+        .catch(() => '');
+      notesRef.current = [...notesRef.current.slice(0, index), note];
     }
     setBusy(null);
   };
@@ -159,6 +205,7 @@ export default function EpisodeWriterSheet({
     });
     // A changed scene, and those after it, are written again.
     setWritten(list => list.slice(0, index));
+    notesRef.current = notesRef.current.slice(0, index);
   };
 
   const complete = Boolean(outline && written.length === outline.scenes.length);
@@ -247,6 +294,19 @@ export default function EpisodeWriterSheet({
             >
               {scenes ? 'In minutes' : 'In scenes'}
             </Button>
+            <label
+              className="flex items-center gap-1"
+              title="Each scene checked for what a still can't hold (three on screen, a crowd, a camera direction…) and rewritten once by the LLM if it finds something"
+            >
+              <input
+                type="checkbox"
+                checked={checkScenes}
+                disabled={busy !== null}
+                data-testid="episode-check-scenes"
+                onChange={event => setCheckScenes(event.target.checked)}
+              />
+              Check each scene
+            </label>
             {adultAllowed ? (
               <label
                 className="flex items-center gap-1"
@@ -374,7 +434,10 @@ export default function EpisodeWriterSheet({
                     : 'Into the Script box: see how it reads, then Keep this script'
                 }
                 onClick={() =>
-                  onDone(episodeFountain(outline, written), autopilotOn ? pilot : null)
+                  onDone(episodeFountain(outline, written), autopilotOn ? pilot : null, {
+                    summary: episodeStorySoFar(notesRef.current, 1600),
+                    ...(seed?.follows ? { follows: seed.follows } : {}),
+                  })
                 }
               >
                 {autopilotOn

@@ -62,6 +62,7 @@ import {
   setScriptShotsPatch,
   SCRIPT_SOURCE_MAX,
   scriptsForCast,
+  seriesSoFar,
   scriptSummary,
   type ScriptsCache,
   scriptDroppedByAdding,
@@ -493,6 +494,10 @@ export default function SceneScripts({
   const [draft, setDraft] = useState<string | null>(null);
   /** The mood of a short written from Short, kept with its script (its Scenes made in it). */
   const [draftMoodAsked, setDraftMood] = useState<string | null>(null);
+  /** A written episode's summary and the script it follows (the series), kept with it. */
+  const [draftSeries, setDraftSeries] = useState<{ summary?: string; follows?: string } | null>(
+    null
+  );
   // An adult mood (Intimate) is kept only where the server allows adult content.
   const adultAllowed = useNsfwGeneratorEnabled();
   const moodKept = (mood: string | null | undefined) =>
@@ -516,7 +521,14 @@ export default function SceneScripts({
   });
   /** Write the next one: the writer seeded to go on from this script (nextEpisodeSeed). */
   const writeNext = (script: SavedScript) => {
-    setWriteSeed(nextEpisodeSeed({ ...script, scenes: parseScript(script.source).scenes }));
+    setWriteSeed(
+      nextEpisodeSeed({
+        ...script,
+        scenes: parseScript(script.source).scenes,
+        // The series so far, this one last: the next episode follows on from all of it.
+        series: seriesSoFar(script, scriptsRef.current ?? []),
+      })
+    );
     setWriteSeedKey(key => key + 1);
     setWritingEpisode(true);
   };
@@ -654,7 +666,13 @@ export default function SceneScripts({
   const keep = async () => {
     if (!draft) return;
     if (!(await roomForScript())) return;
-    const script = createScript({ castId, source: draft, mood: draftMood });
+    const script = createScript({
+      castId,
+      source: draft,
+      mood: draftMood,
+      // A written episode's summary and series link (kept only with the text it was written as).
+      ...(draftSeries ?? {}),
+    });
     if (!script) {
       setError(
         draft.length > SCRIPT_SOURCE_MAX
@@ -851,13 +869,22 @@ export default function SceneScripts({
    * prepare the run and start it with the episode settings. Each step builds on the last one's
    * store (not this render's).
    */
-  const runAutopilot = async (source: string, pilot: EpisodeAutopilot) => {
+  const runAutopilot = async (
+    source: string,
+    pilot: EpisodeAutopilot,
+    kept?: { summary?: string; follows?: string }
+  ) => {
     if (!(await roomForScript())) {
       setDraft(source);
       setDraftMood(writeSeed?.mood ?? null);
       return;
     }
-    const script = createScript({ castId, source, mood: moodKept(writeSeed?.mood) });
+    const script = createScript({
+      castId,
+      source,
+      mood: moodKept(writeSeed?.mood),
+      ...(kept ?? {}),
+    });
     if (!script) {
       setError('The episode could not be kept as a script (too long?).');
       return;
@@ -1059,6 +1086,7 @@ export default function SceneScripts({
           onClick={() => {
             setOpenId(null);
             setDraft(draft === null ? '' : null);
+            setDraftSeries(null);
             setError(null);
           }}
         >
@@ -1094,11 +1122,12 @@ export default function SceneScripts({
           places={locations.map(location => location.name)}
           llmBody={llmBody}
           onClose={() => setWritingEpisode(false)}
-          onDone={(fountain, pilot) => {
+          onDone={(fountain, pilot, kept) => {
             setWritingEpisode(false);
             setOpenId(null);
             setError(null);
-            if (pilot) void runAutopilot(fountain, pilot);
+            setDraftSeries(kept ?? null);
+            if (pilot) void runAutopilot(fountain, pilot, kept);
             else {
               setDraft(fountain);
               setDraftMood(writeSeed?.mood ?? null);
@@ -1123,7 +1152,11 @@ export default function SceneScripts({
             placeholder={'INT. KITCHEN - MORNING\n\nShe pours coffee.\n\nNORA\nCoffee first.'}
             value={draft}
             data-testid="script-import-text"
-            onChange={event => setDraft(event.target.value)}
+            onChange={event => {
+              setDraft(event.target.value);
+              // Edited by hand, it is no longer quite what was written — its summary goes.
+              setDraftSeries(null);
+            }}
           />
           <div className="flex flex-wrap items-center gap-2">
             <UploadButton
@@ -1135,7 +1168,10 @@ export default function SceneScripts({
                   // An archived script (Archive's file) comes back whole; anything else reads.
                   const archived = readScriptArchive(text, castId);
                   if (archived) void restore(archived);
-                  else setDraft(text);
+                  else {
+                    setDraft(text);
+                    setDraftSeries(null);
+                  }
                 })
               }
             />
