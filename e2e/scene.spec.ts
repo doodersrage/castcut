@@ -4056,7 +4056,7 @@ test('a Short’s first edit makes its short script; opening it makes nothing', 
   await expect(async () => {
     await input.fill('a slow Sunday at home');
     await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
-    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 5000 });
   }).toPass({ timeout: 60_000 });
   await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(new RegExp(`^1\\|${CAST}\\|`));
@@ -4100,7 +4100,7 @@ test('Next short makes a new short; the one before is left as it was', async ({ 
   await expect(async () => {
     await input.fill('a slow Sunday at home');
     await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
-    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 5000 });
   }).toPass({ timeout: 60_000 });
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(/^1\|/);
 
@@ -4250,7 +4250,7 @@ test('a Short moment edited on its Scene shows on the board', async ({ page }) =
   await expect(async () => {
     await input.fill('a slow Sunday at home');
     await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
-    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 5000 });
   }).toPass({ timeout: 60_000 });
   await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
 
@@ -4289,4 +4289,48 @@ test('a Short moment edited on its Scene shows on the board', async ({ page }) =
   });
   await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step');
   expect(await storedScripts(page)).toMatch(/^1\|/);
+});
+
+// A short is one stretch of time (2026-11-08): Write it titles each moment and gives them one
+// time; the plan bar's Time sets it on every moment.
+test('Write it titles each moment at one time; Time sets every moment', async ({ page }) => {
+  await page.route('**/api/day-premise', route =>
+    route.fulfill({
+      json: {
+        beats: [
+          { slotId: 'morning', title: 'Last touches', timeOfDay: 'evening', beat: 'standing at the set table straightening a napkin', setting: 'candlelit dining room' },
+          { slotId: 'afternoon', title: 'The doorbell', timeOfDay: 'evening', beat: 'standing at the open door smiling', setting: 'warm hallway' },
+          { slotId: 'evening', title: 'A toast', timeOfDay: 'evening', beat: 'standing at the table raising a glass', setting: 'candlelit dining room' },
+          { slotId: 'night', title: 'Washing up', timeOfDay: 'evening', beat: 'standing at the sink rinsing a glass', setting: 'small kitchen' },
+        ],
+      },
+    })
+  );
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { day: { stillsCharacterId: CAST, dayMood: 'everyday' } },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(async () => {
+    await input.fill('she hosts her first dinner party');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 5000 });
+  }).toPass({ timeout: 60_000 });
+  // Each card its title, its time beside it; the bar says the one time.
+  await expect(page.getByTestId('day-progress-morning').first()).toContainText('Last touches');
+  await expect(page.getByTestId('day-progress-morning').first()).toContainText('Evening');
+  await expect(page.getByTestId('day-progress-night').first()).toContainText('Washing up');
+  const time = page.getByTestId('day-short-time').first();
+  await expect(time).toHaveValue('evening');
+  await time.selectOption('night');
+  await expect(page.getByTestId('day-progress-morning').first()).toContainText('Night');
+  await expect(page.getByTestId('day-progress-morning').first()).toContainText('Last touches');
 });

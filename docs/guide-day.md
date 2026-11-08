@@ -11,8 +11,8 @@ Top to bottom, the way a Day is made:
 
 | Part | What's in it |
 | --- | --- |
-| **Idea** | Start from words: one idea box with **Write it** (a beat and a place on each moment here) and **Write it as a script →** (scenes with lines, any length, on [Script](guide-scene.md#script)); across a day or one event; **Import a script… (on Script)** |
-| **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
+| **Idea** | Start from words: one idea box with **Write it** (the short as moments here: a title, a beat and a place each, all close together in time — one stretch of the story, not a tour of the day) and **Write it as a script →** (scenes with lines, any length, on [Script](guide-scene.md#script)); a short or one event; **Import a script… (on Script)** |
+| **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · **Time** (every moment at one time of day — a short is one stretch of time, so its stills cut together; *Mixed* when they differ) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Its short** | Once the Day has a short: in step or not, how its run is going, **Its script →** · **Cut this short →** · **Its next short →** |
 | **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest moments · Quick stills for the rest · **Render the short** (stills, or animate the lines or every moment) · **This Day as a script →** (before it has a short) · Animate all · **Open Cut →** — quick stills with Queue, or the short with its checks, best takes and cut with Render the short |
@@ -105,7 +105,8 @@ silly / raunchy.
 
 | Field | What it does |
 | --- | --- |
-| **Time of day** | Morning · Afternoon · Evening · Night — where the moment falls until you pick one; its light, its setting's suggestions, Write it and its script scene follow it |
+| **Title** | The moment's name — on its card and as its Scene's name. Untitled, it is its time of day |
+| **Time of day** | Morning · Afternoon · Evening · Night — this moment's own; its light, its setting's suggestions and its script scene follow it |
 | **Setting · Beat** | Where she is and what she does |
 | **Pose** | The pose the beat matched — **Change pose**, **Try another**, **From a photo…**, **Edit joints** (the pose editor, below) |
 | **Camera** | **Height** (low, eye level, high, overhead), **Direction** (front, three-quarter, side, back — from where she faces), **Shot** (full body, knees up, waist up, head & shoulders) and **Lens** (wide, normal, long). Each is *auto* until you pick it: auto keeps the camera Day picks for the slot. A pose posed in the 3D editor brings its own camera, and the row says **From the pose** |

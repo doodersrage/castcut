@@ -52,6 +52,8 @@ import {
   isDayAdultMood,
   normalizeDayIntimateMix,
   type DaySlotId,
+  shortTimeOf,
+  slotsAtTime,
 } from '@/lib/day/planner';
 import { dayQualityPresetLabel } from '@/lib/day/quality-preset';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -963,6 +965,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             busy={busy}
             dayLength={dayLength}
             onDayLengthChange={setDayLength}
+            shortTime={shortTimeOf(slots)}
+            onShortTimeChange={part => updateToolSettings({ slots: slotsAtTime(slots, part) })}
             dayMood={dayMood}
             onDayMoodChange={setDayMood}
             onIntimatePlayfulChange={setIntimatePlayful}

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { dayMomentHeading } from './day-as-short';
 import { slotDayPart, slotPoolId } from './parts';
 import { buildDayPremiseMessages } from './premise';
-import { normalizeDaySlots } from './planner';
+import { normalizeDaySlots, shortTimeOf, slotsAtTime, type DaySlot } from './planner';
 
 describe('a moment’s chosen time of day', () => {
   it('is its daypart over where it falls; unset, where it falls', () => {
@@ -36,7 +36,27 @@ describe('a moment’s chosen time of day', () => {
     })
       .map(message => message.content)
       .join('\n');
-    assert.match(text, /"morning" \(night\)/);
-    assert.match(text, /"afternoon" \(afternoon\)/);
+    // A chosen time is fixed; the rest are the story's to choose.
+    assert.match(text, /"morning" \(at night\)/);
+    assert.match(text, /"afternoon"(?! \()/);
+  });
+
+  it('is one time for the whole short: shared, or mixed; set on every moment at once', () => {
+    const slots = [
+      { id: 'morning', label: 'Morning' },
+      { id: 'evening', label: 'A toast' },
+    ] as DaySlot[];
+    assert.equal(shortTimeOf(slots), null);
+    const evening = slotsAtTime(slots, 'evening');
+    assert.equal(shortTimeOf(evening), 'evening');
+    // The untitled moment's title follows its time; a moment's own title stays.
+    assert.deepEqual(
+      evening.map(slot => [slot.label, slot.timeOfDay]),
+      [
+        ['Evening', 'evening'],
+        ['A toast', 'evening'],
+      ]
+    );
   });
 });
+

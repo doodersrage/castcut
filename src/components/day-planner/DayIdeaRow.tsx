@@ -76,8 +76,8 @@ export default function DayIdeaRow({
         const written = await onWrite(text);
         setNote(
           written >= slotCount
-            ? 'Every slot now follows the idea — check the moments below, then Render the short (or Quick stills).'
-            : `${written} of ${slotCount} slots follow the idea; the rest kept their beat. Render the short (or Quick stills) renders them.`
+            ? 'Every moment now follows the idea — check them below, then Render the short (or Quick stills).'
+            : `${written} of ${slotCount} moments follow the idea; the rest kept their beat. Render the short (or Quick stills) renders them.`
         );
       }
       // Written on the moment cards, below: show them (it looked as if nothing had happened).
@@ -116,7 +116,7 @@ export default function DayIdeaRow({
             }
           }}
           options={[
-            { value: 'day', label: 'Across a day' },
+            { value: 'day', label: 'A short' },
             { value: 'event', label: 'One event' },
           ]}
         />

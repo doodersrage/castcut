@@ -23,7 +23,7 @@ import DaySlotLookPicker from '@/components/day-planner/DaySlotLookPicker';
 import DaySlotEnginePicker from '@/components/day-planner/DaySlotEnginePicker';
 import ShotStoryStateFields from '@/components/day-planner/ShotStoryStateFields';
 import DaySlotPosePreview from '@/components/day-planner/DaySlotPosePreview';
-import { FieldLabel, SelectInput, TextArea } from '@/components/ui/Field';
+import { FieldLabel, SelectInput, TextArea, TextInput } from '@/components/ui/Field';
 import ClothingSheet, { ClothingSummaryRow } from '@/components/wardrobe/ClothingSheet';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { LocationRecord } from '@/lib/location/records';
@@ -213,15 +213,45 @@ export default function DaySlotEditor({
             every field ran under the Takes column beside it (2026-11-05). */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3" data-testid="day-active-plan">
           {withTime ? (
-            // Its light, setting and presets follow it (slotDayPart); its label says it.
+            // The moment's title (its label): shown on its card and as its Scene's name.
+            <label className="space-y-1.5">
+              <FieldLabel>Title</FieldLabel>
+              <TextInput
+                key={slot.id}
+                defaultValue={slot.label}
+                maxLength={40}
+                placeholder={daySlotDefaultLabel(slot.timeOfDay ?? slot.id)}
+                data-testid="day-slot-title"
+                onBlur={event => {
+                  const title = event.target.value.trim();
+                  updateSlot(slot.id, {
+                    label: title || daySlotDefaultLabel(slot.timeOfDay ?? slot.id),
+                  });
+                }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                }}
+              />
+            </label>
+          ) : null}
+          {withTime ? (
+            // Its light, setting and presets follow it (slotDayPart), whatever its title.
             <div className="flex flex-wrap items-center gap-2" data-testid="day-slot-time">
               <FieldLabel>Time of day</FieldLabel>
               <SegmentedControl<DayPart>
                 aria-label="Time of day"
                 value={slotDayPart(slot)}
                 onChange={part => {
-                  if (!busy)
-                    updateSlot(slot.id, { timeOfDay: part, label: daySlotDefaultLabel(part) });
+                  if (busy) return;
+                  // An untitled moment's title is its time: it follows. A title of its own stays.
+                  const untitled =
+                    !slot.label.trim() ||
+                    slot.label === daySlotDefaultLabel(slot.id) ||
+                    slot.label === daySlotDefaultLabel(slotDayPart(slot));
+                  updateSlot(slot.id, {
+                    timeOfDay: part,
+                    ...(untitled ? { label: daySlotDefaultLabel(part) } : {}),
+                  });
                 }}
                 options={DAY_PARTS.map(part => ({
                   value: part,

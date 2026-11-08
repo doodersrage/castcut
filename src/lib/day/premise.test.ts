@@ -19,9 +19,13 @@ describe('Day from an idea', () => {
     assert.equal(dayPremiseAvailable('sport'), false);
   });
 
-  it('asks for every slot with its part of the day, solo or with people', () => {
+  it('asks for a short — every moment, close together in time, titled — solo or with people', () => {
     const solo = buildDayPremiseMessages({ premise: 'rainy Saturday', slotIds: SLOTS, companions: false });
-    assert.match(solo.at(-1)!.content as string, /"night" \(night\)/);
+    // Not a day: the moments are one stretch of the story, a time of day for them all.
+    assert.match(solo.at(-1)!.content as string, /Slots: "morning", "afternoon", "evening", "night", "morning-2"/);
+    assert.match(solo[0]!.content as string, /within an hour or two/);
+    assert.match(solo[0]!.content as string, /short title/);
+    assert.doesNotMatch(solo[0]!.content as string, /morning to night/);
     assert.match(solo[0]!.content as string, /alone in every beat/);
     const duo = buildDayPremiseMessages({ premise: 'x', slotIds: SLOTS, companions: true });
     assert.match(duo[0]!.content as string, /partner or a friend/);
@@ -82,3 +86,34 @@ describe('the adult check on a written day', () => {
     );
   });
 });
+
+describe('Write it: titles and times', () => {
+  it('reads each moment’s title and time, and writes them in', () => {
+    const reply =
+      '[{"slot":"morning","title":"Last touches","time":"Evening","beat":"standing at the set table straightening a napkin","setting":"candlelit dining room"},' +
+      '{"slot":"evening","title":"A toast","time":"noon","beat":"standing at the table raising a glass","setting":"candlelit dining room"}]';
+    const beats = parseDayPremiseBeats(reply, ['morning', 'evening'], { companions: false });
+    assert.deepEqual(
+      beats.map(beat => [beat.slotId, beat.title, beat.timeOfDay]),
+      [
+        ['morning', 'Last touches', 'evening'],
+        ['evening', 'A toast', undefined],
+      ]
+    );
+    const slots = applyDayPremiseBeats(
+      [
+        { id: 'morning', label: 'Morning' },
+        { id: 'evening', label: 'Evening' },
+      ] as DaySlot[],
+      beats
+    );
+    assert.deepEqual(
+      slots.map(slot => [slot.label, slot.timeOfDay]),
+      [
+        ['Last touches', 'evening'],
+        ['A toast', undefined],
+      ]
+    );
+  });
+});
+
