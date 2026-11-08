@@ -181,6 +181,45 @@ export function readEpisodeWriteSeed(
   };
 }
 
+/**
+ * Screenwriting craft for the writer (2026-11-08, user: "do all"): widely taught ideas, written
+ * here in our own words — and what Castcut can film (its scenes become stills and short clips).
+ * Measured before/after on the same premises (scratchpad writer-ab).
+ */
+/** What Castcut films: every beat a still, two people at most, clothes and light carried on. */
+export const EPISODE_FILMABLE =
+  'Everything must be filmable as still photos and short clips: every beat is one moment a single photograph ' +
+  'could hold; at most two people seen together — a busy place, a success or a party is shown through one or two ' +
+  'people (a regular, a full tip jar, a note on the door), never a crowd, a queue or an audience; no montages, flashbacks, dreams or split screens; no vehicles in motion and no big effects; no ' +
+  'camera directions (no CLOSE ON, ANGLE, PAN, "we see"); everyone keeps their clothes unless the story changes them.';
+
+export const EPISODE_CRAFT_OUTLINE =
+  'The logline names the lead, what she wants and what stands in her way, in one sentence. Each summary, one or ' +
+  'two sentences, says who wants what in that scene, what is in the way, and how it ends differently from how ' +
+  'it began — every scene turns something. Plant one or two details early (an object, a line, a habit) that ' +
+  'pay off near the end, and name them where they appear. Keep the facts straight from scene to scene (who owns ' +
+  'what, who knows what). Places can repeat; keep each scene to one place and time; scenes next to each other ' +
+  `stay close in time where they can, so clothes and light carry. ${EPISODE_FILMABLE}`;
+
+/** A short (2–12 scenes): four movements, or a gentle twist instead of a fight. */
+export const EPISODE_SHAPE_SHORT =
+  'Shape it as a short: set-up, a complication, a turn, a resolution — or, for a gentle story with no villain, ' +
+  'an introduction, a development, an unexpected twist and a reconciliation that ties them together.';
+
+/** An episode: three acts, a midpoint shift, a low point before the end. */
+export const EPISODE_SHAPE_EPISODE =
+  'Shape it in three acts: the set-up and what she sets out to do; a middle where things get harder, with a ' +
+  'shift at the midpoint that changes what she is after; a low point before the end; then the resolution.';
+
+export const EPISODE_CRAFT_SCENE =
+  'Come in late and leave early: start in the middle of something happening and end on a turn — a reaction, ' +
+  'a decision or a line that lands — not on a goodbye or a walk out. Each action paragraph is one moment: ' +
+  'who is where, doing what. Dialogue: mostly under fifteen words a line; people do not say exactly what they ' +
+  'feel, they talk around it; no speeches that explain the plot; people rarely say each other’s names; each ' +
+  'person sounds like themselves. Nobody talks to themselves for long. Only the people in the scene speak, and ' +
+  'they are seen — on a phone call we hear her side only. Pay off what the outline planted. ' +
+  EPISODE_FILMABLE;
+
 export function episodeOutlineMessages(input: {
   premise: string;
   lead: string;
@@ -202,9 +241,9 @@ export function episodeOutlineMessages(input: {
         'You are a television writer breaking a story into scenes. Reply with JSON only, no prose: ' +
         '{"title": string, "logline": string, "scenes": [{"heading": string, "summary": string, "who": string[]}]}. ' +
         'Each heading is a screenplay scene heading in capitals — INT. or EXT., the place, a dash, the time of day ' +
-        '(MORNING, DAY, EVENING or NIGHT) — e.g. "INT. KITCHEN - MORNING". Each summary is one or two sentences of ' +
-        'what is seen and what changes. "who" names the people in the scene. Give the story a clear set-up, a turn ' +
-        'in the middle and an ending; places can repeat; keep each scene to one place and time.' +
+        '(MORNING, DAY, EVENING or NIGHT) — e.g. "INT. KITCHEN - MORNING". "who" names the people in the scene. ' +
+        `${EPISODE_CRAFT_OUTLINE} ` +
+        (scenes ? EPISODE_SHAPE_SHORT : EPISODE_SHAPE_EPISODE) +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
     {
@@ -311,7 +350,8 @@ export function episodeSceneMessages(input: {
         'line under it. Blank lines between elements. About one page: four to eight short beats, lines people ' +
         'would say aloud. Where it matters how a line is said, put it in parentheses on its own line between ' +
         'the name and the line — how the voice sounds (amused, bristling, near tears, teasing), not only ' +
-        'quietly or softly. Do not write the next scene.' +
+        'quietly or softly. Do not write the next scene. ' +
+        EPISODE_CRAFT_SCENE +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
     {
