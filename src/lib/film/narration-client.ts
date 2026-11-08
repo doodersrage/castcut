@@ -20,7 +20,7 @@ type NarrationLineInput = {
 /** Read one line (POST /api/film/narration): its ComfyUI audio view URL, and its length when known. */
 export async function renderSpokenLine(
   input: NarrationLineInput
-): Promise<{ url: string; seconds?: number }> {
+): Promise<{ url: string; seconds?: number; cutShort?: boolean }> {
   const response = await fetch('/api/film/narration', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -30,12 +30,14 @@ export async function renderSpokenLine(
   const json = (await response.json().catch(() => ({}))) as {
     url?: string;
     seconds?: number;
+    cutShort?: boolean;
     error?: string;
   };
   if (!response.ok || !json.url) throw new Error(json.error ?? 'Narration failed.');
   return {
     url: json.url,
     ...(typeof json.seconds === 'number' && json.seconds > 0 ? { seconds: json.seconds } : {}),
+    ...(json.cutShort === true ? { cutShort: true } : {}),
   };
 }
 

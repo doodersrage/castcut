@@ -113,6 +113,7 @@ import {
 } from '@/lib/film/cut-room';
 import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { applyDayNarration } from '@/lib/day/narration';
+import { lineSoundsCut } from '@/lib/film/narration';
 import { dayThemeOf } from '@/lib/day/themes';
 import { dayMoodFlavor } from '@/lib/day/mood-flavor';
 import { dayPartnerNoun } from '@/lib/day/partner';
@@ -2406,6 +2407,8 @@ export function useCutRoom() {
         }
         /** Cast members given a base voice for this cut (the status line says so). */
         const gaveVoices: string[] = [];
+        // Lines that came back too short for their words (a voice cut off): named to listen to.
+        const cutShortLines: string[] = [];
         // Read the lines on stills (Part 19): a still's line in its speaker's voice — the lead's
         // own, the other person's by name from the Cast — and the still held for it.
         if (cutOptions.readLines === true) {
@@ -2518,6 +2521,8 @@ export function useCutRoom() {
             const cacheKey = `sline2:${who?.id ?? sex}:${seed}:${sample ?? ''}:${delivery}:${said.text}`;
             let url = readLineBefore(cacheKey);
             let seconds = Number(readLineBefore(`secs:${cacheKey}`)) || undefined;
+            // A kept read too short for its words is read again (the server tries another seed).
+            if (url && lineSoundsCut(said.text, seconds)) url = undefined;
             if (!url) {
               setStatus(`Reading ${shot.title}’s line…`);
               const read = await renderSpokenLine({
@@ -2534,6 +2539,7 @@ export function useCutRoom() {
               if (url) keepReadLine(cacheKey, url);
               if (url && seconds) keepReadLine(`secs:${cacheKey}`, String(seconds));
             }
+            if (url && lineSoundsCut(said.text, seconds)) cutShortLines.push(shot.title);
             if (url) {
               picked[index] = {
                 // Held for the line as read and a short pick-up, as dialogue plays.
@@ -2728,6 +2734,11 @@ export function useCutRoom() {
           ...result.cutNotes,
           ...(gaveVoices.length
             ? [`gave ${gaveVoices.join(' and ')} a voice (change it in Cast → Voice)`]
+            : []),
+          ...(cutShortLines.length
+            ? [
+                `listen to ${cutShortLines.slice(0, 3).join(', ')}${cutShortLines.length > 3 ? ` and ${cutShortLines.length - 3} more` : ''}: its line may be cut off`,
+              ]
             : []),
           ...(result.contentCredentials
             ? [

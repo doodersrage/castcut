@@ -137,3 +137,24 @@ export function buildNarrationGraph(input: {
   };
   return g;
 }
+
+/**
+ * Faster than these reads speak, words a second: the 2026-11-08 episode's 307 reads ran about
+ * 3.5 at the median and 3.9 at the 90th percentile, so 4.6 is well past a quick but whole read.
+ */
+const WORDS_PER_SECOND_MAX = 4.6;
+
+/**
+ * Whether a read line is too short for its words — the voice stopped before the end, or the
+ * trim took a soft last word (the user, 2026-11-08: "Rob's speech did get cut off once"). Heard
+ * by length alone: five words or more said faster than anyone speaks. Pure.
+ */
+export function lineSoundsCut(line: string, seconds: number | null | undefined): boolean {
+  const words = line.split(/\s+/).filter(word => /[\p{L}\p{N}]/u.test(word)).length;
+  return (
+    words >= 5 &&
+    typeof seconds === 'number' &&
+    seconds > 0 &&
+    words / seconds > WORDS_PER_SECOND_MAX
+  );
+}

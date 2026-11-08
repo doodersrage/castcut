@@ -22,6 +22,7 @@ import {
   buildNarrationGraph,
   NARRATION_REQUIRED_NODES,
   NARRATION_SAVE_NODE,
+  lineSoundsCut,
   normalizeNarration,
 } from './narration';
 
@@ -50,7 +51,7 @@ export async function renderNarration(input: {
   /** One speaker's lines on one seed sound like one person (a new seed is a new voice). */
   seed?: number;
   comfyUrl?: string;
-}): Promise<{ url: string; seconds?: number }> {
+}): Promise<{ url: string; seconds?: number; cutShort?: boolean }> {
   const line = normalizeNarration(input.line);
   if (!line) throw new Error('Write the narration line first.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
@@ -60,15 +61,27 @@ export async function renderNarration(input: {
   // It exits when idle: a line that meets it going is tried once more after it's started again.
   for (let attempt = 0; attempt < 2 && input.voiceSample && (await voiceEngineReady()); attempt++) {
     try {
-      const read = await readLineWithVoiceEngine({
-        line,
-        voiceSample: input.voiceSample,
-        ...(input.seed !== undefined ? { seed: input.seed } : {}),
-        ...(delivery ? { delivery } : {}),
-        ...(input.inScene ? { shape: sceneLineSound } : {}),
-        baseUrl,
-      });
-      return { url: read.url, ...(read.lineSeconds ? { seconds: read.lineSeconds } : {}) };
+      const readOnce = (seed: number | undefined) =>
+        readLineWithVoiceEngine({
+          line,
+          voiceSample: input.voiceSample!,
+          ...(seed !== undefined ? { seed } : {}),
+          ...(delivery ? { delivery } : {}),
+          ...(input.inScene ? { shape: sceneLineSound } : {}),
+          baseUrl,
+        });
+      let read = await readOnce(input.seed);
+      // Too short for its words: read once more on another seed; the longer read is kept, and a
+      // line still cut short is said so (Cut lists it to listen to).
+      if (lineSoundsCut(line, read.lineSeconds)) {
+        const again = await readOnce((input.seed ?? 0) + 7919).catch(() => null);
+        if (again && (again.lineSeconds ?? 0) > (read.lineSeconds ?? 0)) read = again;
+      }
+      return {
+        url: read.url,
+        ...(read.lineSeconds ? { seconds: read.lineSeconds } : {}),
+        ...(lineSoundsCut(line, read.lineSeconds) ? { cutShort: true } : {}),
+      };
     } catch (error) {
       forgetVoiceEngineHealth();
       console.warn('[narration] voice engine failed:', error);

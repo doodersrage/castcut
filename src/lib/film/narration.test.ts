@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  lineSoundsCut,
   buildNarrationGraph,
   NARRATION_SAVE_NODE,
   narrationSeconds,
@@ -33,5 +34,18 @@ describe('film narration', () => {
     assert.equal(voiced['52']!.class_type, 'LTXVReferenceAudio');
     assert.deepEqual(voiced['60']!.inputs.model, ['52', 0]);
     assert.match(String(voiced['5']!.inputs.text), /^A man/);
+  });
+});
+
+describe('lineSoundsCut', () => {
+  it('hears a line read faster than anyone speaks as cut off', () => {
+    // 12 words in 1.8 s: the voice stopped early.
+    assert.equal(lineSoundsCut('You saved my espresso machine, and my pride, and I owe you one.', 1.8), true);
+    // The same line at a talking pace.
+    assert.equal(lineSoundsCut('You saved my espresso machine, and my pride, and I owe you one.', 4.2), false);
+  });
+  it('leaves short lines and unknown lengths alone', () => {
+    assert.equal(lineSoundsCut('What?', 0.3), false);
+    assert.equal(lineSoundsCut('Not ever, not once.', undefined), false);
   });
 });
