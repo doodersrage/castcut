@@ -18,6 +18,7 @@ import {
   scriptShotCompanions,
   splitShot,
   withoutOthersSentences,
+  withoutOtherPlaces,
   withSceneShots,
   type PlannedShot,
 } from './script-shots';
@@ -339,5 +340,19 @@ describe('a shot of the lead alone', () => {
       withoutOthersSentences('Lena sips. Robin hums.', ['Rob']),
       'Lena sips. Robin hums.'
     );
+  });
+});
+
+describe('another place in the background', () => {
+  const places = ['SEASIDE TOWN', 'SALT & SEA CAFÉ', 'BEACH'];
+  it('is left out of a shot set somewhere else; this place, and going there, are kept', () => {
+    const beat =
+      'Lena walks along the damp shore. Behind her, the café’s faded sign flickers in the distance.';
+    assert.equal(withoutOtherPlaces(beat, 'BEACH', places), 'Lena walks along the damp shore.');
+    const going = 'She walks from the café down to the beach.';
+    assert.equal(withoutOtherPlaces(going, 'BEACH', places), going);
+    const here = 'Behind her, the café’s espresso machine hisses.';
+    assert.equal(withoutOtherPlaces(here, 'SALT & SEA CAFÉ', places), here);
+    assert.equal(withoutOtherPlaces(beat, 'BEACH', []), beat);
   });
 });

@@ -57,7 +57,7 @@ import {
   promptGivesHandsAJob,
   type PoseMissView,
 } from '@/lib/pose/coaching';
-import { gestureFixNudge } from '@/lib/pose/gesture';
+import { actionText, gestureFixNudge } from '@/lib/pose/gesture';
 import { betterTakeIndex, type TakeScores } from '@/lib/queue/take-scoring';
 import { STILL_MIN_FACE_MATCH, describeFaceMatch } from '@/lib/face/match';
 import { REALISM_MISS_REASON, REALISM_REDO_MARK, REALISM_REDOING_MARK } from '@/lib/still/realism';
@@ -313,6 +313,8 @@ export function useDaySlotQualityGate(
         const looked = await checkStillRealismAndPlace({
           imageUrl: checkUrl,
           place: location ? withLocation(target.location, location) : target.location,
+          // What happens there: a café being repainted is still the café (still/place.ts).
+          ...(target.sceneHints?.trim() ? { moment: actionText(target.sceneHints) } : {}),
           shared,
         }).catch(() => ({ realism: null, place: null }));
         const realism = looked.realism;

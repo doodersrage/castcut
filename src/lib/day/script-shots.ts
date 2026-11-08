@@ -381,6 +381,44 @@ export function withoutOthersSentences(text: string, others: readonly string[]):
   return kept.length ? kept.join(' ') : text;
 }
 
+/** Words that put a thing in the background of the shot (not where it happens). */
+const IN_THE_BACKGROUND_RE =
+  /\b(behind (?:her|him|them)|in the distance|far off|across the (?:street|road|bay|water|sand)|beyond|on the horizon|through the window|a sign\b|['’]s (?:faded |old |neon )?sign)\b/i;
+
+/**
+ * The text without the sentences that put another of the script's places in the background
+ * ("Behind her, the café's faded sign flickers in the distance" in a BEACH scene): the still drew
+ * that place instead — ten beach shots came out a street of storefronts (2026-11-07). A place is
+ * known by its last word (CAFÉ, BEACH, TOWN); this scene's own place is never left out.
+ */
+export function withoutOtherPlaces(
+  text: string | undefined,
+  here: string,
+  places: readonly string[]
+): string | undefined {
+  if (!text) return text;
+  const head = (place: string) =>
+    place
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
+      .trim()
+      .split(/\s+/)
+      .pop() ?? '';
+  const mine = here.toLowerCase();
+  const others = [...new Set(places.map(head))].filter(
+    word => word.length > 2 && !mine.includes(word)
+  );
+  if (!others.length) return text;
+  const named = new RegExp(
+    `(^|[^\\p{L}])(${others.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})(?![\\p{L}])`,
+    'iu'
+  );
+  const kept = text
+    .split(/(?<=[.!?…])\s+/)
+    .filter(sentence => !(named.test(sentence) && IN_THE_BACKGROUND_RE.test(sentence)));
+  return kept.length ? kept.join(' ') : text;
+}
+
 /**
  * What a planned shot becomes as a Scene: its setting from the script scene's place (home or
  * office as you set them), the beat from the shot (a line or reaction without one: the scene's
@@ -400,6 +438,8 @@ export function shotSceneDraft(input: {
   placeMap: Parameters<typeof resolvePlaces>[1];
   /** Location records a place can resolve to (M8 T2): the shot is then set there. */
   locations?: Parameters<typeof resolvePlaces>[2];
+  /** The script's places (every scene's), so another place seen in the background is left out. */
+  places?: readonly string[];
 }): ShotSceneDraft {
   const { shot, scene, castId, cast } = input;
   const parts = resolveSpeakers(scene.speakers, cast, input.castMap).filter(
@@ -424,12 +464,13 @@ export function shotSceneDraft(input: {
     : undefined;
   // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
   // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
-  const sceneActionText =
+  const sceneActionRaw =
     !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
       ? scene.elements.find(element => element.kind === 'action')?.text
       : undefined;
   // Her alone: what someone else does isn't in the picture ("Rob leans against the doorway, arms
   // crossed" drew her arms crossed, and 40 episode shots failed that check, 2026-11-07).
+  const sceneActionText = withoutOtherPlaces(sceneActionRaw, scene.place, input.places ?? []);
   const sceneAction =
     sceneActionText && !partnerInFrame
       ? withoutOthersSentences(

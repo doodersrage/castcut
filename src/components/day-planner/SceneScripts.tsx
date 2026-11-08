@@ -723,6 +723,7 @@ export default function SceneScripts({
       castMap: open.castMap,
       placeMap: open.placeMap,
       locations,
+      ...(openParsed ? { places: openParsed.scenes.map(entry => entry.place) } : {}),
     });
     makeScene(
       {
@@ -943,6 +944,7 @@ export default function SceneScripts({
             cast: castNow,
             castMap: open.castMap,
             placeMap: open.placeMap,
+            places: parsed.scenes.map(entry => entry.place),
             locations,
           }),
         },

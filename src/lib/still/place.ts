@@ -13,10 +13,15 @@ export const PLACE_DESCRIBE_PROMPT =
   'Where was this photo taken? Answer in one short line: the kind of place and the main things ' +
   'around her (for example "kitchen, at the stove" or "city street at night, shop windows"). No other words.';
 
-export function placeJudgePrompt(planned: string, seen: string): string {
+export function placeJudgePrompt(planned: string, seen: string, moment?: string): string {
+  // What is happening there, when known: a café being repainted can look like an art studio, a
+  // dune path through sea grass like a field — still the place (episode flags, 2026-11-07).
+  const happening = moment?.trim()
+    ? `What is happening there: "${moment.trim().slice(0, 300)}".\n`
+    : '';
   return (
-    `A photo was meant to be taken at: "${planned}".\nA description of where it was taken: "${seen}".\n` +
-    'Could the description be that place, loosely read? Count it as the same when it is the same general ' +
+    `A photo was meant to be taken at: "${planned}".\n${happening}A description of where it was taken: "${seen}".\n` +
+    'Could the description be that place, loosely read — as it would look with that happening in it? Count it as the same when it is the same general ' +
     'kind of place: indoors vs outdoors must match, and the room or setting must be the same kind (a bedroom ' +
     'is not a kitchen, a beach is not a street, a café is not an office); details, lighting and time of day ' +
     'do not matter. Answer only yes or no.'

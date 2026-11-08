@@ -23,3 +23,12 @@ describe('still place check', () => {
     assert.match(prompt, /Answer only yes or no\.$/);
   });
 });
+
+describe('the place judge with what happens there', () => {
+  it('reads the moment with the place, only when there is one', () => {
+    const withMoment = placeJudgePrompt('salt & sea café', 'art studio, paint splatters', 'she paints the café ceiling blue');
+    assert.match(withMoment, /What is happening there: "she paints the café ceiling blue"/);
+    assert.match(withMoment, /with that happening in it/);
+    assert.doesNotMatch(placeJudgePrompt('beach', 'street'), /What is happening there/);
+  });
+});

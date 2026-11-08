@@ -104,6 +104,8 @@ export async function checkStillRealism(input: {
 export async function checkStillRealismAndPlace(input: {
   imageUrl: string;
   place?: string;
+  /** What happens there (the slot's beat), for the place judge. */
+  moment?: string;
   shared?: VisionShared;
 }): Promise<{ realism: RealismVerdict | null; place: PlaceVerdict | null }> {
   if (input.shared?.sessionLlmEnabled === false) return { realism: null, place: null };
@@ -112,6 +114,7 @@ export async function checkStillRealismAndPlace(input: {
     questions: [],
     realism: true,
     ...(input.place?.trim() ? { place: input.place.trim() } : {}),
+    ...(input.moment?.trim() ? { moment: input.moment.trim() } : {}),
     shared: input.shared,
   }).catch(() => null);
   return { realism: decideRealism(reply?.realism), place: reply?.place ?? null };
@@ -174,6 +177,7 @@ export async function askStillGesture(options: {
   questions: GestureQuestion[];
   realism?: boolean;
   place?: string;
+  moment?: string;
   shared?: VisionShared;
   comfyUrl?: string;
 }): Promise<{
@@ -194,6 +198,7 @@ export async function askStillGesture(options: {
     questions: options.questions,
     ...(options.realism ? { realism: true } : {}),
     ...(options.place ? { place: options.place } : {}),
+    ...(options.place && options.moment ? { moment: options.moment } : {}),
     ...(options.shared ? sharedLlmRequestBody(options.shared) : {}),
   });
   const askOnce = async () => {

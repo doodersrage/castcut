@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       questions?: unknown;
       realism?: boolean;
       place?: string;
+      moment?: string;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -65,6 +66,9 @@ export async function POST(request: Request) {
       questions,
       realism,
       ...(place ? { place } : {}),
+      ...(place && typeof body.moment === 'string' && body.moment.trim()
+        ? { moment: body.moment.trim().slice(0, 300) }
+        : {}),
       llm: parseLlmRequestOptions(body),
     });
     return apiJson(reply);

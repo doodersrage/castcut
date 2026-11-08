@@ -34,6 +34,8 @@ export async function askGestureVision(options: {
   realism?: boolean;
   /** The slot's planned place: also ask where the still was taken (still-place.ts). */
   place?: string;
+  /** What happens there (the beat), for the place judge. */
+  moment?: string;
   llm?: LlmRequestOptions;
 }): Promise<{
   answers: GestureAnswer[] | null;
@@ -75,7 +77,9 @@ export async function askGestureVision(options: {
           decidePlace(
             seen,
             await chatCompletion({
-              messages: [{ role: 'user', content: placeJudgePrompt(planned, seen.trim()) }],
+              messages: [
+                { role: 'user', content: placeJudgePrompt(planned, seen.trim(), options.moment) },
+              ],
               maxTokens: 5,
               temperature: 0,
               model,
