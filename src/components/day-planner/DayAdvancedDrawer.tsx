@@ -3,6 +3,7 @@
 import CastcutNodesHint from '@/components/CastcutNodesHint';
 import DayPosePackPicker from '@/components/day-planner/DayPosePackPicker';
 import { ChipButton, FieldLabel, SwitchButton, TextArea } from '@/components/ui/Field';
+import { SegmentedControl } from '@/components/ui/ToolPageShell';
 import { usePlayChecksReadiness } from '@/hooks/usePlayChecksReadiness';
 import type { DayRenderQuality } from '@/lib/day/quality-preset';
 import {
@@ -280,15 +281,26 @@ export default function DayAdvancedDrawer({
             </SwitchButton>
           ) : null}
           {onWideStillsChange ? (
-            <SwitchButton
-              checked={wideStills === true}
-              disabled={busy}
+            // 16:9 unless Portrait is picked: a widescreen cut uses a wide still as it is, and two
+            // people sit across the frame. Portrait keeps more of the picture on one person's face.
+            <div
+              className="flex items-center gap-2"
               data-testid="day-wide-stills"
-              title="Shoot each still 16:9 to begin with — the pose drawn wide too — so a widescreen cut uses it as it is, with nothing widened after. Two people sit across the frame instead of in its middle."
-              onChange={onWideStillsChange}
+              title="16:9: each still shot wide to begin with (the pose drawn wide too), used by a widescreen cut as it is. Portrait: a tall still — more of the picture on one person; widened after for a widescreen cut."
             >
-              16:9 stills
-            </SwitchButton>
+              <span className="type-caption text-[var(--text-muted)]">Frame</span>
+              <SegmentedControl<'wide' | 'portrait'>
+                aria-label="Frame"
+                value={wideStills === false ? 'portrait' : 'wide'}
+                onChange={next => {
+                  if (!busy) onWideStillsChange(next === 'wide');
+                }}
+                options={[
+                  { value: 'wide', label: '16:9', testId: 'day-frame-wide' },
+                  { value: 'portrait', label: 'Portrait', testId: 'day-frame-portrait' },
+                ]}
+              />
+            </div>
           ) : null}
           <SwitchButton
             checked={autoReviewStills}

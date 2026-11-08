@@ -3,6 +3,7 @@
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
 
 import { getCharacter } from '@/lib/character/os';
+import { stillsAreWide } from '@/lib/play/settings';
 import { partnerOutfitWords } from '@/lib/day/partner-outfit';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe/kit-picker';
 import { useDayStillAfterChecks } from '@/hooks/day-planner/useDayStillAfterChecks';
@@ -481,7 +482,7 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
     ),
     widescreenFilm: core.toolSettings.widescreenFilm === true,
     setWidescreenFilm: (next: boolean) => core.updateToolSettings({ widescreenFilm: next }),
-    wideStills: core.toolSettings.wideStills === true,
+    wideStills: stillsAreWide(core.toolSettings),
     setWideStills: (next: boolean) => core.updateToolSettings({ wideStills: next }),
     setCheckMarks: (next: boolean) => core.updateToolSettings({ checkMarks: next }),
     adultGateStatus: adultGate.adultGateStatus,

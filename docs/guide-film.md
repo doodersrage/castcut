@@ -346,10 +346,11 @@ sides, unless **Widen stills to 16:9** is on (Format): each still is filled out 
 continuing its scene — the person and everything in the picture stay as they are. It's one render
 per still (about 10 s), kept, so the next cut — or the next version of a long episode — reuses it.
 
-Better still for a wide film: shoot the stills 16:9 to begin with. **16:9 stills** (Short's or
-Scene's advanced settings; on by default for an episode's autopilot) renders each still on a wide
-canvas, its pose drawn wide too, so two people stand across the frame instead of in its middle third.
-Cut sees a still is already wide and leaves it as it is; so does Animate.
+Stills are shot 16:9 to begin with: **Frame · 16:9** (Short's and Scene's advanced settings, the
+default) renders each still on a wide canvas, its pose drawn wide too, so two people stand across
+the frame instead of in its middle third. Cut sees a still is already wide and leaves it as it is;
+so does Animate. **Frame · Portrait** shoots tall stills — more of the picture on one person, for a
+vertical film — and a widescreen cut widens them as above. Cast plates stay portrait either way.
 
 ## Content Credentials
 

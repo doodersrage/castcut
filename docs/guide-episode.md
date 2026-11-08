@@ -55,7 +55,7 @@ and the button becomes **Make the episode**. Its choices:
 | **Redo a failing take**            | 1×      | 0–3 redos when even the best take missed a check                                                             |
 | **Animate**                        | nothing | Nothing (a talking animatic of stills), **the shots with a line**, or **every shot**                         |
 | **Cut the film when it's done**    | on      | Opens Cut when the run ends and cuts it (step 6)                                                            |
-| **16:9 stills**                    | on      | Shoots every still wide (nothing to widen in the cut); turns on Scene's **16:9 stills**                    |
+| **16:9 stills**                    | on      | Shoots every still wide (nothing to widen in the cut); sets Scene's **Frame** to 16:9                      |
 
 **Make the episode** then, with nobody at the page:
 

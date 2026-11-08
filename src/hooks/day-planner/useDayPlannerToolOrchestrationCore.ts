@@ -340,6 +340,7 @@ import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_SCENE_TOOL_CACHE,
+  stillsAreWide,
   type SceneToolCache,
 } from '@/lib/play/settings';
 import { sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
@@ -2253,13 +2254,12 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               solo: !slotPartner,
               lying: dayStillLiesDown({ beat: queueTarget.sceneHints }),
               outfitLine: DAY_OUTFIT_LINE_RE.test(buildSlotPrompt(queueTarget, slotPromptOptions)),
-              wide: toolSettings.wideStills === true,
+              wide: stillsAreWide(toolSettings),
             })
           : null;
         // The still's canvas when it isn't Image 1's shape: 16:9 stills on every identity path (a
         // plate is portrait — the first live take came back 1104×1472), else the face crop's.
-        const stillCanvas =
-          toolSettings.wideStills === true ? { ...DAY_WIDE_CANVAS } : faceCropCanvas;
+        const stillCanvas = stillsAreWide(toolSettings) ? { ...DAY_WIDE_CANVAS } : faceCropCanvas;
         if (lookHasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(

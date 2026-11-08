@@ -119,6 +119,15 @@ export type FittingToolCache = {
 };
 
 /** Day Planner — time-of-day slots with wardrobe + scene beats for one character. */
+/**
+ * Whether stills are shot 16:9 (wideStills). Unset is 16:9 (2026-11-08): the film is wide, and
+ * a portrait still was widened after anyway. Portrait only when chosen — a choice made either way
+ * is kept as it was.
+ */
+export function stillsAreWide(settings: { wideStills?: boolean } | null | undefined): boolean {
+  return settings?.wideStills !== false;
+}
+
 export type DayToolCache = {
   /** Other Casts' Days, parked when the Cast changed (day-cast-park). */
   parkedDays?: Record<string, import('../day/cast-park').ParkedDay>;
