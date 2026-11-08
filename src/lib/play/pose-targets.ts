@@ -36,10 +36,11 @@ export function withStoryBeatPose(
 }
 
 import type { PoseTargetGroup, PoseTargetOption } from '@/lib/pose/targets';
+import { loadDayBoard } from '@/lib/day/day-board-client';
 
 /** Day slots the pose can go to (label · beat). */
 export function daySlotPoseTargets(): PoseTargetOption[] {
-  const slots = (loadSettingsCache().tools.day?.slots ?? []) as DaySlot[];
+  const slots = (loadDayBoard().slots ?? []) as DaySlot[];
   return slots.map(slot => ({
     key: slot.id,
     label: slot.sceneHints?.trim()
@@ -58,7 +59,7 @@ export function storyBeatPoseTargets(): PoseTargetOption[] {
 }
 
 export function applyPoseToDaySlot(slotId: string, pose: PhotoPose): void {
-  const slots = (loadSettingsCache().tools.day?.slots ?? []) as DaySlot[];
+  const slots = (loadDayBoard().slots ?? []) as DaySlot[];
   saveToolSettings('day', { slots: withDaySlotPose(slots, slotId, pose) });
 }
 

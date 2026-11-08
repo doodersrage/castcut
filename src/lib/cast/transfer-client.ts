@@ -37,6 +37,7 @@ import {
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '../play/settings';
 import { castFileScenes, normalizeSavedScenes, placeImportedScenes } from '../day/scenes';
+import { loadDayBoard } from '../day/day-board-client';
 
 /** The Cast's own picture: its face lock, else its reference photo. */
 export function castPictureUrl(character: CharacterRecord): string {
@@ -230,7 +231,7 @@ export async function exportCast(
   if (!character) throw new Error('That Cast character is not on this device.');
   const sessionId = roleplayLibraryIdForCharacter(character.id);
   const story = sessionId ? getRoleplayLibrarySession(sessionId) : null;
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const day = loadDayBoard();
   const activeId = loadSettingsCache().shared.activeCharacterId?.trim();
   const dayOwner = day.stillsCharacterId?.trim() || activeId;
   const plan =

@@ -114,6 +114,7 @@ import {
 import { dayEpisodeSnapshot } from '@/lib/day/episode-snapshot';
 import { applyDayNarration } from '@/lib/day/narration';
 import { lineSoundsCut } from '@/lib/film/narration';
+import { shortBoardOf } from '@/lib/day/day-board-client';
 import { dayThemeOf } from '@/lib/day/themes';
 import { dayMoodFlavor } from '@/lib/day/mood-flavor';
 import { dayPartnerNoun } from '@/lib/day/partner';
@@ -287,11 +288,14 @@ export function useCutRoom() {
     autoFixRules: shared.autoFixRules !== false,
   });
 
-  const slots = useMemo(() => normalizeDaySlots(day.toolSettings.slots), [day.toolSettings.slots]);
-  const dayStills = useMemo(
-    () => normalizeDaySlotStills(day.toolSettings.stills),
-    [day.toolSettings.stills]
+  // The Short as its short has it (step 4c): a beat edited or a take kept on Script or Scene is
+  // in the cut, though Short wasn't opened since.
+  const board = useMemo(
+    () => shortBoardOf(day.toolSettings, normalizeSavedScenes(sceneTool.toolSettings.scenes)),
+    [day.toolSettings, sceneTool.toolSettings.scenes]
   );
+  const slots = useMemo(() => normalizeDaySlots(board.slots), [board.slots]);
+  const dayStills = useMemo(() => normalizeDaySlotStills(board.stills), [board.stills]);
   const beats: RoleplayStoryBeat[] = useMemo(
     () => story.toolSettings.story ?? [],
     [story.toolSettings.story]

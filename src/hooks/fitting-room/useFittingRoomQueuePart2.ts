@@ -43,13 +43,13 @@ import {
 import { bumpPlayCampaignStep } from '@/lib/play/campaign';
 import { dayMoodFlavor, ensureDaySlotsMatchMood } from '@/lib/day/planner';
 import { buildRoleplayQueueStillOptions } from '@/lib/story/roleplay-play-core';
-import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
+import { saveToolSettings } from '@/lib/settings/cache';
 import type {
   FittingRoomQueueCore,
   FittingRoomQueueInput,
 } from '@/hooks/fitting-room/useFittingRoomQueueCore';
 import type { KeeperStandInApi } from '@/hooks/fitting-room/useKeeperStandIn';
+import { loadDayBoard } from '@/lib/day/day-board-client';
 
 export function useFittingRoomQueuePart2(
   input: FittingRoomQueueInput,
@@ -366,7 +366,9 @@ export function useFittingRoomQueuePart2(
         dayKit = wardrobeId;
         updateShared({ lockedWardrobeId: wardrobeId });
       }
-      const daySettings = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      // The Short as its short has it: a look applied to a copy left behind would push old
+      // moments over ones edited on Script or Scene (step 4c).
+      const daySettings = loadDayBoard();
       const handed = dayAfterOutfitHandoff(daySettings, {
         picks: input.toolSettings,
         kitId: dayKit,

@@ -2,11 +2,12 @@
  * Day tool-cache still/clip counts for Play resume (no campaign imports).
  */
 
-import { loadSettingsCache, loadToolSettings } from '../settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE, type DayToolCache } from './settings';
+import { loadSettingsCache } from '../settings/cache';
+import type { DayToolCache } from './settings';
+import { loadDayBoard } from '../day/day-board-client';
 
 function loadOwnedDayStills() {
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const day = loadDayBoard();
   const activeCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
   const owner = day.stillsCharacterId?.trim() || '';
   // Unowned legacy stills still count for the current session; owned stills must match Cast.
@@ -18,7 +19,7 @@ function loadOwnedDayStills() {
 
 /** Stills the current Day board holds (its length), for Play resume "N of M". */
 export function cachedDayLength(): number {
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const day = loadDayBoard();
   const length = Number(day.dayLength);
   return Number.isFinite(length) && length > 0 ? length : (day.slots?.length ?? 4) || 4;
 }

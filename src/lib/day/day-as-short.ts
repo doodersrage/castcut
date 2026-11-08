@@ -357,3 +357,27 @@ export function dayMomentsFromShort(
   const next = normalizeDaySlots(raw, day.dayLength);
   return JSON.stringify(next) === JSON.stringify(slots) ? null : next;
 }
+
+/**
+ * A Short's board as its short has it (step 4c, 2026-11-08): the moments and stills its Scenes
+ * hold, on the board's saved copy — for what reads a Short away from the board (Cut, Play, a
+ * Cast's file), so it sees what the board would show, not a copy left behind when the Scenes
+ * were edited on Script or Scene. The same rule as the board (useDayShortSync, 4b): only when
+ * the copy has no edit of its own waiting (its fingerprint is the link's) and the script wasn't
+ * changed since. The copy as it is otherwise. Pure; the copy itself isn't touched.
+ */
+export function dayBoardFromShort<
+  T extends Pick<
+    DayToolCache,
+    'slots' | 'stills' | 'dayLength' | 'stillsCharacterId' | 'shortLink' | 'dayMood'
+  >,
+>(day: T, scenes: readonly SavedScene[], script: { id: string; updatedAt: number } | undefined): T {
+  const link = day.shortLink;
+  if (!link || !script || script.id !== link.scriptId) return day;
+  if (script.updatedAt > (link.syncedAt ?? 0)) return day;
+  if (dayShortFingerprint(day as DayToolCache) !== link.fingerprint) return day;
+  const moments = dayMomentsFromShort(day, scenes, link);
+  const withMoments = moments ? { ...day, slots: moments } : day;
+  const stills = dayStillsFromShort(withMoments, scenes, link);
+  return stills ? { ...withMoments, stills } : withMoments;
+}

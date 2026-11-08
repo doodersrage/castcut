@@ -3714,4 +3714,18 @@ Short's planner (which reads `slots` everywhere): rebuild the board from the sho
   a one-time pass links every Short with content (step 1's save), writing nothing else.
   Rollback: the release before 4c reads `tools.day` — so 4c keeps writing a last copy on every
   save for one more release, then stops.
+  - **Part 1 (v3.11.0):** a Short with moments and no short gets one when opened (`shortLinkedFor`).
+  - **Part 2a (2026-11-08, user: "retire it in two steps"):** found twelve readers of the copy
+    outside the board. One reader, `dayBoardFromShort` (pure) / `shortBoardOf`, `loadDayBoard`
+    (day-board-client.ts): the copy with its short's Scenes on it, by 4b's rule (no board edit
+    waiting, script unchanged since). Cut, Play's pose targets and resume counts, a Cast's file
+    (bundle, transfer), and the two writers that edit the moments away from the board (a look
+    from the Fitting Room, a plate switch — on a stale copy they'd push old moments over the
+    Scenes) read through it. Left on the copy, on purpose: the queue (renders in flight are only
+    on the board), gallery references (what's stored is what's protected), parked Shorts (they
+    keep no link), the starter and imports (they write a new board).
+  - **Part 2b (the release after 2a):** save a slim copy — what the Scenes can't give: the
+    moments' order and ids, a moment with no Scene, `eventMove`/`sceneHintsDay`, stills in flight
+    and a still's `previousTake` — and build the rest with the reader. `dayMomentsFromShort` needs
+    the copy as its skeleton today, so 2b starts there.
 - Never deleted by any step: a Short's saved board, its script, its Scenes and their takes.

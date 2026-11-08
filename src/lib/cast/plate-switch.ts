@@ -33,12 +33,9 @@ import {
   saveSharedSettings,
   saveToolSettings,
 } from '@/lib/settings/cache';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_FITTING_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-} from '@/lib/play/settings';
+import { DEFAULT_FITTING_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
 import { identityLockForLook, identityLockPatchChanges } from '@/lib/character/identity-lock-look';
+import { loadDayBoard } from '../day/day-board-client';
 
 function samePlatePicture(
   session: { referenceImageUrl?: string; referenceImageFilename?: string },
@@ -225,7 +222,8 @@ function applyLookOutfitSwitch(
   if (fittingPatch) {
     saveToolSettings('fitting', { ...fitting, ...fittingPatch });
   }
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  // The Short as its short has it (step 4c): not old moments written back over its Scenes.
+  const day = loadDayBoard();
   const dayPatch = lookOutfitSwitchPatch(day, previous, next);
   if (after) {
     const look = activeLook(after.record);

@@ -11,6 +11,7 @@ import {
   dayShortSource,
   dayMomentsFromShort,
   dayStillsFromShort,
+  dayBoardFromShort,
 } from './day-as-short';
 import { sceneSlotAt } from './scenes';
 
@@ -271,3 +272,46 @@ describe('the board’s edits and its short (the 3D pose fix)', () => {
   });
 });
 
+
+describe('a Short read away from its board (step 4c)', () => {
+  const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+  const linked = {
+    ...day,
+    shortLink: { castId: 'mara', scriptId: short.script.id, fingerprint: dayShortFingerprint(day), syncedAt: 1000 },
+  } as DayToolCache;
+  const script = { id: short.script.id, updatedAt: 1000 };
+  const edited = short.scenes.map(scene =>
+    scene.fromDaySlot === 'afternoon'
+      ? { ...scene, slot: { ...scene.slot, sceneHints: 'builds a sandcastle' } }
+      : scene
+  );
+  const beatOf = (board: DayToolCache) => board.slots?.find(slot => slot.id === 'afternoon')?.sceneHints;
+
+  it('shows a beat edited on Script or Scene, though the board wasn’t opened since', () => {
+    assert.equal(beatOf(dayBoardFromShort(linked, edited, script)), 'builds a sandcastle');
+    // The saved copy itself is left as it was.
+    assert.equal(beatOf(linked), 'walks along the water');
+  });
+
+  it('shows a take kept on Scene as the moment’s still', () => {
+    const kept = short.scenes.map(scene =>
+      scene.fromDaySlot === 'night'
+        ? { ...scene, takes: [{ id: 't1', promptId: 'p-n', imageUrl: '/n.png', status: 'completed', createdAt: 2000 }], keptTakeId: 't1' }
+        : scene
+    ) as typeof short.scenes;
+    const board = dayBoardFromShort(linked, kept, script);
+    assert.equal(board.stills?.find(still => still.slotId === 'night')?.imageUrl, '/n.png');
+  });
+
+  it('keeps the copy when the board has an edit waiting, the script changed since, or there is no link', () => {
+    const boardEdit = { ...linked, slots: linked.slots!.map(slot => (slot.id === 'evening' ? { ...slot, sceneHints: 'cooks' } : slot)) };
+    assert.equal(dayBoardFromShort(boardEdit, edited, script), boardEdit);
+    assert.equal(dayBoardFromShort(linked, edited, { ...script, updatedAt: 2000 }), linked);
+    assert.equal(dayBoardFromShort(day, edited, script), day);
+    assert.equal(dayBoardFromShort(linked, edited, undefined), linked);
+  });
+
+  it('is the copy itself when the Scenes say the same', () => {
+    assert.equal(dayBoardFromShort(linked, short.scenes, script), linked);
+  });
+});

@@ -37,6 +37,7 @@ import {
   type RoleplayLibrarySession,
 } from '../story/roleplay-library';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
+import { loadDayBoard } from '../day/day-board-client';
 
 export const CAST_BUNDLE_KIND = 'castcut-cast-bundle';
 export const CAST_BUNDLE_VERSION = 1;
@@ -116,7 +117,7 @@ export function castBundleCounts(characterId: string): { films: number; stills: 
 }
 
 function castDayPlan(character: CharacterRecord): CastFileDay | undefined {
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const day = loadDayBoard();
   const activeId = loadSettingsCache().shared.activeCharacterId?.trim();
   const dayOwner = day.stillsCharacterId?.trim() || activeId;
   return dayOwner === character.id ? castFileDay(day) : castFileDay(day.parkedDays?.[character.id]);
