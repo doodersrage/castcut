@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import SceneToolSections from '@/components/day-planner/SceneToolSections';
 import { ToolPageSkeleton } from '@/components/ui/ViewState';
 import { useScenePage } from '@/hooks/day-planner/useScenePage';
@@ -12,6 +14,15 @@ import { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchest
  * (MobileSceneTool).
  */
 export default function SceneTool() {
+  const router = useRouter();
+  // Scripts have their own page now: a link to write or import one goes on there (old links,
+  // bookmarks). ?script=<id> alone stays — Short's "open the run" means the run here.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('write') || params.get('script') === 'import') {
+      router.replace(`/script?${params.toString()}`);
+    }
+  }, [router]);
   const vm = useDayPlannerToolOrchestration('scene');
   const page = useScenePage(vm);
   const runner = useSceneRun(vm, page);

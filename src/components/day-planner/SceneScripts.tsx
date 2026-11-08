@@ -478,7 +478,7 @@ export default function SceneScripts({
       ),
     [cache.scripts, castId]
   );
-  // /scene?script=<id> opens that script (Film Director's next actions, M5 W2).
+  // /script?script=<id> opens that script (Film Director's next actions, M5 W2).
   const locations = useLocations();
   const [openId, setOpenId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;

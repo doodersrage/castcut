@@ -21,7 +21,7 @@ on the right, kept in view while the form scrolls.
 | **Takes**        | The take on the card (with its ⋯ tools) · every take as a card — **★ Kept** on the one Cut uses; hover a take for **Keep** and **Reject**; **Compare takes** for two side by side |
 | **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director), **Continue scene** · **Cut →** |
 | **Action bar**   | Kept at the bottom of the screen: **Another take** · **Redo · same seed** · **Animate** · **Send to Day slot** · **Cut →** |
-| **More**         | **Script**, its **Run** and **Locations** — set up once, folded away (open by themselves when there's a script or a place) |
+| **Run**          | A run's panel and controls, once one is prepared (on [Script](#script)) · **Script →** opens the Script page, on the script this Scene came from |
 
 Keys (not while typing): **← →** the take before / after onto the card, **K** keeps it, **X**
 rejects it, **N** another take, **[ ]** the scene before / after.
@@ -74,6 +74,8 @@ note beside it.
 
 ## Locations
 
+Locations are on the Script page, under the scripts.
+
 **Locations sheet** (above the list) opens every location's photo, setting, look and the Scenes set
 there on one page to print or save as PDF.
 
@@ -114,7 +116,9 @@ can pin a clip's last frame) re-poses the kept take for the clip to land on.
 
 ## Script
 
-A screenplay for the Cast, from text to shots. Open the **Script** section under the takes. For a
+A screenplay for the Cast, from text to shots, on its own page: **Script** (`/script`, in the Film
+menu beside Story; on a phone, the Script section on Scene). **Make it a Scene** on a shot opens
+that Scene here, and a run prepared or started on Script is set and rendered on Scene. For a
 whole episode — and **Make the whole episode for me**, which does every step below — see
 [Make an episode](guide-episode.md).
 
@@ -189,7 +193,7 @@ its Scenes again. Keeping a 13th asks first, naming the one it would drop.
 ## Runs
 
 A run renders a script's Scenes one take at a time, while you watch or do something else on the
-page.
+page. It is prepared on Script and renders on Scene: **Open the run →** on Script goes to it.
 
 1. **Prepare a run…** on an open script makes its planned shots into Scenes (not opened — the one
    you have open stays) and lists what a run would render: each Scene, its engine and about how

@@ -2,9 +2,9 @@
 
 import { CastMoodBoardMenu } from '@/components/character/CastMoodBoard';
 import { useLocations } from '@/components/location/useLocations';
-import SceneScriptAndRun from '@/components/day-planner/SceneScriptAndRun';
+import { SceneRunPart } from '@/components/day-planner/SceneScriptAndRun';
 import type { useSceneRun } from '@/hooks/day-planner/useSceneRun';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
   DayQualityStatusLines,
@@ -21,7 +21,10 @@ import {
 } from '@/components/day-planner/SceneTakes';
 import { SCENE_ACCENT, useSceneToolViews } from '@/components/day-planner/useSceneToolViews';
 import PlayGetStartedCard from '@/components/play/PlayGetStartedCard';
-import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
+import SceneList from '@/components/day-planner/SceneList';
+import { useSceneScripts } from '@/hooks/day-planner/useSceneScripts';
+import type { ScriptsCache } from '@/lib/day/scene-scripts';
+import { parseScript } from '@/lib/script/parse';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { FieldError, FieldLabel, SelectInput, TextInput } from '@/components/ui/Field';
 import { ToolActionRow, ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
@@ -103,6 +106,30 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   const { renderOffline, queueBlocked, quality, mediaBusy, engineControls } = views;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const locations = useLocations();
+  // The list groups a script's Scenes by its scenes (SceneList): the Cast's scripts, read.
+  const { scripts } = useSceneScripts({
+    mounted: vm.mounted,
+    toolSettings: toolSettings as ScriptsCache,
+    updateToolSettings: updateToolSettings as (patch: ScriptsCache) => void,
+  });
+  const castId = character?.id;
+  const listScripts = useMemo(
+    () =>
+      scripts
+        .filter(script => script.castId === castId)
+        .map(script => ({
+          id: script.id,
+          name: script.name,
+          scenes: parseScript(script.source).scenes.map(({ id, heading, place }) => ({
+            id,
+            heading,
+            place,
+          })),
+        })),
+    [castId, scripts]
+  );
+  const runFlagged = page.run?.flagged;
+  const flaggedScenes = useMemo(() => new Set(Object.keys(runFlagged ?? {})), [runFlagged]);
   const advancedId = useId();
   const [sendSlotId, setSendSlotId] = useState<DaySlotId | ''>('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -222,14 +249,13 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
         <ToolSection data-testid="scene-list" className="!py-3 sm:!py-3">
           <div className="flex flex-wrap items-center gap-2">
             {scenesInOrder.length > 0 ? (
-              <PortraitTileStrip
-                label="Scenes"
-                className="min-w-0 flex-1"
-                value={active?.id ?? ''}
-                testIdPrefix="scene-list-item"
-                size="lg"
-                onChange={openScene}
-                tiles={scenesInOrder.map(scene => ({
+              <SceneList
+                scenes={scenesInOrder}
+                scripts={listScripts}
+                flagged={flaggedScenes}
+                activeId={active?.id ?? ''}
+                onOpen={openScene}
+                tileOf={scene => ({
                   id: scene.id,
                   label: scene.name,
                   title: sceneSummary(scene) || scene.name,
@@ -243,7 +269,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                     : scene.takes.length
                       ? `${scene.takes.length} take${scene.takes.length === 1 ? '' : 's'}`
                       : 'No takes yet',
-                }))}
+                })}
               />
             ) : null}
             <Button
@@ -733,18 +759,29 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
             </div>
           </>
         ) : null}
-        {/* Set up once, not every shot: under More (open with a script, a place or a run). */}
-        <SceneMore
-          // Open with a prepared or running run too: its controls hid under a folded More.
-          open={Boolean(
-            page.run ||
-            locations.length ||
-            ((toolSettings as { scripts?: unknown[] }).scripts?.length ?? 0) > 0 ||
-            page.scenes.some(entry => entry.fromScript)
-          )}
-        >
-          <SceneScriptAndRun vm={vm} page={page} runner={runner} />
-        </SceneMore>
+        {/* The run renders here; its script, shots and places are planned on Script (/script). */}
+        <SceneRunPart vm={vm} page={page} runner={runner} />
+        <ToolSection data-testid="scene-script-link" className="!py-3 sm:!py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="type-caption text-[var(--text-muted)]">
+              {page.scenes.some(entry => entry.fromScript)
+                ? 'Scripts, their shots and the places are on Script.'
+                : 'Write or import a script, plan its shots and render them all as a run.'}
+            </p>
+            <ButtonLink
+              // Back to the script this Scene came from, open.
+              href={`/script?${new URLSearchParams({
+                ...(character ? { character: character.id } : {}),
+                ...(active?.fromScript ? { script: active.fromScript.scriptId } : {}),
+              }).toString()}`}
+              size="sm"
+              variant="secondary"
+              data-testid="scene-open-script"
+            >
+              Script →
+            </ButtonLink>
+          </div>
+        </ToolSection>
         {note ? (
           <p
             className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
@@ -758,30 +795,5 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
       </ToolLayout>
       {views.sheets}
     </>
-  );
-}
-
-/** Script and Locations, folded under one "More" (opens itself when there is something in it). */
-function SceneMore({ open, children }: { open: boolean; children: ReactNode }) {
-  const [shown, setShown] = useState(open);
-  const [seen, setSeen] = useState(open);
-  // Something arrived (a script imported, a place added elsewhere): open, once.
-  if (open && !seen) {
-    setSeen(true);
-    setShown(true);
-  }
-  return (
-    <details
-      className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-3"
-      open={shown}
-      data-testid="scene-more"
-      onToggle={event => setShown((event.currentTarget as HTMLDetailsElement).open)}
-    >
-      <summary className="cursor-pointer select-none" data-testid="scene-more-toggle">
-        <span className="type-heading">More</span>
-        <span className="type-caption ml-2 text-[var(--text-muted)]">Script, Locations</span>
-      </summary>
-      <div className="mt-3 space-y-4">{children}</div>
-    </details>
   );
 }

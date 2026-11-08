@@ -66,7 +66,7 @@ async function seed(page: import('@playwright/test').Page) {
   });
 }
 
-test('Scene: the shot beside its takes, one action bar, More folded', async ({ page }) => {
+test('Scene: the shot beside its takes, one action bar, and a link to Script', async ({ page }) => {
   await seed(page);
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
@@ -80,9 +80,9 @@ test('Scene: the shot beside its takes, one action bar, More folded', async ({ p
   await expect(bar.getByTestId('scene-queue-take')).toBeVisible();
   await expect(bar.getByTestId('scene-bar-animate')).toBeDisabled();
   await expect(bar.getByTestId('scene-send-day-slot')).toBeVisible();
-  // Scenes show done / to do; Script and Locations are folded under More.
+  // Scenes show done / to do; scripts and places are on their own page, a link away.
   await expect(page.getByTestId('scene-list-item-sc-1').locator('[data-status]')).toHaveAttribute('data-status', 'todo');
-  await expect(page.getByTestId('scene-more')).not.toHaveAttribute('open', '');
+  await expect(page.getByTestId('scene-open-script')).toHaveAttribute('href', /^\/script\?character=/);
   // Keep from the take card's hover actions: the badge, and Animate opens up.
   await page.getByTestId('scene-take').nth(1).hover();
   await page.getByTestId('scene-take-quick-keep-1').click();

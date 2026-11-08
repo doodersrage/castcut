@@ -1041,10 +1041,10 @@ export default function MobileDayToolSections(vm: ViewModel) {
           // kept — not squeezed onto a Day's eight cards.
           <Link
             className="ui-text-link type-caption mt-2 inline-block"
-            href={`/scene?character=${encodeURIComponent(character.id)}&script=import`}
+            href={`/script?character=${encodeURIComponent(character.id)}&script=import`}
             data-testid="day-script-open"
           >
-            Import a script… (on Scene)
+            Import a script… (on Script)
           </Link>
         ) : null}
         <DayShortPanel short={short} busy={busy} />

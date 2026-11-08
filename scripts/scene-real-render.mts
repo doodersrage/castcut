@@ -717,10 +717,19 @@ const EP_PREMISE =
   'Lena inherits her late aunt’s run-down seaside café and has one summer to make it pay. Rob, the fisherman who supplies the kitchen and never says more than he must, turns out to know more about her aunt than he lets on.';
 
 /** The Scene page's More section (the scripts and the run live in it), opened. */
+/** Scripts and Locations have their own page (/script, 2026-11-08): on Scene, go there. */
 async function openMore(page: Page) {
-  const more = page.getByTestId('scene-more');
-  await more.waitFor({ state: 'attached', timeout: 60_000 }).catch(() => undefined);
-  if (await more.count()) await more.evaluate(el => ((el as HTMLDetailsElement).open = true));
+  const url = new URL(page.url());
+  if (url.pathname !== '/scene') return;
+  url.pathname = '/script';
+  await go(page, `${url.pathname}${url.search}`);
+}
+
+/** A run prepared on Script is set and started on Scene: follow its link there. */
+async function toRunOnScene(page: Page) {
+  await page.getByTestId('script-open-run').click({ timeout: 60_000 });
+  await page.waitForURL(/\/scene\?/, { timeout: 60_000 });
+  await page.getByTestId('scene-run').waitFor({ timeout: 60_000 });
 }
 
 async function v2Script(page: Page) {
@@ -2405,7 +2414,7 @@ const phases: Record<string, Phase> = {
     await openScene(page, V2_CAST);
     const script = await v2Script(page);
     if (!script) throw new Error('no script — run the script phase first');
-    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
     await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
     for (const sceneId of V2_SCENES) {
       await attempt(page, `draft ${sceneId}`, async () => {
@@ -2424,10 +2433,18 @@ const phases: Record<string, Phase> = {
     await attempt(page, 'make the kitchen line a Scene', async () => {
       if (!line) throw new Error('no dialogue shot drafted in the kitchen');
       await page.getByTestId(`script-shot-make-${line.id}`).click();
-      await page.waitForTimeout(2000);
-      const status = await page.getByTestId(`script-shot-${line.id}`).getAttribute('data-status');
-      log('made:', await page.getByTestId('scene-name').inputValue(), 'shot status', status);
-      if (status !== 'made') throw new Error(`status ${status}`);
+      // Made a Scene, it opens on Scene; the shot records it.
+      await page.waitForURL(/\/scene\?/, { timeout: 60_000 });
+      await page.getByTestId('scene-name').waitFor({ timeout: 60_000 });
+      const made = (await v2Script(page))?.shots?.find(entry => entry.id === line.id) as
+        { madeSceneId?: string } | undefined;
+      log(
+        'made:',
+        await page.getByTestId('scene-name').inputValue(),
+        'shot made',
+        Boolean(made?.madeSceneId)
+      );
+      if (!made?.madeSceneId) throw new Error('the shot did not record its Scene');
     });
     await shot(page, 'shot-made');
   },
@@ -2440,9 +2457,10 @@ const phases: Record<string, Phase> = {
     await openScene(page, V2_CAST);
     const script = await v2Script(page);
     if (!script) throw new Error('no script — run the script phase first');
-    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
     await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
     log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
+    await toRunOnScene(page);
     const limit = process.env.SCENE_RUN_TAKES;
     if (limit) await page.getByTestId('scene-run-max-takes').fill(limit);
     log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
@@ -2749,7 +2767,7 @@ const phases: Record<string, Phase> = {
         script = await v3Script(page, castId);
       }
       if (!script) throw new Error(`${castId}: the script was not kept`);
-      await go(page, `/scene?character=${castId}&script=${script.id}`);
+      await go(page, `/script?character=${castId}&script=${script.id}`);
       await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
       const ids = await page.evaluate(() =>
         [...document.querySelectorAll('[data-testid^="script-scene-"]')]
@@ -2816,9 +2834,9 @@ const phases: Record<string, Phase> = {
         Object.fromEntries(included.map(({ scene }) => [scene.id, { engine }]))
       );
       const script = (await v3Script(page, castId))!;
-      await go(page, `/scene?character=${castId}&script=${script.id}`);
+      await go(page, `/script?character=${castId}&script=${script.id}`);
       await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
-      await page.getByTestId('scene-run').waitFor({ timeout: 30_000 });
+      await toRunOnScene(page);
       for (const { scene } of made.filter(entry => !included.includes(entry))) {
         const box = page
           .getByTestId(`scene-run-item-${scene.id}`)
@@ -3395,7 +3413,9 @@ const phases: Record<string, Phase> = {
     // Written for the lead: the sheet names whom (the script belongs to the page's Cast).
     const forWhom = (await sheet.textContent({ timeout: 30_000 })) ?? '';
     if (!forWhom.includes(`For ${EP_LEAD_NAME}:`)) {
-      throw new Error(`the writer is for someone else (${forWhom.match(/For [^:]+:/)?.[0] ?? '?'})`);
+      throw new Error(
+        `the writer is for someone else (${forWhom.match(/For [^:]+:/)?.[0] ?? '?'})`
+      );
     }
     await sheet.getByTestId('episode-premise').fill(EP_PREMISE);
     await sheet.getByTestId('episode-minutes').fill(String(EP_MINUTES));
@@ -3582,8 +3602,8 @@ const phases: Record<string, Phase> = {
       V2_CAST
     );
     log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
+    // The run's panel is on Scene.
     await openScene(page, V2_CAST);
-    await openMore(page);
     await page.waitForTimeout(5000);
     // A copy synced back from the server can bring the old run back: discard it here too.
     if (
@@ -3604,7 +3624,7 @@ const phases: Record<string, Phase> = {
     await openScene(page, V2_CAST);
     const script = await v2Script(page);
     if (!script) throw new Error('no script — run the episode phase first');
-    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
     await openMore(page);
     await page.getByTestId('script-reading').waitFor({ timeout: 120_000 });
     const ids = await page
@@ -3651,16 +3671,18 @@ const phases: Record<string, Phase> = {
     }
     const script = await v2Script(page);
     if (!script) throw new Error('no script');
-    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
-    await openMore(page);
-    if (
-      !(await page
-        .getByTestId('scene-run')
-        .isVisible()
-        .catch(() => false))
-    ) {
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
+    // A run already there (a resume): Script links to it on Scene; else prepare one.
+    const runThere = await page
+      .getByTestId('script-open-run')
+      .waitFor({ timeout: 20_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (runThere) await toRunOnScene(page);
+    else {
       await page.getByTestId('script-prepare-run').click({ timeout: 120_000 });
       log('prepare:', (await page.getByTestId('script-prepare-note').textContent())?.trim());
+      await toRunOnScene(page);
       await page.getByTestId('scene-run-auto-keep').check();
       await page.getByTestId('scene-run-auto-redo').selectOption(String(EP_REDO));
       // EPISODE_ANIMATE=all animates every kept take, =lines only the shots where someone speaks.
@@ -3780,9 +3802,13 @@ const phases: Record<string, Phase> = {
             };
           };
         }),
-      { ids: picked.map(scene => scene.id), prefix: `${lead} and ${partner}, the two of them together.` }
+      {
+        ids: picked.map(scene => scene.id),
+        prefix: `${lead} and ${partner}, the two of them together.`,
+      }
     );
-    const results: Array<{ name: string; promptId?: string; imageUrl?: string; status?: string }> = [];
+    const results: Array<{ name: string; promptId?: string; imageUrl?: string; status?: string }> =
+      [];
     for (const scene of picked) {
       await attempt(page, `pair ${scene.name}`, async () => {
         await go(page, `/scene?character=${V2_CAST}&scene=${scene.id}`);
@@ -3791,7 +3817,12 @@ const phases: Record<string, Phase> = {
         const before = (await sceneStill(page))?.promptId;
         await page.getByTestId('scene-queue-take').click();
         const still = await waitForTake(page, before, scene.name.slice(0, 24), 15);
-        results.push({ name: scene.name, promptId: still.promptId, imageUrl: still.imageUrl, status: still.status });
+        results.push({
+          name: scene.name,
+          promptId: still.promptId,
+          imageUrl: still.imageUrl,
+          status: still.status,
+        });
         if (still.imageUrl) {
           const bytes = await page.request.get(new URL(still.imageUrl, BASE).href);
           writeFileSync(join(OUT, `pair-${results.length}.png`), await bytes.body());
@@ -3896,18 +3927,23 @@ const phases: Record<string, Phase> = {
     const want = Number(process.env.SHORT_MOMENTS ?? 9);
     await go(page, `/day?character=${V2_CAST}`);
     const dayOf = async () =>
-      ((await toolSettings(page).catch(() => ({}))) as {
-        day?: {
-          slots?: Array<{ id: string; sceneHints?: string }>;
-          stills?: Array<{ slotId: string; status?: string }>;
-          shortLink?: { scriptId: string };
-        };
-      }).day ?? {};
+      (
+        (await toolSettings(page).catch(() => ({}))) as {
+          day?: {
+            slots?: Array<{ id: string; sceneHints?: string }>;
+            stills?: Array<{ slotId: string; status?: string }>;
+            shortLink?: { scriptId: string };
+          };
+        }
+      ).day ?? {};
     // The board's length: + / − until it has the moments asked for.
     for (let i = 0; i < 16; i += 1) {
       const n = (await dayOf()).slots?.length ?? 0;
       if (n === want) break;
-      await page.getByTestId(n < want ? 'day-length-more' : 'day-length-less').first().click();
+      await page
+        .getByTestId(n < want ? 'day-length-more' : 'day-length-less')
+        .first()
+        .click();
       await page.waitForTimeout(600);
     }
     log('moments on the board:', (await dayOf()).slots?.length);
@@ -3919,7 +3955,8 @@ const phases: Record<string, Phase> = {
     const started = Date.now();
     // Typed before hydration, the idea is wiped and the click lost: type, check it stayed, click,
     // and give it a minute to change the board — again if it didn't.
-    const slotsNow = async () => JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
+    const slotsNow = async () =>
+      JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
     let written = 0;
     for (let tries = 0; tries < 6; tries += 1) {
       const input = page.getByTestId('day-idea-input').first();
@@ -3945,8 +3982,10 @@ const phases: Record<string, Phase> = {
     log('day written in', Math.round((Date.now() - started) / 1000), 's:', written, 'moments');
     // A click lost to a page still compiling leaves the board as it was: nothing to test.
     if (!rewritten) throw new Error('Write the day did not change the board (the click was lost?)');
-    for (const slot of (await dayOf()).slots ?? []) log('  ', slot.id, '·', (slot.sceneHints ?? '').slice(0, 90));
-    if (written < want) problems.push(`shortmake: the day was written with ${written} of ${want} moments`);
+    for (const slot of (await dayOf()).slots ?? [])
+      log('  ', slot.id, '·', (slot.sceneHints ?? '').slice(0, 90));
+    if (written < want)
+      problems.push(`shortmake: the day was written with ${written} of ${want} moments`);
     await shot(page, 'short-written');
 
     await page.getByTestId('day-make-short-animate').first().selectOption('none');
@@ -3974,7 +4013,11 @@ const phases: Record<string, Phase> = {
     ).catch(() => null);
     if (!resumed) problems.push('shortmake: the run did not resume after a reload');
     else log('resumed after the reload:', resumed.state);
-    const run = await waitForRun(page, entry => entry.state === 'done' || entry.state === 'cancelled', 120);
+    const run = await waitForRun(
+      page,
+      entry => entry.state === 'done' || entry.state === 'cancelled',
+      120
+    );
     const flagged = Object.keys(run.flagged ?? {}).length;
     const redos = Object.values(run.attempts ?? {}).reduce((sum, n) => sum + Math.max(0, n - 1), 0);
     log(
@@ -4006,7 +4049,8 @@ const phases: Record<string, Phase> = {
       await page.waitForTimeout(10_000);
     }
     log('cut:', said.trim() || '(no autopilot note)', '· at', page.url());
-    if (!/the episode is cut/.test(said)) problems.push(`shortmake: the short was not cut (${said.trim()})`);
+    if (!/the episode is cut/.test(said))
+      problems.push(`shortmake: the short was not cut (${said.trim()})`);
     await shot(page, 'short-cut');
     // Back on Short: the kept takes are the board's stills, and it says how the run went.
     await go(page, `/day?character=${V2_CAST}`);
@@ -4019,9 +4063,21 @@ const phases: Record<string, Phase> = {
       'stills of',
       day.slots?.length,
       '·',
-      (await page.getByTestId('day-short-run').first().textContent().catch(() => ''))?.trim(),
+      (
+        await page
+          .getByTestId('day-short-run')
+          .first()
+          .textContent()
+          .catch(() => '')
+      )?.trim(),
       '·',
-      (await page.getByTestId('day-short-sync').first().textContent().catch(() => ''))?.trim()
+      (
+        await page
+          .getByTestId('day-short-sync')
+          .first()
+          .textContent()
+          .catch(() => '')
+      )?.trim()
     );
     if (stills < (day.slots?.length ?? 0) - flagged)
       problems.push(`shortmake: only ${stills} kept takes came back to the board`);
@@ -4032,7 +4088,10 @@ const phases: Record<string, Phase> = {
   async shortsync(_ctx, page) {
     await go(page, `/day?character=${V2_CAST}`);
     const tools = (await toolSettings(page)) as {
-      day?: { slots?: Array<{ id: string; sceneHints?: string }>; shortLink?: { scriptId: string } };
+      day?: {
+        slots?: Array<{ id: string; sceneHints?: string }>;
+        shortLink?: { scriptId: string };
+      };
     };
     const link = tools.day?.shortLink;
     if (!link) throw new Error('no short on this Day — run shortmake first');
@@ -4048,7 +4107,10 @@ const phases: Record<string, Phase> = {
     for (let i = 0; i < 10 && !reached; i += 1) {
       await page.waitForTimeout(2000);
       const scenes = (((await toolSettings(page)) as { scene?: { scenes?: V2Scene[] } }).scene
-        ?.scenes ?? []) as Array<{ fromScript?: { scriptId: string }; slot?: { sceneHints?: string } }>;
+        ?.scenes ?? []) as Array<{
+        fromScript?: { scriptId: string };
+        slot?: { sceneHints?: string };
+      }>;
       reached = scenes.some(
         scene =>
           scene.fromScript?.scriptId === link.scriptId &&
@@ -4089,7 +4151,10 @@ const phases: Record<string, Phase> = {
     await writer.getByTestId('episode-write-outline').click();
     await writer.getByTestId('episode-outline').waitFor({ timeout: 5 * 60_000 });
     log('outline in', Math.round((Date.now() - started) / 1000), 's:');
-    log('  ', ((await writer.getByTestId('episode-outline').textContent()) ?? '').trim().slice(0, 600));
+    log(
+      '  ',
+      ((await writer.getByTestId('episode-outline').textContent()) ?? '').trim().slice(0, 600)
+    );
     await writer.getByTestId('episode-write-scenes').click();
     const use = writer.getByTestId('episode-use');
     await use.waitFor({ timeout: 15 * 60_000 });
@@ -4101,21 +4166,34 @@ const phases: Record<string, Phase> = {
     await writer.getByTestId('episode-use').click();
     // The written script lands in the Script box: kept with Keep this script.
     await page.getByTestId('script-keep').first().click({ timeout: 60_000 });
-    await page.getByTestId('script-reading').first().waitFor({ timeout: 60_000 }).catch(() => undefined);
+    await page
+      .getByTestId('script-reading')
+      .first()
+      .waitFor({ timeout: 60_000 })
+      .catch(() => undefined);
     await page.waitForTimeout(3000);
     const script = await v2Script(page);
     log('script:', script.name, '· mood', (script as { mood?: string }).mood ?? '(none)');
     const source = ((script as { source?: string }).source ?? '').slice(0, 3000);
     log('  opening:', source.slice(0, 700).replace(/\n+/g, ' | '));
-    if ((script as { mood?: string }).mood !== 'intimate') problems.push('shortadult: the script lost its Intimate mood');
+    if ((script as { mood?: string }).mood !== 'intimate')
+      problems.push('shortadult: the script lost its Intimate mood');
     // Its shots, planned by the LLM on the adult route (the run is prepared, not started).
     await page.getByTestId('script-prepare-run').first().click({ timeout: 60_000 });
-    await page.getByTestId('script-prepare-note').first().waitFor({ timeout: 10 * 60_000 });
+    await page
+      .getByTestId('script-prepare-note')
+      .first()
+      .waitFor({ timeout: 10 * 60_000 });
     log('prepare:', (await page.getByTestId('script-prepare-note').first().textContent())?.trim());
     const after = await v2Script(page);
-    const shots = (after.shots ?? []) as Array<{ purpose?: string; action?: string; line?: string }>;
+    const shots = (after.shots ?? []) as Array<{
+      purpose?: string;
+      action?: string;
+      line?: string;
+    }>;
     log('shots planned:', shots.length);
-    for (const planned of shots.slice(0, 8)) log('   ', planned.purpose, '·', (planned.action ?? planned.line ?? '').slice(0, 110));
+    for (const planned of shots.slice(0, 8))
+      log('   ', planned.purpose, '·', (planned.action ?? planned.line ?? '').slice(0, 110));
     if (!shots.length) problems.push('shortadult: no shots were planned');
     await shot(page, 'adult-planned');
   },
@@ -4171,7 +4249,7 @@ const phases: Record<string, Phase> = {
       scripts.find(entry => entry.id === process.env.SCENE_SCRIPT_ID) ??
       [...scripts].sort((a, b) => (b.shots?.length ?? 0) - (a.shots?.length ?? 0))[0];
     if (!script) throw new Error('no script for the Cast');
-    await go(page, `/scene?character=${V2_CAST}&script=${script.id}`);
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
     await openMore(page);
     const recurring = page.getByTestId('script-recurring');
     await recurring.waitFor({ timeout: 60_000 });
@@ -4188,7 +4266,9 @@ const phases: Record<string, Phase> = {
                 .get('comfy-prompt-characters-v1');
               get.onsuccess = () => {
                 request.result.close();
-                const list = (get.result?.value?.characters ?? []) as Array<Record<string, unknown>>;
+                const list = (get.result?.value?.characters ?? []) as Array<
+                  Record<string, unknown>
+                >;
                 resolve(
                   list.map(entry => ({
                     id: String(entry.id),
@@ -4196,7 +4276,8 @@ const phases: Record<string, Phase> = {
                     // The plate: the Cast's reference picture (or its active look's).
                     plate: JSON.stringify(
                       entry.reference ??
-                        (entry.looks as Array<{ reference?: unknown }> | undefined)?.[0]?.reference ??
+                        (entry.looks as Array<{ reference?: unknown }> | undefined)?.[0]
+                          ?.reference ??
                         ''
                     ).replace(/^""$/, ''),
                   }))
@@ -4240,7 +4321,10 @@ const phases: Record<string, Phase> = {
     const spread = <T,>(list: T[], n: number) =>
       list.filter((_, index) => index % Math.max(1, Math.floor(list.length / n)) === 0).slice(0, n);
     const picks = [
-      ...spread(episode.filter(scene => !duo(scene)), Number(process.env.WIDE_SOLO ?? 6)),
+      ...spread(
+        episode.filter(scene => !duo(scene)),
+        Number(process.env.WIDE_SOLO ?? 6)
+      ),
       ...spread(episode.filter(duo), Number(process.env.WIDE_DUO ?? 4)),
     ];
     const dir = join(OUT, 'wide');
@@ -4252,7 +4336,11 @@ const phases: Record<string, Phase> = {
       if (!switched) {
         const wide = page.getByTestId('day-wide-stills').first();
         if (!(await wide.isVisible().catch(() => false))) {
-          await page.getByTestId('day-quality-advanced').first().click().catch(() => undefined);
+          await page
+            .getByTestId('day-quality-advanced')
+            .first()
+            .click()
+            .catch(() => undefined);
         }
         await wide.waitFor({ timeout: 30_000 });
         if ((await wide.getAttribute('aria-checked')) !== 'true') await wide.click();
@@ -4273,8 +4361,13 @@ const phases: Record<string, Phase> = {
           }),
         still.imageUrl ?? ''
       );
-      const bytes = await page.request.get(new URL(still.imageUrl ?? '', BASE).toString()).then(r => r.body());
-      writeFileSync(join(dir, `${String(index + 1).padStart(2, '0')}-${duo(scene) ? 'duo' : 'solo'}.png`), bytes);
+      const bytes = await page.request
+        .get(new URL(still.imageUrl ?? '', BASE).toString())
+        .then(r => r.body());
+      writeFileSync(
+        join(dir, `${String(index + 1).padStart(2, '0')}-${duo(scene) ? 'duo' : 'solo'}.png`),
+        bytes
+      );
       log(
         'wide take',
         scene.name,

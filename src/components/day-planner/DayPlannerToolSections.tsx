@@ -947,14 +947,14 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             castId={character?.id}
           />
           {character?.id ? (
-            // One script path (2026-11-06): a script is imported on Scene, where every scene and line is
+            // One script path (2026-11-06): a script is imported on Script, where every scene and line is
             // kept — not squeezed onto a Day's eight cards.
             <Link
               className="ui-text-link type-caption -mt-1 mb-3 inline-block"
-              href={`/scene?character=${encodeURIComponent(character.id)}&script=import`}
+              href={`/script?character=${encodeURIComponent(character.id)}&script=import`}
               data-testid="day-script-open"
             >
-              Import a script… (on Scene)
+              Import a script… (on Script)
             </Link>
           ) : null}
           {/* The plan decides the board — chosen once, so it sits above the cards. */}

@@ -145,7 +145,7 @@ export function dayShortSeed(input: {
   };
 }
 
-/** The Scene page, its writer open on the seed. */
+/** The Script page, its writer open on the seed. */
 export function episodeWriteHref(castId: string, seed: EpisodeWriteSeed): string {
   const params = new URLSearchParams({
     character: castId,
@@ -155,11 +155,11 @@ export function episodeWriteHref(castId: string, seed: EpisodeWriteSeed): string
   });
   if (seed.tone) params.set('tone', seed.tone);
   if (seed.mood) params.set('mood', seed.mood);
-  return `/scene?${params.toString()}`;
+  return `/script?${params.toString()}`;
 }
 
 /**
- * The seed in a Scene page URL (`?write=short&…`), or null. An adult mood is read only with
+ * The seed in a Script page URL (`?write=short&…`), or null. An adult mood is read only with
  * adult writing allowed (`adult`: the server's setting, as the page knows it).
  */
 export function readEpisodeWriteSeed(

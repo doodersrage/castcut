@@ -25,7 +25,7 @@ describe('production search (M9 T1)', () => {
     const script = productionSearchResults('consistency', data, matchScore);
     assert.deepEqual(
       script.map(result => [result.group, result.href, result.subtitle]),
-      [['Scripts', '/scene?character=cast-mara&script=script-1', 'Script · Mara']]
+      [['Scripts', '/script?character=cast-mara&script=script-1', 'Script · Mara']]
     );
   });
 
@@ -34,7 +34,7 @@ describe('production search (M9 T1)', () => {
       productionSearchResults(query, data, matchScore).map(result => [result.group, result.href]);
     assert.deepEqual(by('mara'), [
       ['Cast', '/characters/cast-mara'],
-      ['Scripts', '/scene?character=cast-mara&script=script-1'],
+      ['Scripts', '/script?character=cast-mara&script=script-1'],
     ]);
     assert.deepEqual(by('corner'), [['Locations', '/scene#locations']]);
     assert.deepEqual(by('reels'), [['Cut versions', '/cut']]);

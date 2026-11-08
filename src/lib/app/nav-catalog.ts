@@ -41,9 +41,14 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
         description: 'A short film: plan the moments, render the stills',
       },
       {
+        href: '/script',
+        label: 'Script',
+        description: 'Write it, then render it: a script’s scenes, shots and run',
+      },
+      {
         href: '/story',
         label: 'Story',
-        description: 'What happens next, scene by scene',
+        description: 'Play it scene by scene: pick what happens next',
       },
       {
         href: '/scene',

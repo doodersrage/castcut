@@ -40,6 +40,11 @@ export function scenePagePath(pathname?: string | null): '/scene' | '/m/scene' {
   return path === '/m' || path.startsWith('/m/') ? '/m/scene' : '/scene';
 }
 
+/** The Script page's path beside this one: the phone keeps scripts on its Scene (/m/scene). */
+export function scriptPagePath(pathname?: string | null): '/script' | '/m/scene' {
+  return scenePagePath(pathname) === '/m/scene' ? '/m/scene' : '/script';
+}
+
 /** Day's path beside this one. */
 export function dayPagePath(pathname?: string | null): '/day' | '/m/day' {
   const path = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/day');

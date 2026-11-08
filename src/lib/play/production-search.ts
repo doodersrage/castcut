@@ -60,7 +60,7 @@ export function productionSearchResults(
         id: `script-${script.id}`,
         label: script.name,
         subtitle: castName(script.castId) ? `Script · ${castName(script.castId)}` : 'Script',
-        href: `/scene?character=${encodeURIComponent(script.castId)}&script=${encodeURIComponent(script.id)}`,
+        href: `/script?character=${encodeURIComponent(script.castId)}&script=${encodeURIComponent(script.id)}`,
         group: 'Scripts',
       },
       script.name

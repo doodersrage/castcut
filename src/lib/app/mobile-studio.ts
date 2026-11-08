@@ -135,6 +135,8 @@ export function toMobileStudioHref(href: string): string {
     '/story': '/m/story',
     '/cut': '/m/cut',
     '/scene': '/m/scene',
+    // The phone keeps scripts on its Scene.
+    '/script': '/m/scene',
     '/roleplay': '/m/story',
     '/gallery': '/m/gallery',
     '/queue': '/m/queue',

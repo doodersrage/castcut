@@ -47,6 +47,8 @@ const PLAY_KIOSK_TABS: KioskTab[] = [
   { href: '/day', label: 'Short', primary: true },
   { href: '/fitting', label: 'Outfit', primary: true },
   { href: '/story', label: 'Story', requiresFirstFilm: true, primary: true },
+  // Write it, plan its shots, start the run (scripts' own page; the run renders on Scene).
+  { href: '/script', label: 'Script', primary: true },
   // One shot exactly as wanted (Day's engine on one slot): shots → Cut, so before Cut.
   { href: '/scene', label: 'Scene', primary: true },
   // The film's own step: put the shots together (cut-room.ts).

@@ -22,7 +22,7 @@ say in each.
 
 ## By hand
 
-1. **Write it.** Scene → More → Script → **Write an episode…**: what it's about, about how many
+1. **Write it.** **Script** (`/script`) → **Write an episode…**: what it's about, about how many
    minutes (a scene for every 45 seconds: 40 for a half hour) — or **In scenes**, a count (2–40)
    for a short — and a tone. From [Short](guide-day.md), **Write it as a script →** opens it on the Day's
    idea, its mood as the tone and a scene per moment. **Write the outline**, change

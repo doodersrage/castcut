@@ -129,11 +129,10 @@ function sceneWithTakes() {
   };
 }
 
-/** Script and Locations sit under "More" on the desk (2026-11-05): opened before they're used. */
-async function openSceneMore(page: Page): Promise<void> {
-  const more = page.getByTestId('scene-more');
-  await more.waitFor({ state: 'attached', timeout: 60_000 }).catch(() => undefined);
-  if (await more.count()) await more.evaluate(el => ((el as HTMLDetailsElement).open = true));
+/** Scripts and Locations have their own page on the desk (/script, 2026-11-08). */
+async function openScriptPage(page: Page, query = `character=${CAST}`): Promise<void> {
+  await gotoStable(page, `/script?${query}`);
+  await dismissBlockingOverlays(page);
 }
 
 /** The prompt text of a queued job (the encoder's, wherever it sits in the body). */
@@ -462,9 +461,8 @@ test('a location is made, described, kept after a reload, and not deleted while 
       { once: true }
     );
   await seed(sceneWithTakes());
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section.getByTestId('locations-empty')).toBeVisible({ timeout: 60_000 });
 
@@ -494,7 +492,7 @@ test('a location is made, described, kept after a reload, and not deleted while 
   setThere.scenes[0] = { ...setThere.scenes[0]!, slot: shot };
   setThere.slots = [shot];
   await seed(setThere);
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await expect(rows).toHaveCount(1, { timeout: 60_000 });
   await cafe.getByTestId('location-delete').click();
@@ -514,25 +512,30 @@ test('a location is made, described, kept after a reload, and not deleted while 
 // M8 T2: a Scene set in a location draws that place's look — its words in the queued prompt.
 test('a Scene set in a location queues its take with the location\'s look', async ({ page }) => {
   const queued = await stubComfyQueue(page);
-  await seedSettingsCacheOnNextLoad(page, {
-    shared: { activeCharacterId: CAST },
-    characters: cast,
-    tools: { scene: { isolateSubject: false } },
-  });
-  await gotoStable(page, `/scene?character=${CAST}`);
-  await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('scene-empty')).toBeVisible({ timeout: 60_000 });
-  await page.getByTestId('scene-new').click();
-  await expect(page.getByTestId('scene-shot')).toBeVisible();
-
-  await openSceneMore(page);
+  // Seeded once: the place made on Script stays when Scene opens.
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { scene: { isolateSubject: false } },
+    },
+    { once: true }
+  );
+  await openScriptPage(page);
   const section = page.getByTestId('locations-section');
+  await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
   await section.getByTestId('location-add').click();
   const cafe = section.locator('[data-testid^="location-loc-"]').first();
   await cafe.getByTestId('location-look').fill('green tiled counter, brass espresso machine');
   await cafe.getByTestId('location-look').blur();
 
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-empty')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('scene-new').click();
+  await expect(page.getByTestId('scene-shot')).toBeVisible();
   // Picked with no words yet: the Setting starts as its name.
   const picker = page.getByTestId('day-slot-location-record');
   await picker.selectOption({ label: 'Corner café' });
@@ -556,9 +559,8 @@ test('a script place resolves to a location, and its shot\'s Scene is set there'
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
@@ -582,6 +584,8 @@ test('a script place resolves to a location, and its shot\'s Scene is set there'
   if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
   await page.getByTestId('script-shots-draft-int-cafe-day').click();
   await page.locator('[data-testid^="script-shot-make-"]').first().click();
+  // Made a Scene, it opens on Scene.
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 30_000 });
   await expect(page.getByTestId('day-slot-location-record')).toHaveValue(id, { timeout: 30_000 });
   await expect(page.getByTestId('day-slot-location')).toHaveValue('cafe');
 });
@@ -596,9 +600,8 @@ test('a location\'s picture is added, shown and removed', async ({ page }) => {
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
@@ -885,9 +888,8 @@ test('a location\'s picture is made from its words and kept', async ({ page }) =
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   const section = page.getByTestId('locations-section');
   await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Harbour café');
@@ -942,9 +944,8 @@ test('a shot list is split, reordered and merged in place', async ({ page }) => 
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
   await page.getByTestId('script-import').click();
   await page
@@ -1018,7 +1019,7 @@ test('a script is seen as a storyboard: kept takes and cards, a card makes its S
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}&script=script-board`);
+  await gotoStable(page, `/script?character=${CAST}&script=script-board`);
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
   await page.getByTestId('script-board-toggle').click();
@@ -1051,7 +1052,7 @@ test('a script is seen as a storyboard: kept takes and cards, a card makes its S
   // The script's coverage, said in Cut too, linking back to the script.
   const coverage = page.getByTestId('cut-script-coverage');
   await expect(coverage).toContainText('Script “Board test”: 2 planned · 2 made · 1 kept · 0 in the Cut');
-  await expect(coverage.getByRole('link')).toHaveAttribute('href', '/scene?script=script-board');
+  await expect(coverage.getByRole('link')).toHaveAttribute('href', '/script?script=script-board');
   await shot(page, 'cut-animatic');
 });
 
@@ -1127,11 +1128,13 @@ test('Scene with takes, a location and the storyboard, and Cut\'s animatic, pass
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}&script=script-axe`);
+  await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('scene-take')).toHaveCount(2, { timeout: 60_000 });
-  await openSceneMore(page);
+  expect(await axeBlocking(page)).toEqual([]);
+  await openScriptPage(page, `character=${CAST}&script=script-axe`);
   const section = page.getByTestId('locations-section');
+  await expect(section).toBeVisible({ timeout: 60_000 });
   await section.getByTestId('location-new-name').fill('Corner café');
   await section.getByTestId('location-add').click();
   await page.getByTestId('script-board-toggle').click();
@@ -1153,9 +1156,8 @@ test('a script is imported, read scene by scene, kept after a reload, and delete
     characters: cast,
     tools: { scene: sceneWithTakes() },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
 
   await page.getByTestId('script-import').click();
@@ -1224,7 +1226,7 @@ test('a script kept in the settings moves to its own store and is sent on its ow
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('script-open-script-old')).toBeVisible({ timeout: 60_000 });
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toBe(`1|${CAST}|Kept before`);
@@ -1284,7 +1286,7 @@ test('Draft with the LLM: its shots are planned, and a failure says why', async 
       },
     });
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await page.getByTestId('script-open-script-llm').click({ timeout: 60_000 });
   await page.getByTestId('script-scene-int-kitchen-morning').locator('summary').click();
@@ -1337,9 +1339,8 @@ test('Write an episode: an outline, scenes written one by one, kept as a script'
     const heading = sent.outline!.scenes[sent.index!]!.heading;
     await route.fulfill({ json: { text: `${heading}\n\nShe looks around.\n\nNORA\nScene ${sent.index! + 1}.\n` } });
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await expect(page.getByTestId('scene-scripts')).toBeVisible({ timeout: 60_000 });
   await page.getByTestId('script-write-episode').click();
   const sheet = page.getByTestId('episode-writer');
@@ -1428,7 +1429,7 @@ test('Import a script from Short opens Scene’s import box', async ({ page }) =
   });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await clickUntilAt(page, page.getByTestId('day-script-open').first(), /\/scene\?/);
+  await clickUntilAt(page, page.getByTestId('day-script-open').first(), /\/script\?/);
   await expect(page.getByTestId('script-import-text')).toBeVisible({ timeout: 60_000 });
   await expect(page).not.toHaveURL(/script=import/);
   await page.getByTestId('script-import-text').fill('INT. CAFE - DAY\n\nShe sits by the window.\n');
@@ -1474,9 +1475,7 @@ test('Make the episode: the autopilot keeps, plans, prepares and starts the run'
   });
   // The LLM's shot plan fails: the autopilot drafts by the rules instead.
   await page.route('**/api/script-shots', route => route.fulfill({ status: 502, json: { error: 'down' } }));
-  await gotoStable(page, `/scene?character=${CAST}`);
-  await dismissBlockingOverlays(page);
-  await openSceneMore(page);
+  await openScriptPage(page);
   await page.getByTestId('script-write-episode').click({ timeout: 60_000 });
   const sheet = page.getByTestId('episode-writer');
   await sheet.getByTestId('episode-premise').fill('A letter brings her back to the seaside café.');
@@ -1491,8 +1490,8 @@ test('Make the episode: the autopilot keeps, plans, prepares and starts the run'
   await sheet.getByTestId('episode-use').click();
   await expect(sheet).toHaveCount(0);
 
-  await expect(page.getByTestId('script-autopilot')).toContainText('Running:', { timeout: 60_000 });
-  await expect(page.getByTestId('script-autopilot')).toContainText('then the cut');
+  // Its run starts where it renders: Scene.
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
   // Kept, its lead confirmed (the cue names the Cast), the shots planned, the run going as an episode.
   const stored = async () => JSON.parse((await storedSceneTool(page)) || '{}');
   await expect
@@ -1544,7 +1543,7 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await page.getByTestId('script-open-script-e2e').click({ timeout: 60_000 });
   await page.getByTestId('script-scene-int-kitchen-morning').locator('summary').click();
@@ -1557,14 +1556,11 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
   await expect(lead).toHaveAttribute('data-status', 'planned');
 
   await page.getByTestId('script-shot-make-int-kitchen-morning~2').click();
-  // Opened as the Scene page's scene, named for the shot.
+  // Opened on Scene, named for the shot.
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 30_000 });
   await expect(page.getByTestId('scene-name')).toHaveValue('1B KITCHEN · Dialogue', {
     timeout: 30_000,
   });
-  await expect(lead).toHaveAttribute('data-status', 'made');
-  await expect(page.getByTestId('script-shot-status-int-kitchen-morning~2')).toHaveText(
-    'Scene made'
-  );
 
   // Stored: the Scene filled in from the script and linked to the shot, and the shot to it.
   await expect
@@ -1592,6 +1588,17 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
       { timeout: 30_000 }
     )
     .toBe('morning|kitchen at home|Coffee first.|waist|true|true');
+
+  // Back on Script (the link opens the Scene's script): the shot is made.
+  await page.getByTestId('scene-open-script').click();
+  await expect(page).toHaveURL(/\/script\?.*script=/, { timeout: 30_000 });
+  const kitchen = page.getByTestId('script-scene-int-kitchen-morning');
+  await expect(kitchen).toBeVisible({ timeout: 60_000 });
+  if ((await kitchen.getAttribute('open')) === null) await kitchen.locator('summary').click();
+  await expect(lead).toHaveAttribute('data-status', 'made');
+  await expect(page.getByTestId('script-shot-status-int-kitchen-morning~2')).toHaveText(
+    'Scene made'
+  );
 
   // Coverage (S5): how far the scene has got, and what looks missing — decided like Cut's.
   await expect(page.getByTestId('script-coverage')).toContainText(
@@ -1648,7 +1655,7 @@ test('a new version of a script is reviewed, and a removed scene keeps its made 
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await page.getByTestId('script-open-script-e2e').click({ timeout: 60_000 });
   await page.getByTestId('script-reimport-open').click();
@@ -1743,12 +1750,14 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}&script=script-run`);
-  await dismissBlockingOverlays(page);
+  await openScriptPage(page, `character=${CAST}&script=script-run`);
   await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
   await expect(page.getByTestId('script-prepare-note')).toContainText(
     '3 planned shots made into Scenes'
   );
+  // Prepared on Script, the run is set and started on Scene.
+  await page.getByTestId('script-open-run').click();
+  await expect(page).toHaveURL(/\/scene\?/, { timeout: 60_000 });
   const run = page.getByTestId('scene-run');
   await expect(run).toBeVisible();
   await expect(page.getByTestId('scene-run-summary')).toContainText('3 takes, one at a time');
@@ -1800,11 +1809,18 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await page.getByTestId('confirm-dialog-confirm').click();
   await expect(run).toHaveCount(0);
 
-  // A run for one scene: the roof's shot alone.
-  await page.getByTestId('script-scene-ext-roof-night').locator('summary').click();
+  // A run for one scene: the roof's shot alone, prepared on Script.
+  await page.getByTestId('scene-open-script').click();
+  await expect(page).toHaveURL(/\/script\?/, { timeout: 30_000 });
+  const roof = page.getByTestId('script-scene-ext-roof-night');
+  if (!(await roof.isVisible({ timeout: 10_000 }).catch(() => false))) {
+    await page.getByTestId('script-open-script-run').click();
+  }
+  await roof.locator('summary').click();
   await page.getByTestId('script-prepare-run-ext-roof-night').click();
   await expect(page.getByTestId('script-prepare-note')).toContainText('Every planned shot is a Scene already');
-  await expect(page.getByTestId('scene-run-summary')).toContainText('1 take, one at a time');
+  await page.getByTestId('script-open-run').click();
+  await expect(page.getByTestId('scene-run-summary')).toContainText('1 take, one at a time', { timeout: 30_000 });
   expect(queued).toHaveLength(0);
 });
 
@@ -2102,9 +2118,8 @@ test('Who’s who makes a recurring part a Cast member, with a plate, and gives 
       },
     },
   });
-  await gotoStable(page, `/scene?character=${CAST}&script=script-cafe`);
+  await gotoStable(page, `/script?character=${CAST}&script=script-cafe`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
   // Tommy comes back (two scenes); the little girl is never offered.
   const recurring = page.getByTestId('script-recurring');
@@ -2768,7 +2783,7 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   }, { once: true });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/scene\?.*script=/);
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/script\?.*script=/);
   const reading = page.getByTestId('script-reading');
   await expect(reading).toBeVisible({ timeout: 60_000 });
   await expect(reading).toContainText('SMALL KITCHEN');
@@ -2837,7 +2852,7 @@ test('Short and its short stay in step: kept takes back, beats out', async ({ pa
   );
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/scene\?.*script=/);
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/script\?.*script=/);
   await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
 
   // On Scene, the night's Scene gets a take, kept (as a run would) — written with no app page open.
@@ -2961,9 +2976,8 @@ test('adult writing: refused without the server’s adult setting, offered with 
     characters: cast,
     tools: { scene: sceneWithTakes() },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await page.getByTestId('script-write-episode').click({ timeout: 60_000 });
   const adult = page.getByTestId('episode-writer').getByTestId('episode-adult');
   await expect(adult).toBeVisible({ timeout: 30_000 });
@@ -3066,9 +3080,8 @@ test('a script archived to a file and imported back is the same script', async (
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await page.getByTestId('script-import').click({ timeout: 60_000 });
   await page.getByTestId('script-import-text').fill('Title: Her Day\n\nINT. CAFE - DAY\n\nShe sits by the window.\n');
   await page.getByTestId('script-keep').click();
@@ -3101,9 +3114,8 @@ test('Write the next one: the writer goes on from the script', async ({ page }) 
     characters: cast,
     tools: { scene: { isolateSubject: false } },
   });
-  await gotoStable(page, `/scene?character=${CAST}`);
+  await gotoStable(page, `/script?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await openSceneMore(page);
   await page.getByTestId('script-import').click({ timeout: 60_000 });
   await page
     .getByTestId('script-import-text')
@@ -3150,13 +3162,13 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-write')).toHaveCount(0);
-  // Typed before the page settles, the text is wiped: type, open, until Scene opens.
+  // Typed before the page settles, the text is wiped: type, open, until Script opens.
   await expect(async () => {
-    if (!/\/scene\?/.test(page.url())) {
+    if (!/\/script\?/.test(page.url())) {
       await input.fill('the last match of the season');
       await page.getByTestId('day-idea-short').first().click({ timeout: 2000 });
     }
-    await expect(page).toHaveURL(/\/scene\?/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/script\?/, { timeout: 10_000 });
   }).toPass({ timeout: 90_000 });
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
@@ -3929,4 +3941,71 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
         'A quiet morning by the window',
       ])
     );
+});
+
+// A script's Scenes, listed by its scenes (2026-11-08): an episode's few hundred no longer one strip.
+test('the Scene list shows a script’s Scenes by its scenes, filters them, and the ones made by hand', async ({
+  page,
+}) => {
+  const base = sceneWithTakes();
+  const scene = (id: string, name: string, sceneId: string | null, createdAt: number, kept = false) => ({
+    ...base.scenes[0]!,
+    id,
+    name,
+    createdAt,
+    takes: base.scenes[0]!.takes,
+    ...(kept ? { keptTakeId: 'take-1' } : {}),
+    ...(sceneId ? { fromScript: { scriptId: 'script-list', sceneId, shotId: `${sceneId}~${id}` } } : {}),
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...base,
+        scenes: [
+          scene('cafe-1', '1A CAFE · Action', 'int-cafe-day', 1, true),
+          scene('cafe-2', '1B CAFE · Dialogue', 'int-cafe-day', 2),
+          scene('beach-1', '2A BEACH · Action', 'ext-beach-night', 3),
+          scene('mine', 'By hand', null, 4),
+        ],
+        activeSceneId: 'beach-1',
+        scripts: [
+          {
+            id: 'script-list',
+            castId: CAST,
+            name: 'List test',
+            source: 'INT. CAFE - DAY\n\nShe pours coffee.\n\nEXT. BEACH - NIGHT\n\nShe walks.\n',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const list = page.getByTestId('scene-list-grouped');
+  await expect(list).toBeVisible({ timeout: 60_000 });
+  // The script's scenes as rows, with how far each has got; the open Scene's row is open.
+  await expect(page.getByTestId('scene-list-group-toggle-int-cafe-day')).toContainText('1. INT. CAFE - DAY');
+  await expect(page.getByTestId('scene-list-group-toggle-int-cafe-day')).toContainText('1 of 2 kept');
+  await expect(page.getByTestId('scene-list-group-toggle-ext-beach-night')).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByTestId('scene-list-item-beach-1')).toBeVisible();
+  await expect(page.getByTestId('scene-list-item-cafe-1')).toHaveCount(0);
+  // Another row opens; No take kept leaves the kept one out.
+  await page.getByTestId('scene-list-group-toggle-int-cafe-day').click();
+  await expect(page.getByTestId('scene-list-item-cafe-2')).toBeVisible();
+  await page.getByTestId('scene-list-filter-unkept').click();
+  await expect(page.getByTestId('scene-list-item-cafe-1')).toHaveCount(0);
+  await expect(page.getByTestId('scene-list-item-cafe-2')).toBeVisible();
+  await page.getByTestId('scene-list-filter-flagged').click();
+  await expect(page.getByTestId('scene-list-none')).toContainText('Nothing here needs a look');
+  await page.getByTestId('scene-list-filter-all').click();
+  // The ones made by hand are their own source; opening one follows it.
+  await page.getByTestId('scene-list-source').selectOption({ label: 'Made by hand (1)' });
+  await page.getByTestId('scene-list-item-mine').click();
+  await expect(page.getByTestId('scene-name')).toHaveValue('By hand');
+  await expect(page.getByTestId('scene-list-source')).toHaveValue('loose');
+  expect(await axeBlocking(page)).toEqual([]);
 });

@@ -794,7 +794,7 @@ export default function CutRoom() {
                 <li key={entry.id}>
                   <a
                     className="underline"
-                    href={href(`/scene?script=${encodeURIComponent(entry.id)}`)}
+                    href={href(`/script?script=${encodeURIComponent(entry.id)}`)}
                   >
                     Script “{entry.name}”
                   </a>

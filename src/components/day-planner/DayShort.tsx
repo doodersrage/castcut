@@ -15,6 +15,7 @@ import {
   normalizeDayShortLink,
   saveDayAsShort,
   scenePagePath,
+  scriptPagePath,
   type DayShortLink,
 } from '@/lib/day/scene-links';
 
@@ -83,12 +84,18 @@ export function useDayShort(input: {
     updateDay({ shortLink: result.link satisfies DayShortLink });
     const params = new URLSearchParams({ character: castId, script: result.scriptId });
     if (result.runId) params.set('start', result.runId);
-    router.push(`${scenePagePath()}?${params.toString()}`);
+    // Its run starts on Scene; a script with no run yet opens on Script.
+    router.push(`${result.runId ? scenePagePath() : scriptPagePath()}?${params.toString()}`);
   };
   const scenePath = (extra: Record<string, string> = {}) =>
     link
       ? `${scenePagePath()}?${new URLSearchParams({ character: castId, script: link.scriptId, ...extra }).toString()}`
       : scenePagePath();
+  // Its next short is written on Script (the run's page stays Scene).
+  const scriptPath = (extra: Record<string, string> = {}) =>
+    link
+      ? `${scriptPagePath()}?${new URLSearchParams({ character: castId, script: link.scriptId, ...extra }).toString()}`
+      : scriptPagePath();
   return {
     castId,
     link,
@@ -101,6 +108,7 @@ export function useDayShort(input: {
     error,
     go,
     scenePath,
+    scriptPath,
     cutPath: link
       ? `/cut?${new URLSearchParams({ from: 'scenes', character: castId, script: link.scriptId }).toString()}`
       : '/cut',
@@ -207,7 +215,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
             size="sm"
             disabled={busy}
             data-testid="day-as-short"
-            title="Open it on Scene (the board's changes go in first)"
+            title="Open it on Script (the board’s changes go in first)"
             onClick={() => short.go(false)}
           >
             Its script →
@@ -222,7 +230,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           </a>
           <a
             className="ui-text-link type-caption"
-            href={short.scenePath({ write: 'next' })}
+            href={short.scriptPath({ write: 'next' })}
             data-testid="day-next-short"
             title="Write the short that comes after this one — how it ended, as many scenes, its mood"
           >

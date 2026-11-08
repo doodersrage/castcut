@@ -14,21 +14,19 @@ import { loadCharacters } from '@/lib/character/os';
 import type { ScriptsCache } from '@/lib/day/scene-scripts';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 
+type Vm = ReturnType<typeof useDayPlannerToolOrchestration>;
+type Page = ReturnType<typeof useScenePage>;
+type Runner = ReturnType<typeof useSceneRun>;
+type StartRun = NonNullable<Parameters<typeof SceneScriptsSection>[0]['onStartRun']>;
+
 /**
- * The Cast's scripts, the locations and a prepared run with its controls — the same on the desk
- * and the phone (M10 T5).
+ * A run's start and its end, where the runner is: a run saved with ?start=<id> (the episode
+ * autopilot, Short's Make the short, the Script page's Start) starts once the runner has it, and
+ * a done run with the cut asked for opens Cut. Returns the ref a same-page Start sets.
  */
-export default function SceneScriptAndRun({
-  vm,
-  page,
-  runner,
-}: {
-  vm: ReturnType<typeof useDayPlannerToolOrchestration>;
-  page: ReturnType<typeof useScenePage>;
-  runner: ReturnType<typeof useSceneRun>;
-}) {
-  const character = vm.character;
+function useSceneRunStart(vm: Vm, page: Page, runner: Runner) {
   const router = useRouter();
+  const castId = vm.character?.id;
   // The episode autopilot's run: saved with its settings, then started once the runner has it
   // (its ref follows the page a commit later, so the start waits for the next tick).
   // Or Short's Make the short (?start=<run id>): the run it saved, started when the page opens.
@@ -71,7 +69,6 @@ export default function SceneScriptAndRun({
   }, [run, start]);
   // Done, with the cut asked for: Cut opens on the Scenes and cuts the episode (useCutAutopilot).
   const { updateRun } = page;
-  const castId = character?.id;
   useEffect(() => {
     if (!run || run.state !== 'done' || !run.auto?.cutWhenDone || !castId) return;
     updateRun({ ...run, auto: { ...run.auto, cutWhenDone: false } });
@@ -79,6 +76,24 @@ export default function SceneScriptAndRun({
     const only = run.scriptId ? `&script=${encodeURIComponent(run.scriptId)}` : '';
     router.push(`/cut?from=scenes&character=${encodeURIComponent(castId)}${only}&autocut=1`);
   }, [castId, router, run, updateRun]);
+  return startRunId;
+}
+
+/** The Cast's scripts and the locations (the Script page; the phone's Scene). */
+export function SceneScriptPart({
+  vm,
+  page,
+  onStartRun,
+  openScene,
+}: {
+  vm: Vm;
+  page: Page;
+  onStartRun: StartRun;
+  /** Opening a Scene from a script: on the Script page, that's going to Scene. */
+  openScene?: (sceneId: string) => void;
+}) {
+  const { makeSceneFrom } = page;
+  const character = vm.character;
   return (
     <>
       {character ? (
@@ -97,20 +112,33 @@ export default function SceneScriptAndRun({
             updateToolSettings: vm.updateToolSettings as (patch: ScriptsCache) => void,
           }}
           scenes={page.castScenes}
-          makeScene={page.makeSceneFrom}
-          openScene={page.openScene}
+          // A shot made a Scene opens it (on Scene, it is the one the editor shows).
+          makeScene={(...args: Parameters<typeof makeSceneFrom>) => {
+            const id = makeSceneFrom(...args);
+            if (id && openScene) openScene(id);
+            return id;
+          }}
+          openScene={openScene ?? page.openScene}
           prepareRun={page.prepareRun}
           llmBody={sharedLlmRequestBody(vm.shared)}
           sendComfyUi={vm.actions.sendComfyUi}
-          onStartRun={(next, options) => {
-            // An episode is cut wide: its stills are shot 16:9 (the autopilot's choice).
-            if (options?.wideStills) vm.updateToolSettings({ wideStills: true });
-            startRunId.current = next.id;
-            page.updateRun(next);
-          }}
+          onStartRun={onStartRun}
         />
       ) : null}
       <LocationsSection scenes={page.scenes} emptyPhoto={emptyPlacePhoto} />
+    </>
+  );
+}
+
+/** The Cast's run and its controls, where it renders (Scene). */
+export function SceneRunPart({ vm, page, runner }: { vm: Vm; page: Page; runner: Runner }) {
+  useSceneRunStart(vm, page, runner);
+  return <SceneRunPanelOf page={page} runner={runner} />;
+}
+
+function SceneRunPanelOf({ page, runner }: { page: Page; runner: Runner }) {
+  return (
+    <>
       {page.run ? (
         <SceneRunPanel
           run={page.run}
@@ -131,6 +159,37 @@ export default function SceneScriptAndRun({
           />
         </SceneRunPanel>
       ) : null}
+    </>
+  );
+}
+
+/**
+ * The Cast's scripts, the locations and a prepared run with its controls, together — the phone's
+ * Scene (M10 T5). On the desk, scripts have their own page (/script) and the run stays on Scene.
+ */
+export default function SceneScriptAndRun({
+  vm,
+  page,
+  runner,
+}: {
+  vm: Vm;
+  page: Page;
+  runner: Runner;
+}) {
+  const startRunIdRef = useSceneRunStart(vm, page, runner);
+  return (
+    <>
+      <SceneScriptPart
+        vm={vm}
+        page={page}
+        onStartRun={(next, options) => {
+          // An episode is cut wide: its stills are shot 16:9 (the autopilot's choice).
+          if (options?.wideStills) vm.updateToolSettings({ wideStills: true });
+          startRunIdRef.current = next.id;
+          page.updateRun(next);
+        }}
+      />
+      <SceneRunPanelOf page={page} runner={runner} />
     </>
   );
 }

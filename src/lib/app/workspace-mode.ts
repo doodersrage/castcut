@@ -119,6 +119,7 @@ export const ROLEPLAY_FOCUS_NAV_HREFS = [
   '/play',
   '/fitting',
   '/day',
+  '/script',
   '/story',
   '/gallery',
   '/queue',

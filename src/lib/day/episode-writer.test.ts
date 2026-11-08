@@ -118,7 +118,7 @@ describe('a short from Day', () => {
       mood: 'everyday',
     });
     const href = episodeWriteHref('cast-1', seed);
-    assert.match(href, /^\/scene\?character=cast-1&write=short&/);
+    assert.match(href, /^\/script\?character=cast-1&write=short&/);
     assert.deepEqual(readEpisodeWriteSeed(href.slice(href.indexOf('?'))), seed);
     // A mood with no tone of its own, and a URL with no idea, or no short asked for.
     assert.match(dayShortSeed({ premise: 'x', mood: 'sport', moments: 4 }).tone ?? '', /sport/);
