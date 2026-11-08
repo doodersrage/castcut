@@ -50,6 +50,11 @@ const MAX_EDGE = 1280;
 const FRAME_RATE = 30;
 const VIDEO_BITS_PER_SECOND = 3_000_000;
 
+/** How long status asks may keep failing before the encode is given up on. */
+const STATUS_RETRY_MS = 2 * 60_000;
+/** Tries at downloading the finished film. */
+const DOWNLOAD_TRIES = 3;
+
 export type AssembleFilmProgress = {
   ratio: number;
   label: string;
@@ -479,11 +484,23 @@ async function assembleFilmBlobOnServer(
     const startedAt = Date.now();
     let lastChangeAt = startedAt;
     let lastSeen = '';
+    // A status ask that fails on the way (a blip, a busy server) is asked again: one failed
+    // poll ended a 4.5-hour episode cut at 'Checking the film…', its film written (2026-11-08).
+    let failingSince: number | null = null;
     while (!serverEncodeGivenUp(startedAt, lastChangeAt, Date.now())) {
       await wait(500);
-      const statusRes = await fetch(`/api/film/assemble?jobId=${encodeURIComponent(jobId)}`, {
-        credentials: 'same-origin',
-      });
+      let statusRes: Response;
+      try {
+        statusRes = await fetch(`/api/film/assemble?jobId=${encodeURIComponent(jobId)}`, {
+          credentials: 'same-origin',
+        });
+        failingSince = null;
+      } catch (error) {
+        failingSince ??= Date.now();
+        if (Date.now() - failingSince > STATUS_RETRY_MS) throw error;
+        await wait(2000);
+        continue;
+      }
       if (!statusRes.ok) {
         throw new Error(`Server film status failed (HTTP ${statusRes.status}).`);
       }
@@ -518,14 +535,23 @@ async function assembleFilmBlobOnServer(
         throw new Error(job.error || 'Server film encode failed.');
       }
       if (job.status === 'completed') {
-        const downloadRes = await fetch(
-          `/api/film/assemble?jobId=${encodeURIComponent(jobId)}&download=1`,
-          { credentials: 'same-origin' }
-        );
-        if (!downloadRes.ok) {
-          throw new Error(`Server film download failed (HTTP ${downloadRes.status}).`);
+        // The film, fetched again if it fails on the way (it is kept on the server either way).
+        let blob: Blob | null = null;
+        for (let attempt = 1; !blob; attempt += 1) {
+          try {
+            const downloadRes = await fetch(
+              `/api/film/assemble?jobId=${encodeURIComponent(jobId)}&download=1`,
+              { credentials: 'same-origin' }
+            );
+            if (!downloadRes.ok) {
+              throw new Error(`Server film download failed (HTTP ${downloadRes.status}).`);
+            }
+            blob = await downloadRes.blob();
+          } catch (error) {
+            if (attempt >= DOWNLOAD_TRIES) throw error;
+            await wait(3000 * attempt);
+          }
         }
-        const blob = await downloadRes.blob();
         if (blob.size === 0) {
           throw new Error('Server film encode produced an empty file.');
         }

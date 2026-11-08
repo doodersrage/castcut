@@ -63,3 +63,43 @@ describe('waiting for a server encode', () => {
     assert.equal(serverEncodeGivenUp(start, late - 1000, late), true);
   });
 });
+
+describe("the server cut rides out a failed status ask", () => {
+  it("asks again after a failed poll and a failed download, and returns the film", async () => {
+    const realFetch = globalThis.fetch;
+    const g = globalThis as { window?: unknown };
+    const hadWindow = "window" in g;
+    g.window = { setTimeout: globalThis.setTimeout.bind(globalThis), clearTimeout: globalThis.clearTimeout.bind(globalThis) };
+    let polls = 0;
+    let downloads = 0;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/film/assemble" && (!init || init.method === "GET")) {
+        return Response.json({ available: true });
+      }
+      if (url === "/api/film/assemble" && init?.method === "POST") {
+        return Response.json({ job: { id: "job-1" } });
+      }
+      if (url.includes("download=1")) {
+        downloads += 1;
+        if (downloads === 1) throw new TypeError("Failed to fetch");
+        return new Response(new Blob([new Uint8Array([1, 2, 3])], { type: "video/mp4" }));
+      }
+      polls += 1;
+      if (polls === 1) throw new TypeError("Failed to fetch");
+      return Response.json({ job: { status: "completed", ratio: 1, label: "Encode complete" } });
+    }) as typeof fetch;
+    try {
+      const film = await assembleFilmBlob([
+        { id: "a", kind: "still", url: "/a.png", seconds: 2 } as never,
+      ]);
+      assert.equal(film.encodePath, "server");
+      assert.equal(film.blob.size, 3);
+      assert.equal(polls, 2);
+      assert.equal(downloads, 2);
+    } finally {
+      globalThis.fetch = realFetch;
+      if (!hadWindow) delete g.window;
+    }
+  });
+});
