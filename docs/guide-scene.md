@@ -245,7 +245,7 @@ It stops by itself, saying why, when a take
 fails, isn't queued or a Scene can't be opened. It runs while the Scene page is open: closing the
 tab pauses it, and after a reload it shows _Paused_ and **Resume** carries on — waiting for the
 take that was rendering instead of queueing it again. **Resume by itself after a reload** (on
-for Autopilot and Make the short) does that for you a few seconds after the page opens again —
+for Autopilot and Render the short) does that for you a few seconds after the page opens again —
 a restart or a crash in the night doesn't stop an episode. When a run is done, or stops by itself,
 Castcut says so (a note that stays until you close it), and so does your desktop when Settings →
 ComfyUI → _Notify when ComfyUI jobs complete_ is on. **What it did** lists every step, and

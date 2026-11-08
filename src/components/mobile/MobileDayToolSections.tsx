@@ -1050,7 +1050,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
         <DayShortPanel short={short} busy={busy} />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
-            disabled={busy || queueBlocked}
+            disabled={busy || queueBlocked || short.runHere}
             loading={busy}
             data-testid="day-queue-all"
             onClick={() => void queueAll()}

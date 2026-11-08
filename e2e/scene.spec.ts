@@ -3188,7 +3188,7 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
 
 // Make the short: the Day as a script and its run started — the moments without a kept still
 // rendered one at a time, the best take kept, then the cut. Never over a run already going.
-test('Make the short: Short’s moments run on Scene, the kept ones left out', async ({ page }) => {
+test('Render the short: Short’s moments run here on Short, the kept ones left out', async ({ page }) => {
   const queued = await stubComfyQueue(page);
   const day = {
     stillsCharacterId: CAST,
@@ -3222,7 +3222,12 @@ test('Make the short: Short’s moments run on Scene, the kept ones left out', a
   await dismissBlockingOverlays(page);
   // Its clips: the moments with a line (a talking clip each), after the stills.
   await page.getByTestId('day-make-short-animate').first().selectOption('lines');
-  await clickUntilAt(page, page.getByTestId('day-make-short').first(), /\/scene\?/);
+  // It renders here, on Short (2026-11-08): the run's controls show on the page.
+  await expect(async () => {
+    await page.getByTestId('day-make-short').first().click({ timeout: 10_000 });
+    await expect(page.getByTestId('day-short-run-here').first()).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
+  await expect(page).toHaveURL(/\/day/);
   await expect
     .poll(
       async () => {

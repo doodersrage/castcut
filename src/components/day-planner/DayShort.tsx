@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useDayShortSync } from '@/components/day-planner/useDayShortSync';
@@ -19,9 +20,15 @@ import {
   type DayShortLink,
 } from '@/lib/day/scene-links';
 
+// The Scene page's records and runner, only while a short's run is live here (ShortRun.tsx).
+const ShortRun = dynamic(() => import('@/components/day-planner/ShortRun'), { ssr: false });
+
+/** A run that can still render (listed, going, paused, handed to the engine). */
+const LIVE_RUN = new Set(['prepared', 'running', 'paused', 'handed']);
+
 /**
  * The Day's short on the Short page (day-as-short.ts): one panel under the cards, just above the
- * action bar (which stays one line over the board) — **Make the short →** and what it animates,
+ * action bar (which stays one line over the board) — **Render the short** and what it animates,
  * the other way to render these moments (on the script road: checks, the best take kept, a
  * redo, the cut); **This Day as a script →** before there is a short; then **Its short**: in step
  * or not, how its run is going, Its script, Cut this short, Its next short — or the question when
@@ -44,6 +51,8 @@ export function useDayShort(input: {
   const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('none');
   /** The short was changed on Scene and the Day since: which to go on with (render or not). */
   const [choice, setChoice] = useState<{ note: string; render: boolean } | null>(null);
+  /** The run Make the short just started here (ShortRun mounts on it). */
+  const [startedHere, setStartedHere] = useState<string | null>(null);
   const link = normalizeDayShortLink(toolSettings.shortLink);
   // The Day and its short kept one (useDayShortSync).
   const sync = useDayShortSync({ character, toolSettings, slots, stills, link, updateDay });
@@ -82,10 +91,17 @@ export function useDayShort(input: {
     setError(null);
     setChoice(null);
     updateDay({ shortLink: result.link satisfies DayShortLink });
+    if (result.runId) {
+      // Its run renders here (ShortRun): started by ?start=, as on Scene.
+      const url = new URL(window.location.href);
+      url.searchParams.set('start', result.runId);
+      window.history.replaceState(window.history.state, '', url);
+      setStartedHere(result.runId);
+      return;
+    }
+    // A script with no run yet opens on Script.
     const params = new URLSearchParams({ character: castId, script: result.scriptId });
-    if (result.runId) params.set('start', result.runId);
-    // Its run starts on Scene; a script with no run yet opens on Script.
-    router.push(`${result.runId ? scenePagePath() : scriptPagePath()}?${params.toString()}`);
+    router.push(`${scriptPagePath()}?${params.toString()}`);
   };
   const scenePath = (extra: Record<string, string> = {}) =>
     link
@@ -96,10 +112,16 @@ export function useDayShort(input: {
     link
       ? `${scriptPagePath()}?${new URLSearchParams({ character: castId, script: link.scriptId, ...extra }).toString()}`
       : scriptPagePath();
+  // The short's run renders on Short while it is live (or just started here).
+  const runHere = Boolean(
+    ours && link && (startedHere || (progress && LIVE_RUN.has(progress.state)))
+  );
   return {
     castId,
     link,
     linked,
+    runHere,
+    startedHere,
     sync,
     progress,
     animate,
@@ -131,10 +153,10 @@ export function DayShortBarActions({ short, busy }: { short: DayShortView; busy?
         variant="secondary"
         disabled={busy}
         data-testid="day-make-short"
-        title="Render these moments as a short, on Scene: each one's best take kept by its checks, one redo, then the cut"
+        title="Render these moments as a short, here: each one's best take kept by its checks, one redo, then the cut"
         onClick={() => short.go(true)}
       >
-        Make the short →
+        Render the short
       </Button>
       <select
         aria-label="What Make the short animates"
@@ -171,7 +193,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
             size="sm"
             disabled={busy}
             data-testid="day-as-short"
-            title="Copy these moments into a script on Scene — a Scene each, any still its kept take — without rendering"
+            title="Copy these moments into a script on Script — a Scene each, any still its kept take — without rendering"
             onClick={() => short.go(false)}
           >
             This Day as a script →
@@ -179,7 +201,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
         ) : null}
         {!linked ? (
           <span className="type-caption text-[var(--text-muted)] max-md:hidden">
-            Renders these moments on Scene — the best take of each by its checks — and cuts them; or
+            Renders these moments here — the best take of each by its checks — and cuts them; or
             copy them as a script.
           </span>
         ) : null}
@@ -194,7 +216,10 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           </span>
         </p>
       ) : null}
-      {progress ? (
+      {short.runHere && short.link ? (
+        // Rendered here: the run's own controls and how far it has got.
+        <ShortRun key={short.startedHere ?? short.link.scriptId} scriptId={short.link.scriptId} />
+      ) : progress ? (
         <p className="type-caption" role="status" data-testid="day-short-run">
           {progress.state === 'done'
             ? `Its run is done — ${progress.of} Scene${progress.of === 1 ? '' : 's'}${progress.flagged ? `, ${progress.flagged} to check on Scene` : ''}.`

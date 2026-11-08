@@ -24,7 +24,7 @@ type StartRun = NonNullable<Parameters<typeof SceneScriptsSection>[0]['onStartRu
  * autopilot, Short's Make the short, the Script page's Start) starts once the runner has it, and
  * a done run with the cut asked for opens Cut. Returns the ref a same-page Start sets.
  */
-function useSceneRunStart(vm: Vm, page: Page, runner: Runner) {
+export function useSceneRunStart(vm: Vm, page: Page, runner: Runner) {
   const router = useRouter();
   const castId = vm.character?.id;
   // The episode autopilot's run: saved with its settings, then started once the runner has it

@@ -15,7 +15,7 @@ Top to bottom, the way a Day is made:
 | **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Its short** | Once the Day has a short: in step or not, how its run is going, **Its script →** · **Cut this short →** · **Its next short →** |
-| **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · **Make the short →** (stills, or animate the lines or every moment) · **This Day as a script →** (before it has a short) · Animate all · **Open Cut →** — render here with Queue, or on the script road with Make the short |
+| **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · **Render the short** (stills, or animate the lines or every moment) · **This Day as a script →** (before it has a short) · Animate all · **Open Cut →** — quick stills with Queue, or the short with its checks, best takes and cut with Render the short |
 | **Reel** | The finished stills and clips, from the first frame |
 
 Keys on the board (not while typing): **← →** the slot before / after, **Enter** opens it,
@@ -68,7 +68,7 @@ silly / raunchy.
     you change it.
 
     A Day has one short, and once made the two stay in step by themselves (_Its short: “…” — the
-    board and its Scenes stay in step_): a take kept on a moment's Scene — by Make the short's run,
+    board and its Scenes stay in step_): a take kept on a moment's Scene — by Render the short's run,
     or by hand — becomes that moment's still on the board (the one before stays as **Back to the
     last take**), and the board's edits (Suggest day, One event, a beat, a template) go into the
     short's Scenes a moment later, each keeping its takes and kept take; a new moment gets a
@@ -77,16 +77,17 @@ silly / raunchy.
     (a new short)** starts a new one. Making the short then asks first: **Use it as it is** or
     **Copy again**. In Cut, a Day with a short is in once — through Short; the Scenes source
     leaves that short's Scenes out while Short is on. A Cast keeps 12 scripts:
-    at 12, Short won't make another (it would drop one) — delete one on Scene first. Keeping a
+    at 12, Short won't make another (it would drop one) — archive one on Script first. Keeping a
     13th script on Scene asks too, naming the one it would drop.
 
-    **Make the short →** does the same and starts its run on Scene: each moment without a kept
+    **Render the short** does the same and renders it here, on Short: each moment without a kept
     still is rendered in turn, the best take kept by its checks (one redo when it misses one), and
     Cut cuts the short when it's done — its own Scenes only, in the script's order — Queue day with the checks of an
     [episode run](guide-scene.md#episode-runs). Beside it, what it animates: **stills** (a
     talking animatic when cut with Read the lines), **animate the lines** (a talking clip for each
     moment with a line) or **animate every moment** — clips take many times longer than stills.
-    Keep the Scene page open while it runs; Short says how far it has got, and **Cut this short →**
+    Keep Short open while it runs (its run's controls show under the cards; a reload picks it up
+    again); each kept take becomes its moment's still, and **Cut this short →**
     opens Cut on its Scenes only, in its order. **Its next short →** writes the one after it — how
     it ended, as many scenes, the same mood — on Scene's writer. It won't
     start over a run already listed, going or paused on Scene: finish or cancel that one first.

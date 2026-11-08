@@ -1265,7 +1265,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 <Button
                   size="sm"
                   variant={dayPhase === 'animate' && canAnimateAll ? 'secondary' : 'primary'}
-                  disabled={busy || queueBlocked}
+                  // Not while the short renders here: its run queues these moments itself.
+                  disabled={busy || queueBlocked || short.runHere}
                   data-testid="day-queue-all"
                   onClick={() => void queueAll()}
                 >
