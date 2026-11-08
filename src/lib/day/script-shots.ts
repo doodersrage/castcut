@@ -77,6 +77,15 @@ export function lineSeconds(text: string): number {
 }
 
 /** The deterministic draft for one script scene. */
+/**
+ * Someone doing something a still can show: a stance or an act. An action line without one is
+ * atmosphere (“The café glows warm under string lights.”) — the pose guide guesses, and the
+ * overnight episode's shots on such text missed their pose twice as often (2026-11-08: solo 5% vs
+ * 0%, two-shots 10% vs 6%). Words as often nouns (sigh, hands, steps, waves, looks) left out.
+ */
+export const DOING_RE =
+  /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?)\b/i;
+
 /** A cue's extension for a voice heard, not seen: V.O., O.S., O.C. (any dots). */
 const OFFSCREEN_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
 
@@ -512,9 +521,13 @@ export function shotSceneDraft(input: {
     : undefined;
   // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
   // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
+  // The first action where someone does something: a scene's opening is often atmosphere ("The
+  // café glows warm under string lights"), and a still posed from it guessed — the overnight
+  // episode's shots on such text missed their pose twice as often (2026-11-08).
+  const actions = scene.elements.filter(element => element.kind === 'action');
   const sceneActionRaw =
     !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
-      ? scene.elements.find(element => element.kind === 'action')?.text
+      ? (actions.find(element => DOING_RE.test(element.text)) ?? actions[0])?.text
       : undefined;
   // Her alone: what someone else does isn't in the picture ("Rob leans against the doorway, arms
   // crossed" drew her arms crossed, and 40 episode shots failed that check, 2026-11-07).

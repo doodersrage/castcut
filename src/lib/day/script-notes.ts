@@ -2,6 +2,7 @@ import type { ContinuityFinding } from '@/lib/checks/findings';
 import type { ScriptScene } from '@/lib/script/parse';
 import { coverageSubject } from './script-coverage';
 import { speakerKey } from './script-cast';
+import { DOING_RE } from './script-shots';
 
 /**
  * Script notes (2026-11-08): what Castcut can't film, or films badly, found in a script's words
@@ -78,6 +79,12 @@ export function scriptNotes(input: { scriptId: string; scene: ScriptScene }): Co
       'script-no-action',
       'Nothing is seen happening — only lines',
       'Give it an action line: where they are and what they do while they talk.'
+    );
+  } else if (action.length && !action.some(element => DOING_RE.test(element.text))) {
+    add(
+      'script-no-action',
+      'Its action is only atmosphere — no one is doing anything',
+      'Say what someone does — sits, pours, leans on the counter: the stills are posed from it.'
     );
   }
   return out;

@@ -409,3 +409,25 @@ describe('a voice heard, not seen (V.O., O.S.)', () => {
     assert.deepEqual(marked.map(shot => [shot.who.join('+'), shot.offscreen ?? false]), [['NORA', true], ['NORA', false]]);
   });
 });
+
+describe('a line said during what someone does', () => {
+  it('takes the first action where someone acts, not the scene’s atmosphere', () => {
+    const scene = parseScript(
+      [
+        'INT. SALT & SAVE CAFÉ - NIGHT',
+        '',
+        'The café glows warm under string lights. Salt air lingers in the air like a ghost’s sigh.',
+        '',
+        'Nora wipes the counter, slowly.',
+        '',
+        'TOMAS',
+        'It wasn’t always like this.',
+        '',
+      ].join('\n')
+    ).scenes[0]!;
+    const shot = draftShots(scene).find(entry => entry.purpose === 'dialogue')!;
+    const made = shotSceneDraft({ shot, scene, sceneIndex: 0, shotIndex: 1, castId: 'nora', cast, castMap: { NORA: 'nora', TOMAS: 'tomas' }, placeMap: undefined });
+    assert.match(made.slot.sceneHints ?? '', /Nora wipes the counter/);
+    assert.doesNotMatch(made.slot.sceneHints ?? '', /glows warm/);
+  });
+});

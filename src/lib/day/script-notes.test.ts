@@ -56,4 +56,22 @@ describe('script notes', () => {
     assert.match(user!.content, /- “montage” in the action/);
     assert.match(user!.content, /The scene:\nINT\. CAFE - DAY/);
   });
+
+  it('flags action that is only atmosphere (the overnight episode’s pose misses), not action that acts', () => {
+    const mood = sceneOf([
+      'INT. SALT & SAVE CAFÉ - NIGHT',
+      '',
+      'The café glows warm under string lights. Salt air lingers in the air like a ghost’s sigh.',
+      '',
+      'ROB',
+      'It wasn’t always like this.',
+      '',
+    ]);
+    assert.deepEqual(scriptNotes({ scriptId: 's', scene: mood }).map(note => note.evidence), [
+      'Its action is only atmosphere — no one is doing anything',
+    ]);
+    const acts = sceneOf(['INT. CAFE - NIGHT', '', 'The café glows. Lena wipes the counter.', '', 'ROB', 'Late.', '']);
+    assert.deepEqual(scriptNotes({ scriptId: 's', scene: acts }), []);
+  });
 });
+
