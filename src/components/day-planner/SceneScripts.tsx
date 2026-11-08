@@ -91,6 +91,7 @@ import {
   loadCharacters,
   upsertCharacter,
 } from '@/lib/character/os';
+import { episodeCastAbout } from '@/lib/day/episode-cast';
 import { syncSharedIdentityToCast } from '@/lib/character/identity';
 import type { CharacterAppearanceFormDraft } from '@/lib/character/appearance';
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
@@ -1019,10 +1020,16 @@ export default function SceneScripts({
           seed={writeSeed}
           open={writingEpisode}
           lead={castName ?? 'the lead'}
-          cast={cast.map(member => ({
-            name: member.name,
-            ...(member.sex ? { sex: member.sex } : {}),
-          }))}
+          // Who each is (looks, what they are to the lead, how they talk) and the film's places.
+          cast={cast.map(member => {
+            const about = episodeCastAbout(getCharacter(member.id), getCharacter(castId));
+            return {
+              name: member.name,
+              ...(member.sex ? { sex: member.sex } : {}),
+              ...(about ? { about } : {}),
+            };
+          })}
+          places={locations.map(location => location.name)}
           llmBody={llmBody}
           onClose={() => setWritingEpisode(false)}
           onDone={(fountain, pilot) => {

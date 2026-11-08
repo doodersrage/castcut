@@ -38,6 +38,7 @@ function castFrom(value: unknown): EpisodeCastMember[] {
     .map(member => ({
       name: text(member.name, 40),
       ...(member.sex === 'woman' || member.sex === 'man' ? { sex: member.sex } : {}),
+      ...(text(member.about, 240) ? { about: text(member.about, 240) } : {}),
     }))
     .filter(member => member.name);
 }
@@ -115,7 +116,19 @@ export async function POST(request: Request) {
       const outline = parseEpisodeOutline(
         // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
         await call(
-          episodeOutlineMessages({ premise, lead, cast, minutes, scenes, tone, adult }),
+          episodeOutlineMessages({
+            premise,
+            lead,
+            cast,
+            minutes,
+            scenes,
+            tone,
+            adult,
+            places: (Array.isArray(body.places) ? body.places : [])
+              .map(place => text(place, 60))
+              .filter(Boolean)
+              .slice(0, 12),
+          }),
           episodeOutlineTokens(episodeLengthScenes({ minutes, scenes }))
         )
       );

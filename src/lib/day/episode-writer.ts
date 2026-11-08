@@ -24,7 +24,12 @@ export type EpisodeOutline = {
   scenes: EpisodeOutlineScene[];
 };
 
-export type EpisodeCastMember = { name: string; sex?: string };
+export type EpisodeCastMember = {
+  name: string;
+  sex?: string;
+  /** Who they are, in a line (episode-cast.ts): looks, what they are to the lead, how they talk. */
+  about?: string;
+};
 
 export const EPISODE_MINUTES_MIN = 3;
 export const EPISODE_MINUTES_MAX = 60;
@@ -68,12 +73,24 @@ function castLine(lead: string, cast: readonly EpisodeCastMember[]): string {
   ]
     .filter(member => member.name.trim())
     .slice(0, 8)
-    .map(member =>
-      member.sex === 'woman' || member.sex === 'man'
-        ? `${member.name} (a ${member.sex})`
-        : member.name
-    );
+    .map(member => {
+      const who = member.sex === 'woman' || member.sex === 'man' ? `a ${member.sex}` : '';
+      const about = member.about?.trim();
+      const said = [who, about].filter(Boolean).join(' — ');
+      return said ? `${member.name} (${said})` : member.name;
+    });
   return named.join(', ');
+}
+
+/** The places the film already has (its Locations): used where they fit, not invented anew. */
+function placesLine(places: readonly string[] | undefined): string {
+  const named = [...new Set((places ?? []).map(place => place.trim()).filter(Boolean))].slice(
+    0,
+    12
+  );
+  return named.length
+    ? `Places the film already has — use them where they fit before inventing new ones: ${named.join(', ')}.`
+    : '';
 }
 
 /** A short counted in scenes (moments), not minutes: 2 at least — one is a Scene of its own. */
@@ -230,6 +247,8 @@ export function episodeOutlineMessages(input: {
   tone?: string;
   /** Adult writing ({@link EPISODE_ADULT_RULES}) — the route allows it only when the server does. */
   adult?: boolean;
+  /** The film's places (its Locations' names). */
+  places?: readonly string[];
 }): ChatMessage[] {
   const scenes = normalizeEpisodeScenes(input.scenes);
   const count = scenes ?? episodeSceneCount(input.minutes);
@@ -251,6 +270,7 @@ export function episodeOutlineMessages(input: {
       content: [
         `Premise: ${input.premise.trim()}`,
         `The lead: ${input.lead}. The cast to use: ${castLine(input.lead, input.cast)}. Add other people only if the story needs them.`,
+        placesLine(input.places),
         input.tone?.trim() ? `Tone: ${input.tone.trim()}.` : '',
         scenes
           ? `Length: a short — write exactly ${count} scenes, about ${onScreen <= 1 ? 'a minute' : `${onScreen} minutes`} on screen.`
@@ -326,6 +346,44 @@ export function parseEpisodeOutline(reply: string | null | undefined): EpisodeOu
   return { title: title || 'Episode', logline, scenes };
 }
 
+/**
+ * A worked example (2026-11-08): one scene written the way the rules ask — two people, one moment
+ * a paragraph, short lines that talk around the feeling, in late and out on a turn. Rules alone
+ * were followed in part; an example shows them. Not from any real script.
+ */
+export const EPISODE_EXAMPLE_SCENE: [string, string] = [
+  'The cast: Mara (a woman), Theo (a man — her brother).\n\nWrite scene 3: INT. MARA’S KITCHEN - NIGHT — Theo has come to borrow money again; Mara wants him to admit why, and he won’t — she gives it to him, but takes his spare key back.',
+  [
+    'INT. MARA’S KITCHEN - NIGHT',
+    '',
+    'Mara counts notes onto the table, one at a time.',
+    '',
+    'Theo leans in the doorway, keys turning in his fingers.',
+    '',
+    'THEO',
+    'You don’t have to count it.',
+    '',
+    'MARA',
+    '(not looking up)',
+    'I like to know what I’m losing.',
+    '',
+    'THEO',
+    'It’s a loan.',
+    '',
+    'MARA',
+    'Like the last one?',
+    '',
+    'Theo pockets the keys. He doesn’t answer.',
+    '',
+    'Mara pushes the money across the table, then holds out her open hand.',
+    '',
+    'MARA',
+    'The spare key.',
+    '',
+    'Theo looks at her hand. Slowly, he works the key off his ring and sets it in her palm.',
+  ].join('\n'),
+];
+
 export function episodeSceneMessages(input: {
   outline: EpisodeOutline;
   index: number;
@@ -354,10 +412,14 @@ export function episodeSceneMessages(input: {
         EPISODE_CRAFT_SCENE +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
+    // The example: how a scene reads when the rules are kept.
+    { role: 'user', content: EPISODE_EXAMPLE_SCENE[0] },
+    { role: 'assistant', content: EPISODE_EXAMPLE_SCENE[1] },
     {
       role: 'user',
       content: [
         `"${input.outline.title}" — ${input.outline.logline}`,
+        // Who they are (looks, what they are to her, how they talk): each sounds like themselves.
         `The cast: ${castLine(input.lead, input.cast)}.`,
         input.tone?.trim() ? `Tone: ${input.tone.trim()}.` : '',
         `The episode's scenes:\n${list}`,
@@ -376,6 +438,49 @@ export function episodeSceneMessages(input: {
  * the model wrote none or another), cut before a second heading. Null when there's nothing a
  * script reader takes as a scene.
  */
+/** A spoken line longer than this is split at a sentence (voice lines, talking clips). */
+export const EPISODE_LINE_WORDS_MAX = 20;
+
+const CUE = /^[A-Z][A-Z0-9 .'’-]*[A-Z0-9)](?:\s*\([^)]*\))?$/;
+
+/**
+ * Long lines as two (2026-11-08): a line of more than EPISODE_LINE_WORDS_MAX words with more than
+ * one sentence is said as two lines by the same speaker, split at the sentence nearest its middle
+ * — a read line and a talking clip stay a length that renders well. One long sentence stays.
+ */
+export function splitLongLines(fountain: string): string {
+  return fountain
+    .split(/\n{2,}/)
+    .flatMap(block => {
+      const lines = block.split('\n');
+      const cue = lines[0]?.trim() ?? '';
+      if (lines.length < 2 || !CUE.test(cue) || HEADING.test(cue)) return [block];
+      const lead = [lines[0]!, ...lines.slice(1).filter(line => /^\s*\(.*\)\s*$/.test(line))];
+      const said = lines
+        .slice(1)
+        .filter(line => !/^\s*\(.*\)\s*$/.test(line))
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const words = said.split(' ').filter(Boolean).length;
+      const sentences =
+        said.match(/[^.!?…]+[.!?…]+["”’)]*\s*|[^.!?…]+$/g)?.map(part => part.trim()) ?? [];
+      if (words <= EPISODE_LINE_WORDS_MAX || sentences.length < 2) return [block];
+      let best = 1;
+      let bestGap = Infinity;
+      for (let at = 1; at < sentences.length; at += 1) {
+        const first = sentences.slice(0, at).join(' ').split(' ').length;
+        const gap = Math.abs(first - words / 2);
+        if (gap < bestGap) [best, bestGap] = [at, gap];
+      }
+      return [
+        [...lead, sentences.slice(0, best).join(' ')].join('\n'),
+        [lines[0]!, sentences.slice(best).join(' ')].join('\n'),
+      ];
+    })
+    .join('\n\n');
+}
+
 export function parseEpisodeScene(
   reply: string | null | undefined,
   heading: string
@@ -391,10 +496,12 @@ export function parseEpisodeScene(
   );
   const next = body.findIndex(line => HEADING.test(line.trim()));
   if (next >= 0) body = body.slice(0, next);
-  const text = `${heading}\n\n${body
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()}\n`;
+  const text = splitLongLines(
+    `${heading}\n\n${body
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()}\n`
+  );
   const parsed = parseScript(text);
   const scene = parsed.scenes[0];
   return scene && scene.elements.length > 0 ? text : null;

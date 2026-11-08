@@ -7,6 +7,7 @@ import {
   episodeOutlineTokens,
   episodeSceneCount,
   episodeSceneMessages,
+  splitLongLines,
   episodeSceneTail,
   normalizeEpisodeHeading,
   parseEpisodeOutline,
@@ -91,8 +92,8 @@ describe('writing an episode (Part 19 G3)', () => {
 
   it('gives each scene the outline and how the one before ended', () => {
     const messages = episodeSceneMessages({ outline, index: 1, lead: 'Mara', cast: [], before: 'MARA\nWho sent this?' });
-    assert.match(messages[1]!.content, /Write scene 2: EXT\. STREET - DAY — She runs/);
-    assert.match(messages[1]!.content, /How the scene before ended:\nMARA/);
+    assert.match(messages.at(-1)!.content, /Write scene 2: EXT\. STREET - DAY — She runs/);
+    assert.match(messages.at(-1)!.content, /How the scene before ended:\nMARA/);
   });
 });
 
@@ -189,5 +190,54 @@ describe('the writer’s craft (2026-11-08)', () => {
     assert.match(text, /under fifteen words a line/);
     assert.match(text, /on a phone call we hear her side only/);
     assert.match(text, /no camera directions/);
+  });
+});
+
+describe('the writer knows the Cast and the places', () => {
+  it('says who each is, and the places the film already has', () => {
+    const cast = [{ name: 'Rob', sex: 'man', about: 'bald, in his forties; her best friend' }];
+    const [, user] = episodeOutlineMessages({
+      premise: 'x',
+      lead: 'Lena',
+      cast,
+      minutes: 10,
+      places: ['Salt & Sea Café', 'Beach', 'Beach'],
+    });
+    assert.match(user!.content, /Rob \(a man — bald, in his forties; her best friend\)/);
+    assert.match(user!.content, /Places the film already has.*: Salt & Sea Café, Beach\./);
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. CAFE - DAY', summary: 's', who: [] }] };
+    const scene = episodeSceneMessages({ outline, index: 0, lead: "Lena", cast }).at(-1);
+    assert.match(scene!.content, /her best friend/);
+  });
+});
+
+describe('long lines', () => {
+  it('splits a long line of several sentences in two, the same speaker; leaves the rest', () => {
+    const scene = [
+      'INT. CAFE - DAY',
+      '',
+      'Lena wipes the counter.',
+      '',
+      'LENA',
+      '(dry)',
+      'I came here to sell it. Then I saw the view from the back step at sunset. Now I cannot stop thinking about the people who sat there.',
+      '',
+      'ROB',
+      'Short one.',
+      '',
+      'ROB',
+      'This is one very long sentence that keeps on going without ever stopping for breath at all today.',
+    ].join('\n');
+    const out = splitLongLines(scene);
+    const parsed = parseScript(out).scenes[0]!;
+    const said = parsed.elements.filter(el => el.kind === 'dialogue').map(el => el.text);
+    assert.deepEqual(said, [
+      'I came here to sell it. Then I saw the view from the back step at sunset.',
+      'Now I cannot stop thinking about the people who sat there.',
+      'Short one.',
+      'This is one very long sentence that keeps on going without ever stopping for breath at all today.',
+    ]);
+    assert.match(out, /LENA\n\(dry\)\nI came here/);
+    assert.equal(splitLongLines('INT. CAFE - DAY\n\nShe sits.'), 'INT. CAFE - DAY\n\nShe sits.');
   });
 });

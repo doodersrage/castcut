@@ -45,6 +45,7 @@ export default function EpisodeWriterSheet({
   open,
   lead,
   cast,
+  places,
   llmBody,
   onClose,
   onDone,
@@ -58,6 +59,8 @@ export default function EpisodeWriterSheet({
   canAutopilot?: boolean;
   lead: string;
   cast: readonly EpisodeCastMember[];
+  /** The film's places (Locations' names): the outline uses them before inventing new ones. */
+  places?: readonly string[];
   llmBody: Record<string, unknown>;
   onClose: () => void;
   /** The screenplay, as Fountain — and the autopilot's settings when it is to make the episode. */
@@ -99,6 +102,7 @@ export default function EpisodeWriterSheet({
         ...base,
         step: 'outline',
         premise,
+        ...(places?.length ? { places } : {}),
         minutes,
         ...(scenes ? { scenes } : {}),
       });
