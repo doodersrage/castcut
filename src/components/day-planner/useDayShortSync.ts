@@ -121,21 +121,32 @@ export function useDayShortSync(input: {
   } else if (!script && castId && baseline?.castId !== castId) {
     setBaseline({ castId, print: dayPrint });
   }
+  // Step 4c (2026-11-08): every Short with moments has its short — one opened without one gets
+  // it once (its Cast noted, so a short deleted on Script isn't made back by opening Short).
+  // Only a Short that never had a short for this Cast: one linked to a short since deleted (or
+  // whose script isn't here) is left as it is — an edit makes a new one.
+  const linkedBefore =
+    (toolSettings.shortLinkedFor ?? []).includes(castId) || link?.castId === castId;
+  const firstOpen = !script && Boolean(castId && dayPrint) && !linkedBefore;
   const edited =
-    !script &&
-    Boolean(castId && dayPrint) &&
-    baseline?.castId === castId &&
-    baseline.print !== dayPrint;
+    firstOpen ||
+    (!script &&
+      Boolean(castId && dayPrint) &&
+      baseline?.castId === castId &&
+      baseline.print !== dayPrint);
   useEffect(() => {
     if (!edited) return;
     const timer = window.setTimeout(() => {
       const { day: now, updateDay: update, leadName } = latest.current;
       const result = saveDayAsShort({ day: now, castId, leadName });
+      const noted = [...new Set([...(now.shortLinkedFor ?? []), castId])];
       if ('link' in result) {
         setAutoError(null);
-        update({ shortLink: result.link });
+        update({ shortLink: result.link, shortLinkedFor: noted });
       } else if ('error' in result && !/^Nothing to make/.test(result.error)) {
         setAutoError(result.error);
+      } else {
+        update({ shortLinkedFor: noted });
       }
     }, SYNC_AFTER_MS);
     return () => window.clearTimeout(timer);
