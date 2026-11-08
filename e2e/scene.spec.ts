@@ -4119,3 +4119,53 @@ test('Next short makes a new short; the one before is left as it was', async ({ 
       .join(',');
   await expect.poll(sources, { timeout: 30_000 }).toBe('coffee,dog');
 });
+
+// One renderer per run (2026-11-08): a run another tab is rendering (its lock fresh) is left
+// running here — not paused as if after a reload, not resumed a second time.
+test('a run rendering in another tab is left to it', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const scene = sceneWithTakes();
+  // The other tab's lock, renewed as it would be while it renders.
+  await page.addInitScript(() => {
+    const hold = () =>
+      window.localStorage.setItem(
+        'castcut-run-lock-v1',
+        JSON.stringify({ runId: 'run-elsewhere', holder: 'tab-other', at: Date.now() })
+      );
+    hold();
+    window.setInterval(hold, 2000);
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        ...scene,
+        run: {
+          id: 'run-elsewhere',
+          castId: CAST,
+          label: 'Overnight',
+          items: [{ sceneId: scene.scenes[0]!.id, include: true }],
+          maxTakes: 4,
+          maxMinutes: 60,
+          skipKept: false,
+          resumeOnReload: true,
+          state: 'running',
+          position: 0,
+          log: [],
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    },
+  });
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run')).toBeVisible({ timeout: 60_000 });
+  // Past the resume-after-reload delay: still the other tab's, nothing paused or queued here.
+  await page.waitForTimeout(8000);
+  const run = JSON.parse((await storedSceneTool(page)) || '{}').run ?? {};
+  expect(run.state).toBe('running');
+  expect((run.log ?? []).map((entry: { event: string }) => entry.event)).not.toContain('paused');
+  expect(queued).toHaveLength(0);
+});

@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  claimRunLock,
+  releaseRunLock,
+  runIsHeldElsewhere,
+  RUN_LOCK_RENEW_MS,
+} from '@/lib/day/run-lock';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 import { notifyDesktop } from '@/lib/app/desktop-notify';
@@ -71,6 +77,8 @@ async function until(ready: () => boolean, timeoutMs: number): Promise<boolean> 
 const RESUME_AFTER_RELOAD_MS = 4000;
 
 export function useSceneRun(vm: DayEngineView, page: ScenePage) {
+  // This tab's name for the run lock (lib/day/run-lock.ts): one renderer per run.
+  const [me] = useState(() => `tab-${Math.random().toString(36).slice(2, 10)}`);
   const runRef = useRef<SceneRun | undefined>(page.run);
   const pageRef = useRef(page);
   const vmRef = useRef(vm);
@@ -98,12 +106,14 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     if (checkedReloadRef.current || !page.run || loopingRef.current) return;
     checkedReloadRef.current = true;
     if (page.run.state !== 'running') return;
+    // Rendering in another tab (Scene beside Short): it is running — not this page's to pause.
+    if (runIsHeldElsewhere(page.run.id, me)) return;
     save(pausedAfterReload(page.run));
     // Not cleared with the effect: it runs once (Strict Mode's second pass returns above).
     if (page.run.resumeOnReload) {
       window.setTimeout(() => setResumeAfterReload(true), RESUME_AFTER_RELOAD_MS);
     }
-  }, [page.run, save]);
+  }, [me, page.run, save]);
 
   // Takes handed to ComfyUI: their polls (re)started once, then settled as the Gallery hears.
   const polledRef = useRef(new Set<string>());
@@ -250,8 +260,14 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
 
   const loop = useCallback(async () => {
     if (loopingRef.current) return;
+    const lockedRun = runRef.current?.id ?? '';
+    if (lockedRun && !claimRunLock(lockedRun, me)) return;
     loopingRef.current = true;
     setLooping(true);
+    // Renewed while it renders; a tab that dies lets it go stale (RUN_LOCK_FRESH_MS).
+    const renew = lockedRun
+      ? window.setInterval(() => claimRunLock(lockedRun, me), RUN_LOCK_RENEW_MS)
+      : 0;
     try {
       for (;;) {
         const run = runRef.current;
@@ -439,16 +455,25 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const run = runRef.current;
       if (run) save(pausedAfterError(run, error instanceof Error ? error.message : String(error)));
     } finally {
+      if (renew) window.clearInterval(renew);
+      if (lockedRun) releaseRunLock(lockedRun, me);
       loopingRef.current = false;
       setLooping(false);
       setStopping(null);
     }
-  }, [afterEpisodeTake, save]);
+  }, [afterEpisodeTake, me, save]);
 
   const start = useCallback(() => {
     const run = runRef.current;
     if (!run || run.state === 'running' || run.state === 'done' || run.state === 'cancelled')
       return;
+    if (runIsHeldElsewhere(run.id, me)) {
+      pushSystemTrayMessage({
+        text: `“${run.label}” is rendering in another tab or window — it goes on there.`,
+        tone: 'warning',
+      });
+      return;
+    }
     stopRef.current = null;
     const now = Date.now();
     const { stopReason: _reason, ...rest } = run;
@@ -459,7 +484,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       )
     );
     void loop();
-  }, [loop, save]);
+  }, [loop, me, save]);
 
   // Said when it ends or stops by itself (not a pause you clicked): a note in Castcut, and a
   // desktop notification when Settings → ComfyUI's "Notify when jobs complete" is on — an
