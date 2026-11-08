@@ -3685,8 +3685,33 @@ door onto it. Small steps; nothing a user made is moved or deleted.
   - **Write the next one…** (`nextEpisodeSeed`) on a script, and **Its next short →** on Short:
     how it ended, as many scenes, its mood.
 
-### Next (not started — each its own reviewed step)
+### Short as Script's front door (user, 2026-11-08: option 2, runs rendered on Short)
 
-- **Retire the board's own data** (only if wanted): with S3b the board and its short agree, so
-  `tools.day.slots/stills` could later be derived from the short entirely. Not needed for the
-  workflow; it would be the risky migration S3b avoided.
+- **Script page** (`/script`): scripts, shots, storyboard, Who's who, locations; the run stays on
+  Scene. Scene's list groups a script's Scenes by its scenes.
+- **Step 1 — every Short is a script**: the board's first edit makes its short (useDayShortSync).
+- **Step 2 — Render the short on Short**: ShortRun mounts Scene's records and runner on Short.
+- **Step 3 — no day framing**: Write it, Quick stills, Suggest moments, This short, Next short (a
+  short of its own — it used to write over the old one). Each moment's time of day can be chosen.
+- One renderer per run (run-lock.ts).
+
+### Step 4 — the short is the record (user, 2026-11-08: "we should probably do it")
+
+Each moment's Scene already holds the whole moment (`scene.slot`: setting, beat, line, pose,
+camera, clothes, time — sceneFromDaySlot) and its takes and kept take; the board
+(`tools.day.slots/stills`) is a second copy kept in step. Retire the copy without a rewrite of
+Short's planner (which reads `slots` everywhere): rebuild the board from the short's Scenes.
+
+- **4a — the reader** (`dayFromShort`): the board's moments and stills from a short's Scenes, in
+  the script's order (each Scene's `fromDaySlot`, its slot, its kept take as the still). Pure;
+  a Day round-trips through dayAsShort → dayFromShort. No behaviour change.
+- **4b — the short wins**: a linked Short's board is rebuilt from its Scenes when they change
+  (an edit on Script or Scene shows on the board, instead of the board freezing as "Scene's
+  now"); board edits still write the Scenes (S3b). Both sides changed: asked, as now. The board's
+  own copy is still written — an older Castcut reads every Short as before (the rollback).
+- **4c — one copy** (after a release with 4b ran clean): a linked Short stops writing its own
+  `slots/stills` (settings keep only the link and the board's own settings: mood, length, plan);
+  a one-time pass links every Short with content (step 1's save), writing nothing else.
+  Rollback: the release before 4c reads `tools.day` — so 4c keeps writing a last copy on every
+  save for one more release, then stops.
+- Never deleted by any step: a Short's saved board, its script, its Scenes and their takes.

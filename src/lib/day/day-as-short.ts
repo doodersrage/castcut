@@ -320,3 +320,36 @@ export function dayStillsFromShort(
   }
   return changed ? stills : null;
 }
+
+/**
+ * Short ← its short, the moments too (step 4a, 2026-11-08): each board moment as its Scene holds
+ * it — the Scene keeps the whole moment (setting, beat, line, pose, camera, clothes; Open as
+ * Scene), so an edit made on Script or Scene is the board's. Matched by the moment's slot
+ * (`fromDaySlot`); a Scene whose time was changed on Scene (its slot id moved) comes back as the
+ * same moment at that time. A moment with no Scene in the short (an empty one, or one whose Scene
+ * was deleted) is left as the board has it: nothing is dropped here. Null when nothing changes.
+ * Pure; Day → dayAsShort → this is the Day again.
+ */
+export function dayMomentsFromShort(
+  day: Pick<DayToolCache, 'slots' | 'dayLength'>,
+  scenes: readonly SavedScene[],
+  link: { castId: string; scriptId: string }
+): DaySlot[] | null {
+  const slots = normalizeDaySlots(day.slots, day.dayLength);
+  const raw = slots.map(slot => {
+    const scene = scenes.find(
+      entry =>
+        entry.fromScript?.scriptId === link.scriptId &&
+        entry.castId === link.castId &&
+        entry.fromDaySlot === slot.id
+    );
+    if (!scene) return slot;
+    const { timeOfDay: chosen, ...held } = scene.slot;
+    // Its time moved on Scene (the slot id there is its time): this moment, at that time.
+    const part = slotDayPart(scene.slot);
+    const timeOfDay = chosen ?? (part !== slotDayPart({ id: slot.id }) ? part : undefined);
+    return { ...held, id: slot.id, ...(timeOfDay ? { timeOfDay } : {}) } as DaySlot;
+  });
+  const next = normalizeDaySlots(raw, day.dayLength);
+  return JSON.stringify(next) === JSON.stringify(slots) ? null : next;
+}

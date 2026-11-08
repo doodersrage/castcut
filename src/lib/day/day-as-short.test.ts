@@ -9,8 +9,10 @@ import {
   dayMomentHeading,
   dayShortFingerprint,
   dayShortSource,
+  dayMomentsFromShort,
   dayStillsFromShort,
 } from './day-as-short';
+import { sceneSlotAt } from './scenes';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -199,3 +201,42 @@ describe('a short whose board grows between its moments', () => {
     assert.deepEqual(again.shots.map(shot => shot.madeSceneId), again.scenes.map(scene => scene.id));
   });
 });
+
+describe('the board from its short (step 4a)', () => {
+  const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+  const link = { castId: 'mara', scriptId: short.script.id };
+
+  it('is the Day again: nothing changes', () => {
+    assert.equal(dayMomentsFromShort(day, short.scenes, link), null);
+  });
+
+  it('takes a moment as its Scene has it now — a beat, a line, its time moved on Scene', () => {
+    const scenes = short.scenes.map(scene => {
+      if (scene.fromDaySlot === 'afternoon')
+        return { ...scene, slot: { ...scene.slot, sceneHints: 'builds a sandcastle', line: 'Look!' } };
+      if (scene.fromDaySlot === 'night')
+        return { ...scene, slot: sceneSlotAt(scene.slot, 'evening') };
+      return scene;
+    });
+    const slots = dayMomentsFromShort(day, scenes, link)!;
+    assert.ok(slots);
+    const by = (id: string) => slots.find(slot => slot.id === id)!;
+    assert.equal(by('afternoon').sceneHints, 'builds a sandcastle');
+    assert.equal(by('afternoon').line, 'Look!');
+    assert.equal(by('night').timeOfDay, 'evening');
+    assert.equal(by('night').location, 'bedroom');
+    // The empty evening (no Scene) and the untouched morning are the board's.
+    assert.equal(by('evening').location, undefined);
+    assert.equal(by('morning').sceneHints, 'pours coffee by the window');
+  });
+
+  it('reads only this short’s Scenes, for its Cast', () => {
+    const other = short.scenes.map(scene => ({
+      ...scene,
+      castId: 'rob',
+      slot: { ...scene.slot, sceneHints: 'elsewhere' },
+    }));
+    assert.equal(dayMomentsFromShort(day, other, link), null);
+  });
+});
+
