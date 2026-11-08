@@ -20,6 +20,9 @@ description: Run Castcut's Playwright e2e specs safely — on their own server a
     NODE_OPTIONS=--max-old-space-size=10240 npx playwright test e2e/scene.spec.ts -g "<name>"
   ```
   The config then starts `npm run dev` there with its own empty data folder (`e2e/helpers/data-dir.ts`).
+  `npm run dev` says `-p 47832` itself: in the copy, change the `dev` script's port to the free
+  one first (`sed -i 's/-p 47832/-p 47933/' package.json`), or the test server fails to start
+  beside the user's app.
 - Heap: about 10 GB. With 6 GB, `next dev` restarts itself under the run.
 - Keep runs small (a spec, or `-g` a few tests). Stop the test server when done. RAM is shared
   with ComfyUI, LM Studio and any long render server: running out has killed those.
