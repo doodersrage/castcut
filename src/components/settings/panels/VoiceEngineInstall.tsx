@@ -66,17 +66,21 @@ export default function VoiceEngineInstall() {
       {state.installed || state.configuredUrl ? (
         <p className="text-xs text-[var(--text-secondary)]" data-testid="voice-engine-status">
           {state.running
-            ? 'Installed and answering.'
+            ? state.configuredUrl
+              ? 'Set by VOICE_ENGINE_URL and answering.'
+              : 'Installed and answering.'
             : state.configuredUrl
               ? 'Set by VOICE_ENGINE_URL, but not answering.'
               : 'Installed — it starts when a line needs it.'}
           {state.version ? ` Version ${state.version}.` : ''}
         </p>
       ) : null}
-      {state.python === null && !state.installed ? (
-        <p className="text-xs text-[var(--tint-warning-text)]">
-          This server has no Python 3.10+, so it can&rsquo;t install the voice engine — run it on
-          another machine and set VOICE_ENGINE_URL.
+      {/* An engine set by VOICE_ENGINE_URL runs elsewhere: nothing to install here. */}
+      {state.configuredUrl ? null : state.python === null && !state.installed ? (
+        <p className="text-xs text-[var(--tint-warning-text)]" data-testid="voice-engine-no-python">
+          This server has no Python 3.10+, so it can&rsquo;t install the voice engine here. In
+          Docker, start it with <code className="ui-inline-code">--profile voice</code>; or run it
+          on another machine. Then set VOICE_ENGINE_URL.
         </p>
       ) : !state.installed || outdated ? (
         <Button
