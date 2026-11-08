@@ -9,6 +9,7 @@
  * contact read clearly — still face-free / clothing-free.
  */
 
+import { leadsOwnText } from '@/lib/pose/gesture';
 import { DANCE_MOVE_LIMBS, danceMoveFor } from '@/lib/pose/dance-move';
 import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose/limb-presets';
 import type { DaySlotId } from '@/lib/day/planner';
@@ -2426,7 +2427,8 @@ export function parsePoseGuideIntent(
   // The words' own arms win (Story, 2026-10-15): "arms thrown skyward", "arms flung wide" and
   // "arms pressed flat against her chest" were drawn arms-down (or as a dance, a stretch) while
   // the still's prompt said otherwise — and the still followed the words, not the map.
-  const arms = intimate ? null : statedArms(haystack);
+  // Only the lead's own words say what her arms do (a two-shot's partner's sentences aren't hers).
+  const arms = intimate ? null : statedArms(leadsOwnText(haystack));
   if (arms) {
     armLeft = arms;
     armRight = arms;

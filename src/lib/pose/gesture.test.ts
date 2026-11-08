@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { NormalizedBody } from './library';
 import {
+  leadsOwnText,
   actionText,
   applyGestureVerdict,
   decideGesture,
@@ -437,5 +438,21 @@ describe('floating utensils (2026-10-14)', async () => {
       actionText('She laughs. Locals sip coffee. Rob says: “Cup?” Mabel used to stir pots. She waves.'),
       'She laughs. Rob says: Mabel . She waves.'
     );
+  });
+});
+
+describe('a two-shot read as the lead’s', () => {
+  const opening = 'Lena and Rob, the two of them together.';
+  it('leaves out what the partner does, not what she does', () => {
+    const text = `${opening} Lena wipes a counter. Rob leans in the doorway, arms crossed.`;
+    assert.equal(leadsOwnText(text), `${opening} Lena wipes a counter.`);
+    assert.deepEqual(gestureQuestions({ beat: text }), []);
+    const hers = `${opening} Lena crosses her arms. Rob laughs.`;
+    assert.deepEqual(gestureQuestions({ beat: hers }).map(q => q.label), ['arms crossed']);
+  });
+
+  it('leaves a text without the two-shot opening as it is', () => {
+    const solo = 'Lena wipes a counter. Rob leans in the doorway, arms crossed.';
+    assert.equal(leadsOwnText(solo), solo);
   });
 });

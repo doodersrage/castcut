@@ -249,8 +249,33 @@ const OTHERS_SENTENCE =
  * title, a sign, a line said) and what someone "used to" do are not what the picture shows — "“The Last Cup of Salt”" asked for a cup,
  * "a song Aunt Mabel used to hum while stirring pots" for cooking (2026-11-06).
  */
+/**
+ * A two-shot's text as the lead's: the sentences led by the partner left out. A script's two-shot
+ * opens "Lena and Rob, the two of them together." (script-shots.ts) — the second name is the
+ * partner, and "Rob leans against the doorway, arms crossed" is his, not hers: read as hers, the
+ * pose map drew her arms crossed and the check failed her (22 episode two-shots, 2026-11-07).
+ * Text without that opening is returned as it is.
+ */
+export function leadsOwnText(text: string | null | undefined): string {
+  const value = text ?? '';
+  const pair =
+    /^\s*([A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*\s+and\s+([A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*,\s+the two of them together\b/.exec(
+      value
+    );
+  const partner = pair?.[2];
+  if (!partner || partner === pair[1]) return value;
+  const led = new RegExp(
+    `^(?:then|now|meanwhile|behind her),?\\s+${partner}\\b|^${partner}\\b`,
+    'i'
+  );
+  return value
+    .split(/(?<=[.!?…])\s+/)
+    .filter((sentence, index) => index === 0 || !led.test(sentence.trim()))
+    .join(' ');
+}
+
 export function actionText(beat: string | null | undefined): string {
-  return (beat ?? '')
+  return leadsOwnText(beat)
     .replace(/[“"][^”"]*[”"]/g, ' ')
     .replace(/\bused to\b[^.;!?]*/gi, ' ')
     .replace(OTHERS_SENTENCE, '$1 ')
