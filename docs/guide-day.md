@@ -11,11 +11,11 @@ Top to bottom, the way a Day is made:
 
 | Part | What's in it |
 | --- | --- |
-| **Idea** | Start from words: one idea box with **Write the day** (a beat and a place on each moment here) and **Write it as a script →** (scenes with lines, any length, on [Scene's Script](guide-scene.md#script)); a whole day or one event; **Import a script… (on Scene)** |
+| **Idea** | Start from words: one idea box with **Write it** (a beat and a place on each moment here) and **Write it as a script →** (scenes with lines, any length, on [Scene's Script](guide-scene.md#script)); a whole day or one event; **Import a script… (on Scene)** |
 | **Plan bar** | Stills (2, 3, 4, 6, 8 — or − and + for any count from 2 to 12) · Mood · People · Weather · Quality · Advanced (the clip engine is in there too) |
 | **Slot cards** | One per moment, all the same size — tap a card to open its **slot sheet**; hover for **Retry**, **Animate** and **Edit** |
 | **Its short** | Once the Day has a short: in step or not, how its run is going, **Its script →** · **Cut this short →** · **Its next short →** |
-| **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest day · Queue the rest · **Render the short** (stills, or animate the lines or every moment) · **This Day as a script →** (before it has a short) · Animate all · **Open Cut →** — quick stills with Queue, or the short with its checks, best takes and cut with Render the short |
+| **Action bar** | Kept at the bottom of the screen: how far the Day is (**Ready to cut · 3 of 4 stills**, **Details** for what's checked and left out) · Suggest moments · Quick stills for the rest · **Render the short** (stills, or animate the lines or every moment) · **This Day as a script →** (before it has a short) · Animate all · **Open Cut →** — quick stills with Queue, or the short with its checks, best takes and cut with Render the short |
 | **Reel** | The finished stills and clips, from the first frame |
 
 Keys on the board (not while typing): **← →** the slot before / after, **Enter** opens it,
@@ -41,9 +41,9 @@ silly / raunchy.
 
 ## Plan it
 
-1. **Suggest day** writes a place and a moment for every slot.
+1. **Suggest moments** writes a place and a moment for every slot.
 2. Edit any card in its **slot sheet** — Setting, Beat, pose, clothes.
-3. **Queue day** renders the stills. A card shows *#3 in queue*, then *Rendering · 45%*.
+3. **Quick stills** renders the stills. A card shows *#3 in queue*, then *Rendering · 45%*.
 
 !!! tip "Write it as a script"
     Typed an idea? **Write it as a script →** takes it to Scene's [Write an episode](guide-scene.md#script)
@@ -51,7 +51,7 @@ silly / raunchy.
     there (2–40) — then planned, rendered and cut like an episode, by hand or with **Make the whole
     episode for me** ([Make an episode](guide-episode.md)). The mood goes with it — Everyday,
     Vacation, Sport and Suggestive set its tone, and the script keeps the mood, so its Scenes are
-    made in it. Sport and Suggestive have no Write the day, so there the idea row is only this.
+    made in it. Sport and Suggestive have no Write it, so there the idea row is only this.
     Intimate too where the server allows adult content (`PROMPT_NSFW_GENERATOR_ENABLED`): the
     writer's **Adult** box is then on for it — explicit scenes between consenting adults, every
     character over 21, the script's Scenes held to the same adult checks as Intimate's stills.
@@ -63,14 +63,14 @@ silly / raunchy.
     Scene — the moment's still as its kept take. It opens on Script: storyboard it, add moments,
     give others lines, run it and cut it like an episode. The Day itself is left as it is.
 
-    Every Short is a script: the first change you make to a Day — Write the day, a beat, a
+    Every Short is a script: the first change you make to a Day — Write it, a beat, a
     template — makes its short by itself, a moment later. Opening an older Day makes nothing until
     you change it.
 
     A Day has one short, and once made the two stay in step by themselves (_Its short: “…” — the
     board and its Scenes stay in step_): a take kept on a moment's Scene — by Render the short's run,
     or by hand — becomes that moment's still on the board (the one before stays as **Back to the
-    last take**), and the board's edits (Suggest day, One event, a beat, a template) go into the
+    last take**), and the board's edits (Suggest moments, One event, a beat, a template) go into the
     short's Scenes a moment later, each keeping its takes and kept take; a new moment gets a
     Scene. The link reads **Its script →**. Once the script itself is changed on Scene (shots
     planned, a line added), it is Scene's: the board's edits stay on the board, and **Copy again
@@ -82,7 +82,7 @@ silly / raunchy.
 
     **Render the short** does the same and renders it here, on Short: each moment without a kept
     still is rendered in turn, the best take kept by its checks (one redo when it misses one), and
-    Cut cuts the short when it's done — its own Scenes only, in the script's order — Queue day with the checks of an
+    Cut cuts the short when it's done — its own Scenes only, in the script's order — Quick stills with the checks of an
     [episode run](guide-scene.md#episode-runs). Beside it, what it animates: **stills** (a
     talking animatic when cut with Read the lines), **animate the lines** (a talking clip for each
     moment with a line) or **animate every moment** — clips take many times longer than stills.

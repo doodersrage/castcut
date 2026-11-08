@@ -5,7 +5,7 @@ Film bar (between Story and Cut, on desk and phone), Play (**One scene**) or the
 (**Scene**). It is optional — not a step of the film.
 
 A scene is a [Short](guide-day.md) slot on its own: the same slot controls and the same still
-engine, without Day's planning (no slots across the day, no Suggest day, no auto beats). Every
+engine, without Day's planning (no slots across the day, no Suggest moments, no auto beats). Every
 fix to Day's stills — the pose check and its redos, the close-shot crop, duo placement, the
 keeper stand-in plate, the Camera row — applies to a scene too.
 

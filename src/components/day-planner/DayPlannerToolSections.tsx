@@ -924,7 +924,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
         <ToolSection data-testid="day-slot-board">
           {/* The few files this Day needs, one Download all (hidden when installed). */}
           <TaskRequirementsCard
-            task="This Day"
+            task="This short"
             testId="day-task-requirements"
             input={{
               model: shared.model,
@@ -1222,7 +1222,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   >
                     {[
                       batchPlan.queueLine && !queueBlocked
-                        ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
+                        ? `${completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}: ${batchPlan.queueLine}`
                         : '',
                       batchPlan.animateLine && canAnimateAll
                         ? `Animate all: ${batchPlan.animateLine}`
@@ -1257,10 +1257,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   variant="secondary"
                   disabled={busy}
                   data-testid="day-suggest"
-                  title="Fill Setting & Beat for every slot — edit before Queue day"
+                  title="Fill the setting and beat of every moment — edit them before rendering"
                   onClick={() => suggestDayScenes()}
                 >
-                  Suggest day
+                  Suggest moments
                 </Button>
                 <Button
                   size="sm"
@@ -1270,7 +1270,11 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   data-testid="day-queue-all"
                   onClick={() => void queueAll()}
                 >
-                  {busy ? 'Queueing…' : completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}
+                  {busy
+                    ? 'Queueing…'
+                    : completedShotCount > 0
+                      ? 'Quick stills for the rest'
+                      : 'Quick stills'}
                 </Button>
                 {canAnimateAll ? (
                   <Button

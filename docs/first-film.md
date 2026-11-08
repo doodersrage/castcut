@@ -32,8 +32,8 @@ Queue a try-on and **Keep** the one you like. It becomes the dressed plate for e
 **Day** shows four slots, morning to night.
 
 1. Pick a **Mood** in the plan bar — Everyday, Sport, Vacation, Suggestive…
-2. **Suggest day** writes a place and a moment for each slot. Edit any of them.
-3. **Queue day** renders the stills (about 20–60 s each).
+2. **Suggest moments** writes a place and a moment for each slot. Edit any of them.
+3. **Quick stills** renders the stills (about 20–60 s each).
 
 !!! note
     Tap a card to open its **slot sheet**: the place, the moment, the pose, the clothes,

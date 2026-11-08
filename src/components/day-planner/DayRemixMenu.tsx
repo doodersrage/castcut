@@ -39,10 +39,10 @@ export default function DayRemixMenu({
           className={stacked ? 'w-full justify-center' : undefined}
           disabled={disabled || tomorrowBusy}
           data-testid={`${testIdPrefix}-tomorrow`}
-          title="The next episode: same Cast and mood, a new day that follows on from this one"
+          title="The next short: same Cast and mood, its moments following on from this one's — a new short of its own"
           onClick={onTomorrow}
         >
-          {tomorrowBusy ? 'Writing tomorrow…' : 'Tomorrow →'}
+          {tomorrowBusy ? 'Writing the next short…' : 'Next short →'}
         </Button>
       ) : null}
       <Button

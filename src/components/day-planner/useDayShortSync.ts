@@ -84,9 +84,13 @@ export function useDayShortSync(input: {
   // No short for this Cast yet: the board's first edit makes it (the Day as it was when the page
   // opened, or the Cast was picked, is the baseline — not an edit).
   const dayPrint = castId ? dayShortFingerprint(day) : '';
-  const [baseline, setBaseline] = useState<{ castId: string; print: string } | null>(null);
-  if (script ? baseline !== null : Boolean(castId) && baseline?.castId !== castId) {
-    setBaseline(script ? null : { castId, print: dayPrint });
+  // print null: this Cast had a short on this page that is gone now (Next short drops it as it
+  // writes the next day) — whatever the board holds is new, and gets a short of its own.
+  const [baseline, setBaseline] = useState<{ castId: string; print: string | null } | null>(null);
+  if (script && castId && (baseline?.castId !== castId || baseline.print !== null)) {
+    setBaseline({ castId, print: null });
+  } else if (!script && castId && baseline?.castId !== castId) {
+    setBaseline({ castId, print: dayPrint });
   }
   const edited =
     !script &&

@@ -4059,3 +4059,61 @@ test('a Short’s first edit makes its short script; opening it makes nothing', 
   await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(new RegExp(`^1\\|${CAST}\\|`));
 });
+
+// Next short (was Tomorrow): the next day is a short of its own, not written over this one.
+test('Next short makes a new short; the one before is left as it was', async ({ page }) => {
+  let calls = 0;
+  await page.route('**/api/day-premise', route => {
+    calls += 1;
+    const what = calls === 1 ? 'pouring coffee at the counter' : 'walking the dog at dawn';
+    return route.fulfill({
+      json: {
+        beats: ['morning', 'afternoon', 'evening', 'night'].map(slotId => ({
+          slotId,
+          beat: `${what} (${slotId})`,
+          setting: calls === 1 ? 'small kitchen' : 'park path',
+        })),
+      },
+    });
+  });
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(async () => {
+    await input.fill('a slow Sunday at home');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+  }).toPass({ timeout: 60_000 });
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(/^1\|/);
+
+  // Cut's Next short (?tomorrow=1): the next day written, and a second short made for it.
+  await gotoStable(page, `/day?character=${CAST}&tomorrow=1`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-progress-scene-morning').first()).toContainText('walking the dog', {
+    timeout: 30_000,
+  });
+  await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(/^2\|/);
+  // The first short still has its own moments.
+  const sources = async () =>
+    ((JSON.parse((await storedSceneTool(page)) || '{}').scripts ?? []) as Array<{ source: string }>)
+      .map(script => (/coffee/.test(script.source) ? 'coffee' : /dog/.test(script.source) ? 'dog' : '?'))
+      .sort()
+      .join(',');
+  await expect.poll(sources, { timeout: 30_000 }).toBe('coffee,dog');
+});

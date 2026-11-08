@@ -1056,7 +1056,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onClick={() => void queueAll()}
             className="w-full justify-center"
           >
-            {completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}
+            {completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}
           </PrimaryButton>
           {canAnimateAll ? (
             <Button
@@ -1081,7 +1081,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             <p className="type-caption text-[var(--text-muted)]" data-testid="day-batch-plan">
               {[
                 batchPlan.queueLine && !queueBlocked
-                  ? `${completedShotCount > 0 ? 'Queue the rest' : 'Queue day'}: ${batchPlan.queueLine}`
+                  ? `${completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}: ${batchPlan.queueLine}`
                   : '',
                 batchPlan.animateLine && canAnimateAll
                   ? `Animate all: ${batchPlan.animateLine}`
@@ -1098,7 +1098,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onClick={() => suggestDayScenes()}
             className="w-full justify-center"
           >
-            Suggest day
+            Suggest moments
           </Button>
           {flaggedRetryCount > 0 ? (
             <Button

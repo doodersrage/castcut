@@ -24,7 +24,7 @@ Common failures, where to click, and what to check in Settings or `.env.local`. 
 ??? question "Renders are slow to start"
     ComfyUI runs one job at a time. **Queue** shows what's ahead; quick checks jump ahead of renders.
 
-??? question "Suggest day / Suggest a line does nothing"
+??? question "Suggest moments / Suggest a line does nothing"
     These need an LLM — **Settings → LLM → Built-in LLM** is the quickest fix.
 
 ??? question "Built-in LLM: \"This server's system (musl …) can't run llama.cpp's builds\""

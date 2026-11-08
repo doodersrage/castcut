@@ -20,7 +20,7 @@ export default function DayContinuityLocks({
         className="type-caption text-[var(--text-muted)]"
         title="Pose, setting and the beat change in each still."
       >
-        Held across the Day:
+        Held across the short:
       </span>
       {locks.map(lock => (
         <span

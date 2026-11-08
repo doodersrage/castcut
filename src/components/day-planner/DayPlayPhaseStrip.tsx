@@ -20,7 +20,7 @@ export default function DayPlayPhaseStrip({
   const activeIndex = PLAY_DAY_PHASES.findIndex(phase => phase.id === activePhase);
   return (
     <PhaseStrip
-      scope="This Day"
+      scope="This short"
       phases={PLAY_DAY_PHASES}
       activeIndex={activeIndex}
       details={{

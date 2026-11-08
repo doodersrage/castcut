@@ -70,14 +70,14 @@ export default function DayIdeaRow({
       if (eventMode && onWriteEvent) {
         const written = await onWriteEvent(text);
         setNote(
-          `${written} moments of one event — edit any of them, then Queue day renders the stills. Each moment after the first is made from the one before, and Animate joins the clips.`
+          `${written} moments of one event — edit any of them, then Render the short (or Quick stills). Each moment after the first is made from the one before, and Animate joins the clips.`
         );
       } else {
         const written = await onWrite(text);
         setNote(
           written >= slotCount
-            ? 'Every slot now follows the idea — check the moments below, then Queue day renders the stills.'
-            : `${written} of ${slotCount} slots follow the idea; the rest kept their beat. Queue day renders the stills.`
+            ? 'Every slot now follows the idea — check the moments below, then Render the short (or Quick stills).'
+            : `${written} of ${slotCount} slots follow the idea; the rest kept their beat. Render the short (or Quick stills) renders them.`
         );
       }
       // Written on the moment cards, below: show them (it looked as if nothing had happened).
@@ -116,7 +116,7 @@ export default function DayIdeaRow({
             }
           }}
           options={[
-            { value: 'day', label: 'Whole day' },
+            { value: 'day', label: 'Across a day' },
             { value: 'event', label: 'One event' },
           ]}
         />
@@ -181,7 +181,7 @@ export default function DayIdeaRow({
                 : 'The LLM writes a beat and a place for every slot, morning to night'
             }
           >
-            {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write the day'}
+            {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write it'}
           </Button>
         ) : null}
         {castId &&
@@ -212,7 +212,7 @@ export default function DayIdeaRow({
       {castId && !eventMode ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-idea-hint">
           {writeDay
-            ? 'Write the day: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script — then Make the short.'
+            ? 'Write it: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script.'
             : 'Write it as a script: scenes with lines, any length, on Scene — rendered and cut from there.'}
         </p>
       ) : null}

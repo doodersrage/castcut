@@ -1549,6 +1549,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       slots: toolSettings.dayEvent ? clearDayEventSlots(nextSlots, daySlotDefaultLabel) : nextSlots,
       dayThread: thread,
       dayEvent: undefined,
+      // A new short: the next day is not this one's script (kept in step both ways, it took the
+      // old short's kept stills back and wrote the new moments over it). Its first edit — this —
+      // makes the new one (useDayShortSync).
+      shortLink: undefined,
       ...dayStillsCachePatch([], undefined),
     });
     setWritingTomorrow(false);
