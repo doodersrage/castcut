@@ -17,6 +17,7 @@ import {
   daySlotDefaultLabel,
   isDaySlotId,
   normalizeDayIntimateMix,
+  inferDayLength,
   normalizeDaySlots,
   normalizeDaySlotStills,
   type DayIntimateMix,
@@ -271,8 +272,9 @@ export function sceneSlotOf(
 ): DaySlot {
   const first = (input ?? []).find(slot => slot && isDaySlotId(slot.id));
   const id = first?.id ?? DEFAULT_SCENE_SLOT_ID;
-  // Eight slots hold every slot id, so the one slot is normalised exactly as Day does it.
-  const all = normalizeDaySlots(first ? [first] : [], 8);
+  // Normalised exactly as Day does it, on a board long enough to hold its id. (A fixed eight
+  // held every id until boards went to twelve: a "-3" moment's Scene came out empty, 2026-11-07.)
+  const all = normalizeDaySlots(first ? [first] : [], inferDayLength([id]));
   return all.find(slot => slot.id === id) ?? { id, label: daySlotDefaultLabel(id) };
 }
 

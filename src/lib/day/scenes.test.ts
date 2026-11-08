@@ -1142,3 +1142,14 @@ describe('one script’s Scenes for Cut', () => {
     assert.deepEqual(sceneCutShots(ordered, 'c').map(shot => shot.key), ['a', 'c', 'b']);
   });
 });
+
+describe('a Scene from any moment of a long board', () => {
+  it('keeps a "-3" moment’s place and beat (boards go to twelve)', () => {
+    for (const id of ['morning-3', 'afternoon-3', 'evening-3', 'night-3', 'night-2', 'morning']) {
+      const slot = sceneSlotOf([{ id, label: id, location: 'office', sceneHints: `beat ${id}` } as never]);
+      assert.equal(slot.id, id);
+      assert.equal(slot.sceneHints, `beat ${id}`, id);
+      assert.equal(slot.location, 'office', id);
+    }
+  });
+});
