@@ -9,6 +9,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.9.1] - 2026-11-08
+
+- A Cast's first plate renders on Qwen-Image 2.1, not UltraReal Fine-Tune v4
+- Voice engine panel: no 'can't install' note when VOICE_ENGINE_URL points at a working one
+- Directing lines is 2.7x faster: the model sees them numbered, not by their keys
+- The place check knows what's happening there; another place in the background stays out
+- A two-shot's checks read the lead's own words, not her partner's
+- Two people standing keep their near hands apart: two-shots stop shaking hands
+- 16:9 stills: shoot a wide film's stills wide, instead of widening portraits after
+
 ## [v3.9.0] - 2026-11-08
 
 - README: read lines are directed and acted; the optional voice engine
