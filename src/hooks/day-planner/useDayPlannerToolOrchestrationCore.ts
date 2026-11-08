@@ -284,6 +284,7 @@ import {
   dayStillSceneDressesItself,
   dayStillDressedPlateUse,
   dayStillFaceCropCanvas,
+  DAY_WIDE_CANVAS,
   dayStillFootwearApplies,
   dayStillIdentityRoute,
   dayStillLiesDown,
@@ -2252,8 +2253,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               solo: !slotPartner,
               lying: dayStillLiesDown({ beat: queueTarget.sceneHints }),
               outfitLine: DAY_OUTFIT_LINE_RE.test(buildSlotPrompt(queueTarget, slotPromptOptions)),
+              wide: toolSettings.wideStills === true,
             })
           : null;
+        // The still's canvas when it isn't Image 1's shape: 16:9 stills on every identity path (a
+        // plate is portrait — the first live take came back 1104×1472), else the face crop's.
+        const stillCanvas =
+          toolSettings.wideStills === true ? { ...DAY_WIDE_CANVAS } : faceCropCanvas;
         if (lookHasPlate && !skipPoseGuideImage) {
           try {
             const dayMood = normalizeDayMood(
@@ -2291,8 +2297,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                 stylePreference: poseGuideStyle,
                 aspect: !isOpenPoseStyle(poseGuideStyle)
                   ? null
-                  : faceCropCanvas
-                    ? faceCropCanvas
+                  : stillCanvas
+                    ? stillCanvas
                     : await probeImage1Size(image1Url),
                 library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
               }
@@ -3249,8 +3255,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                 queueTool: 'image-prompt',
                 castPlateReference: true,
                 // A face crop is filename-only (no size probe) and says nothing about the body.
-                // Lying solo stills on Qwen-Image 2.1: landscape (see faceCropCanvas).
-                ...(faceCropCanvas ? { figurePixelSize: { ...faceCropCanvas } } : {}),
+                // Lying solo stills on Qwen-Image 2.1: landscape (see faceCropCanvas); 16:9 stills.
+                ...(stillCanvas ? { figurePixelSize: { ...stillCanvas } } : {}),
                 // Strong turbo rewrite fights face lock on Edit-2511 face-break Day.
                 turboEditStrength:
                   vacationFaceBreak || lightningIdentityPath || everydayPoseUnlock

@@ -139,7 +139,7 @@ import {
   type KeyedShot,
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine, renderSpokenLine } from '@/lib/film/narration-client';
-import { widenStillForFilm } from '@/lib/film/widen-client';
+import { stillIsWide, widenStillForFilm } from '@/lib/film/widen-client';
 import { loadWideStills, rememberWideStill } from '@/lib/film/wide-stills';
 import { loadReadLines, rememberReadLine } from '@/lib/film/read-lines';
 import { requestLineDeliveries, type LineDeliveryAsk } from '@/lib/film/line-delivery';
@@ -2325,6 +2325,12 @@ export function useCutRoom() {
               dayStill?.wideUrl && dayStill.wideFor === shot.url
                 ? dayStill.wideUrl
                 : (wideCache.current.get(shot.url) ?? loadWideStills()[shot.url]);
+            // Shot 16:9 to begin with (16:9 stills): it is the wide picture — remembered as its own.
+            if (!wide && (await stillIsWide(shot.url))) {
+              wide = shot.url;
+              wideCache.current.set(shot.url, wide);
+              if (!dayStill) rememberWideStill(shot.url, wide);
+            }
             if (!wide) {
               setStatus(`Widening ${shot.title} to 16:9…`);
               wide =

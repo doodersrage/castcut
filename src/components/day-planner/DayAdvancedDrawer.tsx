@@ -27,6 +27,8 @@ export type DayQualitySwitches = {
   /** Widen each still to 16:9 before it is animated or cut (film-widen-client.ts). */
   widescreenFilm?: boolean;
   onWidescreenFilmChange?: (next: boolean) => void;
+  wideStills?: boolean;
+  onWideStillsChange?: (next: boolean) => void;
   autoReviewStills: boolean;
   onAutoReviewStillsChange: (next: boolean) => void;
   redoPoseMisses: boolean;
@@ -156,6 +158,8 @@ export default function DayAdvancedDrawer({
   onCheckMarksChange,
   widescreenFilm,
   onWidescreenFilmChange,
+  wideStills,
+  onWideStillsChange,
   autoReviewStills,
   onAutoReviewStillsChange,
   redoPoseMisses,
@@ -273,6 +277,17 @@ export default function DayAdvancedDrawer({
               onChange={onWidescreenFilmChange}
             >
               Widescreen film
+            </SwitchButton>
+          ) : null}
+          {onWideStillsChange ? (
+            <SwitchButton
+              checked={wideStills === true}
+              disabled={busy}
+              data-testid="day-wide-stills"
+              title="Shoot each still 16:9 to begin with — the pose drawn wide too — so a widescreen cut uses it as it is, with nothing widened after. Two people sit across the frame instead of in its middle."
+              onChange={onWideStillsChange}
+            >
+              16:9 stills
             </SwitchButton>
           ) : null}
           <SwitchButton

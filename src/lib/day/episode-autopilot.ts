@@ -21,6 +21,8 @@ export type EpisodeAutopilot = {
   animate: 'none' | 'lines' | 'all';
   /** Cut the film when the run is done. */
   cutWhenDone: boolean;
+  /** Shoot the stills 16:9 (the Scene's wideStills): an episode is cut wide. Unset = on. */
+  wideStills?: boolean;
 };
 
 export const DEFAULT_EPISODE_AUTOPILOT: EpisodeAutopilot = {
@@ -28,6 +30,7 @@ export const DEFAULT_EPISODE_AUTOPILOT: EpisodeAutopilot = {
   redo: 1,
   animate: 'none',
   cutWhenDone: true,
+  wideStills: true,
 };
 
 export function normalizeEpisodeAutopilot(raw: unknown): EpisodeAutopilot {
@@ -40,6 +43,7 @@ export function normalizeEpisodeAutopilot(raw: unknown): EpisodeAutopilot {
         : DEFAULT_EPISODE_AUTOPILOT.redo,
     animate: value.animate === 'lines' || value.animate === 'all' ? value.animate : 'none',
     cutWhenDone: value.cutWhenDone !== false,
+    wideStills: value.wideStills !== false,
   };
 }
 

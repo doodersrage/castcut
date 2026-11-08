@@ -692,6 +692,8 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
               onCheckMarksChange={vm.setCheckMarks}
               widescreenFilm={vm.widescreenFilm}
               onWidescreenFilmChange={vm.setWidescreenFilm}
+              wideStills={vm.wideStills}
+              onWideStillsChange={vm.setWideStills}
               autoReviewStills={vm.autoReviewStills}
               onAutoReviewStillsChange={vm.setAutoReviewStills}
               redoPoseMisses={vm.redoPoseMisses}

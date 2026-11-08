@@ -32,6 +32,30 @@ type SendComfyUi = (
   options?: SendComfyUiOptions
 ) => Promise<string | undefined | void>;
 
+/** A still this wide or wider is a widescreen picture already: nothing to widen. */
+export const WIDE_ENOUGH_ASPECT = 1.6;
+
+/** Width over height of a picture by its URL (the browser loads it); null when it won't load. */
+export function imageAspect(url: string): Promise<number | null> {
+  return new Promise(resolve => {
+    if (typeof Image === 'undefined' || !url) {
+      resolve(null);
+      return;
+    }
+    const image = new Image();
+    image.onload = () =>
+      resolve(image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : null);
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
+}
+
+/** A still shot 16:9 to begin with (wideStills): a widescreen cut takes it as it is. */
+export async function stillIsWide(url: string): Promise<boolean> {
+  const aspect = await imageAspect(url);
+  return aspect !== null && aspect >= WIDE_ENOUGH_ASPECT;
+}
+
 /** The still widened to 16:9 (a ComfyUI view URL), or null when the pass did not finish. */
 export async function widenStillForFilm(input: {
   imageUrl: string;

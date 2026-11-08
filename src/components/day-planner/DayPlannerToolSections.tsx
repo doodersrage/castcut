@@ -206,6 +206,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setCheckMarks,
     widescreenFilm,
     setWidescreenFilm,
+    wideStills,
+    setWideStills,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -1072,6 +1074,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onCheckMarksChange={setCheckMarks}
               widescreenFilm={widescreenFilm}
               onWidescreenFilmChange={setWidescreenFilm}
+              wideStills={wideStills}
+              onWideStillsChange={setWideStills}
               autoReviewStills={autoReviewStills}
               onAutoReviewStillsChange={setAutoReviewStills}
               redoPoseMisses={redoPoseMisses}

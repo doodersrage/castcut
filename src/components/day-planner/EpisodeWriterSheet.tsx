@@ -456,6 +456,16 @@ export default function EpisodeWriterSheet({
                       />
                       Cut the film when it&apos;s done
                     </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={pilot.wideStills !== false}
+                        data-testid="episode-autopilot-wide"
+                        title="Shoot each still 16:9, the pose drawn wide too: the cut uses it as it is, two people across the frame"
+                        onChange={event => setPilot({ ...pilot, wideStills: event.target.checked })}
+                      />
+                      16:9 stills
+                    </label>
                   </div>
                 ) : null}
               </fieldset>

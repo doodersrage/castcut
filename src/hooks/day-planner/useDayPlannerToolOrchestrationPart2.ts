@@ -5,7 +5,7 @@ import { inSpokenLanguage, normalizeDubLanguage, requestDubLines } from '@/lib/d
 import { holdJobCompletionEmail } from '@/lib/server/job-completion-email';
 import { castAccent, pronounceForCast, withAccent } from '@/lib/cast/speech';
 import { previouslyOnShots } from '@/lib/play/series';
-import { widenStillForFilm } from '@/lib/film/widen-client';
+import { stillIsWide, widenStillForFilm } from '@/lib/film/widen-client';
 import { isH3Model } from '@/lib/engine/h3-renderer';
 import { makeFilmAngles } from '@/lib/film/angles-client';
 import { castVoiceOf } from '@/lib/cast/voice';
@@ -389,6 +389,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     async (slotId: DaySlotId, imageUrl: string): Promise<string | null> => {
       const current = stillsRef.current.find(entry => entry.slotId === slotId);
       if (current?.wideUrl && current.wideFor === imageUrl) return current.wideUrl;
+      // Shot 16:9 to begin with (16:9 stills): it starts the clip as it is.
+      if (await stillIsWide(imageUrl)) return imageUrl;
       setFilmStatus('Widening the still to 16:9…');
       const wide = await widenStillForFilm({
         imageUrl,

@@ -6,6 +6,7 @@ import {
   dayStillClothingReinforce,
   dayStillDressedPlateUse,
   dayStillFaceCropCanvas,
+  DAY_WIDE_CANVAS,
   dayStillFootwearApplies,
   dayStillIdentityRoute,
   dayStillLiesDown,
@@ -254,6 +255,13 @@ describe('dayStillFaceCropCanvas', () => {
     // Only Qwen-Image 2.1 was tested.
     assert.deepEqual(dayStillFaceCropCanvas({ ...lying, model: RAPID }), portrait);
     assert.deepEqual(dayStillFaceCropCanvas({ ...lying, model: EDIT_2511 }), portrait);
+  });
+
+  it('shoots every still on the wide canvas when the tool asks for 16:9 stills', () => {
+    for (const shape of [lying, { ...lying, lying: false }, { ...lying, solo: false }, { ...lying, model: RAPID }]) {
+      assert.deepEqual(dayStillFaceCropCanvas({ ...shape, wide: true }), { ...DAY_WIDE_CANVAS });
+    }
+    assert.ok(DAY_WIDE_CANVAS.width / DAY_WIDE_CANVAS.height > 1.7);
   });
 
   it('finds the outfit line in a finished prompt', () => {

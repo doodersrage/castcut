@@ -481,6 +481,8 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
     ),
     widescreenFilm: core.toolSettings.widescreenFilm === true,
     setWidescreenFilm: (next: boolean) => core.updateToolSettings({ widescreenFilm: next }),
+    wideStills: core.toolSettings.wideStills === true,
+    setWideStills: (next: boolean) => core.updateToolSettings({ wideStills: next }),
     setCheckMarks: (next: boolean) => core.updateToolSettings({ checkMarks: next }),
     adultGateStatus: adultGate.adultGateStatus,
     ...clips,

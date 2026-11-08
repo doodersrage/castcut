@@ -102,7 +102,9 @@ export default function SceneScriptAndRun({
           prepareRun={page.prepareRun}
           llmBody={sharedLlmRequestBody(vm.shared)}
           sendComfyUi={vm.actions.sendComfyUi}
-          onStartRun={next => {
+          onStartRun={(next, options) => {
+            // An episode is cut wide: its stills are shot 16:9 (the autopilot's choice).
+            if (options?.wideStills) vm.updateToolSettings({ wideStills: true });
             startRunId.current = next.id;
             page.updateRun(next);
           }}

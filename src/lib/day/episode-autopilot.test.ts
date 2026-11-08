@@ -65,6 +65,9 @@ describe('episode autopilot', () => {
       redo: 3,
       animate: 'none',
       cutWhenDone: true,
+      wideStills: true,
     });
+    // An episode is cut wide: 16:9 stills unless turned off (a saved choice before it, on).
+    assert.equal(normalizeEpisodeAutopilot({ wideStills: false }).wideStills, false);
   });
 });

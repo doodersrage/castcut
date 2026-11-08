@@ -271,6 +271,9 @@ export function dayStillLiesDown(input: {
 export const DAY_OUTFIT_LINE_RE = /^OUTFIT \(mandatory\):/m;
 
 /** Landscape canvas for a lying solo still on a face crop (pose-model-profile: wideLyingSolo). */
+/** A still shot 16:9 (Qwen-Image 2.1's own wide canvas; other engines take it as asked). */
+export const DAY_WIDE_CANVAS = { width: 1664, height: 928 } as const;
+
 export const DAY_LYING_WIDE_CANVAS = {
   width: PLAY_FACE_CROP_CANVAS.height,
   height: PLAY_FACE_CROP_CANVAS.width,
@@ -288,7 +291,10 @@ export function dayStillFaceCropCanvas(input: {
   lying: boolean;
   /** The still's prompt has an OUTFIT (mandatory) line. */
   outfitLine: boolean;
+  /** Stills shot 16:9 (the tool's wideStills): every still on the wide canvas. */
+  wide?: boolean;
 }): { width: number; height: number } {
+  if (input.wide) return { ...DAY_WIDE_CANVAS };
   return poseProfileForModel(input.model).wideLyingSolo &&
     input.solo &&
     input.lying &&

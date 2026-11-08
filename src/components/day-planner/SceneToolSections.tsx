@@ -438,6 +438,8 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                       onCheckMarksChange={vm.setCheckMarks}
                       widescreenFilm={vm.widescreenFilm}
                       onWidescreenFilmChange={vm.setWidescreenFilm}
+                      wideStills={vm.wideStills}
+                      onWideStillsChange={vm.setWideStills}
                       autoReviewStills={autoReviewStills}
                       onAutoReviewStillsChange={vm.setAutoReviewStills}
                       redoPoseMisses={vm.redoPoseMisses}

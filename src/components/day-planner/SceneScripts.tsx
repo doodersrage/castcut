@@ -440,7 +440,7 @@ export default function SceneScripts({
   onStartRun,
 }: {
   /** Start a prepared run as given (the episode autopilot's, its settings on it). */
-  onStartRun?: (run: SceneRun) => void;
+  onStartRun?: (run: SceneRun, options?: { wideStills?: boolean }) => void;
   /** Renders a new Cast member's plate (Make them Cast). */
   sendComfyUi?: Parameters<typeof queueCastLookPlate>[0]['sendComfyUi'];
   castId: string;
@@ -898,7 +898,7 @@ export default function SceneScripts({
       const result = prepareFor(now(), parsed);
       if (!result?.run) throw new Error('the run could not be prepared');
       const started = autopilotRun(result.run, pilot);
-      onStartRun?.(started);
+      onStartRun?.(started, { wideStills: pilot.wideStills !== false });
       setAutopilotNote(
         `Running: ${started.items.length} shots, one at a time${pilot.cutWhenDone ? ' — then the cut' : ''}. Keep this page open.`
       );

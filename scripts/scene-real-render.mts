@@ -4224,6 +4224,71 @@ const phases: Record<string, Phase> = {
     await shot(page, 'make-cast');
   },
 
+  /**
+   * 16:9 stills, live: Scene's "16:9 stills" switched on, then a take of WIDE_SOLO (6) Scenes of
+   * the lead alone and WIDE_DUO (4) two-shots from the Cast's episode; each take's size logged
+   * and its picture saved to SCENE_OUT/wide for a contact sheet (doubles, framing).
+   */
+  async widestills(_ctx, page) {
+    await go(page, `/scene?character=${V2_CAST}`);
+    const scenes = (await v2Scenes(page)) as Array<
+      V2Scene & { slot?: { sceneHints?: string }; fromScript?: { scriptId: string } }
+    >;
+    const episode = scenes.filter(scene => scene.keptTakeId && scene.fromScript);
+    const duo = (scene: (typeof episode)[number]) =>
+      Boolean(scene.slot?.sceneHints?.includes('the two of them together'));
+    const spread = <T,>(list: T[], n: number) =>
+      list.filter((_, index) => index % Math.max(1, Math.floor(list.length / n)) === 0).slice(0, n);
+    const picks = [
+      ...spread(episode.filter(scene => !duo(scene)), Number(process.env.WIDE_SOLO ?? 6)),
+      ...spread(episode.filter(duo), Number(process.env.WIDE_DUO ?? 4)),
+    ];
+    const dir = join(OUT, 'wide');
+    mkdirSync(dir, { recursive: true });
+    let switched = false;
+    for (const [index, scene] of picks.entries()) {
+      await go(page, `/scene?character=${V2_CAST}&scene=${scene.id}`);
+      await page.getByTestId('scene-queue-take').waitFor({ timeout: 60_000 });
+      if (!switched) {
+        const wide = page.getByTestId('day-wide-stills').first();
+        if (!(await wide.isVisible().catch(() => false))) {
+          await page.getByTestId('day-quality-advanced').first().click().catch(() => undefined);
+        }
+        await wide.waitFor({ timeout: 30_000 });
+        if ((await wide.getAttribute('aria-checked')) !== 'true') await wide.click();
+        log('16:9 stills:', await wide.getAttribute('aria-checked'));
+        switched = true;
+      }
+      const before = (await sceneStill(page))?.promptId;
+      const started = Date.now();
+      await page.getByTestId('scene-queue-take').click();
+      const still = await waitForTake(page, before, `wide${index + 1}`);
+      const size = await page.evaluate(
+        url =>
+          new Promise<string>(resolve => {
+            const image = new Image();
+            image.onload = () => resolve(`${image.naturalWidth}x${image.naturalHeight}`);
+            image.onerror = () => resolve('?');
+            image.src = url;
+          }),
+        still.imageUrl ?? ''
+      );
+      const bytes = await page.request.get(new URL(still.imageUrl ?? '', BASE).toString()).then(r => r.body());
+      writeFileSync(join(dir, `${String(index + 1).padStart(2, '0')}-${duo(scene) ? 'duo' : 'solo'}.png`), bytes);
+      log(
+        'wide take',
+        scene.name,
+        duo(scene) ? '(two)' : '(alone)',
+        '·',
+        still.status,
+        size,
+        'in',
+        Math.round((Date.now() - started) / 1000),
+        's'
+      );
+    }
+  },
+
   async setup(_ctx, page) {
     const files = readdirSync(CASTS).filter(name => name.endsWith('.castcut.json'));
     for (const name of files) await importCast(page, name);

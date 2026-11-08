@@ -191,6 +191,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setCheckMarks,
     widescreenFilm,
     setWidescreenFilm,
+    wideStills,
+    setWideStills,
     qualityStatus,
     qualityLedger,
     clipChecks,
@@ -954,6 +956,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onCheckMarksChange={setCheckMarks}
             widescreenFilm={widescreenFilm}
             onWidescreenFilmChange={setWidescreenFilm}
+            wideStills={wideStills}
+            onWideStillsChange={setWideStills}
             autoReviewStills={autoReviewStills}
             onAutoReviewStillsChange={setAutoReviewStills}
             redoPoseMisses={redoPoseMisses}

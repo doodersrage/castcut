@@ -203,6 +203,12 @@ export type DayToolCache = {
   checkMarks?: boolean;
   /** Widescreen film: each still is widened to 16:9 (Edit 2511) before it is animated or cut. */
   widescreenFilm?: boolean;
+  /**
+   * Stills rendered 16:9 to begin with (the pose map drawn wide too), so nothing is widened after.
+   * Episode stills re-rendered wide (2026-11-07) framed both people across the picture where a
+   * portrait still widened sat them in its middle third.
+   */
+  wideStills?: boolean;
   /** Animate sheet Length: seconds added to a clip's default length (0, 2, 4 or 6). */
   dayClipExtraSeconds?: number;
   /** Animate sheet Length for one-person talking clips on LTX-2.5: total seconds (5–30). */
