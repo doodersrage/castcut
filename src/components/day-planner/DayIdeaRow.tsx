@@ -48,6 +48,8 @@ export default function DayIdeaRow({
   const [premise, setPremise] = useState('');
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // A failed write is said as one, not in the same grey as the help line.
+  const [noteFailed, setNoteFailed] = useState(false);
   // Intimate's short is written by the LLM only where the server allows adult content.
   const adultAllowed = useNsfwGeneratorEnabled();
   // Write the day is Everyday's and Vacation's; a short (the script road) is every clothed mood's.
@@ -63,22 +65,28 @@ export default function DayIdeaRow({
     if (!text || writing || !writeDay) return;
     setWriting(true);
     setNote(null);
+    setNoteFailed(false);
     try {
       if (eventMode && onWriteEvent) {
         const written = await onWriteEvent(text);
         setNote(
-          `${written} moments of one event — edit any of them, then Queue day. Each moment after the first is made from the one before, and Animate joins the clips.`
+          `${written} moments of one event — edit any of them, then Queue day renders the stills. Each moment after the first is made from the one before, and Animate joins the clips.`
         );
       } else {
         const written = await onWrite(text);
         setNote(
           written >= slotCount
-            ? 'Every slot now follows the idea — edit any beat before Queue day.'
-            : `${written} of ${slotCount} slots follow the idea; the rest kept their beat.`
+            ? 'Every slot now follows the idea — check the moments below, then Queue day renders the stills.'
+            : `${written} of ${slotCount} slots follow the idea; the rest kept their beat. Queue day renders the stills.`
         );
       }
+      // Written on the moment cards, below: show them (it looked as if nothing had happened).
+      document
+        .querySelector('[data-testid^="day-progress-"]')
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } catch (error) {
       setNote(error instanceof Error ? error.message : 'Day from an idea failed.');
+      setNoteFailed(true);
     } finally {
       setWriting(false);
     }
@@ -204,13 +212,13 @@ export default function DayIdeaRow({
       {castId && !eventMode ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-idea-hint">
           {writeDay
-            ? 'Write the day: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Scene — then Make the short.'
+            ? 'Write the day: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script — then Make the short.'
             : 'Write it as a script: scenes with lines, any length, on Scene — rendered and cut from there.'}
         </p>
       ) : null}
       {note ? (
         <p
-          className="type-caption text-[var(--text-muted)]"
+          className={`type-caption font-medium ${noteFailed ? 'text-[var(--tint-warning-text)]' : 'text-[var(--accent-text)]'}`}
           role="status"
           data-testid="day-idea-note"
         >
