@@ -2433,11 +2433,13 @@ const phases: Record<string, Phase> = {
     await attempt(page, 'make the kitchen line a Scene', async () => {
       if (!line) throw new Error('no dialogue shot drafted in the kitchen');
       await page.getByTestId(`script-shot-make-${line.id}`).click();
-      // Made a Scene, it opens on Scene; the shot records it.
-      await page.waitForURL(/\/scene\?/, { timeout: 60_000 });
-      await page.getByTestId('scene-name').waitFor({ timeout: 60_000 });
+      // Made a Scene, it stays listed on Script; the shot records it, and Open goes to it.
+      await page.waitForTimeout(2000);
       const made = (await v2Script(page))?.shots?.find(entry => entry.id === line.id) as
         { madeSceneId?: string } | undefined;
+      await page.getByTestId(`script-shot-open-${line.id}`).click({ timeout: 30_000 });
+      await page.waitForURL(/\/scene\?/, { timeout: 60_000 });
+      await page.getByTestId('scene-name').waitFor({ timeout: 60_000 });
       log(
         'made:',
         await page.getByTestId('scene-name').inputValue(),

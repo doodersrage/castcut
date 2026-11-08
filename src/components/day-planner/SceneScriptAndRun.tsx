@@ -92,7 +92,6 @@ export function SceneScriptPart({
   /** Opening a Scene from a script: on the Script page, that's going to Scene. */
   openScene?: (sceneId: string) => void;
 }) {
-  const { makeSceneFrom } = page;
   const character = vm.character;
   return (
     <>
@@ -112,12 +111,9 @@ export function SceneScriptPart({
             updateToolSettings: vm.updateToolSettings as (patch: ScriptsCache) => void,
           }}
           scenes={page.castScenes}
-          // A shot made a Scene opens it (on Scene, it is the one the editor shows).
-          makeScene={(...args: Parameters<typeof makeSceneFrom>) => {
-            const id = makeSceneFrom(...args);
-            if (id && openScene) openScene(id);
-            return id;
-          }}
+          // A shot made a Scene stays listed here (a storyboard is clicked through card by card);
+          // its Open goes to it.
+          makeScene={page.makeSceneFrom}
           openScene={openScene ?? page.openScene}
           prepareRun={page.prepareRun}
           llmBody={sharedLlmRequestBody(vm.shared)}

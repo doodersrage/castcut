@@ -45,8 +45,8 @@ export default function ShortRun({
         onStart={runner.start}
         onStop={runner.stop}
       />
-      {/* What the run's Scene says (why a take wasn't queued): on Scene it is under the card. */}
-      {page.note || vm.error ? (
+      {/* Paused: what its Scene says (why a take wasn't queued) — on Scene it is under the card. */}
+      {run.state === 'paused' && (page.note || vm.error) ? (
         <p
           className="type-caption text-[var(--tint-warning-text,var(--accent-text))]"
           role="status"

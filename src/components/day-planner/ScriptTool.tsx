@@ -69,7 +69,7 @@ export default function ScriptTool() {
         <SceneScriptPart
           vm={vm}
           page={page}
-          // A shot made a Scene, or a made one opened: it's worked on in Scene.
+          // A made Scene opened: it's worked on in Scene.
           openScene={sceneId => router.push(sceneHref(`scene=${encodeURIComponent(sceneId)}`))}
           onStartRun={(next, options) => {
             // An episode is cut wide: its stills are shot 16:9 (the autopilot's choice).

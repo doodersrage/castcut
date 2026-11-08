@@ -583,8 +583,11 @@ test('a script place resolves to a location, and its shot\'s Scene is set there'
   const scene = page.getByTestId('script-scene-int-cafe-day');
   if ((await scene.getAttribute('open')) === null) await scene.locator('summary').click();
   await page.getByTestId('script-shots-draft-int-cafe-day').click();
-  await page.locator('[data-testid^="script-shot-make-"]').first().click();
-  // Made a Scene, it opens on Scene.
+  const make = page.locator('[data-testid^="script-shot-make-"]').first();
+  const shotId = (await make.getAttribute('data-testid'))!.slice('script-shot-make-'.length);
+  await make.click();
+  // Made a Scene, it stays listed here; Open goes to it on Scene.
+  await page.getByTestId(`script-shot-open-${shotId}`).click({ timeout: 30_000 });
   await expect(page).toHaveURL(/\/scene\?/, { timeout: 30_000 });
   await expect(page.getByTestId('day-slot-location-record')).toHaveValue(id, { timeout: 30_000 });
   await expect(page.getByTestId('day-slot-location')).toHaveValue('cafe');
@@ -1391,13 +1394,13 @@ test('Make it a short: Day’s idea opens the writer, counted in scenes', async 
   const input = page.getByTestId('day-idea-input').first();
   await expect(input).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('day-idea-short')).toHaveCount(0);
-  // Typed before the page settles, the text is wiped: type, open, until Scene opens.
+  // Typed before the page settles, the text is wiped: type, open, until Script opens.
   await expect(async () => {
-    if (!/\/scene\?/.test(page.url())) {
+    if (!/\/script\?/.test(page.url())) {
       await input.fill('a slow Sunday in Lisbon');
       await page.getByTestId('day-idea-short').first().click({ timeout: 2000 });
     }
-    await expect(page).toHaveURL(/\/scene\?/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/script\?/, { timeout: 10_000 });
   }).toPass({ timeout: 90_000 });
   const sheet = page.getByTestId('episode-writer');
   await expect(sheet).toBeVisible({ timeout: 60_000 });
@@ -1556,7 +1559,10 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
   await expect(lead).toHaveAttribute('data-status', 'planned');
 
   await page.getByTestId('script-shot-make-int-kitchen-morning~2').click();
+  await expect(lead).toHaveAttribute('data-status', 'made');
+  await expect(page.getByTestId('script-shot-status-int-kitchen-morning~2')).toHaveText('Scene made');
   // Opened on Scene, named for the shot.
+  await page.getByTestId('script-shot-open-int-kitchen-morning~2').click();
   await expect(page).toHaveURL(/\/scene\?/, { timeout: 30_000 });
   await expect(page.getByTestId('scene-name')).toHaveValue('1B KITCHEN · Dialogue', {
     timeout: 30_000,
@@ -1589,16 +1595,12 @@ test('a script scene is drafted into shots and a shot is made a Scene', async ({
     )
     .toBe('morning|kitchen at home|Coffee first.|waist|true|true');
 
-  // Back on Script (the link opens the Scene's script): the shot is made.
+  // Back on Script (the link opens the Scene's script), for its coverage.
   await page.getByTestId('scene-open-script').click();
   await expect(page).toHaveURL(/\/script\?.*script=/, { timeout: 30_000 });
   const kitchen = page.getByTestId('script-scene-int-kitchen-morning');
   await expect(kitchen).toBeVisible({ timeout: 60_000 });
   if ((await kitchen.getAttribute('open')) === null) await kitchen.locator('summary').click();
-  await expect(lead).toHaveAttribute('data-status', 'made');
-  await expect(page.getByTestId('script-shot-status-int-kitchen-morning~2')).toHaveText(
-    'Scene made'
-  );
 
   // Coverage (S5): how far the scene has got, and what looks missing — decided like Cut's.
   await expect(page.getByTestId('script-coverage')).toContainText(
@@ -2984,8 +2986,8 @@ test('adult writing: refused without the server’s adult setting, offered with 
   await expect(adult).not.toBeChecked();
 });
 
-// Short says how its short's run is going (it renders on Scene) — and links back to it.
-test('Short shows its short’s run: how far, and that it renders with Scene open', async ({ page }) => {
+// A short's run that can still go renders on Short (2026-11-08): its controls, how far it got.
+test('Short shows its short’s run here: how far, paused, with Resume', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },
     characters: cast,
@@ -3022,10 +3024,10 @@ test('Short shows its short’s run: how far, and that it renders with Scene ope
   });
   await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  const line = page.getByTestId('day-short-run').first();
-  await expect(line).toContainText('Making the short: 1 of 2 done', { timeout: 30_000 });
-  await expect(line).toContainText('with the Scene page open');
-  await expect(page.getByTestId('day-short-run-open').first()).toHaveAttribute('href', /\/scene\?.*script=script-short/);
+  const here = page.getByTestId('day-short-run-here').first();
+  await expect(here).toContainText('Paused', { timeout: 30_000 });
+  await expect(here.getByTestId('scene-run-start')).toBeVisible();
+  await expect(page.getByTestId('day-short-run')).toHaveCount(0);
 });
 
 // A run set to resume by itself (Autopilot, Make the short, or the checkbox): a reload — a
