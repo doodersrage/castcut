@@ -66,7 +66,7 @@ export type PlayCampaignStep = {
   id: PlayCampaignStepId;
   label: string;
   description: string;
-  /** Story stays optional after first Day cut. */
+  /** Story stays optional after the first Short is cut. */
   optional?: boolean;
   next?: PlayCampaignStepId;
   href: (input: { characterId: string; pack?: LookPack | null }) => string;
@@ -112,7 +112,7 @@ export const PLAY_CAMPAIGN_STEPS: PlayCampaignStep[] = [
   {
     id: 'roleplay',
     label: 'Story',
-    description: 'Optional — story beats after your first Day cut.',
+    description: 'Optional — story beats after your first Short is cut.',
     optional: true,
     href: ({ characterId, pack }) =>
       pack ? lookPackRoleplayHref(pack) : `/story?character=${encodeURIComponent(characterId)}`,

@@ -213,7 +213,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           data-testid="play-campaign-start-day"
           onClick={() => props.goToStep('day', props.activeLookPack)}
         >
-          Restart at Day
+          Restart at Short
         </Button>
         <Button
           size="sm"
@@ -221,7 +221,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
           data-testid="play-campaign-jump-starter"
           onClick={() => runStarter(props.characterId || undefined)}
         >
-          Starter Day
+          Starter short
         </Button>
       </div>
     </div>
@@ -267,7 +267,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         description={
           props.campaignComplete
             ? 'Watch it, cut another Day, or carry on in Story.'
-            : 'Pick who it’s about, plan their Day, then cut the film.'
+            : 'Pick who it’s about, plan their Short, then cut the film.'
         }
       >
         {/* Shell already mounts habit on /m/* — avoid stacking on phone Film. */}

@@ -1814,7 +1814,7 @@ test('play campaign continue CTA appears when campaign state exists', async ({ p
   await gotoStable(page, '/play?character=e2e-resume-char');
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('play-campaign-continue')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('play-campaign-start-day')).toContainText(/Restart at Day/i);
+  await expect(page.getByTestId('play-campaign-start-day')).toContainText(/Restart at Short/i);
 });
 
 

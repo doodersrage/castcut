@@ -18,8 +18,7 @@ type PlayCampaignStepsSectionProps = Pick<
   thumbs?: Partial<Record<string, ReactNode>>;
 };
 
-const CUT_DESCRIPTION =
-  'Cut the Day’s stills and clips into one film — on Day, once the stills are in.';
+const CUT_DESCRIPTION = 'Cut the Short’s stills and clips into one film — once its stills are in.';
 
 export default function PlayCampaignStepsSection({
   activeStep,

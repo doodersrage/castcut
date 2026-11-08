@@ -27,7 +27,7 @@ const ALL_APP_NAV_GROUPS: AppNavGroup[] = [
       {
         href: '/play',
         label: 'Film',
-        description: 'Pick who it’s about, plan their Day, cut the film',
+        description: 'Pick who it’s about, plan their Short, cut the film',
       },
       {
         href: '/characters',
