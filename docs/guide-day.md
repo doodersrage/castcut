@@ -67,6 +67,10 @@ silly / raunchy.
     template — makes its short by itself, a moment later. Opening an older Day makes nothing until
     you change it.
 
+    The short is the record: a moment changed on its Scene — a beat, a line, its time — is
+    changed on the board too when you open Short. (The script's own words edited on Script are
+    still Script's: the board stops writing until you choose, as below.)
+
     A Day has one short, and once made the two stay in step by themselves (_Its short: “…” — the
     board and its Scenes stay in step_): a take kept on a moment's Scene — by Render the short's run,
     or by hand — becomes that moment's still on the board (the one before stays as **Back to the

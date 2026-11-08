@@ -4214,3 +4214,79 @@ test('a Short moment’s time of day is chosen in its editor', async ({ page }) 
     );
   await expect.poll(stored, { timeout: 15_000 }).toBe('morning|night|Night');
 });
+
+// Step 4b (2026-11-08): the short is the record — a moment edited on its Scene is the board's.
+test('a Short moment edited on its Scene shows on the board', async ({ page }) => {
+  await page.route('**/api/day-premise', route =>
+    route.fulfill({
+      json: {
+        beats: ['morning', 'afternoon', 'evening', 'night'].map(slotId => ({
+          slotId,
+          beat: `pouring coffee (${slotId})`,
+          setting: 'small kitchen',
+        })),
+      },
+    })
+  );
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(async () => {
+    await input.fill('a slow Sunday at home');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every slot', { timeout: 5000 });
+  }).toPass({ timeout: 60_000 });
+  await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step', { timeout: 30_000 });
+
+  // On Scene (written with no app page open): the morning's beat changed.
+  await page.goto('/manifest.json');
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('comfy-prompt-studio-v1');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const store = db.transaction('kv', 'readwrite').objectStore('kv');
+          const get = store.get('comfy-prompt-tool-settings-tools-v1');
+          get.onsuccess = () => {
+            const row = get.result;
+            const scenes = row.value.tools.scene.scenes as Array<Record<string, unknown>>;
+            const morning = scenes.find(scene => scene.fromDaySlot === 'morning')!;
+            morning.slot = { ...(morning.slot as object), sceneHints: 'reads the paper on the porch' };
+            morning.updatedAt = Date.now();
+            row.value.updatedAt = Date.now();
+            const put = store.put(row);
+            put.onsuccess = () => {
+              db.close();
+              resolve();
+            };
+            put.onerror = () => reject(put.error);
+          };
+        };
+      })
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-progress-scene-morning').first()).toContainText('reads the paper', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('day-short-sync').first()).toContainText('stay in step');
+  expect(await storedScripts(page)).toMatch(/^1\|/);
+});

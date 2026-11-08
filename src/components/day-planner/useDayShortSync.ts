@@ -7,7 +7,11 @@ import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
 import { loadToolSettings } from '@/lib/settings/cache';
 import { normalizeSavedScenes } from '@/lib/day/scenes';
 import { dayStillsCachePatch, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
-import { dayShortFingerprint, dayStillsFromShort } from '@/lib/day/day-as-short';
+import {
+  dayMomentsFromShort,
+  dayShortFingerprint,
+  dayStillsFromShort,
+} from '@/lib/day/day-as-short';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { saveDayAsShort, type DayShortLink } from '@/lib/day/scene-links';
 
@@ -60,6 +64,31 @@ export function useDayShortSync(input: {
     const next = dayStillsFromShort(now, scenes, { castId, scriptId: script.id });
     if (next) update(dayStillsCachePatch(next, castId));
   }, [castId, script, stillsKey]);
+
+  // Short ← short, the moments too (step 4b, 2026-11-08): the short is the record. When its
+  // Scenes changed (a beat, a line, a time edited on Script or Scene) and the board has no edit
+  // of its own waiting to go in, the board takes them. Its link's fingerprint moves with it, so
+  // the board doesn't write them straight back. The script's own text changed on Script is left
+  // as before (the board stops writing; asked when both changed) — its words aren't the Scenes'.
+  const scenesStamp = script
+    ? normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes)
+        .filter(scene => scene.fromScript?.scriptId === script.id && scene.castId === castId)
+        .map(scene => `${scene.id}:${scene.updatedAt}`)
+        .join(',')
+    : '';
+  useEffect(() => {
+    if (!script || !scenesStamp) return;
+    const { day: now, link: current, updateDay: update } = latest.current;
+    if (!current || dayShortFingerprint(now) !== current.fingerprint) return;
+    if (script.updatedAt > (current.syncedAt ?? 0)) return;
+    const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
+    const moments = dayMomentsFromShort(now, scenes, { castId, scriptId: script.id });
+    if (!moments) return;
+    update({
+      slots: moments,
+      shortLink: { ...current, fingerprint: dayShortFingerprint({ ...now, slots: moments }) },
+    });
+  }, [castId, scenesStamp, script]);
 
   // Short → short: the board's edits, a moment after the last one.
   const fingerprint = script ? dayShortFingerprint(day) : '';
