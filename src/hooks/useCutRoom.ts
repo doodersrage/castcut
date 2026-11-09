@@ -173,6 +173,11 @@ import type { SavedScript } from '@/lib/day/scene-scripts';
 import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { storyboard } from '@/lib/day/storyboard';
 import { parseScript } from '@/lib/script/parse';
+import {
+  cutAddedSceneList,
+  cutOrderWithAfter,
+  normalizeCutAddedScenes,
+} from '@/lib/film/cut-added-scenes';
 import { animaticShots } from '@/lib/film/animatic';
 import {
   findingsForGalleryEntry,
@@ -346,17 +351,35 @@ export function useCutRoom() {
     dayShort?.castId === sceneCastId && (!cutSources || cutSources.includes('day'))
       ? dayShort.scriptId
       : '';
+  // Scenes added from other scripts (Step 5e): a short's scene in this script's cut.
+  const scenesAdded = useMemo(
+    () => normalizeCutAddedScenes(cut.toolSettings.scenesAdded),
+    [cut.toolSettings.scenesAdded]
+  );
   const sceneShots = useMemo(
     () =>
       scenesScript
-        ? sceneCutShots(scriptScenesInOrder(savedScenes, scenesScript), sceneCastId, 3, true)
+        ? sceneCutShots(
+            [
+              ...scriptScenesInOrder(savedScenes, scenesScript),
+              ...cutAddedSceneList({
+                added: scenesAdded,
+                scenes: savedScenes,
+                scripts: storedScripts,
+                ownScriptId: scenesScript.id,
+              }),
+            ],
+            sceneCastId,
+            3,
+            true
+          )
         : sceneCutShots(
             shortInByDay
               ? savedScenes.filter(scene => scene.fromScript?.scriptId !== shortInByDay)
               : savedScenes,
             sceneCastId
           ),
-    [sceneCastId, savedScenes, scenesScript, shortInByDay]
+    [sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]
   );
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
@@ -468,13 +491,13 @@ export function useCutRoom() {
       // Only a real change is an edit: arriving with ?from= rewrites the same sources, and a
       // visit must not look like the newest edit to another device's merge (H2).
       const current = cutSettingsRef.current;
-      const changes = (['options', 'extras', 'sources'] as const).filter(
+      const changes = (['options', 'extras', 'sources', 'scenesAdded'] as const).filter(
         key =>
           key in patch &&
           JSON.stringify(patch[key] ?? null) !== JSON.stringify(current[key] ?? null)
       );
       if (!changes.length) {
-        const { options: _o, extras: _e, sources: _s, ...rest } = patch;
+        const { options: _o, extras: _e, sources: _s, scenesAdded: _a, ...rest } = patch;
         if (Object.keys(rest).length) writeCutSettings(rest);
         return;
       }
@@ -3212,6 +3235,92 @@ export function useCutRoom() {
     [filmCastId, gallery]
   );
 
+  // Step 5e: what can be added (the Cast's other scripts, scene by scene, those with a Scene),
+  // what has been, and adding one after a shot of this cut.
+  const addableScripts = useMemo(() => {
+    if (!scenesScript) return [];
+    return storedScripts
+      .filter(script => script.castId === sceneCastId && script.id !== scenesScript.id)
+      .map(script => {
+        const mine = scriptScenesInOrder(savedScenes, script);
+        const scenesOf = parseScript(script.source).scenes.flatMap(scene => {
+          const first = mine.find(entry => entry.fromScript?.sceneId === scene.id);
+          return first
+            ? [{ sceneId: first.id, heading: scene.heading || scene.place || 'A scene' }]
+            : [];
+        });
+        return { id: script.id, name: script.name, scenes: scenesOf };
+      })
+      .filter(script => script.scenes.length > 0);
+  }, [savedScenes, sceneCastId, scenesScript, storedScripts]);
+  const scenesAddedView = useMemo(
+    () =>
+      scenesAdded.map(entry => {
+        const script = storedScripts.find(candidate => candidate.id === entry.scriptId);
+        const shown = cutAddedSceneList({
+          added: [entry],
+          scenes: savedScenes,
+          scripts: storedScripts,
+        });
+        const headings = script
+          ? parseScript(script.source)
+              .scenes.filter(scene => shown.some(shot => shot.fromScript?.sceneId === scene.id))
+              .map(scene => scene.heading)
+          : [];
+        return {
+          scriptName: script?.name ?? 'A script no longer here',
+          headings,
+          shots: shown.length,
+        };
+      }),
+    [savedScenes, scenesAdded, storedScripts]
+  );
+  const addScenesAfter = useCallback(
+    (scriptId: string, sceneIds: string[], afterKey: string | null) => {
+      const entry = { scriptId, sceneIds };
+      const added = normalizeCutAddedScenes([...scenesAdded, entry]);
+      if (added.length === scenesAdded.length) return;
+      // Their shots (those with a kept take), placed after the chosen one; later ones follow.
+      const keys = sceneCutShots(
+        cutAddedSceneList({ added: [entry], scenes: savedScenes, scripts: storedScripts }),
+        sceneCastId,
+        3,
+        true
+      ).map(shot => cutRoomKey('scenes', shot.key));
+      updateCut({ scenesAdded: added });
+      if (keys.length) {
+        const shown = orderedCutShots(shotsRef.current, options.shotEdits).map(shot => shot.key);
+        commitEdit(
+          {
+            options: {
+              ...options,
+              shotEdits: { ...options.shotEdits, order: cutOrderWithAfter(shown, keys, afterKey) },
+            },
+          },
+          true
+        );
+      }
+    },
+    [commitEdit, options, sceneCastId, savedScenes, scenesAdded, storedScripts, updateCut]
+  );
+  // Where an added scene can go: after one of this cut's own scenes (its last shot as shown).
+  const addAfterChoices = useMemo(() => {
+    if (!scenesScript) return [];
+    const shown = orderedCutShots(shots, options.shotEdits).map(shot => shot.key);
+    const own = scriptScenesInOrder(savedScenes, scenesScript);
+    return parseScript(scenesScript.source).scenes.flatMap(scene => {
+      const keys = own
+        .filter(entry => entry.fromScript?.sceneId === scene.id)
+        .map(entry => cutRoomKey('scenes', entry.id));
+      const last = [...shown].reverse().find(key => keys.includes(key));
+      return last ? [{ heading: scene.heading || scene.place || 'A scene', afterKey: last }] : [];
+    });
+  }, [options.shotEdits, savedScenes, scenesScript, shots]);
+  const removeAddedScenes = useCallback(
+    (index: number) => updateCut({ scenesAdded: scenesAdded.filter((_, at) => at !== index) }),
+    [scenesAdded, updateCut]
+  );
+
   return {
     mounted,
     shared,
@@ -3225,6 +3334,11 @@ export function useCutRoom() {
     scenesScript: scenesScript ? { id: scenesScript.id, name: scenesScript.name } : null,
     setScenesScript: (scriptId: string | null) =>
       updateCut({ scenesScriptId: scriptId ?? undefined }),
+    scenesAdded: scenesAddedView,
+    addableScripts,
+    addScenesAfter,
+    addAfterChoices,
+    removeAddedScenes,
     pickOnly,
     bySource,
     shots,

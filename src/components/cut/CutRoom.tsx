@@ -24,7 +24,16 @@ import { openPrintSheet } from '@/lib/print/print-sheets-client';
 import CutRenderQueue from '@/components/cut/CutRenderQueue';
 import { formatCutTimecode } from '@/lib/film/cut-preview';
 import { srtToVtt } from '@/lib/video/film-finish';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { CutAddScenesHere } from '@/components/cut/CutAddScenes';
 import { useRouter } from 'next/navigation';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -487,6 +496,7 @@ export default function CutRoom() {
   const dayIdentity = useDayShotIdentity(vm.dayStills, vm.dayCast?.name);
   const { mounted, pickOnly, pickAnimatic, setScenesScript } = vm;
   const arrived = useRef(false);
+  // Short's "Add to a cut" (?add=<script id>): the add box opens with that script picked.
   useEffect(() => {
     if (!mounted || arrived.current) return;
     arrived.current = true;
@@ -758,6 +768,17 @@ export default function CutRoom() {
               </Button>
             </div>
           ) : null}
+          <Suspense fallback={null}>
+            <CutAddScenesHere
+              hasScript={Boolean(vm.scenesScript && vm.sources.includes('scenes'))}
+              scripts={vm.addableScripts}
+              afterChoices={vm.addAfterChoices}
+              added={vm.scenesAdded}
+              busy={busy}
+              onAdd={vm.addScenesAfter}
+              onRemove={vm.removeAddedScenes}
+            />
+          </Suspense>
           {vm.sources.includes('script') ? (
             <div
               className="mt-2 flex flex-wrap items-center gap-2 text-sm"

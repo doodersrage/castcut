@@ -116,6 +116,11 @@ export type CutToolCache = {
    * Scene of the Cast, oldest first (the episode autopilot and Make the short cut with it).
    */
   scenesScriptId?: string;
+  /**
+   * Scenes added from other scripts (Step 5e: a short's scene in an episode's cut), by the Scenes
+   * they were added with (cut-added-scenes.ts). With `scenesScriptId` only.
+   */
+  scenesAdded?: import('./cut-added-scenes').CutAddedScenes[];
   /** Shots added here (Gallery, text cards, copies) — always in the film. */
   extras?: CutExtra[];
   /** Cut options, shot list edits included (keys carry the source). */

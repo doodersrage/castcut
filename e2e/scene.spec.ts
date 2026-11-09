@@ -4490,3 +4490,86 @@ test('script notes flag a crowded scene; Fix with the LLM offers a new version t
   expect(String(asked[0]!.scene)).toContain('A montage of the café filling up.');
   expect(String(asked[0]!.scene)).not.toContain('BEACH');
 });
+
+// A cut with a short's scene in it (Step 5e, 2026-11-09): from Short's "Add to a cut", the
+// episode's cut takes the short's scene after the scene picked; Take out leaves it out again.
+test('a short’s scene added to an episode’s cut, after the scene picked', async ({ page }) => {
+  const take = (id: string) => [{ id: `take-${id}`, promptId: `take-${id}`, imageUrl: `/icon.svg?${id}`, at: 1 }];
+  const sceneOf = (id: string, scriptId: string, sceneId: string, n: number) => ({
+    id,
+    castId: CAST,
+    name: id,
+    slot: { id: 'evening', label: 'Evening', location: 'a place', sceneHints: 'standing still' },
+    dayMood: 'everyday',
+    takes: take(id),
+    keptTakeId: `take-${id}`,
+    fromScript: { scriptId, sceneId, shotId: `${sceneId}~1` },
+    createdAt: n,
+    updatedAt: n,
+  });
+  const shotOf = (sceneId: string, madeSceneId: string) => ({
+    id: `${sceneId}~1`,
+    sceneId,
+    purpose: 'action',
+    framing: 'waist',
+    who: [],
+    seconds: 3,
+    madeSceneId,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          sceneOf('ep-cafe', 'episode', 'int-cafe-day', 1),
+          sceneOf('ep-pier', 'episode', 'ext-pier-night', 2),
+          sceneOf('sh-kitchen', 'short', 'int-kitchen-morning', 3),
+        ],
+        scripts: [
+          {
+            id: 'episode',
+            castId: CAST,
+            name: 'The episode',
+            source: 'INT. CAFE - DAY\n\nShe waits.\n\nEXT. PIER - NIGHT\n\nShe leaves.\n',
+            shots: [shotOf('int-cafe-day', 'ep-cafe'), shotOf('ext-pier-night', 'ep-pier')],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          {
+            id: 'short',
+            castId: CAST,
+            name: 'Her morning',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n',
+            shots: [shotOf('int-kitchen-morning', 'sh-kitchen')],
+            createdAt: 2,
+            updatedAt: 2,
+          },
+        ],
+      },
+    },
+  });
+  // The scripts go into their own store when Script opens (as a user's did).
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-episode')).toBeVisible({ timeout: 60_000 });
+  // The episode's cut (as Script's Cut its Scenes opens it), with Short's Add to a cut.
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}&script=episode&add=short`);
+  await dismissBlockingOverlays(page);
+  const box = page.getByTestId('cut-add-scenes');
+  await expect(box).toBeVisible({ timeout: 60_000 });
+  await expect(box.getByTestId('cut-add-scenes-script')).toHaveValue('short');
+  await expect(box.getByTestId('cut-add-scenes-scene')).toContainText('INT. KITCHEN - MORNING');
+  await box.getByTestId('cut-add-scenes-after').selectOption({ label: 'after INT. CAFE - DAY' });
+  await box.getByTestId('cut-add-scenes-add').click();
+  const rows = page.getByTestId('cut-shot-list').locator('[data-testid^="cut-shot-scenes:"]');
+  await expect
+    .poll(async () => rows.evaluateAll(list => list.map(row => row.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['cut-shot-scenes:ep-cafe', 'cut-shot-scenes:sh-kitchen', 'cut-shot-scenes:ep-pier']);
+  await expect(page.getByTestId('cut-added-scene')).toContainText('Her morning');
+  // Take out: the episode alone again; the short's Scene is left as it is.
+  await page.getByTestId('cut-added-scene-remove').click();
+  await expect
+    .poll(async () => rows.evaluateAll(list => list.map(row => row.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['cut-shot-scenes:ep-cafe', 'cut-shot-scenes:ep-pier']);
+});

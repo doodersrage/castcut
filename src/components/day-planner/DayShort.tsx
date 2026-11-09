@@ -268,6 +268,16 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           >
             Cut this short →
           </a>
+          {short.link ? (
+            <a
+              className="ui-text-link type-caption"
+              href={`/cut?${new URLSearchParams({ add: short.link.scriptId }).toString()}`}
+              data-testid="day-add-to-cut"
+              title="Put one of its scenes into the cut you have open on Cut (an episode's), after the scene you pick"
+            >
+              Add to a cut →
+            </a>
+          ) : null}
           <a
             className="ui-text-link type-caption"
             href={short.scriptPath({ write: 'next' })}
