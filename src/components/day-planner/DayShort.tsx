@@ -49,7 +49,7 @@ export function useDayShort(input: {
   const [error, setError] = useState<string | null>(null);
   /** Make the short's clips: none (a talking animatic), the moments with a line, or all. */
   const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('none');
-  /** The short was changed on Scene and the Day since: which to go on with (render or not). */
+  /** The short and the board both changed the same moments since: which to go on with. */
   const [choice, setChoice] = useState<{ note: string; render: boolean } | null>(null);
   /** The run Make the short just started here (ShortRun mounts on it). */
   const [startedHere, setStartedHere] = useState<string | null>(null);
@@ -211,7 +211,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           <span className="font-medium">Its short: “{sync.scriptName}”</span>
           <span className="text-[var(--text-muted)]">
             {sync.scenesOwn
-              ? ' — changed on Scene, so the board’s changes stay here.'
+              ? ' — it and the board both changed the same moments, so the board’s changes there stay here.'
               : ' — the board and its Scenes stay in step.'}
           </span>
         </p>

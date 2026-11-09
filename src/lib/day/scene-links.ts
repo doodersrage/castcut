@@ -16,7 +16,7 @@ import {
   upsertScene,
   type SavedScene,
 } from './scenes';
-import { dayAsShort, dayShortFingerprint } from './day-as-short';
+import { dayAsShort, dayShortFingerprint, shortEditClashes } from './day-as-short';
 import { loadDayBoard } from './day-board-client';
 import { autopilotRun, type EpisodeAutopilot } from './episode-autopilot';
 import { normalizeSceneRun, runFromScript } from './scene-run';
@@ -167,16 +167,32 @@ export function saveDayAsShort(input: {
   let scenes = normalizeSavedScenes(saved);
   let scriptId: string;
   const editedOnScene = linked ? linked.updatedAt > (input.link?.syncedAt ?? 0) : false;
-  if (linked && editedOnScene && fingerprint !== input.link?.fingerprint && !input.asIs) {
-    // Both changed: nothing is written until it's chosen — as it is, or a new copy.
+  const boardChanged = fingerprint !== input.link?.fingerprint;
+  // Both changed (Step 5b-ii, 2026-11-09): the board's edits go in beside the script's — only
+  // what its cards changed, into their scenes — unless both changed the same thing of a moment
+  // (its place or time, its beat, its line): then nothing is written until it's chosen.
+  const clashes =
+    linked && editedOnScene && boardChanged
+      ? shortEditClashes({
+          day: input.day,
+          script: linked,
+          scenes: scenes.filter(scene => scene.fromScript?.scriptId === linked.id),
+          castId,
+          leadName: input.leadName,
+        })
+      : [];
+  if (linked && clashes.length && !input.asIs) {
+    const named = clashes.length > 3 ? `${clashes.slice(0, 3).join(', ')}…` : clashes.join(', ');
     return {
-      choose: `“${linked.name}” was changed on Scene since it was made, so the Day's changes since aren't in it.`,
+      choose: `“${linked.name}” and this board both changed ${named} since they last matched, so the board's changes there aren't in it.`,
     };
   }
-  if (linked && (editedOnScene || fingerprint === input.link?.fingerprint)) {
-    // As it is: nothing new on the Day, or it is Scene's to change now.
+  let wrote = false;
+  if (linked && (!boardChanged || (editedOnScene && input.asIs))) {
+    // As it is: nothing new on the board, or the script kept as it is (chosen).
     scriptId = linked.id;
   } else {
+    wrote = true;
     if (!linked) {
       const dropped = scriptDroppedByAdding(scripts.scripts, castId);
       if (dropped) {
@@ -227,8 +243,8 @@ export function saveDayAsShort(input: {
       castId,
       scriptId,
       // A short left as it is keeps the fingerprint it was made from (it is still behind the Day).
-      fingerprint: editedOnScene ? (input.link?.fingerprint ?? '') : fingerprint,
-      syncedAt: editedOnScene ? (input.link?.syncedAt ?? 0) : script.updatedAt,
+      fingerprint: editedOnScene && !wrote ? (input.link?.fingerprint ?? '') : fingerprint,
+      syncedAt: editedOnScene && !wrote ? (input.link?.syncedAt ?? 0) : script.updatedAt,
     },
   };
 }

@@ -13,6 +13,7 @@ import {
   dayStillsFromShort,
   dayBoardFromShort,
   slimDayBoard,
+  shortEditClashes,
 } from './day-as-short';
 import { createScene, sceneSlotAt, type SavedScene } from './scenes';
 import { draftShots } from './script-shots';
@@ -476,5 +477,76 @@ describe('a board edit on a moment that is a whole scene (Step 5b-ii)', () => {
       first!.elements.filter(element => element.kind === 'dialogue').map(element => element.text),
       ['Not yet.', 'Make it two.']
     );
+  });
+});
+
+describe('the board writes into a short changed on Script (5b-ii, no freeze)', () => {
+  const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+  // On Script: a scene of its own added after the beach, with a shot and its Scene; the night's
+  // action rewritten.
+  const ownScene = '\nINT. CAR - DAY\n\nShe drives home, radio on.\n';
+  const source = short.script.source
+    .replace('INT. BEDROOM - NIGHT', `${ownScene.trim()}\n\nINT. BEDROOM - NIGHT`)
+    .replace('reads in bed', 'falls asleep over her book');
+  const car = parseScript(source).scenes.find(scene => scene.heading === 'INT. CAR - DAY')!;
+  const carShot = { id: `${car.id}~1`, sceneId: car.id, purpose: 'establishing' as const, framing: 'full' as const, who: [], seconds: 3, madeSceneId: 'car-scene' };
+  const carScene = createScene({ castId: 'mara', name: 'Car', id: 'car-scene', fromScript: { scriptId: short.script.id, sceneId: car.id, shotId: carShot.id }, now: 1500 });
+  const script = { ...short.script, source, castMap: { MARA: 'mara' }, shots: [...short.shots, carShot], updatedAt: 2000 };
+  const scenes = [...short.scenes, carScene];
+
+  it('keeps a scene written on Script, its shot, and an action rewritten there', () => {
+    const edited = {
+      ...day,
+      slots: day.slots!.map(slot => (slot.id === 'morning' ? { ...slot, line: 'Coffee. Now.' } : slot)),
+    } as DayToolCache;
+    const again = dayAsShort({ day: edited, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script, scenes } })!;
+    assert.ok(again);
+    const parsed = parseScript(again.script.source);
+    assert.deepEqual(parsed.scenes.map(scene => scene.heading), [
+      'INT. KITCHEN - MORNING',
+      'EXT. BEACH - DAY',
+      'INT. CAR - DAY',
+      'INT. BEDROOM - NIGHT',
+    ]);
+    const night = parsed.scenes.at(-1)!;
+    assert.deepEqual(night.elements.filter(element => element.kind === 'action').map(element => element.text), ['falls asleep over her book']);
+    assert.ok(again.shots.some(shot => shot.id === carShot.id && shot.madeSceneId === 'car-scene'));
+    // The shots are in the script's order.
+    assert.deepEqual([...new Set(again.shots.map(shot => shot.sceneId))], parsed.scenes.map(scene => scene.id));
+    assert.equal(parsed.scenes[0]!.elements.find(element => element.kind === 'dialogue')!.text, 'Coffee. Now.');
+  });
+
+  it('writes a new moment after the one before it on the board', () => {
+    const added = {
+      ...day,
+      slots: day.slots!.map(slot => (slot.id === 'evening' ? { ...slot, location: 'rooftop', sceneHints: 'watches the sunset' } : slot)),
+    } as DayToolCache;
+    const again = dayAsShort({ day: added, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script, scenes } })!;
+    assert.deepEqual(parseScript(again.script.source).scenes.map(scene => scene.heading), [
+      'INT. KITCHEN - MORNING',
+      'EXT. BEACH - DAY',
+      'EXT. ROOFTOP - EVENING',
+      'INT. CAR - DAY',
+      'INT. BEDROOM - NIGHT',
+    ]);
+  });
+
+  it('asks only when the board and the script changed the same thing of a moment', () => {
+    const clashesFor = (slots: DayToolCache['slots']) =>
+      shortEditClashes({ day: { ...day, slots } as DayToolCache, script, scenes, castId: 'mara', leadName: 'Mara' });
+    // The night's beat changed on both sides: asked.
+    assert.deepEqual(
+      clashesFor(day.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'turns off the lamp' } : slot))),
+      ['Night']
+    );
+    // The board's beat changed to what the script now says: no clash.
+    assert.deepEqual(
+      clashesFor(day.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'falls asleep over her book' } : slot))),
+      []
+    );
+    // The night's line on the board, its action on Script: different things — no clash.
+    assert.deepEqual(clashesFor(day.slots!.map(slot => (slot.id === 'night' ? { ...slot, line: 'Goodnight.' } : slot))), []);
+    // Nothing changed on the board.
+    assert.deepEqual(clashesFor(day.slots), []);
   });
 });

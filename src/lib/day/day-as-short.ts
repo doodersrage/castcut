@@ -63,25 +63,23 @@ function momentsOf(day: Pick<DayToolCache, 'slots' | 'dayLength'>): DaySlot[] {
   );
 }
 
+/** A moment's scene as the board writes it: heading, beat, the lead's line. */
+function momentBlock(slot: DaySlot, leadName: string): string {
+  const lines = [dayMomentHeading(slot), ''];
+  const beat = slot.sceneHints?.trim().replace(/\s+/g, ' ');
+  lines.push(beat ? beat : `${leadName.trim() || 'She'} is here.`, '');
+  const said = slot.line?.trim().replace(/\s+/g, ' ');
+  if (said) lines.push(speakerKey(leadName), said, '');
+  return lines.join('\n');
+}
+
 /** The Fountain for a Day's moments. */
 export function dayShortSource(input: {
   day: Pick<DayToolCache, 'slots' | 'dayLength'>;
   leadName: string;
   title: string;
-  /** A moment that is a whole scene: its own text (patchedMomentScene), not one written here. */
-  blockFor?: (slot: DaySlot) => string | null;
 }): string {
-  const lead = speakerKey(input.leadName);
-  const blocks = momentsOf(input.day).map(slot => {
-    const own = input.blockFor?.(slot);
-    if (own) return `${own.trimEnd()}\n`;
-    const lines = [dayMomentHeading(slot), ''];
-    const beat = slot.sceneHints?.trim().replace(/\s+/g, ' ');
-    lines.push(beat ? beat : `${input.leadName.trim() || 'She'} is here.`, '');
-    const said = slot.line?.trim().replace(/\s+/g, ' ');
-    if (said) lines.push(lead, said, '');
-    return lines.join('\n');
-  });
+  const blocks = momentsOf(input.day).map(slot => momentBlock(slot, input.leadName));
   return [`Title: ${input.title.trim() || 'A short'}`, '', ...blocks].join('\n').trimEnd() + '\n';
 }
 
@@ -140,9 +138,14 @@ export function dayAsShort(input: {
     `${input.leadName.trim() || 'Her'}’s day`;
   const prior0 = input.existing?.script.castId === castId ? input.existing : undefined;
   const leadSpeaker0 = speakerKey(input.leadName);
-  // Moments that are whole scenes (another voice, more shots — Step 5b-ii): the board writes only
-  // what its card owns (heading, beat, the lead's line) into their own text; the rest is kept.
-  const sceneMoments = new Map<DaySlotId, { moment: ShortMoment; scene: ScriptScene }>();
+  // Every moment the short has (Step 5b-ii): the board writes only what its card owns (heading,
+  // beat, the lead's line) into the scene's own text, the rest kept as written on Script. One
+  // that is a whole scene (another voice, more shots) has its shots planned again too.
+  const priorMoments = new Map<
+    DaySlotId,
+    { moment: ShortMoment; scene: ScriptScene; whole: boolean }
+  >();
+  const parsedPrior = prior0 ? parseScript(prior0.script.source) : undefined;
   const priorLines = prior0 ? prior0.script.source.split('\n') : [];
   const leads = [
     ...new Set([
@@ -152,42 +155,92 @@ export function dayAsShort(input: {
         .map(([speaker]) => speaker.toUpperCase()),
     ]),
   ];
-  if (prior0) {
-    const parsedPrior = parseScript(prior0.script.source);
+  if (prior0 && parsedPrior) {
     for (const moment of shortMomentsOf(prior0.script, prior0.scenes)) {
       const scene = parsedPrior.scenes.find(entry => entry.id === moment.sceneId);
-      if (moment.daySlot && scene && shortMomentHasMore(moment, leads))
-        sceneMoments.set(moment.daySlot, { moment, scene });
+      if (moment.daySlot && scene && !priorMoments.has(moment.daySlot))
+        priorMoments.set(moment.daySlot, {
+          moment,
+          scene,
+          whole: shortMomentHasMore(moment, leads),
+        });
     }
   }
+  const sceneMoments = new Map(
+    [...priorMoments].filter(([, entry]) => entry.whole).map(([id, entry]) => [id, entry])
+  );
   // The card as it last went into the short (its Scene's slot): only what changed since is
   // written — a beat rewritten on Script isn't put back by a card that never touched it.
   const syncedOf = (slotId: DaySlotId) =>
     prior0?.scenes.find(
       entry => entry.fromScript?.scriptId === prior0.script.id && entry.fromDaySlot === slotId
     )?.slot;
-  const source = dayShortSource({
-    day: input.day,
-    leadName: input.leadName,
-    title,
-    blockFor: slot => {
-      const own = sceneMoments.get(slot.id);
-      if (!own) return null;
-      const synced = syncedOf(slot.id);
-      const same = (a: string | undefined, b: string | undefined) =>
-        (a ?? '').replace(/\s+/g, ' ').trim() === (b ?? '').replace(/\s+/g, ' ').trim();
-      const headingNow = dayMomentHeading(slot);
-      const lineMoved = !synced || !same(synced.line, slot.line);
-      const lines = patchedMomentScene(priorLines, own.scene, {
-        heading: synced && headingNow === dayMomentHeading(synced) ? own.scene.heading : headingNow,
-        ...(!synced || !same(synced.sceneHints, slot.sceneHints) ? { beat: slot.sceneHints } : {}),
-        ...(lineMoved ? { line: slot.line, lineBefore: synced?.line } : {}),
-        leadSpeakers: leads,
-        leadCue: leadSpeaker0,
-      });
-      return lines ? lines.join('\n') : null;
-    },
+  const patched = (slot: DaySlot): string | null => {
+    const own = priorMoments.get(slot.id);
+    if (!own) return null;
+    const synced = syncedOf(slot.id);
+    const same = (a: string | undefined, b: string | undefined) =>
+      (a ?? '').replace(/\s+/g, ' ').trim() === (b ?? '').replace(/\s+/g, ' ').trim();
+    const headingNow = dayMomentHeading(slot);
+    const lineMoved = !synced || !same(synced.line, slot.line);
+    const lines = patchedMomentScene(priorLines, own.scene, {
+      heading: synced && headingNow === dayMomentHeading(synced) ? own.scene.heading : headingNow,
+      ...(!synced || !same(synced.sceneHints, slot.sceneHints) ? { beat: slot.sceneHints } : {}),
+      ...(lineMoved ? { line: slot.line, lineBefore: synced?.line } : {}),
+      leadSpeakers: leads,
+      leadCue: leadSpeaker0,
+    });
+    return lines ? `${lines.join('\n').trimEnd()}\n` : null;
+  };
+  // The scenes in the short's order: its own, each moment's where it was, a scene written on
+  // Script (no card) kept where it is; a new moment after the one before it on the board.
+  type Entry = { slot: DaySlot } | { kept: ScriptScene };
+  const entries: Entry[] = [];
+  const slotOfScene = new Map([...priorMoments].map(([id, entry]) => [entry.scene.id, id]));
+  for (const scene of parsedPrior?.scenes ?? []) {
+    const slotId = slotOfScene.get(scene.id);
+    if (!slotId) entries.push({ kept: scene });
+    else {
+      const slot = moments.find(entry => entry.id === slotId);
+      // A moment emptied on the board: its scene goes, as before (its Scenes stay).
+      if (slot) entries.push({ slot });
+    }
+  }
+  moments.forEach((slot, index) => {
+    if (entries.some(entry => 'slot' in entry && entry.slot.id === slot.id)) return;
+    const previous = moments
+      .slice(0, index)
+      .reverse()
+      .map(before => entries.findIndex(entry => 'slot' in entry && entry.slot.id === before.id))
+      .find(at => at >= 0);
+    const firstMoment = entries.findIndex(entry => 'slot' in entry);
+    const at =
+      previous !== undefined ? previous + 1 : firstMoment >= 0 ? firstMoment : entries.length;
+    entries.splice(at, 0, { slot });
   });
+  const firstPrior = parsedPrior?.scenes[0];
+  const titlePage =
+    prior0 && firstPrior
+      ? priorLines
+          .slice(0, firstPrior.from - 1)
+          .join('\n')
+          .trimEnd()
+      : `Title: ${title.trim() || 'A short'}`;
+  const source =
+    [
+      titlePage,
+      '',
+      ...entries.map(entry =>
+        'slot' in entry
+          ? (patched(entry.slot) ?? momentBlock(entry.slot, input.leadName))
+          : `${priorLines
+              .slice(entry.kept.from - 1, entry.kept.to)
+              .join('\n')
+              .trimEnd()}\n`
+      ),
+    ]
+      .join('\n')
+      .trimEnd() + '\n';
   // The Day's mood (Sport, Vacation, a theme…) goes with it: Scenes made later wear it too.
   const mood = typeof input.day.dayMood === 'string' ? input.day.dayMood : undefined;
   const fresh = createScript({ castId, source, name: title, now, mood });
@@ -202,8 +255,11 @@ export function dayAsShort(input: {
       }
     : fresh;
   const parsed = parseScript(source);
-  // One scene per moment, in order (dayShortSource writes one heading each).
-  if (parsed.scenes.length !== moments.length) return null;
+  // One scene per entry, in order (each block holds one heading).
+  if (parsed.scenes.length !== entries.length) return null;
+  const sceneOfSlot = new Map(
+    entries.flatMap((entry, at) => ('slot' in entry ? [[entry.slot.id, parsed.scenes[at]!]] : []))
+  );
   const leadSpeaker = speakerKey(input.leadName);
   const shots: PlannedShot[] = [];
   const scenes: SavedScene[] = [];
@@ -219,7 +275,7 @@ export function dayAsShort(input: {
       .map(entry => entry.id)
   );
   moments.forEach((slot, index) => {
-    const sceneId = parsed.scenes[index]!.id;
+    const sceneId = sceneOfSlot.get(slot.id)!.id;
     const before = prior?.scenes.find(
       entry => entry.fromScript?.scriptId === script.id && entry.fromDaySlot === slot.id
     );
@@ -229,7 +285,7 @@ export function dayAsShort(input: {
     const planned = own
       ? replannedMomentShots(
           own.moment.shots.map(entry => entry.shot),
-          parsed.scenes[index]!,
+          sceneOfSlot.get(slot.id)!,
           lineBefore !== slot.line
             ? { speaker: leadSpeaker, from: lineBefore, to: slot.line }
             : undefined
@@ -326,6 +382,26 @@ export function dayAsShort(input: {
     });
   });
   if (scenes.length !== moments.length) return null;
+  // A scene written on Script keeps its shots and Scenes — on its id now (headings are its id,
+  // so a moment's new heading can renumber a twin's).
+  entries.forEach((entry, at) => {
+    if (!('kept' in entry) || !prior) return;
+    const was = entry.kept.id;
+    const now = parsed.scenes[at]!.id;
+    shots.push(
+      ...(prior.script.shots ?? [])
+        .filter(shot => shot.sceneId === was)
+        .map(shot => (was === now ? shot : { ...shot, sceneId: now }))
+    );
+    if (was === now) return;
+    for (const scene of prior.scenes) {
+      if (scene.fromScript?.scriptId !== script.id || scene.fromScript.sceneId !== was) continue;
+      alongside.push({ ...scene, fromScript: { ...scene.fromScript, sceneId: now } });
+    }
+  });
+  // In the script's order (Cut and the run read shots in order).
+  const order = new Map(parsed.scenes.map((scene, at) => [scene.id, at]));
+  shots.sort((a, b) => (order.get(a.sceneId) ?? 0) - (order.get(b.sceneId) ?? 0));
   return { script, shots, scenes: [...scenes, ...alongside], leadSpeaker };
 }
 
@@ -533,4 +609,64 @@ export function slimDayBoard<
     ...next,
     shortLink: { ...link, fingerprint: dayShortFingerprint(next as DayToolCache) },
   };
+}
+
+/**
+ * The moments where the board and the script both changed the same thing since the short last
+ * took the board (Step 5b-ii, 2026-11-09): the heading (place, time), the beat or the lead's
+ * line — each to something else. Only then is it asked which goes on; any other mix of edits
+ * goes in (the card's into the scene, the script's kept). Their labels; empty: no clash. Pure.
+ */
+export function shortEditClashes(input: {
+  day: Pick<DayToolCache, 'slots' | 'dayLength'>;
+  script: Pick<SavedScript, 'id' | 'source' | 'shots' | 'castMap'>;
+  scenes: readonly SavedScene[];
+  castId: string;
+  leadName: string;
+}): string[] {
+  const flat = (text: string | undefined) => (text ?? '').replace(/\s+/g, ' ').trim();
+  const lead = speakerKey(input.leadName);
+  const leads = [
+    lead,
+    ...Object.entries(input.script.castMap ?? {})
+      .filter(([, id]) => id === input.castId)
+      .map(([speaker]) => speaker.toUpperCase()),
+  ];
+  const parsed = parseScript(input.script.source);
+  const clashes: string[] = [];
+  const bySlot = new Map(
+    shortMomentsOf(input.script, input.scenes)
+      .filter(moment => moment.daySlot)
+      .map(moment => [moment.daySlot!, moment])
+  );
+  for (const slot of momentsOf(input.day)) {
+    const moment = bySlot.get(slot.id);
+    const scene = moment ? parsed.scenes.find(entry => entry.id === moment.sceneId) : undefined;
+    const synced = input.scenes.find(
+      entry => entry.fromScript?.scriptId === input.script.id && entry.fromDaySlot === slot.id
+    )?.slot;
+    if (!scene || !synced) continue;
+    const both = (card: string, was: string, written: string) =>
+      card !== was && written !== was && card !== written;
+    // The beat the board writes for an empty one ("She is here.") is no edit of the script's.
+    const placeholder = flat(`${input.leadName.trim() || 'She'} is here.`);
+    const action = flat(scene.elements.find(element => element.kind === 'action')?.text);
+    const leadLine = flat(
+      scene.elements.find(
+        element =>
+          element.kind === 'dialogue' && leads.includes((element.speaker ?? '').toUpperCase())
+      )?.text
+    );
+    if (
+      both(dayMomentHeading(slot), dayMomentHeading(synced), scene.heading) ||
+      both(
+        flat(slot.sceneHints),
+        flat(synced.sceneHints),
+        !flat(synced.sceneHints) && action === placeholder ? '' : action
+      ) ||
+      both(flat(slot.line), flat(synced.line), leadLine)
+    )
+      clashes.push(slot.label?.trim() || slot.id);
+  }
+  return clashes;
 }
