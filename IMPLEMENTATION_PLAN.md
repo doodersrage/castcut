@@ -3799,6 +3799,18 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
 - **5f — one record**: a linked Short stops reading `tools.day.slots/stills`; it writes a last
   copy (the moments as one-shot slots, as today) for one more release — the rollback — then
   stops. Every reader moved to `loadDayBoard` in 2b-i reads 5a instead.
+  - **Part 1 (13224652):** the cards in the script's order (user's choice) — `slotOrder`
+    (optional; old releases show time-of-day order), written by the board's sync from
+    `shortSlotOrder`; a card's id is only its key.
+  - **Part 2:** a scene added on Script gets its card (`short-cards.ts`,
+    `shortCardsForScriptScenes`, run in the board's pull when it has no edit waiting): an empty
+    card (no place, beat, line or still, and no Scene of the short tied to it), else the board
+    grows by one (to 40). Tied through one Scene (`fromDaySlot`): her line's shot's, else the
+    first shot's, else a loose one; with none, a Scene made from the card on her line's planned
+    shot (else the first free one, else loose). The card is what that Scene holds, so nothing
+    goes back into the script. Not done: a scene deleted on Script leaves its card, and the
+    board writes it back (as before); past 40 a scene gets no card (not said).
+  - **Part 3 (next):** stop reading the board copy for linked Shorts; write it one more release.
 
 **Risks.** Re-planning a scene's shots after an edit must never drop a take (5b's matching is
 the riskiest piece; tested on real shorts). Render time grows ~6×: the estimate is shown before

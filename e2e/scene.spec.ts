@@ -4638,3 +4638,88 @@ test('a Short’s cards follow its script’s order', async ({ page }) => {
     .poll(async () => cards.evaluateAll(list => list.map(card => card.getAttribute('data-testid'))), { timeout: 30_000 })
     .toEqual(['day-progress-edit-night', 'day-progress-edit-morning']);
 });
+
+test('a scene added on Script gets its card on the Short', async ({ page }) => {
+  const moment = (id: string, slotId: string, sceneId: string, location: string, beat: string, n: number) => ({
+    id,
+    castId: CAST,
+    name: location,
+    slot: { id: slotId, label: slotId, location, sceneHints: beat },
+    dayMood: 'everyday',
+    takes: [],
+    fromDaySlot: slotId,
+    fromScript: { scriptId: 'short-grown', sceneId, shotId: `${sceneId}-moment` },
+    createdAt: n,
+    updatedAt: n,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+        ],
+        dayLength: 2,
+        shortLink: { castId: CAST, scriptId: 'short-grown', fingerprint: '', syncedAt: 1 },
+        shortLinkedFor: [CAST],
+      },
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          moment('grown-morning', 'morning', 'int-small-kitchen-morning', 'small kitchen', 'making coffee', 1),
+          moment('grown-night', 'night', 'int-bedroom-night', 'bedroom', 'reading in bed', 2),
+        ],
+        scripts: [
+          {
+            id: 'short-grown',
+            castId: CAST,
+            name: 'Grown',
+            // The café written on Script, between the two moments the board made.
+            source:
+              'INT. SMALL KITCHEN - MORNING\n\nmaking coffee\n\nINT. CAFE - AFTERNOON\n\nwaits at the window table\n\nINT. BEDROOM - NIGHT\n\nreading in bed\n',
+            castMap: { 'SCENE CAST': CAST },
+            shots: [
+              { id: 'int-small-kitchen-morning-moment', sceneId: 'int-small-kitchen-morning', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'grown-morning' },
+              { id: 'int-bedroom-night-moment', sceneId: 'int-bedroom-night', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'grown-night' },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  }, { once: true });
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-short-grown')).toBeVisible({ timeout: 60_000 });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const cards = page.locator('[data-testid^="day-progress-edit-"]');
+  // The board grows by one: the café's card, in the script's order.
+  await expect
+    .poll(async () => cards.evaluateAll(list => list.map(card => card.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['day-progress-edit-morning', 'day-progress-edit-afternoon', 'day-progress-edit-night']);
+  await expect(page.getByText('waits at the window table').first()).toBeVisible();
+  // Read back after a reload: still three, and the script still has one café.
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect
+    .poll(async () => cards.evaluateAll(list => list.map(card => card.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['day-progress-edit-morning', 'day-progress-edit-afternoon', 'day-progress-edit-night']);
+  // The board wrote no second café into the short, and the café has one Scene, on its card.
+  const cafe = async () => {
+    const scene = JSON.parse((await storedSceneTool(page)) || '{}') as {
+      scripts?: Array<{ id: string; source: string }>;
+      scenes?: Array<{ fromDaySlot?: string; fromScript?: { scriptId: string; sceneId: string } }>;
+    };
+    const script = scene.scripts?.find(entry => entry.id === 'short-grown');
+    const scenes = (scene.scenes ?? []).filter(
+      entry => entry.fromScript?.scriptId === 'short-grown' && entry.fromScript.sceneId === 'int-cafe-afternoon'
+    );
+    return `${(script?.source.match(/INT\. CAFE/g) ?? []).length}|${scenes.map(entry => entry.fromDaySlot).join(',')}`;
+  };
+  await expect.poll(cafe, { timeout: 15_000 }).toBe('1|afternoon');
+});
