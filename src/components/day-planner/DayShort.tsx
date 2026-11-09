@@ -9,6 +9,7 @@ import type { EpisodeAutopilot } from '@/lib/day/episode-autopilot';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
 import { loadToolSettings } from '@/lib/settings/cache';
 import { normalizeSceneRun, scriptRunProgress } from '@/lib/day/scene-run';
+import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import type { DaySlot, DaySlotStill } from '@/lib/day/planner';
@@ -48,7 +49,8 @@ export function useDayShort(input: {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   /** Make the short's clips: none (a talking animatic), the moments with a line, or all. */
-  const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('none');
+  // Every shot animated, in real time as near as it gets (Step 5d, the user: by default).
+  const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('all');
   /** The short and the board both changed the same moments since: which to go on with. */
   const [choice, setChoice] = useState<{ note: string; render: boolean } | null>(null);
   /** The run Make the short just started here (ShortRun mounts on it). */
@@ -60,6 +62,12 @@ export function useDayShort(input: {
   // The Day's short, for this Cast — and its script here to open (Its script, Cut, the next one).
   const ours = Boolean(castId && link?.castId === castId);
   const linked = ours && Boolean(sync.scriptName);
+  // How many shots the short has (a moment written as a scene has several): what a render takes.
+  const shotCount =
+    linked && link
+      ? (loadSceneScriptStore().scripts.find(entry => entry.id === link.scriptId)?.shots?.length ??
+        0)
+      : 0;
   // The short's run (Make the short), as Scene left it: how far it got.
   const progress =
     ours && link
@@ -126,6 +134,7 @@ export function useDayShort(input: {
     progress,
     animate,
     setAnimate,
+    shotCount,
     choice,
     error,
     go,
@@ -153,10 +162,16 @@ export function DayShortBarActions({ short, busy }: { short: DayShortView; busy?
         variant="secondary"
         disabled={busy}
         data-testid="day-make-short"
-        title="Render these moments as a short, here: each one's best take kept by its checks, one redo, then the cut"
+        title="Render these moments as a short, here: every shot of each, its best take kept by its checks, one redo, then the cut"
         onClick={() => short.go(true)}
       >
         Render the short
+        {short.shotCount > 1 ? (
+          <span className="text-[var(--text-muted)]" data-testid="day-make-short-shots">
+            {' '}
+            · {short.shotCount} shots
+          </span>
+        ) : null}
       </Button>
       <select
         aria-label="What Make the short animates"
@@ -169,7 +184,7 @@ export function DayShortBarActions({ short, busy }: { short: DayShortView; busy?
       >
         <option value="none">stills</option>
         <option value="lines">animate the lines</option>
-        <option value="all">animate every moment</option>
+        <option value="all">animate every shot</option>
       </select>
     </span>
   );

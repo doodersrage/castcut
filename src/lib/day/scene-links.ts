@@ -17,6 +17,9 @@ import {
   type SavedScene,
 } from './scenes';
 import { dayAsShort, dayShortFingerprint, shortEditClashes } from './day-as-short';
+import { shortShotScenes } from './short-render';
+import { loadCharacters } from '../character/os';
+import { loadLocations } from '../location/records';
 import { loadDayBoard } from './day-board-client';
 import { autopilotRun, type EpisodeAutopilot } from './episode-autopilot';
 import { normalizeSceneRun, runFromScript } from './scene-run';
@@ -229,8 +232,29 @@ export function saveDayAsShort(input: {
     );
     scriptId = short.script.id;
   }
-  const script = scripts.scripts?.find(entry => entry.id === scriptId);
+  let script = scripts.scripts?.find(entry => entry.id === scriptId);
   if (!script) return { error: 'The short could not be kept — try again.' };
+  if (input.render) {
+    // Every shot of every moment (Step 5d): a moment written as a scene has shots with no Scene
+    // yet — made now, dressed as the board is, so the run renders them all.
+    const made = shortShotScenes({
+      script,
+      scenes,
+      day: input.day,
+      castId,
+      cast: loadCharacters().map(member => ({
+        id: member.id,
+        name: member.name,
+        ...(member.traits?.sex ? { sex: member.traits.sex } : {}),
+      })),
+      locations: loadLocations(),
+    });
+    if (made.created.length) {
+      script = made.script;
+      scenes = normalizeSavedScenes([...scenes, ...made.created]);
+      applySceneScriptsPatch(addScriptPatch(scriptsCacheOf(loadSceneScriptStore()), script));
+    }
+  }
   // The moments with no kept take are the run (a kept one is left out, as Prepare a run does).
   const run = input.render
     ? autopilotRun(runFromScript({ script, scenes }), input.render)

@@ -4078,6 +4078,7 @@ test('a Short with moments gets its short when opened, once; its edits keep that
 // Write it with dialogue (Step 5c, 2026-11-09): each moment's scene written with its lines — her
 // partner answers where the beat has him — and the card shows the scene: lines by speaker.
 test('Write it with dialogue writes each moment’s scene; the card shows its lines', async ({ page }) => {
+  await stubComfyQueue(page);
   await page.route('**/api/day-premise', route =>
     route.fulfill({
       json: {
@@ -4142,6 +4143,30 @@ test('Write it with dialogue writes each moment’s scene; the card shows its li
   const scene = page.getByTestId('short-moment-scene-morning').first();
   await expect(scene).toContainText('THEO', { timeout: 30_000 });
   await expect(scene).toContainText('If you ask nicely.');
+
+  // Render the short (Step 5d): every shot of every moment, animated — the written scenes' new
+  // shots made into Scenes first.
+  await expect(page.getByTestId('day-make-short-shots').first()).toContainText('shots');
+  await expect(page.getByTestId('day-make-short-animate').first()).toHaveValue('all');
+  await expect(async () => {
+    await page.getByTestId('day-make-short').first().click({ timeout: 10_000 });
+    await expect(page.getByTestId('day-short-run-here').first()).toBeVisible({ timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        const shots = (tool.scripts?.[0]?.shots ?? []) as Array<{ madeSceneId?: string }>;
+        const items = (tool.run?.items ?? []) as Array<{ include: boolean }>;
+        return [
+          shots.length > 4 && shots.every(shot => shot.madeSceneId),
+          items.length === shots.length,
+          tool.run?.auto?.animate === true && !tool.run?.auto?.animateOnly,
+        ].join('|');
+      },
+      { timeout: 60_000 }
+    )
+    .toBe('true|true|true');
 });
 
 test('Next short makes a new short; the one before is left as it was', async ({ page }) => {
