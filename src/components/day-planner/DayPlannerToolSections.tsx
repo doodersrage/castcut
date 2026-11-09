@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useShortDialogue } from '@/components/day-planner/useShortDialogue';
 import ShortMomentScene, { useShortMoments } from '@/components/day-planner/ShortMomentScene';
 import { DayShortPanel, useDayShort } from '@/components/day-planner/DayShort';
 import DayTemplatesMenu from '@/components/day-planner/DayTemplatesMenu';
@@ -365,6 +366,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       stills.map(still => [still.slotId, still.promptId, still.status]),
     ])
   );
+  // Write it, with dialogue (Step 5c): each moment's scene written with its lines.
+  const shortDialogue = useShortDialogue({ character, updateDay: updateToolSettings });
   const slotTotal = slots.length || 4;
   const completedClipCount = useMemo(
     () =>
@@ -958,6 +961,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onLeaveEvent={leaveDayEvent}
             onSwitchToWholeDay={() => void suggestDayScenes()}
             castId={character?.id}
+            dialogue={shortDialogue}
           />
           {character?.id ? (
             // One script path (2026-11-06): a script is imported on Script, where every scene and line is

@@ -26,8 +26,19 @@ export default function DayIdeaRow({
   onLeaveEvent,
   onSwitchToWholeDay,
   castId,
+  dialogue,
   className = '',
 }: {
+  /**
+   * Write it with dialogue (Step 5c): after the beats, each moment's scene is written with its
+   * lines (useShortDialogue) — on unless switched off here.
+   */
+  dialogue?: {
+    write: (premise: string) => Promise<void>;
+    stop: () => void;
+    writing: { done: number; of: number } | null;
+    note: string | null;
+  };
   /** The Cast the Day is for: offers the idea as a short (a script on the Scene page). */
   castId?: string;
   dayMood: string | null | undefined;
@@ -48,6 +59,7 @@ export default function DayIdeaRow({
   const [premise, setPremise] = useState('');
   const [writing, setWriting] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [withDialogue, setWithDialogue] = useState(true);
   // A failed write is said as one, not in the same grey as the help line.
   const [noteFailed, setNoteFailed] = useState(false);
   // Intimate's short is written by the LLM only where the server allows adult content.
@@ -79,6 +91,8 @@ export default function DayIdeaRow({
             ? 'Every moment now follows the idea — check them below, then Render the short (or Quick stills).'
             : `${written} of ${slotCount} moments follow the idea; the rest kept their beat. Render the short (or Quick stills) renders them.`
         );
+        // Then each moment's scene, with its lines (the cards first: they're its outline).
+        if (dialogue && withDialogue) await dialogue.write(text);
       }
       // Written on the moment cards, below: show them (it looked as if nothing had happened).
       document
@@ -184,6 +198,21 @@ export default function DayIdeaRow({
             {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write it'}
           </Button>
         ) : null}
+        {writeDay && dialogue && !eventMode ? (
+          <label
+            className="type-caption inline-flex items-center gap-1"
+            title="Write each moment's scene with its lines — who is in it says them. Takes a minute or two."
+          >
+            <input
+              type="checkbox"
+              checked={withDialogue}
+              disabled={writing}
+              data-testid="day-idea-dialogue"
+              onChange={changeEvent => setWithDialogue(changeEvent.target.checked)}
+            />
+            With dialogue
+          </label>
+        ) : null}
         {castId &&
         !eventMode &&
         (shortOnly || dayShortMoodAvailable(dayMood, { adult: adultAllowed })) ? (
@@ -209,10 +238,38 @@ export default function DayIdeaRow({
           )
         ) : null}
       </div>
+      {dialogue?.writing ? (
+        <p
+          className="type-caption flex items-center gap-2"
+          role="status"
+          data-testid="day-idea-dialogue-progress"
+        >
+          Writing the dialogue — moment {dialogue.writing.done + 1} of {dialogue.writing.of}…
+          <Button
+            type="button"
+            size="sm"
+            variant="link"
+            onClick={dialogue.stop}
+            data-testid="day-idea-dialogue-stop"
+          >
+            Stop
+          </Button>
+        </p>
+      ) : dialogue?.note ? (
+        <p
+          className="type-caption text-[var(--text-muted)]"
+          role="status"
+          data-testid="day-idea-dialogue-note"
+        >
+          {dialogue.note}
+        </p>
+      ) : null}
       {castId && !eventMode ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-idea-hint">
           {writeDay
-            ? 'Write it: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script.'
+            ? dialogue
+              ? 'Write it: a beat and a place on each moment here, and (With dialogue) each moment’s scene with its lines. Write it as a script: any number of scenes, on Script.'
+              : 'Write it: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script.'
             : 'Write it as a script: scenes with lines, any length, on Scene — rendered and cut from there.'}
         </p>
       ) : null}

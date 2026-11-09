@@ -4075,6 +4075,75 @@ test('a Short with moments gets its short when opened, once; its edits keep that
 });
 
 // Next short (was Tomorrow): the next day is a short of its own, not written over this one.
+// Write it with dialogue (Step 5c, 2026-11-09): each moment's scene written with its lines — her
+// partner answers where the beat has him — and the card shows the scene: lines by speaker.
+test('Write it with dialogue writes each moment’s scene; the card shows its lines', async ({ page }) => {
+  await page.route('**/api/day-premise', route =>
+    route.fulfill({
+      json: {
+        beats: [
+          { slotId: 'morning', beat: 'standing at the counter pouring coffee with her partner', setting: 'small kitchen' },
+          { slotId: 'afternoon', beat: 'walking along the river path', setting: 'river path' },
+          { slotId: 'evening', beat: 'sitting on the balcony with a book', setting: 'balcony' },
+          { slotId: 'night', beat: 'lying in bed reading', setting: 'bedroom' },
+        ],
+      },
+    })
+  );
+  const asked: Array<{ heading: string; who: string[] }> = [];
+  await page.route('**/api/script-episode', async route => {
+    const body = route.request().postDataJSON() as {
+      step: string;
+      index: number;
+      outline: { scenes: Array<{ heading: string; who: string[] }> };
+    };
+    const scene = body.outline.scenes[body.index]!;
+    asked.push(scene);
+    const text = scene.who.length
+      ? `${scene.heading}\n\nShe pours two cups.\n\nTHEO\nIs one mine?\n\nSCENE CAST\nIf you ask nicely.\n`
+      : `${scene.heading}\n\nShe walks on.\n\nSCENE CAST\n(to herself)\nAlmost there.\n`;
+    await route.fulfill({ json: { text } });
+  });
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          allowCompanions: true,
+          slots: [{ id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-idea-dialogue').first()).toBeChecked();
+  await expect(async () => {
+    await input.fill('a slow Sunday at home');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    await expect(page.getByTestId('day-idea-note').first()).toContainText('Every moment', { timeout: 5000 });
+  }).toPass({ timeout: 60_000 });
+  // Every moment written; the kitchen with her partner, the rest alone.
+  await expect.poll(() => asked.length, { timeout: 60_000 }).toBeGreaterThanOrEqual(4);
+  expect(asked[0]!.who.length).toBe(1);
+  expect(asked.slice(1).every(scene => scene.who.length === 0)).toBe(true);
+  await expect(page.getByTestId('day-idea-dialogue-progress')).toHaveCount(0, { timeout: 30_000 });
+  await expect
+    .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').scripts?.[0]?.source ?? '', { timeout: 30_000 })
+    .toContain('Is one mine?');
+  // The card shows its scene: his line and hers.
+  const scene = page.getByTestId('short-moment-scene-morning').first();
+  await expect(scene).toContainText('THEO', { timeout: 30_000 });
+  await expect(scene).toContainText('If you ask nicely.');
+});
+
 test('Next short makes a new short; the one before is left as it was', async ({ page }) => {
   let calls = 0;
   await page.route('**/api/day-premise', route => {
