@@ -14,7 +14,8 @@ import {
   dayBoardFromShort,
   slimDayBoard,
 } from './day-as-short';
-import { sceneSlotAt } from './scenes';
+import { createScene, sceneSlotAt, type SavedScene } from './scenes';
+import { draftShots } from './script-shots';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -371,5 +372,109 @@ describe('a Short saved slim (step 4c part 2b)', () => {
     // No link, or no Scene of its short.
     assert.equal(slimDayBoard(evented, short.scenes), null);
     assert.equal(slimDayBoard(linked, []), null);
+  });
+});
+
+describe('a board edit on a moment that is a whole scene (Step 5b-ii)', () => {
+  const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+  // On Script, the morning grew: Theo answers, its shots planned, each made a Scene, one kept.
+  const enrichedSource = short.script.source.replace(
+    'MARA\nCoffee first.\n',
+    'MARA\nCoffee first.\n\nTHEO\n(yawning)\nMake it two.\n'
+  );
+  const morningScene = parseScript(enrichedSource).scenes[0]!;
+  const anchor = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+  const planned = draftShots(morningScene).map((shot, index) => ({
+    ...shot,
+    madeSceneId: shot.speaker === 'MARA' ? anchor.id : `extra-${index}`,
+  }));
+  const extras = planned
+    .filter(shot => shot.madeSceneId !== anchor.id)
+    .map(shot => ({
+      ...createScene({
+        castId: 'mara',
+        name: shot.purpose,
+        id: shot.madeSceneId,
+        fromScript: { scriptId: short.script.id, sceneId: morningScene.id, shotId: shot.id },
+        now: 2000,
+      }),
+      takes: [{ id: `take-${shot.id}`, imageUrl: `/${shot.id}.png`, at: 2000 }],
+      keptTakeId: `take-${shot.id}`,
+    })) as SavedScene[];
+  const script = {
+    ...short.script,
+    source: enrichedSource,
+    castMap: { MARA: 'mara' },
+    shots: [...planned, ...short.shots.filter(shot => shot.sceneId !== short.shots[0]!.sceneId)],
+  };
+  const scenes = [...short.scenes, ...extras];
+  // On the card: a new line, the beat tweaked, the morning moved to the afternoon's light.
+  const edited = {
+    ...day,
+    slots: day.slots!.map(slot =>
+      slot.id === 'morning'
+        ? { ...slot, sceneHints: 'pours coffee by the open window', line: 'Coffee, then the world.', timeOfDay: 'afternoon' }
+        : slot
+    ),
+  } as DayToolCache;
+  const again = dayAsShort({ day: edited, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script, scenes } })!;
+  const [morning] = parseScript(again.script.source).scenes;
+
+  it('keeps the other voice and its delivery, and takes the card’s heading, beat and line', () => {
+    assert.ok(again);
+    assert.equal(morning!.heading, 'INT. KITCHEN - DAY');
+    const said = morning!.elements.filter(element => element.kind === 'dialogue');
+    assert.deepEqual(said.map(element => [element.speaker, element.text]), [
+      ['MARA', 'Coffee, then the world.'],
+      ['THEO', 'Make it two.'],
+    ]);
+    assert.ok(morning!.elements.some(element => element.kind === 'parenthetical' && element.text === '(yawning)'));
+    assert.deepEqual(
+      morning!.elements.filter(element => element.kind === 'action').map(element => element.text),
+      ['pours coffee by the open window']
+    );
+  });
+
+  it('carries every Scene and kept take onto the scene’s new id and its re-planned shots', () => {
+    const shotsHere = again.shots.filter(shot => shot.sceneId === morning!.id);
+    assert.equal(shotsHere.length, planned.length);
+    assert.deepEqual(
+      shotsHere.map(shot => shot.madeSceneId).sort(),
+      planned.map(shot => shot.madeSceneId).sort()
+    );
+    for (const extra of extras) {
+      const back = again.scenes.find(scene => scene.id === extra.id)!;
+      assert.equal(back.fromScript?.sceneId, morning!.id, extra.id);
+      assert.equal(back.keptTakeId, extra.keptTakeId);
+      assert.ok(shotsHere.some(shot => shot.id === back.fromScript?.shotId && shot.madeSceneId === back.id));
+    }
+    const card = again.scenes.find(scene => scene.id === anchor.id)!;
+    assert.equal(card.slot.line, 'Coffee, then the world.');
+    assert.ok(shotsHere.some(shot => shot.id === card.fromScript?.shotId && shot.madeSceneId === card.id));
+    // The one-shot moments are as before.
+    assert.equal(again.shots.filter(shot => shot.sceneId !== morning!.id).length, 2);
+    assert.equal(new Set(again.scenes.map(scene => scene.id)).size, again.scenes.length);
+  });
+
+  it('writes only what the card changed: an action rewritten on Script stays', () => {
+    const rewritten = {
+      ...script,
+      source: enrichedSource.replace('pours coffee by the window', 'Mara stares at the kettle, still half asleep.'),
+    };
+    const lineOnly = {
+      ...day,
+      slots: day.slots!.map(slot => (slot.id === 'morning' ? { ...slot, line: 'Not yet.' } : slot)),
+    } as DayToolCache;
+    const out = dayAsShort({ day: lineOnly, castId: 'mara', leadName: 'Mara', now: 4000, existing: { script: rewritten, scenes } })!;
+    const [first] = parseScript(out.script.source).scenes;
+    assert.equal(first!.heading, 'INT. KITCHEN - MORNING');
+    assert.deepEqual(
+      first!.elements.filter(element => element.kind === 'action').map(element => element.text),
+      ['Mara stares at the kettle, still half asleep.']
+    );
+    assert.deepEqual(
+      first!.elements.filter(element => element.kind === 'dialogue').map(element => element.text),
+      ['Not yet.', 'Make it two.']
+    );
   });
 });

@@ -20,6 +20,10 @@ import { slotDayPart } from './parts';
 import { keptTakeOf, sceneFromDaySlot, takeAsStill, type SavedScene } from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
 import type { PlannedShot } from './script-shots';
+import type { ScriptScene } from '../script/parse';
+import type { DaySlotId } from './planner';
+import { shortMomentHasMore, shortMomentsOf, type ShortMoment } from './short-moments';
+import { patchedMomentScene, replannedMomentShots } from './short-scene-edit';
 
 const TIME_OF_PART: Record<string, string> = {
   morning: 'MORNING',
@@ -64,9 +68,13 @@ export function dayShortSource(input: {
   day: Pick<DayToolCache, 'slots' | 'dayLength'>;
   leadName: string;
   title: string;
+  /** A moment that is a whole scene: its own text (patchedMomentScene), not one written here. */
+  blockFor?: (slot: DaySlot) => string | null;
 }): string {
   const lead = speakerKey(input.leadName);
   const blocks = momentsOf(input.day).map(slot => {
+    const own = input.blockFor?.(slot);
+    if (own) return `${own.trimEnd()}\n`;
     const lines = [dayMomentHeading(slot), ''];
     const beat = slot.sceneHints?.trim().replace(/\s+/g, ' ');
     lines.push(beat ? beat : `${input.leadName.trim() || 'She'} is here.`, '');
@@ -130,7 +138,56 @@ export function dayAsShort(input: {
     input.title?.trim() ||
     (input.day.dayEvent?.text?.trim() ?? '') ||
     `${input.leadName.trim() || 'Her'}’s day`;
-  const source = dayShortSource({ day: input.day, leadName: input.leadName, title });
+  const prior0 = input.existing?.script.castId === castId ? input.existing : undefined;
+  const leadSpeaker0 = speakerKey(input.leadName);
+  // Moments that are whole scenes (another voice, more shots — Step 5b-ii): the board writes only
+  // what its card owns (heading, beat, the lead's line) into their own text; the rest is kept.
+  const sceneMoments = new Map<DaySlotId, { moment: ShortMoment; scene: ScriptScene }>();
+  const priorLines = prior0 ? prior0.script.source.split('\n') : [];
+  const leads = [
+    ...new Set([
+      leadSpeaker0,
+      ...Object.entries(prior0?.script.castMap ?? {})
+        .filter(([, id]) => id === castId)
+        .map(([speaker]) => speaker.toUpperCase()),
+    ]),
+  ];
+  if (prior0) {
+    const parsedPrior = parseScript(prior0.script.source);
+    for (const moment of shortMomentsOf(prior0.script, prior0.scenes)) {
+      const scene = parsedPrior.scenes.find(entry => entry.id === moment.sceneId);
+      if (moment.daySlot && scene && shortMomentHasMore(moment, leads))
+        sceneMoments.set(moment.daySlot, { moment, scene });
+    }
+  }
+  // The card as it last went into the short (its Scene's slot): only what changed since is
+  // written — a beat rewritten on Script isn't put back by a card that never touched it.
+  const syncedOf = (slotId: DaySlotId) =>
+    prior0?.scenes.find(
+      entry => entry.fromScript?.scriptId === prior0.script.id && entry.fromDaySlot === slotId
+    )?.slot;
+  const source = dayShortSource({
+    day: input.day,
+    leadName: input.leadName,
+    title,
+    blockFor: slot => {
+      const own = sceneMoments.get(slot.id);
+      if (!own) return null;
+      const synced = syncedOf(slot.id);
+      const same = (a: string | undefined, b: string | undefined) =>
+        (a ?? '').replace(/\s+/g, ' ').trim() === (b ?? '').replace(/\s+/g, ' ').trim();
+      const headingNow = dayMomentHeading(slot);
+      const lineMoved = !synced || !same(synced.line, slot.line);
+      const lines = patchedMomentScene(priorLines, own.scene, {
+        heading: synced && headingNow === dayMomentHeading(synced) ? own.scene.heading : headingNow,
+        ...(!synced || !same(synced.sceneHints, slot.sceneHints) ? { beat: slot.sceneHints } : {}),
+        ...(lineMoved ? { line: slot.line, lineBefore: synced?.line } : {}),
+        leadSpeakers: leads,
+        leadCue: leadSpeaker0,
+      });
+      return lines ? lines.join('\n') : null;
+    },
+  });
   // The Day's mood (Sport, Vacation, a theme…) goes with it: Scenes made later wear it too.
   const mood = typeof input.day.dayMood === 'string' ? input.day.dayMood : undefined;
   const fresh = createScript({ castId, source, name: title, now, mood });
@@ -150,6 +207,9 @@ export function dayAsShort(input: {
   const leadSpeaker = speakerKey(input.leadName);
   const shots: PlannedShot[] = [];
   const scenes: SavedScene[] = [];
+  // A scene moment's other Scenes (its other shots', its loose ones): moved onto the scene's new
+  // id and their shots — never dropped (Step 5b-ii).
+  const alongside: SavedScene[] = [];
   // Ids the short's Scenes have: a new moment's Scene takes none of them. (By position alone, a
   // moment written between two old ones got the id of the one after — two Scenes, one id, one
   // lost on save; live 2026-11-07, 10 Scenes for 12 moments.)
@@ -160,10 +220,23 @@ export function dayAsShort(input: {
   );
   moments.forEach((slot, index) => {
     const sceneId = parsed.scenes[index]!.id;
-    const shotId = `${sceneId}-moment`;
     const before = prior?.scenes.find(
       entry => entry.fromScript?.scriptId === script.id && entry.fromDaySlot === slot.id
     );
+    // A whole-scene moment: its shots planned again from its new text, each carrying its Scene.
+    const own = sceneMoments.get(slot.id);
+    const lineBefore = before?.slot.line;
+    const planned = own
+      ? replannedMomentShots(
+          own.moment.shots.map(entry => entry.shot),
+          parsed.scenes[index]!,
+          lineBefore !== slot.line
+            ? { speaker: leadSpeaker, from: lineBefore, to: slot.line }
+            : undefined
+        )
+      : undefined;
+    const shotId =
+      planned?.find(shot => before && shot.madeSceneId === before.id)?.id ?? `${sceneId}-moment`;
     const byPosition = `scene-${script.id}-${index + 1}`;
     const id = before?.id ?? (taken.has(byPosition) ? `scene-${script.id}-${slot.id}` : byPosition);
     taken.add(id);
@@ -212,6 +285,32 @@ export function dayAsShort(input: {
       const kept = scene.takes[scene.takes.length - 1]?.id;
       scenes.push({ ...scene, ...(kept ? { keptTakeId: kept } : {}), fromScript });
     }
+    if (own && planned) {
+      shots.push(...planned);
+      const anchor = scenes[scenes.length - 1]!;
+      // The card's own Scene lost its shot (its line went): it takes the first shot with no
+      // Scene yet; with none, it stays — loose, never deleted.
+      if (!planned.some(shot => shot.madeSceneId === anchor.id)) {
+        const free = planned.find(shot => !shot.madeSceneId);
+        if (free) {
+          free.madeSceneId = anchor.id;
+          anchor.fromScript = { ...fromScript, shotId: free.id };
+        }
+      }
+      const shotOf = new Map(planned.map(shot => [shot.madeSceneId, shot.id]));
+      for (const other of [...own.moment.shots.map(entry => entry.scene), ...own.moment.loose]) {
+        if (!other || other.id === anchor.id || !other.fromScript) continue;
+        alongside.push({
+          ...other,
+          fromScript: {
+            ...other.fromScript,
+            sceneId,
+            shotId: shotOf.get(other.id) ?? other.fromScript.shotId,
+          },
+        });
+      }
+      return;
+    }
     const said = slot.line?.trim();
     const framing: CameraShot = slot.poseCamera?.shot ?? (said ? 'waist' : 'knees');
     shots.push({
@@ -227,7 +326,7 @@ export function dayAsShort(input: {
     });
   });
   if (scenes.length !== moments.length) return null;
-  return { script, shots, scenes, leadSpeaker };
+  return { script, shots, scenes: [...scenes, ...alongside], leadSpeaker };
 }
 
 const momentWords = (value: string | undefined) =>
