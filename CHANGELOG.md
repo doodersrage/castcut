@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.13.0] - 2026-11-09
+
+- Plan Step 5: a Short's moment is a whole script scene; drop the slim copy (4c 2b-ii)
+- A Short's moments come from its Scenes, even after a Script edit (step 4c, part 2b-i)
+
 ## [v3.12.0] - 2026-11-09
 
 - Away from the board, a Short is read as its short has it (step 4c, part 2a)
