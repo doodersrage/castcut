@@ -3741,8 +3741,70 @@ Short's planner (which reads `slots` everywhere): rebuild the board from the sho
       outfit hand-off, Send to Day slot (and Scene's slot picker), Next Day / theme / new outfit,
       reopening an episode, parking on a Cast change (cast-change.ts, the board's own), and the
       Day → Story opening/seed and the Cast's episode cut. The full copy is still saved.
-    - **2b-ii (the release after 2b-i):** save through `slimDayBoard`. Still reading the copy raw,
+    - **2b-ii — dropped (2026-11-09):** superseded by Step 5 (a moment is a script scene: the
+      moments come from the script, so there is no board copy of them to slim). Was: save
+      through `slimDayBoard`. Still reading the copy raw,
       to check then: the queue's job index (`queue-jobs.ts`, slot labels), gallery references,
       reference health, features, and the board's own first render (filled by the pull effect a
       moment later — anything acting on mount sees the slim copy). Stills stay whole.
 - Never deleted by any step: a Short's saved board, its script, its Scenes and their takes.
+
+### Step 5 — a moment is a scene (user, 2026-11-09: "a moment is now just part of scene as a whole")
+
+**The ask.** A Short's moment is a whole script scene — several speakers, several lines, its own
+shots — rendered as close to real time as we can get it. From there the user can grow it into
+more scenes on Script, or append it to an existing cut's scenes in Cut.
+
+**Today.** A moment is one `DaySlot` → one script scene with one shot and one Scene
+(`dayAsShort`, `fromDaySlot`); only the lead's line is written (`replyLine`, third/fourth Cast
+ride on the Scene unwritten). The script road already does the rest: `draftShots` covers a
+scene (establishing, a shot per line with its speaker, reactions, action), each shot makes a
+Scene (`madeSceneId` / `fromScript`), the episode run renders and animates them (voices per
+speaker, `pairDuoLines`, longer clips), Cut plays one script's Scenes in order
+(`scenesScriptId`).
+
+**Decided (user, 2026-11-09):**
+- The board keeps its cards — a **scene card**: place and time, the beat, the lines by speaker,
+  a strip of its shots with their takes. A shot's details (pose, camera, outfit, light) open on
+  Scene.
+- **Render the short animates every shot** at its planned length, lines in each speaker's voice
+  (a 12-scene short ≈ 70 shots, ~1–2 h). Quick stills stays the fast preview: one still per
+  scene (its first shot).
+- 4c part 2b-ii (the slim copy) dropped; 3.13 ships 2b-i (12921068).
+
+**The model.** A linked Short's moments are its script's scenes, in order (parsed ids); a
+moment's shots are `script.shots` for that scene; their takes are the shots' Scenes. Short's
+settings keep the link and the board's own settings (mood, length, plan), not the moments.
+A Short with no short (parked, never edited) keeps its `slots` as today until it links.
+
+**Increments** (each released and run clean before the next touches stored data):
+- **5a — the reader** (pure, no behaviour change): `shortMomentsOf(script, scenes)` → per scene:
+  heading, beat, lines with speakers, shots with their Scenes and kept takes, how far rendered.
+  Today's one-shot shorts read as one-shot scenes. Tests on today's shape and a multi-shot one.
+- **5b — the cards**: Short's board draws a linked Short from 5a (scene card + shot strip);
+  edits (place, time, beat, a line, who says it) write the script and re-plan that scene's shots
+  — a shot unchanged keeps its Scene and takes (match by speaker+line, else purpose+order; a
+  shot no longer planned keeps its Scene, unlinked, never deleted). The old card stays for an
+  unlinked Short.
+- **5c — writing**: Write it / Suggest moments / moods / templates / One event write script
+  scenes with dialogue between the people in the moment (the lead, the partner, a third/fourth
+  Cast member — Who's who), through the script writer at a short length; `draftShots` plans
+  each. A moment's time of day is its heading's.
+- **5d — rendering**: Make the short = the episode run with `animate: 'all'` over every shot;
+  Quick stills = the first shot of each scene. Resume, checks, best take, redo as the run has.
+- **5e — Cut**: a cut takes scenes from more than one script — `scenesFrom: [{ scriptId,
+  sceneIds? }]` read with the old `scenesScriptId` as a one-entry list. **Append to a cut**
+  (from Short or Cut): this short's scene(s) placed after a chosen scene of another cut, via the
+  shot list's order edits. **Expand on Script**: Its script opens it to add scenes (exists).
+- **5f — one record**: a linked Short stops reading `tools.day.slots/stills`; it writes a last
+  copy (the moments as one-shot slots, as today) for one more release — the rollback — then
+  stops. Every reader moved to `loadDayBoard` in 2b-i reads 5a instead.
+
+**Risks.** Re-planning a scene's shots after an edit must never drop a take (5b's matching is
+the riskiest piece; tested on real shorts). Render time grows ~6×: the estimate is shown before
+Make the short. Day-only features on a moment (One event's `eventMove`, `sceneHintsDay`, the
+Day's own engine hand-offs) need a home on the scene or are retired — listed in 5b.
+
+**Done when:** a Short writes a scene with two speakers, plans its shots, renders them animated
+in voice, shows them on its card, and the scene can be appended into an episode's cut; today's
+Shorts open and render as before; rollback to the release before each increment loses nothing.
