@@ -11,7 +11,7 @@
  */
 
 import type { ChatMessage } from '@/lib/llm/client';
-import type { DaySlot } from '@/lib/day/planner';
+import { DAY_LENGTH_MAX, type DaySlot } from '@/lib/day/planner';
 
 export const DAY_EVENT_MAX_LENGTH = 240;
 const BEAT_MAX = 200;
@@ -67,7 +67,7 @@ export function dayEventBefore(slots: ReadonlyArray<DaySlot>): DayEventSlotBefor
 function normalizeBefore(value: unknown): DayEventSlotBefore[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const out: DayEventSlotBefore[] = [];
-  for (const row of value.slice(0, 12)) {
+  for (const row of value.slice(0, DAY_LENGTH_MAX)) {
     if (!row || typeof row !== 'object') continue;
     const record = row as Record<string, unknown>;
     if (typeof record.id !== 'string' || !record.id.trim()) continue;

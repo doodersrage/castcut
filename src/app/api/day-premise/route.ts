@@ -1,6 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { writeDayPremiseBeats } from '@/lib/day/premise-server';
 import { parseLlmRequestOptions } from '@/lib/llm/request-options';
+import { DAY_LENGTH_MAX } from '@/lib/day/planner';
 
 export const runtime = 'nodejs';
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     const slotIds = Array.isArray(body.slotIds)
       ? body.slotIds
           .filter((id): id is string => typeof id === 'string' && /^[a-z]+(?:-\d+)?$/.test(id))
-          .slice(0, 12)
+          .slice(0, DAY_LENGTH_MAX)
       : [];
     const beats = await writeDayPremiseBeats({
       premise: typeof body.premise === 'string' ? body.premise : '',

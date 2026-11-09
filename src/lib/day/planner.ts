@@ -134,7 +134,7 @@ export type DaySlotId = DayPart | `${DayPart}-${number}`;
 
 /** The Day lengths offered as one tap (slots on the board); any count from 2 to 12 can be set. */
 export const DAY_LENGTHS = [2, 3, 4, 6, 8] as const;
-/** Moments on the board: 2–12 added here (longer, Make it a short writes them as a script). */
+/** Moments on the board: 2–40. */
 export type DayLength = number;
 export const DAY_LENGTH_MIN = 2;
 /**
@@ -143,8 +143,11 @@ export const DAY_LENGTH_MIN = 2;
  * back here without losing any). The board adds up to {@link DAY_LENGTH_BOARD_MAX} for now.
  */
 export const DAY_LENGTH_MAX = 40;
-/** The most moments the board's + adds (raised to {@link DAY_LENGTH_MAX} a release later). */
-export const DAY_LENGTH_BOARD_MAX = 12;
+/**
+ * The most moments the board's + adds: all of {@link DAY_LENGTH_MAX} (2026-11-09, the release
+ * after the reader learned 40 — that one rolls back without losing a moment).
+ */
+export const DAY_LENGTH_BOARD_MAX = DAY_LENGTH_MAX;
 export const DEFAULT_DAY_LENGTH: DayLength = 4;
 
 export function normalizeDayLength(value: unknown): DayLength {
