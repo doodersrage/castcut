@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.15.0] - 2026-11-09
+
+- A scene added on Script gets its card on the Short (Step 5f, part 2)
+- A Short's cards follow its script's order; a card's id is only its key (Step 5f, part 1)
+- The board adds moments up to 40 (the slot-id cap lifted, writer side)
+
 ## [v3.14.0] - 2026-11-09
 
 - A Short is read and kept with up to 40 moments; the board still adds 12
