@@ -9,6 +9,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.14.0] - 2026-11-09
+
+- A Short is read and kept with up to 40 moments; the board still adds 12
+- A cut takes a scene from another script: a short's in an episode's (Step 5e)
+- Render the short renders every shot of every moment, animated (Step 5d)
+- Write it writes each moment's scene with its dialogue (Step 5c)
+- The board keeps writing into a short changed on Script; it asks only on a clash (Step 5b-ii)
+- A card edit on a whole-scene moment writes only its own part of the scene (Step 5b-ii)
+- A Short card shows its scene: lines by speaker, its shots (Step 5b-i)
+- A Short's moments read from its script: each scene, its lines and its shots (Step 5a)
+
 ## [v3.13.0] - 2026-11-09
 
 - Plan Step 5: a Short's moment is a whole script scene; drop the slim copy (4c 2b-ii)
