@@ -134,10 +134,17 @@ export type DaySlotId = DayPart | `${DayPart}-${number}`;
 
 /** The Day lengths offered as one tap (slots on the board); any count from 2 to 12 can be set. */
 export const DAY_LENGTHS = [2, 3, 4, 6, 8] as const;
-/** Moments on the board: 2–12 (longer, Make it a short writes them as a script, up to 40). */
+/** Moments on the board: 2–12 added here (longer, Make it a short writes them as a script). */
 export type DayLength = number;
 export const DAY_LENGTH_MIN = 2;
-export const DAY_LENGTH_MAX = 12;
+/**
+ * The most moments a Short is read and kept with (2026-11-09: the cap lifted, reader first — this
+ * release keeps up to 40, ten at each time of day, so the next one can add them and still roll
+ * back here without losing any). The board adds up to {@link DAY_LENGTH_BOARD_MAX} for now.
+ */
+export const DAY_LENGTH_MAX = 40;
+/** The most moments the board's + adds (raised to {@link DAY_LENGTH_MAX} a release later). */
+export const DAY_LENGTH_BOARD_MAX = 12;
 export const DEFAULT_DAY_LENGTH: DayLength = 4;
 
 export function normalizeDayLength(value: unknown): DayLength {
@@ -235,8 +242,11 @@ export function daySlotsForLength(length: DayLength | number): DaySlot[] {
   }));
 }
 
-/** A daypart, or its 2nd–4th slot (`morning-2` … `night-4`: a 12-moment Day at most). */
-const DAY_SLOT_ID_RE = /^(?:morning|afternoon|evening|night)(?:-[2-4])?$/;
+/**
+ * A daypart, or its 2nd–10th slot (`morning-2` … `night-10`: 40 moments at most). Until
+ * 2026-11-09 only up to `-4` (12) — a release before that drops the rest.
+ */
+const DAY_SLOT_ID_RE = /^(?:morning|afternoon|evening|night)(?:-(?:[2-9]|10))?$/;
 
 export function isDaySlotId(value: unknown): value is DaySlotId {
   return typeof value === 'string' && DAY_SLOT_ID_RE.test(value);

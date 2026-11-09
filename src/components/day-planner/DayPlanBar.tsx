@@ -15,7 +15,7 @@ import type { DayPartnerNoun } from '@/lib/day/partner';
 import {
   DAY_INTIMATE_PLAYFUL_HINT,
   DAY_INTIMATE_PLAYFUL_LABEL,
-  DAY_LENGTH_MAX,
+  DAY_LENGTH_BOARD_MAX,
   DAY_LENGTH_MIN,
   DAY_LENGTHS,
   DAY_MOOD_OPTIONS,
@@ -224,12 +224,12 @@ export default function DayPlanBar({
             <Button
               size="sm"
               variant="ghost"
-              disabled={busy || current >= DAY_LENGTH_MAX}
+              disabled={busy || current >= DAY_LENGTH_BOARD_MAX}
               aria-label="One moment more"
               data-testid="day-length-more"
               title={
-                current >= DAY_LENGTH_MAX
-                  ? `${DAY_LENGTH_MAX} at most here — for more, Write it as a script (up to 40 scenes)`
+                current >= DAY_LENGTH_BOARD_MAX
+                  ? `${DAY_LENGTH_BOARD_MAX} at most here — for more, Write it as a script (up to 40 scenes)`
                   : 'One moment more'
               }
               onClick={() => onDayLengthChange(current + 1)}

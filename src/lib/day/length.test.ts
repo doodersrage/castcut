@@ -29,7 +29,9 @@ describe('variable Day length', () => {
     // Any count from 2 to 12 (2026-11-06): the one-tap ones as they were, the rest in between.
     assert.equal(normalizeDayLength(5), 5);
     assert.equal(normalizeDayLength(1), 4);
-    assert.equal(normalizeDayLength(30), 12);
+    // Read and kept up to 40 (2026-11-09, the cap lifted reader first).
+    assert.equal(normalizeDayLength(30), 30);
+    assert.equal(normalizeDayLength(55), 40);
     assert.deepEqual(
       daySlotsForLength(5).map(slot => slot.id),
       ['morning', 'morning-2', 'afternoon', 'evening', 'night']
@@ -43,7 +45,7 @@ describe('variable Day length', () => {
     assert.equal(new Set(twelve.map(slot => slot.id)).size, 12);
     assert.deepEqual(twelve.slice(0, 3).map(slot => slot.label), ['Morning', 'Late morning', 'Morning 3']);
     // Every length keeps time order, and each holds the one before it.
-    for (let n = 3; n <= 12; n += 1) {
+    for (let n = 3; n <= 40; n += 1) {
       const ids = daySlotsForLength(n).map(slot => slot.id as string);
       const before = daySlotsForLength(n - 1).map(slot => slot.id as string);
       assert.ok(before.every(id => ids.includes(id)), `${n} holds ${n - 1}`);
@@ -63,6 +65,17 @@ describe('variable Day length', () => {
     assert.equal(inferDayLength(['afternoon-2']), 8);
     assert.equal(inferDayLength(['morning-3']), 9);
     assert.equal(normalizeDaySlots([{ id: 'night-4', label: 'Night 4' }], 12).length, 12);
+    // Past 12 (a Short made by the release after this one): every moment kept, its plan with it.
+    // The smallest length that holds them (late nights come second in each round).
+    assert.equal(inferDayLength(['night-10']), 38);
+    const twenty = normalizeDaySlots(
+      [{ id: 'evening-5', label: 'Evening 5', sceneHints: 'dancing on the roof' }],
+      20
+    );
+    assert.equal(twenty.length, 20);
+    assert.equal(new Set(twenty.map(slot => slot.id)).size, 20);
+    assert.equal(twenty.find(slot => slot.id === 'evening-5')?.sceneHints, 'dancing on the roof');
+    assert.equal(normalizeDaySlots([{ id: 'night-11', label: 'x' }], 40).some(slot => slot.id === ('night-11' as never)), false);
     assert.deepEqual(
       normalizeDaySlots(DEFAULT_DAY_SLOTS).map(slot => slot.id),
       ['morning', 'afternoon', 'evening', 'night']
