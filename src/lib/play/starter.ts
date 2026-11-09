@@ -16,6 +16,7 @@ import {
   normalizeDaySlots,
   type DaySlot,
 } from '../day/planner';
+import { loadDayBoard } from '../day/day-board-client';
 import { clearLookPack, saveLookPack, type LookPack } from '../look/pack';
 import { bumpPlayCampaignStep, savePlayCampaignState } from './campaign';
 import {
@@ -28,12 +29,7 @@ import {
 import { resolvePlayStepHref } from './step-machine';
 import { markOnboardingFirstPlayCampaign } from './onboarding';
 import { noteStarterFilmMetric } from '../server/local-observability';
-import {
-  loadSettingsCache,
-  loadToolSettings,
-  saveSharedSettings,
-  saveToolSettings,
-} from '../settings/cache';
+import { loadSettingsCache, saveSharedSettings, saveToolSettings } from '../settings/cache';
 import {
   DEFAULT_DAY_TOOL_CACHE,
   DEFAULT_MOODBOARD_TOOL_CACHE,
@@ -160,7 +156,8 @@ export function applyRemixDayFilmState(options?: {
   kind?: DayRemixKind;
   themeId?: string | null;
 }): void {
-  const existing = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  // The Short as its short has it (step 4c): "keep every Setting + Beat" keeps the Scenes' ones.
+  const existing = loadDayBoard();
   const previousSlots = Array.isArray(existing.slots) ? existing.slots : DEFAULT_DAY_SLOTS;
   const theme = dayThemeById(options?.themeId);
   const kind = normalizeDayRemixKind(options?.kind ?? (theme ? 'theme' : 'new-day'));

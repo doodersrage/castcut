@@ -5,11 +5,7 @@
  * opens. The rules are day/scenes.ts.
  */
 import { loadToolSettings, saveToolSettings } from '../settings/cache';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_SCENE_TOOL_CACHE,
-  type DayToolCache,
-} from '../play/settings';
+import { DEFAULT_SCENE_TOOL_CACHE, type DayToolCache } from '../play/settings';
 import {
   addScenePatch,
   nextSceneName,
@@ -21,6 +17,7 @@ import {
   type SavedScene,
 } from './scenes';
 import { dayAsShort, dayShortFingerprint } from './day-as-short';
+import { loadDayBoard } from './day-board-client';
 import { autopilotRun, type EpisodeAutopilot } from './episode-autopilot';
 import { normalizeSceneRun, runFromScript } from './scene-run';
 import {
@@ -84,7 +81,8 @@ export function sendSceneToDaySlot(input: {
   slotId: DaySlotId;
   activeCastId: string;
 }): string | null {
-  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  // The Short as its short has it (step 4c): one moment changed, the rest as the Scenes hold them.
+  const day = loadDayBoard();
   const result = sendSceneToDayPatch(day, input.scene, input.slotId, input.activeCastId);
   if ('error' in result) return result.error;
   saveToolSettings('day', { ...day, ...result.patch });
@@ -93,7 +91,7 @@ export function sendSceneToDaySlot(input: {
 
 /** The Day the scene would be sent to, read fresh (its slots for the picker). */
 export function loadDayForScenes(): DayToolCache {
-  return loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  return loadDayBoard();
 }
 
 /** A Day's short (Short's "This Day as a script"): which script, and the Day it was made from. */

@@ -12,6 +12,7 @@ import {
   dayMomentsFromShort,
   dayStillsFromShort,
   dayBoardFromShort,
+  slimDayBoard,
 } from './day-as-short';
 import { sceneSlotAt } from './scenes';
 
@@ -279,7 +280,6 @@ describe('a Short read away from its board (step 4c)', () => {
     ...day,
     shortLink: { castId: 'mara', scriptId: short.script.id, fingerprint: dayShortFingerprint(day), syncedAt: 1000 },
   } as DayToolCache;
-  const script = { id: short.script.id, updatedAt: 1000 };
   const edited = short.scenes.map(scene =>
     scene.fromDaySlot === 'afternoon'
       ? { ...scene, slot: { ...scene.slot, sceneHints: 'builds a sandcastle' } }
@@ -288,7 +288,7 @@ describe('a Short read away from its board (step 4c)', () => {
   const beatOf = (board: DayToolCache) => board.slots?.find(slot => slot.id === 'afternoon')?.sceneHints;
 
   it('shows a beat edited on Script or Scene, though the board wasn’t opened since', () => {
-    assert.equal(beatOf(dayBoardFromShort(linked, edited, script)), 'builds a sandcastle');
+    assert.equal(beatOf(dayBoardFromShort(linked, edited)), 'builds a sandcastle');
     // The saved copy itself is left as it was.
     assert.equal(beatOf(linked), 'walks along the water');
   });
@@ -299,19 +299,77 @@ describe('a Short read away from its board (step 4c)', () => {
         ? { ...scene, takes: [{ id: 't1', promptId: 'p-n', imageUrl: '/n.png', status: 'completed', createdAt: 2000 }], keptTakeId: 't1' }
         : scene
     ) as typeof short.scenes;
-    const board = dayBoardFromShort(linked, kept, script);
+    const board = dayBoardFromShort(linked, kept);
     assert.equal(board.stills?.find(still => still.slotId === 'night')?.imageUrl, '/n.png');
   });
 
-  it('keeps the copy when the board has an edit waiting, the script changed since, or there is no link', () => {
+  it('keeps the copy when the board has an edit waiting, or there is no link', () => {
     const boardEdit = { ...linked, slots: linked.slots!.map(slot => (slot.id === 'evening' ? { ...slot, sceneHints: 'cooks' } : slot)) };
-    assert.equal(dayBoardFromShort(boardEdit, edited, script), boardEdit);
-    assert.equal(dayBoardFromShort(linked, edited, { ...script, updatedAt: 2000 }), linked);
-    assert.equal(dayBoardFromShort(day, edited, script), day);
-    assert.equal(dayBoardFromShort(linked, edited, undefined), linked);
+    assert.equal(dayBoardFromShort(boardEdit, edited), boardEdit);
+    assert.equal(dayBoardFromShort(day, edited), day);
+  });
+
+  it('shows the Scenes though the script’s text was changed on Script since (part 2b)', () => {
+    // Nothing here reads the script: its Scenes are the moments, by their link.
+    assert.equal(beatOf(dayBoardFromShort({ ...linked, shortLink: { ...linked.shortLink!, syncedAt: 1 } }, edited)), 'builds a sandcastle');
   });
 
   it('is the copy itself when the Scenes say the same', () => {
-    assert.equal(dayBoardFromShort(linked, short.scenes, script), linked);
+    assert.equal(dayBoardFromShort(linked, short.scenes), linked);
+  });
+});
+
+describe('a Short saved slim (step 4c part 2b)', () => {
+  const evented = {
+    ...day,
+    slots: day.slots!.map(slot =>
+      slot.id === 'afternoon'
+        ? { ...slot, eventMove: 'puts down her cup', sceneHintsDay: 'strolls by the sea' }
+        : slot
+    ),
+  } as DayToolCache;
+  const short = dayAsShort({ day: evented, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+  const linked = {
+    ...evented,
+    shortLink: { castId: 'mara', scriptId: short.script.id, fingerprint: dayShortFingerprint(evented), syncedAt: 1000 },
+  } as DayToolCache;
+  const by = (board: DayToolCache, id: string) => board.slots!.find(slot => slot.id === id)!;
+
+  it('keeps of a moment with a Scene only its id and what a Scene doesn’t hold', () => {
+    const slim = slimDayBoard(linked, short.scenes)!;
+    assert.ok(slim);
+    assert.deepEqual(by(slim, 'afternoon'), { id: 'afternoon', eventMove: 'puts down her cup', sceneHintsDay: 'strolls by the sea' });
+    assert.deepEqual(by(slim, 'morning'), { id: 'morning' });
+    // The empty evening has no Scene: kept as the board has it; the order and stills whole.
+    const stored = (value: unknown) => JSON.parse(JSON.stringify(value));
+    assert.deepEqual(stored(by(slim, 'evening')), { id: 'evening', label: 'Evening' });
+    assert.deepEqual(slim.slots!.map(slot => slot.id), linked.slots!.map(slot => slot.id));
+    assert.deepEqual(slim.stills, linked.stills);
+    // Its link's fingerprint is the slim copy's, so nothing reads it as an edit waiting.
+    assert.equal(slim.shortLink!.fingerprint, dayShortFingerprint(slim));
+  });
+
+  it('reads back as the whole board — this release is the one to roll back to', () => {
+    const slim = slimDayBoard(linked, short.scenes)!;
+    const whole = dayBoardFromShort(slim, short.scenes);
+    for (const slot of linked.slots!) {
+      const back = by(whole, slot.id);
+      for (const [key, value] of Object.entries(slot)) assert.deepEqual((back as Record<string, unknown>)[key], value, `${slot.id}.${key}`);
+    }
+    // And after the script's text was changed on Script, the same.
+    const later = dayBoardFromShort({ ...slim, shortLink: { ...slim.shortLink!, syncedAt: 1 } }, short.scenes);
+    assert.deepEqual(later.slots, whole.slots);
+  });
+
+  it('isn’t slimmed when it would lose something', () => {
+    // An edit waiting to go into the short.
+    const waiting = { ...linked, slots: linked.slots!.map(slot => (slot.id === 'evening' ? { ...slot, sceneHints: 'cooks' } : slot)) } as DayToolCache;
+    assert.equal(slimDayBoard(waiting, short.scenes), null);
+    // Scenes that say something else than the board (not taken by the board yet).
+    const edited = short.scenes.map(scene => scene.fromDaySlot === 'night' ? { ...scene, slot: { ...scene.slot, line: 'Night.' } } : scene);
+    assert.equal(slimDayBoard(linked, edited), null);
+    // No link, or no Scene of its short.
+    assert.equal(slimDayBoard(evented, short.scenes), null);
+    assert.equal(slimDayBoard(linked, []), null);
   });
 });

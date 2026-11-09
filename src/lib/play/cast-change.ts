@@ -4,7 +4,8 @@
  */
 
 import { swapDayForCast } from '../day/cast-park';
-import { swapSceneForCast } from '../day/scenes';
+import { normalizeSavedScenes, swapSceneForCast } from '../day/scenes';
+import { dayBoardFromShort } from '../day/day-as-short';
 import type { ToolSettingsCache } from '../settings/cache';
 
 /**
@@ -23,8 +24,13 @@ export function scrubPlayToolCachesOnCastChange(
       ...next,
       day: {
         ...next.day,
-        // The Day is parked under the Cast it belongs to and the next Cast's comes back.
-        ...swapDayForCast(next.day, previousCast, nextCast),
+        // The Day is parked under the Cast it belongs to and the next Cast's comes back — a
+        // Short parked as its short has it (a parked Day keeps no link; step 4c).
+        ...swapDayForCast(
+          dayBoardFromShort(next.day, normalizeSavedScenes(next.scene?.scenes)),
+          previousCast,
+          nextCast
+        ),
         referenceIsolated: false,
         plateIsolateSourceKey: undefined,
         plateCharacterId: undefined,

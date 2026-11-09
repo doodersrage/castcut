@@ -30,13 +30,14 @@ import {
   SETTINGS_CACHE_UPDATED_EVENT,
 } from '@/lib/settings/cache';
 import { whenBrowserStorageReady } from '@/lib/storage/browser-storage';
-import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE } from '@/lib/play/settings';
+import { loadDayBoard } from '@/lib/day/day-board-client';
 
 function readSources(characterId: string): CastEpisodeSources {
   return castEpisodeSources({
     characterId,
     activeCharacterId: loadSettingsCache().shared.activeCharacterId,
-    day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+    day: loadDayBoard(),
     roleplay: loadToolSettings('roleplay', DEFAULT_ROLEPLAY_TOOL_CACHE),
     storySessionId: roleplayLibraryIdForCharacter(characterId),
     library: loadRoleplayLibrary(),

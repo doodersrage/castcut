@@ -25,11 +25,8 @@ import {
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 import { castIdForStorySession, storyHasOtherCastBeats } from '@/lib/story/session-guard';
 import { loadSettingsCache, loadToolSettings, type SharedToolSettings } from '@/lib/settings/cache';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_ROLEPLAY_TOOL_CACHE,
-  type RoleplayToolCache,
-} from '@/lib/play/settings';
+import { loadDayBoard } from '@/lib/day/day-board-client';
+import { DEFAULT_ROLEPLAY_TOOL_CACHE, type RoleplayToolCache } from '@/lib/play/settings';
 
 type UseRoleplayLookPackDeepLinkOptions = {
   mounted: boolean;
@@ -212,7 +209,7 @@ export function useRoleplayLookPackDeepLink({
     // and the outfit it was in. No beats are written; the player rolls the first one.
     if (fromDay && characterId && sharedBeforeBind) {
       const seed = storySeedFromDay({
-        day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+        day: loadDayBoard(),
         characterId,
         activeCharacterId: sharedBeforeBind.activeCharacterId,
         lockedWardrobeId: wardrobeId || sharedBeforeBind.lockedWardrobeId,

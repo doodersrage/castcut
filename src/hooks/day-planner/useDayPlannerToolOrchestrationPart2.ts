@@ -37,6 +37,7 @@ import {
   ensureCastVoiceClip,
 } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
+import { shortBoardOf } from '@/lib/day/day-board-client';
 import { swapSceneForCast, type SceneToolCache } from '@/lib/day/scenes';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { nextDayThread, planTomorrowSlots } from '@/lib/day/thread';
@@ -206,7 +207,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       // Scene: the open scene is saved and the Cast's newest scene opens (day/scenes.ts).
       const swapped = sceneMode
         ? swapSceneForCast(toolSettings as SceneToolCache, nextId)
-        : swapDayForCast(toolSettings, owner, nextId);
+        : // A Short parked as its short has it (a parked Day keeps no link; step 4c).
+          swapDayForCast(shortBoardOf(toolSettings), owner, nextId);
       stillsRef.current = swapped.stills ?? [];
       updateToolSettings({
         ...swapped,

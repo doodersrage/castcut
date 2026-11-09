@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { scrubPlayToolCachesOnCastChange } from './cast-change';
+import { dayAsShort, dayShortFingerprint, slimDayBoard } from '../day/day-as-short';
+import type { DayToolCache } from './settings';
 
 describe('scrubPlayToolCachesOnCastChange', () => {
   it('clears Day stills and isolate plate overrides', () => {
@@ -53,5 +55,32 @@ describe('scrubPlayToolCachesOnCastChange', () => {
     assert.equal(next.roleplay?.referenceImageFilename, undefined);
     assert.equal(next.roleplay?.referenceIsolated, false);
     assert.equal(next.roleplay?.playAs, 'photo');
+  });
+
+  it('parks a Short saved slim as its short has it (step 4c part 2b)', () => {
+    const day = {
+      stillsCharacterId: 'mara',
+      dayLength: 4,
+      slots: [
+        { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+        { id: 'afternoon', label: 'Afternoon', location: 'beach', sceneHints: 'walks' },
+      ],
+      stills: [{ slotId: 'morning', promptId: 'p-m', imageUrl: '/m.png', status: 'completed' }],
+    } as unknown as DayToolCache;
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const linked = {
+      ...day,
+      shortLink: { castId: 'mara', scriptId: short.script.id, fingerprint: dayShortFingerprint(day), syncedAt: 1000 },
+    } as DayToolCache;
+    const slim = slimDayBoard(linked, short.scenes)!;
+    assert.ok(slim);
+    const next = scrubPlayToolCachesOnCastChange(
+      { day: slim, scene: { scenes: short.scenes } },
+      'mara',
+      'rob'
+    );
+    const parked = next.day?.parkedDays?.mara;
+    assert.equal(parked?.slots?.find(slot => slot.id === 'morning')?.sceneHints, 'pours coffee');
+    assert.equal(parked?.slots?.find(slot => slot.id === 'afternoon')?.location, 'beach');
   });
 });

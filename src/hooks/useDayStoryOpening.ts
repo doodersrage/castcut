@@ -4,14 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { storyScenesFromDay, storySeedFromDay } from '@/lib/day/story-seed';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { RoleplayStoryBeat } from '@/lib/story/roleplay';
-import { loadSettingsCache, loadToolSettings } from '@/lib/settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE, type RoleplayToolCache } from '@/lib/play/settings';
+import { loadSettingsCache } from '@/lib/settings/cache';
+import { loadDayBoard } from '@/lib/day/day-board-client';
+import { type RoleplayToolCache } from '@/lib/play/settings';
 
 export type DayStoryOpening = { count: number; use: () => void };
 
 function readDayScenes(castId: string): RoleplayStoryBeat[] {
   return storyScenesFromDay({
-    day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+    day: loadDayBoard(),
     characterId: castId,
     activeCharacterId: loadSettingsCache().shared.activeCharacterId,
   });
@@ -48,7 +49,7 @@ export function useDayStoryOpening(input: {
     // Intimate Day's stills never open a PG-13 story. Story's own adult gate still applies.
     const shared = loadSettingsCache().shared;
     const seed = storySeedFromDay({
-      day: loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE),
+      day: loadDayBoard(),
       characterId: castId,
       activeCharacterId: shared.activeCharacterId,
       lockedWardrobeId: shared.lockedWardrobeId,

@@ -3728,4 +3728,21 @@ Short's planner (which reads `slots` everywhere): rebuild the board from the sho
     moments' order and ids, a moment with no Scene, `eventMove`/`sceneHintsDay`, stills in flight
     and a still's `previousTake` — and build the rest with the reader. `dayMomentsFromShort` needs
     the copy as its skeleton today, so 2b starts there.
+    - **2b-i (2026-11-09, user: "two releases"):** the release the slim copy can roll back to.
+      3.12.0 can't be: with the script's text changed on Script since the last sync, its reader
+      leaves the copy as it is — a slim copy's cards would show empty. So: the reader
+      (`dayBoardFromShort`, the board's pull in useDayShortSync) no longer waits on the script —
+      the Scenes hold the moments, matched by `fromScript.scriptId`, so the script store isn't
+      read at all; `slimDayBoard` (pure, tested, **not saved yet**) makes the slim copy: a moment
+      with a Scene keeps its id, `eventMove`, `sceneHintsDay`; a moment with none, the order and
+      every still kept whole; the link's fingerprint is the slim copy's; null when it would lose
+      anything (an edit waiting, Scenes the board hasn't taken, a read-back that isn't the board).
+      What read the copy raw and wrote it back or parked it now reads through the reader: the
+      outfit hand-off, Send to Day slot (and Scene's slot picker), Next Day / theme / new outfit,
+      reopening an episode, parking on a Cast change (cast-change.ts, the board's own), and the
+      Day → Story opening/seed and the Cast's episode cut. The full copy is still saved.
+    - **2b-ii (the release after 2b-i):** save through `slimDayBoard`. Still reading the copy raw,
+      to check then: the queue's job index (`queue-jobs.ts`, slot labels), gallery references,
+      reference health, features, and the board's own first render (filled by the pull effect a
+      moment later — anything acting on mount sees the slim copy). Stills stay whole.
 - Never deleted by any step: a Short's saved board, its script, its Scenes and their takes.

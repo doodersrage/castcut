@@ -80,7 +80,8 @@ export function useDayShortSync(input: {
     if (!script || !scenesStamp) return;
     const { day: now, link: current, updateDay: update } = latest.current;
     if (!current || dayShortFingerprint(now) !== current.fingerprint) return;
-    if (script.updatedAt > (current.syncedAt ?? 0)) return;
+    // The script's text changed on Script since doesn't stop it (part 2b, 2026-11-09): the
+    // Scenes still hold the moments — and a slim copy (slimDayBoard) holds nothing else.
     const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
     const moments = dayMomentsFromShort(now, scenes, { castId, scriptId: script.id });
     if (!moments) return;

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { episodeDayRows, reopenEpisodeDayPatch, type EpisodeDay } from '@/lib/day/episode-snapshot';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
+import { loadDayBoard } from '@/lib/day/day-board-client';
+import { loadSettingsCache, saveToolSettings } from '@/lib/settings/cache';
 import {
   loadPlaySeriesStore,
   PLAY_SERIES_UPDATED_EVENT,
@@ -33,7 +33,8 @@ export default function CastSeasonsSection({ characterId }: { characterId: strin
   const [seasons, setSeasons] = useState<PlaySeries[]>([]);
   /** Open an episode's Day again; the Day it replaces is set aside (Day offers it back). */
   const reopen = (snapshot: EpisodeDay, label: string) => {
-    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    // The Short it replaces is parked as its short has it (a parked Day keeps no link).
+    const day = loadDayBoard();
     saveToolSettings('day', {
       ...day,
       ...reopenEpisodeDayPatch({

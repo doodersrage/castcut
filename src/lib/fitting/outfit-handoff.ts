@@ -195,19 +195,23 @@ export async function handOffOutfitPicks(
 ): Promise<void> {
   const [
     { loadSettingsCache, loadToolSettings, saveToolSettings },
-    { DEFAULT_DAY_TOOL_CACHE, DEFAULT_ROLEPLAY_TOOL_CACHE },
+    { DEFAULT_ROLEPLAY_TOOL_CACHE },
     { activeLook, getCharacter, looksOf },
     { dayAfterOutfitHandoff },
+    { loadDayBoard },
   ] = await Promise.all([
     import('../settings/cache'),
     import('../play/settings'),
     import('../character/os'),
     import('../day/outfit-scope'),
+    import('../day/day-board-client'),
   ]);
   if (options.day !== false) {
     const shared = loadSettingsCache().shared;
     const character = getCharacter(options.characterId?.trim() || shared.activeCharacterId);
-    const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    // The Short as its short has it (step 4c): a copy left behind would push old moments over
+    // the Scenes.
+    const day = loadDayBoard();
     saveToolSettings('day', {
       ...day,
       ...dayAfterOutfitHandoff(day, {

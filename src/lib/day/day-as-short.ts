@@ -362,22 +362,76 @@ export function dayMomentsFromShort(
  * A Short's board as its short has it (step 4c, 2026-11-08): the moments and stills its Scenes
  * hold, on the board's saved copy — for what reads a Short away from the board (Cut, Play, a
  * Cast's file), so it sees what the board would show, not a copy left behind when the Scenes
- * were edited on Script or Scene. The same rule as the board (useDayShortSync, 4b): only when
- * the copy has no edit of its own waiting (its fingerprint is the link's) and the script wasn't
- * changed since. The copy as it is otherwise. Pure; the copy itself isn't touched.
+ * were edited on Script or Scene. Only when the copy has no edit of its own waiting (its
+ * fingerprint is the link's). The script's own text changed since (on Script) doesn't stop it
+ * (part 2b, 2026-11-09): the Scenes still hold the moments, and a slim copy (slimDayBoard) has
+ * nothing else. The copy as it is otherwise. Pure; the copy itself isn't touched.
  */
 export function dayBoardFromShort<
   T extends Pick<
     DayToolCache,
     'slots' | 'stills' | 'dayLength' | 'stillsCharacterId' | 'shortLink' | 'dayMood'
   >,
->(day: T, scenes: readonly SavedScene[], script: { id: string; updatedAt: number } | undefined): T {
+>(day: T, scenes: readonly SavedScene[]): T {
   const link = day.shortLink;
-  if (!link || !script || script.id !== link.scriptId) return day;
-  if (script.updatedAt > (link.syncedAt ?? 0)) return day;
+  if (!link?.scriptId || !link.castId) return day;
   if (dayShortFingerprint(day as DayToolCache) !== link.fingerprint) return day;
   const moments = dayMomentsFromShort(day, scenes, link);
   const withMoments = moments ? { ...day, slots: moments } : day;
   const stills = dayStillsFromShort(withMoments, scenes, link);
   return stills ? { ...withMoments, stills } : withMoments;
+}
+
+/**
+ * The board's copy as a linked Short will save it (step 4c part 2b, 2026-11-09; not saved yet —
+ * the release after this one starts, so this one can be rolled back to): each moment with a
+ * Scene in its short kept as its id and what a Scene doesn't hold (`eventMove`,
+ * `sceneHintsDay`); a moment with no Scene, the order, and every still kept whole. The link's
+ * fingerprint is the slim copy's, so dayBoardFromShort (and the board) read it back whole.
+ * Null when it can't be slimmed without losing anything: no link, an edit waiting to go into the
+ * short, or Scenes that don't say what the board does yet. Pure.
+ */
+export function slimDayBoard<
+  T extends Pick<
+    DayToolCache,
+    'slots' | 'stills' | 'dayLength' | 'stillsCharacterId' | 'shortLink' | 'dayMood'
+  >,
+>(day: T, scenes: readonly SavedScene[]): T | null {
+  const link = day.shortLink;
+  if (!link?.scriptId || !link.castId) return null;
+  if (dayShortFingerprint(day as DayToolCache) !== link.fingerprint) return null;
+  if (dayMomentsFromShort(day, scenes, link)) return null;
+  const held = new Set(
+    scenes
+      .filter(
+        scene =>
+          scene.fromScript?.scriptId === link.scriptId &&
+          scene.castId === link.castId &&
+          scene.fromDaySlot
+      )
+      .map(scene => scene.fromDaySlot)
+  );
+  const slots = normalizeDaySlots(day.slots, day.dayLength);
+  if (!slots.some(slot => held.has(slot.id))) return null;
+  const slim = slots.map(slot =>
+    held.has(slot.id)
+      ? ({
+          id: slot.id,
+          ...(slot.eventMove ? { eventMove: slot.eventMove } : {}),
+          ...(slot.sceneHintsDay ? { sceneHintsDay: slot.sceneHintsDay } : {}),
+        } as DaySlot)
+      : slot
+  );
+  const next = { ...day, slots: slim };
+  const whole = dayBoardFromShort(
+    { ...next, shortLink: { ...link, fingerprint: dayShortFingerprint(next as DayToolCache) } },
+    scenes
+  );
+  // Read back, it must be the board again — else keep the whole copy.
+  if (JSON.stringify(normalizeDaySlots(whole.slots, day.dayLength)) !== JSON.stringify(slots))
+    return null;
+  return {
+    ...next,
+    shortLink: { ...link, fingerprint: dayShortFingerprint(next as DayToolCache) },
+  };
 }
