@@ -22,6 +22,7 @@ import { continueDayAsStoryHref } from '@/lib/day/story-seed';
 import type { KeyedShot } from '@/lib/film/cut-plan';
 import CutProblemsDialog from '@/components/CutProblemsDialog';
 import Link from 'next/link';
+import ShortMomentScene, { useShortMoments } from '@/components/day-planner/ShortMomentScene';
 import { DayShortPanel, useDayShort } from '@/components/day-planner/DayShort';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
@@ -336,6 +337,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
   const wardrobeKitDeck = useMemo(
     () => buildWardrobeKitPickerDeck(filteredWardrobeOptions, activeSlot.wardrobeId),
     [activeSlot.wardrobeId, filteredWardrobeOptions]
+  );
+  // A linked Short's moments as its script has them (Step 5b-i): another voice, more shots.
+  const shortMoments = useShortMoments(
+    short.link,
+    short.castId,
+    JSON.stringify([
+      short.sync.scriptName,
+      slots,
+      stills.map(still => [still.slotId, still.promptId, still.status]),
+    ])
   );
   const slotTotal = slots.length || 4;
   const completedClipCount = useMemo(
@@ -984,6 +995,13 @@ export default function MobileDayToolSections(vm: ViewModel) {
           />
         ) : null}
         <DaySlotBoard
+          slotFooter={slotId => (
+            <ShortMomentScene
+              moment={shortMoments.bySlot[slotId]}
+              castId={short.castId}
+              leadSpeakers={shortMoments.leadSpeakers}
+            />
+          )}
           castName={character?.name}
           castId={character?.id}
           leadNoun={leadNoun}

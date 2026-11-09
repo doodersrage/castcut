@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import ShortMomentScene, { useShortMoments } from '@/components/day-planner/ShortMomentScene';
 import { DayShortPanel, useDayShort } from '@/components/day-planner/DayShort';
 import DayTemplatesMenu from '@/components/day-planner/DayTemplatesMenu';
 import { applyDayTemplate } from '@/lib/day/day-templates';
@@ -354,6 +355,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     stills,
     updateDay: updateToolSettings,
   });
+  // A linked Short's moments as its script has them (Step 5b-i): another voice, more shots.
+  const shortMoments = useShortMoments(
+    short.link,
+    short.castId,
+    JSON.stringify([
+      short.sync.scriptName,
+      slots,
+      stills.map(still => [still.slotId, still.promptId, still.status]),
+    ])
+  );
   const slotTotal = slots.length || 4;
   const completedClipCount = useMemo(
     () =>
@@ -1112,6 +1123,13 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             </div>
           ) : null}
           <DaySlotBoard
+            slotFooter={slotId => (
+              <ShortMomentScene
+                moment={shortMoments.bySlot[slotId]}
+                castId={short.castId}
+                leadSpeakers={shortMoments.leadSpeakers}
+              />
+            )}
             castName={character?.name}
             castId={character?.id}
             leadNoun={leadNoun}

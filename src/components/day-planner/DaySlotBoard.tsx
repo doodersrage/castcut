@@ -8,7 +8,7 @@ import ClipExtendSheet, { type ClipExtendChoice } from '@/components/ClipExtendS
 import type { ClipExtendRequest } from '@/lib/clip/extend';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { useTakeCastVoice } from '@/hooks/useTakeCastVoice';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import MotionMedia from '@/components/ui/MotionMedia';
 import ShotCardMenu, {
   SHOT_CARD_MENU_ITEM_CLASS,
@@ -68,6 +68,11 @@ export type DaySlotBoardProps = {
   busy?: boolean;
   queueBlocked?: boolean;
   compact?: boolean;
+  /**
+   * More under a card's caption, outside its Edit button (a linked Short: the moment as its
+   * scene — lines by speaker, its shots; ShortMomentScene).
+   */
+  slotFooter?: (slotId: DaySlotId) => ReactNode;
   onSelectSlot: (slotId: DaySlotId) => void;
   /** Open the slot's sheet (Edit on the card, ⋯ → Edit slot, a tap on an unrendered slot). */
   onEditSlot: (slotId: DaySlotId) => void;
@@ -181,6 +186,7 @@ export default function DaySlotBoard({
   busy = false,
   queueBlocked = false,
   compact = false,
+  slotFooter,
   onSelectSlot,
   onEditSlot,
   onOpenStill,
@@ -1090,6 +1096,7 @@ export default function DaySlotBoard({
                     </p>
                   ) : null}
                 </button>
+                {slotFooter?.(slot.id) ?? null}
                 {still?.adultHold === 'withheld' ? (
                   <p
                     className={`type-caption text-[var(--tint-danger-text)] ${pad} pb-2.5`}
