@@ -4573,3 +4573,68 @@ test('a short’s scene added to an episode’s cut, after the scene picked', as
     .poll(async () => rows.evaluateAll(list => list.map(row => row.getAttribute('data-testid'))), { timeout: 30_000 })
     .toEqual(['cut-shot-scenes:ep-cafe', 'cut-shot-scenes:ep-pier']);
 });
+
+// Cards in the script's order (Step 5f, 2026-11-09): a Short's board shows its moments as its
+// script orders its scenes, not by time of day — a night scene written first comes first.
+test('a Short’s cards follow its script’s order', async ({ page }) => {
+  const moment = (id: string, slotId: string, sceneId: string, location: string, beat: string, n: number) => ({
+    id,
+    castId: CAST,
+    name: location,
+    slot: { id: slotId, label: slotId, location, sceneHints: beat },
+    dayMood: 'everyday',
+    takes: [],
+    fromDaySlot: slotId,
+    fromScript: { scriptId: 'short-order', sceneId, shotId: `${sceneId}-moment` },
+    createdAt: n,
+    updatedAt: n,
+  });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        stillsCharacterId: CAST,
+        dayMood: 'everyday',
+        slots: [
+          { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+          { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+        ],
+        dayLength: 2,
+        shortLink: { castId: CAST, scriptId: 'short-order', fingerprint: '', syncedAt: 1 },
+        shortLinkedFor: [CAST],
+      },
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          moment('order-night', 'night', 'int-bedroom-night', 'bedroom', 'reading in bed', 1),
+          moment('order-morning', 'morning', 'int-small-kitchen-morning', 'small kitchen', 'making coffee', 2),
+        ],
+        scripts: [
+          {
+            id: 'short-order',
+            castId: CAST,
+            name: 'Backwards',
+            source: 'INT. BEDROOM - NIGHT\n\nreading in bed\n\nINT. SMALL KITCHEN - MORNING\n\nmaking coffee\n',
+            castMap: { 'SCENE CAST': CAST },
+            shots: [
+              { id: 'int-bedroom-night-moment', sceneId: 'int-bedroom-night', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'order-night' },
+              { id: 'int-small-kitchen-morning-moment', sceneId: 'int-small-kitchen-morning', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'order-morning' },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  }, { once: true });
+  // The scripts go into their own store when Script opens (as a user's did).
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-short-order')).toBeVisible({ timeout: 60_000 });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const cards = page.locator('[data-testid^="day-progress-edit-"]');
+  await expect
+    .poll(async () => cards.evaluateAll(list => list.map(card => card.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['day-progress-edit-night', 'day-progress-edit-morning']);
+});

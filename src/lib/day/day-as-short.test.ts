@@ -550,3 +550,33 @@ describe('the board writes into a short changed on Script (5b-ii, no freeze)', (
     assert.deepEqual(clashesFor(day.slots), []);
   });
 });
+
+describe('a short in the board’s order (Step 5f)', () => {
+  it('writes its scenes in the board’s order, and a new moment after the card before it', () => {
+    const ordered = { ...day, slotOrder: ['night', 'morning', 'afternoon', 'evening'] } as DayToolCache;
+    const short = dayAsShort({ day: ordered, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    assert.deepEqual(parseScript(short.script.source).scenes.map(scene => scene.heading), [
+      'INT. BEDROOM - NIGHT',
+      'INT. KITCHEN - MORNING',
+      'EXT. BEACH - DAY',
+    ]);
+    // The empty evening written in: after the afternoon, the card before it on the board.
+    const grown = {
+      ...ordered,
+      slots: ordered.slots!.map(slot => (slot.id === 'evening' ? { ...slot, location: 'rooftop', sceneHints: 'watches the sunset' } : slot)),
+    } as DayToolCache;
+    const again = dayAsShort({
+      day: grown,
+      castId: 'mara',
+      leadName: 'Mara',
+      now: 2000,
+      existing: { script: { ...short.script, shots: short.shots }, scenes: short.scenes },
+    })!;
+    assert.deepEqual(parseScript(again.script.source).scenes.map(scene => scene.heading), [
+      'INT. BEDROOM - NIGHT',
+      'INT. KITCHEN - MORNING',
+      'EXT. BEACH - DAY',
+      'EXT. ROOFTOP - EVENING',
+    ]);
+  });
+});

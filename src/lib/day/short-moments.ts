@@ -135,3 +135,31 @@ export function shortMomentHasMore(
     moment.lines.some(line => !leadSpeakers.includes(line.speaker.toUpperCase()))
   );
 }
+
+/**
+ * The board's order as its short has it (Step 5f, 2026-11-09 — the user: cards in the script's
+ * order): the moments with a scene in the script's scene order; a moment with none (an empty
+ * card, one whose scene went) stays after the one it followed. Pure.
+ */
+export function shortSlotOrder(
+  /** The board's moments, in its order now. */
+  slotIds: readonly DaySlotId[],
+  moments: readonly Pick<ShortMoment, 'daySlot'>[]
+): DaySlotId[] {
+  const inScript = moments
+    .map(moment => moment.daySlot)
+    .filter((id, index, all): id is DaySlotId =>
+      Boolean(id && slotIds.includes(id) && all.indexOf(id) === index)
+    );
+  const out = [...inScript];
+  slotIds.forEach((id, index) => {
+    if (out.includes(id)) return;
+    // After the nearest moment before it that is placed already; else first.
+    const before = slotIds
+      .slice(0, index)
+      .reverse()
+      .find(previous => out.includes(previous));
+    out.splice(before ? out.indexOf(before) + 1 : 0, 0, id);
+  });
+  return out;
+}

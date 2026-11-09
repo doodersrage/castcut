@@ -5,7 +5,7 @@ import type { DayToolCache } from '../play/settings';
 import { dayAsShort } from './day-as-short';
 import { createScene, type SavedScene } from './scenes';
 import { draftShots } from './script-shots';
-import { shortMomentHasMore, shortMomentsOf } from './short-moments';
+import { shortMomentHasMore, shortMomentsOf, shortSlotOrder } from './short-moments';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -124,5 +124,27 @@ describe('a Short’s moments from its script (Step 5a)', () => {
     assert.equal(shortMomentHasMore({ ...morning!, lines: [{ speaker: 'THEO', text: 'Hi.' }] }, ['MARA']), true);
     assert.equal(shortMomentHasMore({ ...morning!, lines: [...morning!.lines, { speaker: 'MARA', text: 'More.' }] }, ['MARA']), true);
     assert.equal(shortMomentHasMore({ ...morning!, shots: [...morning!.shots, ...morning!.shots] }, ['MARA']), true);
+  });
+});
+
+describe('the board in its script’s order (Step 5f)', () => {
+  it('takes the script’s scene order; a moment with no scene stays after the one it followed', () => {
+    assert.deepEqual(
+      shortSlotOrder(
+        ['morning', 'afternoon', 'evening', 'night'],
+        [{ daySlot: 'night' }, { daySlot: 'morning' }, {}, { daySlot: 'afternoon' }]
+      ),
+      // The evening (no scene) followed the afternoon on the board.
+      ['night', 'morning', 'afternoon', 'evening']
+    );
+    // Nothing in the script: the board as it is.
+    assert.deepEqual(shortSlotOrder(['morning', 'night'], []), ['morning', 'night']);
+    // A scene of a moment the board doesn't have, and one named twice, are left out.
+    assert.deepEqual(
+      shortSlotOrder(['morning', 'night'], [{ daySlot: 'night' }, { daySlot: 'evening' }, { daySlot: 'night' }, { daySlot: 'morning' }]),
+      ['night', 'morning']
+    );
+    // An empty first card stays first.
+    assert.deepEqual(shortSlotOrder(['morning', 'afternoon', 'night'], [{ daySlot: 'night' }, { daySlot: 'afternoon' }]), ['morning', 'night', 'afternoon']);
   });
 });

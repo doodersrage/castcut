@@ -10,6 +10,7 @@ import { parseScript } from '../script/parse';
 import type { CameraShot } from '../pose/camera-shot';
 import type { DayToolCache } from '../play/settings';
 import {
+  orderDaySlots,
   dayStillShownImage,
   normalizeDaySlotStills,
   normalizeDaySlots,
@@ -129,7 +130,8 @@ export function dayAsShort(input: {
   existing?: { script: SavedScript; scenes: readonly SavedScene[] };
 }): DayAsShort | null {
   const castId = input.castId.trim();
-  const moments = momentsOf(input.day);
+  // In the board's order (Step 5f): a new moment's scene goes after the card before it there.
+  const moments = orderDaySlots(momentsOf(input.day), input.day.slotOrder);
   if (!castId || !moments.length) return null;
   const now = input.now ?? Date.now();
   const title =

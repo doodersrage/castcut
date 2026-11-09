@@ -929,6 +929,33 @@ export function dayStillsCachePatch(
  * Board slots for a Day of `length` (default: the length the saved slots imply, else four).
  * Slot content is kept by id, so growing 4 → 6 keeps Morning…Night and adds the late slots.
  */
+/**
+ * The board's moments in their order (Step 5f): those `order` names first, as it names them,
+ * then any it doesn't in id order. No order: as they are. Pure; nothing is added or dropped.
+ */
+export function orderDaySlots<T extends { id: DaySlotId }>(
+  slots: readonly T[],
+  order: readonly unknown[] | null | undefined
+): T[] {
+  if (!order?.length) return [...slots];
+  const rank = new Map<string, number>();
+  for (const id of order) if (typeof id === 'string' && !rank.has(id)) rank.set(id, rank.size);
+  return slots
+    .map((slot, index) => ({ slot, index }))
+    .sort(
+      (a, b) =>
+        (rank.get(a.slot.id) ?? rank.size + a.index) - (rank.get(b.slot.id) ?? rank.size + b.index)
+    )
+    .map(entry => entry.slot);
+}
+
+/** A stored order read back: valid slot ids, each once (what it names that isn't there is harmless). */
+export function normalizeDaySlotOrder(value: unknown): DaySlotId[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out = [...new Set(value.filter(isDaySlotId))].slice(0, DAY_LENGTH_MAX);
+  return out.length ? out : undefined;
+}
+
 export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | null): DaySlot[] {
   const byId = new Map<DaySlotId, DaySlot>();
   for (const slot of input ?? []) {
@@ -5158,7 +5185,11 @@ export function dayWatchPlaylist(
   const hold = clampStillHoldSec(stillHoldSec);
   const bySlot = new Map(normalizeDaySlotStills(stills).map(still => [still.slotId, still]));
   const shots: FilmPlaylistShot[] = [];
-  for (const slot of normalizeDaySlots(slots)) {
+  // In the order given (a Short's is its script's, Step 5f), not by id.
+  for (const slot of orderDaySlots(
+    normalizeDaySlots(slots),
+    slots.map(entry => entry.id)
+  )) {
     const still = bySlot.get(slot.id);
     const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
     const url = still?.status === 'completed' ? still.imageUrl?.trim() : '';

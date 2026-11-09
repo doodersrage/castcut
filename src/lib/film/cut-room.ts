@@ -12,7 +12,13 @@ import {
 } from '../video/cut-generate';
 import type { FilmCutOptionsValue } from '@/components/FilmCutOptionsControls';
 import { roleplayWatchPlaylist } from './character-film';
-import { dayWatchPlaylist, type DaySlot, type DaySlotStill } from '../day/planner';
+import {
+  dayWatchPlaylist,
+  normalizeDaySlots,
+  orderDaySlots,
+  type DaySlot,
+  type DaySlotStill,
+} from '../day/planner';
 import type { KeyedShot } from './cut-plan';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import type { CutBridgeStatus } from '../video/cut-bridge';
@@ -314,7 +320,7 @@ export function cutExtraShots(
 }
 
 export type CutRoomInput = {
-  day?: { slots?: DaySlot[]; stills?: DaySlotStill[] | null } | null;
+  day?: { slots?: DaySlot[]; stills?: DaySlotStill[] | null; slotOrder?: unknown[] } | null;
   story?: RoleplayStoryBeat[] | null;
   /** The Cast's kept scene takes (sceneCutShots), keyed by scene id. */
   scenes?: KeyedShot[] | null;
@@ -328,7 +334,10 @@ export type CutRoomInput = {
  */
 export function cutRoomSourceShots(input: CutRoomInput): Record<CutSource, KeyedShot[]> {
   const day = input.day
-    ? (dayWatchPlaylist(input.day.stills ?? [], input.day.slots) as KeyedShot[])
+    ? (dayWatchPlaylist(
+        input.day.stills ?? [],
+        orderDaySlots(normalizeDaySlots(input.day.slots), input.day.slotOrder)
+      ) as KeyedShot[])
     : [];
   const story = input.story ? (roleplayWatchPlaylist(input.story) as KeyedShot[]) : [];
   return {

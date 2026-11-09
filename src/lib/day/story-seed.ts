@@ -7,7 +7,7 @@
 
 import { realKitId } from '../fitting/outfit-handoff';
 import { dayMoodFlavor } from './mood-flavor';
-import type { DaySlot, DaySlotStill } from './planner';
+import { normalizeDaySlots, orderDaySlots, type DaySlot, type DaySlotStill } from './planner';
 import type { RoleplayContentId, RoleplayStoryBeat, RoleplayTone } from '../story/roleplay';
 import type { DayToolCache, RoleplayToolCache } from '../play/settings';
 
@@ -35,7 +35,8 @@ export function castDayPlan(
   if (owner === id) {
     return {
       live: true,
-      slots: day.slots,
+      // In its order (a Short's: its script's — Step 5f).
+      slots: orderDaySlots(normalizeDaySlots(day.slots, day.dayLength), day.slotOrder),
       stills: day.stills,
       dayMood: day.dayMood,
       dayWeather: day.dayWeather,
@@ -47,7 +48,7 @@ export function castDayPlan(
   if (!parked) return null;
   return {
     live: false,
-    slots: parked.slots,
+    slots: orderDaySlots(normalizeDaySlots(parked.slots, parked.dayLength), parked.slotOrder),
     stills: parked.stills,
     dayMood: parked.dayMood,
     dayWeather: parked.dayWeather,

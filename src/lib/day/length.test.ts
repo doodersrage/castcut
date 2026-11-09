@@ -10,6 +10,8 @@ import {
   normalizeDaySlotStills,
   normalizeDaySlots,
   DEFAULT_DAY_SLOTS,
+  orderDaySlots,
+  normalizeDaySlotOrder,
 } from './planner';
 import { applyDayTheme } from '../play/remix';
 import { buildDayPoseGuide } from './pose-guide';
@@ -302,5 +304,18 @@ describe('late-slot heat pools', () => {
       assert.ok(m.DAY_LATE_SLOT_INTIMATE_BEAT_PRESETS[dayPartOf(slot.id)].includes(beat), beat);
       assert.ok(m.isDayIntimateSoloBeat(beat), beat);
     }
+  });
+
+  it('shows the moments in their stored order (Step 5f); ids it doesn’t name follow in id order', () => {
+    const four = normalizeDaySlots(DEFAULT_DAY_SLOTS);
+    assert.deepEqual(
+      orderDaySlots(four, ['night', 'morning']).map(slot => slot.id),
+      ['night', 'morning', 'afternoon', 'evening']
+    );
+    assert.deepEqual(orderDaySlots(four, undefined).map(slot => slot.id), four.map(slot => slot.id));
+    // An id the board doesn't have is harmless; nothing is added or dropped.
+    assert.equal(orderDaySlots(four, ['night-9', 'evening']).length, 4);
+    assert.deepEqual(normalizeDaySlotOrder(['night', 'bogus', 'night', 3, 'morning-2']), ['night', 'morning-2']);
+    assert.equal(normalizeDaySlotOrder('night'), undefined);
   });
 });

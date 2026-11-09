@@ -132,6 +132,7 @@ import {
   ensureDaySlotsMatchMood,
   isDayAdultMood,
   normalizeDayLength,
+  orderDaySlots,
   isDayHeatMood,
   mergeDaySlotStills,
   nextDaySlotToEdit,
@@ -467,8 +468,12 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       // A scene is one slot (its time of day is the slot id).
       sceneMode
         ? [sceneSlotOf(toolSettings.slots)]
-        : normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
-    [sceneMode, toolSettings.dayLength, toolSettings.slots]
+        : // In the board's order (a Short's: its script's — Step 5f), its ids only keys.
+          orderDaySlots(
+            normalizeDaySlots(toolSettings.slots, toolSettings.dayLength),
+            toolSettings.slotOrder
+          ),
+    [sceneMode, toolSettings.dayLength, toolSettings.slotOrder, toolSettings.slots]
   );
   // Latest slots for the outfit arc: Queue day runs every slot in one callback, whose `slots`
   // never sees the kit the slot before it just picked.

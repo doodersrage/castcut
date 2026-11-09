@@ -150,6 +150,12 @@ export type DayToolCache = {
   outfitHandoffKept?: import('../day/outfit-scope').DayOutfitHandoffNotice;
   /** Moments on the board (2–12; 2, 3, 4, 6 and 8 one tap); default four dayparts. */
   dayLength?: import('../day/planner').DayLength;
+  /**
+   * The board's moments in the order they are shown and cut (Step 5f, 2026-11-09): a linked
+   * Short's is its script's scene order; a moment's id is only its key. Unset, or a moment it
+   * doesn't name: id order, as before (and as an older release shows them).
+   */
+  slotOrder?: import('../day/planner').DaySlotId[];
   /** Completed / in-flight stills for the day reel and Cut film. */
   stills?: import('../day/planner').DaySlotStill[];
   /** Cast character that owns {@link stills}; cleared when Cast changes. */

@@ -13,6 +13,7 @@ import {
   dayStillsFromShort,
 } from '@/lib/day/day-as-short';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
+import { shortMomentsOf, shortSlotOrder } from '@/lib/day/short-moments';
 import { saveDayAsShort, type DayShortLink } from '@/lib/day/scene-links';
 
 /** How long the board is left alone before its edits go into the short. */
@@ -90,6 +91,17 @@ export function useDayShortSync(input: {
       shortLink: { ...current, fingerprint: dayShortFingerprint({ ...now, slots: moments }) },
     });
   }, [castId, scenesStamp, script]);
+
+  // The board in its short's order (Step 5f, 2026-11-09): its cards as the script orders its
+  // scenes — moved on Script, moved here. A card with no scene stays after the one it followed.
+  const orderKey = slots.map(slot => slot.id).join(',');
+  useEffect(() => {
+    if (!script) return;
+    const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
+    const ids = orderKey ? (orderKey.split(',') as DaySlot['id'][]) : [];
+    const next = shortSlotOrder(ids, shortMomentsOf(script, scenes));
+    if (next.join(',') !== orderKey) latest.current.updateDay({ slotOrder: next });
+  }, [orderKey, scenesStamp, script]);
 
   // Short → short: the board's edits, a moment after the last one.
   const fingerprint = script ? dayShortFingerprint(day) : '';

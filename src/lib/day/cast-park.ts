@@ -10,6 +10,7 @@ import type { DayToolCache } from '../play/settings';
 export type ParkedDay = Pick<
   DayToolCache,
   | 'slots'
+  | 'slotOrder'
   | 'dayLength'
   | 'stills'
   | 'dayMood'
@@ -26,6 +27,7 @@ export const PARKED_DAY_LIMIT = 6;
 
 const PARKED_FIELDS = [
   'slots',
+  'slotOrder',
   'dayLength',
   'stills',
   'dayMood',
