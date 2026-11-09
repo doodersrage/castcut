@@ -9,6 +9,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.12.0] - 2026-11-09
+
+- Away from the board, a Short is read as its short has it (step 4c, part 2a)
+- A read line too short for its words is read again, and Cut names one still cut off
+- A server film cut rides out a failed status ask or download
+
 ## [v3.11.0] - 2026-11-08
 
 - Looking around counts as doing something; the writer specs answer a scene's rewrite
