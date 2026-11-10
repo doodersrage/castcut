@@ -70,6 +70,18 @@ function jsonResponse(body: unknown, ok = true): Response {
 describe("autoTagGalleryEntry", async () => {
   const { autoTagGalleryEntry } = await import("./auto-vision-tags");
 
+  it("sends no clip to the vision model (an animated take's thumbnail is the clip)", async () => {
+    autoVisionTags = true;
+    const stub = installBrowserApis(url =>
+      url.startsWith("thumb://")
+        ? new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
+        : jsonResponse({})
+    );
+    await autoTagGalleryEntry(entry({ id: "clip-1", promptId: "clip-1" }));
+    stub.restore();
+    assert.deepEqual(stub.calls.map(call => call.url), ["thumb://clip-1"]);
+  });
+
   it("skips an entry that already has vision tags", async () => {
     autoVisionTags = true;
     const stub = installBrowserApis(() => jsonResponse({}));

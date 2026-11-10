@@ -64,6 +64,11 @@ export async function autoTagGalleryEntry(entry: ComfyGalleryEntry): Promise<voi
       return;
     }
     const blob = await response.blob();
+    // A clip's first "thumbnail" can be the clip itself: the vision model reads stills only (it
+    // was sent and refused, a 500 per animated take — real run, 2026-11-09).
+    if (blob.type && !blob.type.startsWith('image/')) {
+      return;
+    }
     const dataUrl = await blobToDataUrl(blob);
     let prompt = entry.prompt.trim() || 'Uploaded still';
 
