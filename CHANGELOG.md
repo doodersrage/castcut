@@ -9,6 +9,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.15.1] - 2026-11-10
+
+- A Short's headings name the place only; people in a moment are never voice-overs
+- The scene writer says who is in the scene is there in person
+- An episode with no shots yet takes a short's scene as its first
+- A run waits for the clip it queued before calling it unrendered
+- Real-render driver: shortscene, Step 5 live (dialogue, every shot animated, into a cut)
+- Gallery auto-tagging sends no clip to the vision model
+
 ## [v3.15.0] - 2026-11-09
 
 - A scene added on Script gets its card on the Short (Step 5f, part 2)
