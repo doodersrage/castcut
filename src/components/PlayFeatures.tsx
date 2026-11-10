@@ -1,6 +1,7 @@
 'use client';
 
 import '@/lib/play/features';
+import '@/lib/day/day-board-store';
 import '@/components/PlayAppSlots';
 import PlayCastPlateWatcher from '@/components/play/PlayCastPlateWatcher';
 import LookPlateGuardWatcher from '@/components/play/LookPlateGuardWatcher';

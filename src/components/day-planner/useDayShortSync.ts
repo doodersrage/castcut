@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
-import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { normalizeSavedScenes, upsertScene } from '@/lib/day/scenes';
 import { addScriptPatch } from '@/lib/day/scene-scripts';
 import { scriptsCacheOf } from '@/lib/day/scene-script-store';
@@ -77,8 +77,20 @@ export function useDayShortSync(input: {
     if (!script) return;
     const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
     const { day: now, updateDay: update } = latest.current;
-    const next = dayStillsFromShort(now, scenes, { castId, scriptId: script.id });
-    if (next) update(dayStillsCachePatch(next, castId));
+    // The stored stills too (Step 5f part 3b): the board reads its short's takes as it loads, so
+    // the page may have them already while the stored copy doesn't — what reads stills alone
+    // (counts, gallery references) goes by the stored copy.
+    // The page's own stills are written then (never the stored ones: the page may be ahead).
+    const link = { castId, scriptId: script.id };
+    const next = dayStillsFromShort(now, scenes, link);
+    if (next) {
+      update(dayStillsCachePatch(next, castId));
+      return;
+    }
+    const storedStills = loadSettingsCache().tools.day?.stills;
+    const stored = Array.isArray(storedStills) ? storedStills : [];
+    if (dayStillsFromShort({ ...now, stills: stored }, scenes, link))
+      update(dayStillsCachePatch(now.stills ?? [], castId));
   }, [castId, script, stillsKey]);
 
   // Short ← short, the moments too (step 4b, 2026-11-08): the short is the record. When its

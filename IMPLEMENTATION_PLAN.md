@@ -3832,8 +3832,21 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
     - **3b — the board saves the slim copy** (`slimDayBoard`, its reader shipped in 3.13; 3a
       the rollback): must save the cards and the link together, always — a partial save of the
       page's link (fingerprint of the whole board) over a slim copy reads as an edit waiting,
-      and readers would see empty cards. Planned: the Day tool's persist writes `slots` +
-      `shortLink` from the page state whenever either is in the batch, then slims.
+      and readers would see empty cards. Done 2026-11-10 in the settings store itself rather
+      than the page's persist (`lib/day/day-board-store.ts`, registered with
+      `registerToolStoreCodec` in settings/cache.ts — cache can't import Play): every
+      `loadToolSettings('day')` reads the board whole (`wholeDayBoard`: dayBoardFromShort, and a
+      slim card its Scene holds filled from it even when the copy is out of step with its link —
+      never an empty card); every `saveToolSettings('day', …)` puts the change onto the board as
+      read and stores it slim only when it reads back the same (`storedDayBoard` →
+      slimDayBoard), else whole. So any writer, partial or not, leaves a whole copy or an
+      in-step slim one. Raw `loadSettingsCache().tools.day` readers use stills/plates only (3a).
+      Scene → Delete of a Scene holding a card: the card is saved whole after (`keepShortCardOf`),
+      else it would read empty. Left: a Scene deleted on another device (tombstone merge) empties
+      its slim card. The board's stills pull also writes the page's stills when the stored ones
+      lag its short's kept takes (the page reads them in as it loads, so it had nothing to pull
+      and the stored copy kept the old stills — caught by the in-step e2e spec). Rollback:
+      3.15.2 (3.13+ read slim).
     - **3c — the board's edits write the Scenes** (then the copy goes).
 - **Live run, 2026-11-09** (`shortscene` in scripts/scene-real-render.mts; Slyne, 3 moments,
   production build, own data): beats 11 s, dialogue 31 s — 3 scenes, 2 with both speakers (11

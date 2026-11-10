@@ -4812,6 +4812,117 @@ test('a scene removed on Script empties its card on the Short', async ({ page })
   await expect.poll(cafe, { timeout: 15_000 }).toBe('0|untied');
 });
 
+/** The stored Short board (tools.day), as the settings store keeps it. */
+async function storedDayTool(page: Page): Promise<string> {
+  return page
+    .evaluate(
+      () =>
+        new Promise<string>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => resolve('');
+          request.onsuccess = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('kv')) {
+              db.close();
+              resolve('');
+              return;
+            }
+            const get = db.transaction('kv', 'readonly').objectStore('kv').get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              db.close();
+              resolve(JSON.stringify(get.result?.value?.tools?.day ?? {}));
+            };
+            get.onerror = () => {
+              db.close();
+              resolve('');
+            };
+          };
+        })
+    )
+    .catch(() => '');
+}
+
+// Step 5f part 3b: a linked Short stores each moment its Scene holds as its id only, and every
+// reader — the board after a reload, Scene — still shows the whole card.
+test('a Short stores its board slim and shows it whole', async ({ page }) => {
+  const moment = (id: string, slotId: string, sceneId: string, location: string, beat: string, n: number) => ({
+    id,
+    castId: CAST,
+    name: location,
+    slot: { id: slotId, label: slotId, location, sceneHints: beat },
+    dayMood: 'everyday',
+    takes: [],
+    fromDaySlot: slotId,
+    fromScript: { scriptId: 'short-slim', sceneId, shotId: `${sceneId}-moment` },
+    createdAt: n,
+    updatedAt: n,
+  });
+  const board = {
+    stillsCharacterId: CAST,
+    dayMood: 'everyday',
+    slots: [
+      { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+      { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+    ],
+    dayLength: 2,
+  } as DayToolCache;
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        ...board,
+        // Saved whole by an earlier version, one edit waiting: the board writes it, then slims.
+        shortLink: { castId: CAST, scriptId: 'short-slim', fingerprint: '', syncedAt: 1 },
+        shortLinkedFor: [CAST],
+      },
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          moment('slim-morning', 'morning', 'int-small-kitchen-morning', 'small kitchen', 'making coffee', 1),
+          moment('slim-night', 'night', 'int-bedroom-night', 'bedroom', 'reading in bed', 2),
+        ],
+        scripts: [
+          {
+            id: 'short-slim',
+            castId: CAST,
+            name: 'Slim',
+            source: 'INT. SMALL KITCHEN - MORNING\n\nmaking coffee\n\nINT. BEDROOM - NIGHT\n\nreading in bed\n',
+            castMap: { 'SCENE CAST': CAST },
+            shots: [
+              { id: 'int-small-kitchen-morning-moment', sceneId: 'int-small-kitchen-morning', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'slim-morning' },
+              { id: 'int-bedroom-night-moment', sceneId: 'int-bedroom-night', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'slim-night' },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  }, { once: true });
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-short-slim')).toBeVisible({ timeout: 60_000 });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('reading in bed').first()).toBeVisible({ timeout: 30_000 });
+  // Stored: the moments as their ids (the Scenes hold the rest), the link in step with that.
+  const slim = async () => {
+    const day = JSON.parse((await storedDayTool(page)) || '{}') as { slots?: Array<Record<string, unknown>> };
+    return JSON.stringify((day.slots ?? []).map(slot => Object.keys(slot).sort().join(',')));
+  };
+  await expect.poll(slim, { timeout: 20_000 }).toBe(JSON.stringify(['id', 'id']));
+  // Read back whole: the board after a reload, and Scene's card.
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('making coffee').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('reading in bed').first()).toBeVisible();
+  // Nothing written back over it: still slim, the short's text as it was.
+  await expect.poll(slim, { timeout: 5_000 }).toBe(JSON.stringify(['id', 'id']));
+  const source = JSON.parse((await storedSceneTool(page)) || '{}').scripts?.find((entry: { id: string }) => entry.id === 'short-slim')?.source ?? '';
+  expect(source).toContain('making coffee');
+  expect(source).toContain('reading in bed');
+});
+
 // An episode just written (no shots of its own yet) takes a short's scene as its first (real
 // run, 2026-11-09: its Scenes source couldn't be picked, so the add box never showed).
 test('a short’s scene starts an episode’s cut that has no shots yet', async ({ page }) => {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
+import { keepShortCardOf } from '@/lib/day/day-board-client';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { DayToolCache } from '@/lib/play/settings';
 import { pushAppToast } from '@/lib/app/toast';
@@ -370,7 +371,12 @@ export function useScenePage(vm: DayEngineView) {
 
   const deleteScene = useCallback(
     (sceneId: string) => {
+      // A moment of the open Short it holds stays on the board (stored slim, it is this Scene's).
+      const target = scenes.find(entry => entry.id === sceneId);
+      const keepCard = target ? keepShortCardOf(target) : null;
       write(deleteScenePatch({ ...cache, scenes }, sceneId));
+      // After the Scene's own save (queued first, after this commit).
+      if (keepCard) scheduleAfterCommit(keepCard);
       setNote(null);
     },
     [cache, scenes, write]

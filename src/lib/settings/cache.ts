@@ -2001,19 +2001,46 @@ export function saveToolSettings<K extends keyof ToolSettingsCache>(
         tools: {},
         installedPlugins: [],
       });
+  const codec = toolStoreCodecs[tool];
+  const stored = cache.tools[tool];
+  // A tool with a stored form of its own (the Short's slim board): the change goes onto the
+  // settings as they read, and the result is stored in that form — never a part of a change
+  // over the stored form, which could leave it saying something else.
+  const merged = codec
+    ? codec.toStore({ ...(codec.fromStore(stored) ?? {}), ...settings })
+    : { ...cache.tools[tool], ...settings };
   saveSettingsCache(
     {
       ...cache,
       tools: {
         ...cache.tools,
-        [tool]: {
-          ...cache.tools[tool],
-          ...settings,
-        },
+        [tool]: merged,
       },
     },
     options
   );
+}
+
+/**
+ * A tool's settings as stored, and as read (Step 5f part 3b, 2026-11-10: the Short's board
+ * stores only what its short's Scenes don't hold). `fromStore` gives what loadToolSettings
+ * returns — and what a save changes; `toStore` what is written. Registered by the tool's own
+ * module (the settings cache can't import Play): see lib/day/day-board-store.ts.
+ */
+type ToolStoreCodec = {
+  fromStore: (stored: unknown) => unknown;
+  toStore: (settings: Record<string, unknown>) => unknown;
+};
+const toolStoreCodecs: Partial<Record<keyof ToolSettingsCache, ToolStoreCodec>> = {};
+
+export function registerToolStoreCodec<K extends keyof ToolSettingsCache>(
+  tool: K,
+  codec: {
+    fromStore: (stored: ToolSettingsCache[K]) => ToolSettingsCache[K];
+    toStore: (settings: NonNullable<ToolSettingsCache[K]>) => ToolSettingsCache[K];
+  }
+): void {
+  toolStoreCodecs[tool] = codec as unknown as ToolStoreCodec;
 }
 
 export function loadToolSettings<K extends keyof ToolSettingsCache>(
@@ -2021,9 +2048,11 @@ export function loadToolSettings<K extends keyof ToolSettingsCache>(
   defaults: NonNullable<ToolSettingsCache[K]>
 ): NonNullable<ToolSettingsCache[K]> {
   const cache = loadSettingsCache();
+  const codec = toolStoreCodecs[tool];
+  const stored = codec ? codec.fromStore(cache.tools[tool]) : cache.tools[tool];
   return {
     ...defaults,
-    ...(cache.tools[tool] ?? {}),
+    ...(stored ?? {}),
   } as NonNullable<ToolSettingsCache[K]>;
 }
 
