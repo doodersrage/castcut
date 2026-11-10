@@ -3287,7 +3287,12 @@ export function useCutRoom() {
         3,
         true
       ).map(shot => cutRoomKey('scenes', shot.key));
-      updateCut({ scenesAdded: added });
+      // Into this script's Scenes cut: picked now if it wasn't (an episode with no shots of its
+      // own yet couldn't be — its Scenes were "no shots yet" until these came in).
+      updateCut({
+        scenesAdded: added,
+        ...(sources.includes('scenes') ? {} : { sources: ['scenes' as CutSource] }),
+      });
       if (keys.length) {
         const shown = orderedCutShots(shotsRef.current, options.shotEdits).map(shot => shot.key);
         commitEdit(
@@ -3301,7 +3306,7 @@ export function useCutRoom() {
         );
       }
     },
-    [commitEdit, options, sceneCastId, savedScenes, scenesAdded, storedScripts, updateCut]
+    [commitEdit, options, sceneCastId, savedScenes, scenesAdded, sources, storedScripts, updateCut]
   );
   // Where an added scene can go: after one of this cut's own scenes (its last shot as shown).
   const addAfterChoices = useMemo(() => {

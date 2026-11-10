@@ -4723,3 +4723,66 @@ test('a scene added on Script gets its card on the Short', async ({ page }) => {
   };
   await expect.poll(cafe, { timeout: 15_000 }).toBe('1|afternoon');
 });
+
+// An episode just written (no shots of its own yet) takes a short's scene as its first (real
+// run, 2026-11-09: its Scenes source couldn't be picked, so the add box never showed).
+test('a short’s scene starts an episode’s cut that has no shots yet', async ({ page }) => {
+  const take = [{ id: 'take-sh', promptId: 'take-sh', imageUrl: '/icon.svg?sh', at: 1 }];
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          {
+            id: 'sh-kitchen',
+            castId: CAST,
+            name: 'sh-kitchen',
+            slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+            dayMood: 'everyday',
+            takes: take,
+            keptTakeId: 'take-sh',
+            fromScript: { scriptId: 'short', sceneId: 'int-kitchen-morning', shotId: 'int-kitchen-morning~1' },
+            createdAt: 3,
+            updatedAt: 3,
+          },
+        ],
+        scripts: [
+          {
+            id: 'fresh-episode',
+            castId: CAST,
+            name: 'The week',
+            source: 'INT. OFFICE - DAY\n\nShe works.\n',
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          {
+            id: 'short',
+            castId: CAST,
+            name: 'Her morning',
+            source: 'INT. KITCHEN - MORNING\n\nShe pours coffee.\n',
+            shots: [
+              { id: 'int-kitchen-morning~1', sceneId: 'int-kitchen-morning', purpose: 'action', framing: 'waist', who: [], seconds: 3, madeSceneId: 'sh-kitchen' },
+            ],
+            createdAt: 2,
+            updatedAt: 2,
+          },
+        ],
+      },
+    },
+  });
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-fresh-episode')).toBeVisible({ timeout: 60_000 });
+  await gotoStable(page, `/cut?from=scenes&character=${CAST}&script=fresh-episode&add=short`);
+  await dismissBlockingOverlays(page);
+  const box = page.getByTestId('cut-add-scenes');
+  await expect(box).toBeVisible({ timeout: 60_000 });
+  await expect(box.getByTestId('cut-add-scenes-script')).toHaveValue('short');
+  await box.getByTestId('cut-add-scenes-add').click();
+  const rows = page.getByTestId('cut-shot-list').locator('[data-testid^="cut-shot-scenes:"]');
+  await expect
+    .poll(async () => rows.evaluateAll(list => list.map(row => row.getAttribute('data-testid'))), { timeout: 30_000 })
+    .toEqual(['cut-shot-scenes:sh-kitchen']);
+  await expect(page.getByTestId('cut-added-scene')).toContainText('Her morning');
+});

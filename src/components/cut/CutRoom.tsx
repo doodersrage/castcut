@@ -770,7 +770,12 @@ export default function CutRoom() {
           ) : null}
           <Suspense fallback={null}>
             <CutAddScenesHere
-              hasScript={Boolean(vm.scenesScript && vm.sources.includes('scenes'))}
+              // Its Scenes picked — or not pickable yet (an episode with no shots of its own): a
+              // short's scene can be its first.
+              hasScript={Boolean(
+                vm.scenesScript &&
+                (vm.sources.includes('scenes') || vm.bySource.scenes.length === 0)
+              )}
               scripts={vm.addableScripts}
               afterChoices={vm.addAfterChoices}
               added={vm.scenesAdded}
