@@ -4093,9 +4093,17 @@ const phases: Record<string, Phase> = {
    * SHORT_ANIMATE (all | lines | none), SHORT_RUN_MIN (240).
    */
   async shortscene(_ctx, page) {
+    type ShortScripts = Array<
+      StoredScript & {
+        source?: string;
+        shots?: Array<{ sceneId: string; speaker?: string; purpose?: string }>;
+      }
+    >;
     const want = Number(process.env.SHORT_MOMENTS ?? 3);
     const lead = (process.env.SCENE_CAST_NAME ?? V2_CAST.replace(/^cast-/, '')).trim();
     await go(page, `/day?character=${V2_CAST}`);
+    // SHORT_RESUME=1: the short is written and its run started — wait for the run, then on.
+    const resume = process.env.SHORT_RESUME === '1';
     type Board = {
       slots?: Array<{ id: string; sceneHints?: string; line?: string }>;
       stills?: Array<{ slotId: string; status?: string }>;
@@ -4103,90 +4111,98 @@ const phases: Record<string, Phase> = {
     };
     const dayOf = async () =>
       (((await toolSettings(page).catch(() => ({}))) as { day?: Board }).day ?? {}) as Board;
-    for (let i = 0; i < 40; i += 1) {
-      const n = (await dayOf()).slots?.length ?? 0;
-      if (n === want) break;
-      await page
-        .getByTestId(n < want ? 'day-length-more' : 'day-length-less')
-        .first()
-        .click();
-      await page.waitForTimeout(600);
-    }
-    log('moments on the board:', (await dayOf()).slots?.length);
-    const dialogue = page.getByTestId('day-idea-dialogue').first();
-    if (await dialogue.isVisible().catch(() => false)) {
-      if (!(await dialogue.isChecked())) await dialogue.check();
-    } else problems.push('shortscene: no "With dialogue" switch');
-    const idea =
-      process.env.SHORT_IDEA ??
-      `${lead} spends a rainy Saturday with her partner: breakfast arguing over plans, a bookshop where they get separated, and making up over dinner`;
-    const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
-    const slotsNow = async () =>
-      JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
-    const started = Date.now();
-    for (let tries = 0; tries < 6; tries += 1) {
-      const input = page.getByTestId('day-idea-input').first();
-      await input.fill(idea);
-      await page.waitForTimeout(1500);
-      if ((await input.inputValue()) !== idea) continue;
-      await page.getByTestId('day-idea-write').first().click();
-      for (let waited = 0; waited < 90; waited += 3) {
-        await page.waitForTimeout(3000);
+    let blocks: string[] = [];
+    let link = (await dayOf()).shortLink;
+    if (!resume) {
+      for (let i = 0; i < 40; i += 1) {
+        const n = (await dayOf()).slots?.length ?? 0;
+        if (n === want) break;
+        await page
+          .getByTestId(n < want ? 'day-length-more' : 'day-length-less')
+          .first()
+          .click();
+        await page.waitForTimeout(600);
+      }
+      log('moments on the board:', (await dayOf()).slots?.length);
+      const dialogue = page.getByTestId('day-idea-dialogue').first();
+      if (await dialogue.isVisible().catch(() => false)) {
+        if (!(await dialogue.isChecked())) await dialogue.check();
+      } else problems.push('shortscene: no "With dialogue" switch');
+      const idea =
+        process.env.SHORT_IDEA ??
+        `${lead} spends a rainy Saturday with her partner: breakfast arguing over plans, a bookshop where they get separated, and making up over dinner`;
+      const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
+      const slotsNow = async () =>
+        JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
+      const started = Date.now();
+      for (let tries = 0; tries < 6; tries += 1) {
+        const input = page.getByTestId('day-idea-input').first();
+        await input.fill(idea);
+        await page.waitForTimeout(1500);
+        if ((await input.inputValue()) !== idea) continue;
+        await page.getByTestId('day-idea-write').first().click();
+        for (let waited = 0; waited < 90; waited += 3) {
+          await page.waitForTimeout(3000);
+          if ((await slotsNow()) !== before) break;
+        }
         if ((await slotsNow()) !== before) break;
+        log('Write it changed nothing — again');
       }
-      if ((await slotsNow()) !== before) break;
-      log('Write it changed nothing — again');
+      if ((await slotsNow()) === before) throw new Error('Write it did not change the board');
+      log('beats in', Math.round((Date.now() - started) / 1000), 's');
+      // Then each moment's scene is written: the progress line shows until the last lands.
+      const progress = page.getByTestId('day-idea-dialogue-progress').first();
+      await progress.waitFor({ timeout: 120_000 }).catch(() => undefined);
+      const until = Date.now() + 30 * 60_000;
+      let lastSaid = '';
+      while (Date.now() < until && (await progress.isVisible().catch(() => false))) {
+        const said = ((await progress.textContent().catch(() => '')) ?? '').trim();
+        if (said !== lastSaid) log('  ', said);
+        lastSaid = said;
+        await page.waitForTimeout(5000);
+      }
+      log('dialogue written in', Math.round((Date.now() - started) / 1000), 's');
+      link = (await dayOf()).shortLink;
+      if (!link) throw new Error('the board has no short');
+      await page.waitForTimeout(4000);
+      const scripts = (await storedScripts(page)) as ShortScripts;
+      const scriptId = link.scriptId;
+      const short = scripts.find(entry => entry.id === scriptId);
+      if (!short?.source) throw new Error('the short is not stored');
+      blocks = short.source.split(/\n(?=(?:INT|EXT|INT\.\/EXT)\.?\s)/);
+      let twoVoices = 0;
+      for (const block of blocks.slice(1)) {
+        const heading = block.split('\n')[0]!.trim();
+        const cues = [...block.matchAll(/^([A-Z][A-Z0-9 '\-.]{1,40})(?: \([^)]*\))?$/gm)]
+          .map(match => match[1]!.trim())
+          .filter(cue => !/^(INT|EXT)\b/.test(cue));
+        const speakers = [...new Set(cues)];
+        if (speakers.length >= 2) twoVoices += 1;
+        log(
+          '  scene',
+          heading,
+          '·',
+          cues.length,
+          'lines ·',
+          speakers.join(', ') || 'no one speaks'
+        );
+      }
+      log('short:', blocks.length - 1, 'scenes,', twoVoices, 'with two voices or more');
+      if (!twoVoices) problems.push('shortscene: no scene has two speakers');
+      await shot(page, 'scene-written');
+      for (const block of blocks.slice(1, 3))
+        log(block.trim().slice(0, 900).replace(/\n+/g, ' | '));
     }
-    if ((await slotsNow()) === before) throw new Error('Write it did not change the board');
-    log('beats in', Math.round((Date.now() - started) / 1000), 's');
-    // Then each moment's scene is written: the progress line shows until the last lands.
-    const progress = page.getByTestId('day-idea-dialogue-progress').first();
-    await progress.waitFor({ timeout: 120_000 }).catch(() => undefined);
-    const until = Date.now() + 30 * 60_000;
-    let lastSaid = '';
-    while (Date.now() < until && (await progress.isVisible().catch(() => false))) {
-      const said = ((await progress.textContent().catch(() => '')) ?? '').trim();
-      if (said !== lastSaid) log('  ', said);
-      lastSaid = said;
-      await page.waitForTimeout(5000);
-    }
-    log('dialogue written in', Math.round((Date.now() - started) / 1000), 's');
-    const link = (await dayOf()).shortLink;
     if (!link) throw new Error('the board has no short');
-    await page.waitForTimeout(4000);
-    const scripts = (await storedScripts(page)) as Array<
-      StoredScript & {
-        source?: string;
-        shots?: Array<{ sceneId: string; speaker?: string; purpose?: string }>;
-      }
-    >;
-    const short = scripts.find(entry => entry.id === link.scriptId);
-    if (!short?.source) throw new Error('the short is not stored');
-    const blocks = short.source.split(/\n(?=(?:INT|EXT|INT\.\/EXT)\.?\s)/);
-    let twoVoices = 0;
-    for (const block of blocks.slice(1)) {
-      const heading = block.split('\n')[0]!.trim();
-      const cues = [...block.matchAll(/^([A-Z][A-Z0-9 '\-.]{1,40})(?: \([^)]*\))?$/gm)]
-        .map(match => match[1]!.trim())
-        .filter(cue => !/^(INT|EXT)\b/.test(cue));
-      const speakers = [...new Set(cues)];
-      if (speakers.length >= 2) twoVoices += 1;
-      log('  scene', heading, '·', cues.length, 'lines ·', speakers.join(', ') || 'no one speaks');
-    }
-    log('short:', blocks.length - 1, 'scenes,', twoVoices, 'with two voices or more');
-    if (!twoVoices) problems.push('shortscene: no scene has two speakers');
-    await shot(page, 'scene-written');
-    for (const block of blocks.slice(1, 3)) log(block.trim().slice(0, 900).replace(/\n+/g, ' | '));
-
     // Render: every shot planned and animated (the default), on Short.
     const animate = process.env.SHORT_ANIMATE ?? 'all';
-    await page.getByTestId('day-make-short-animate').first().selectOption(animate);
+    if (!resume) await page.getByTestId('day-make-short-animate').first().selectOption(animate);
     log('button:', ((await page.getByTestId('day-make-short').first().textContent()) ?? '').trim());
     const runBefore = (((await toolSettings(page)) as { scene?: { run?: V2Run } }).scene?.run ??
       {}) as {
       id?: string;
     };
-    for (let tries = 0; tries < 6; tries += 1) {
+    for (let tries = 0; tries < 6 && !resume; tries += 1) {
       await page.getByTestId('day-make-short').first().click();
       await page.waitForTimeout(4000);
       const run = (((await toolSettings(page)) as { scene?: { run?: V2Run & { id?: string } } })
@@ -4211,7 +4227,7 @@ const phases: Record<string, Phase> = {
       'flagged'
     );
     for (const [id, why] of Object.entries(run.flagged ?? {})) log('   flagged', id, why);
-    const planned = ((await storedScripts(page)) as typeof scripts).find(
+    const planned = ((await storedScripts(page)) as ShortScripts).find(
       entry => entry.id === link.scriptId
     );
     const scenes = (await v2Scenes(page)) as Array<
@@ -4269,7 +4285,7 @@ const phases: Record<string, Phase> = {
     await page.getByTestId('script-keep').first().click();
     await page.getByTestId('script-reading').first().waitFor({ timeout: 60_000 });
     await page.waitForTimeout(3000);
-    const episode = ((await storedScripts(page)) as typeof scripts).find(
+    const episode = ((await storedScripts(page)) as ShortScripts).find(
       entry => entry.castId === V2_CAST && entry.name === 'The Week'
     );
     if (!episode) throw new Error('the episode script was not kept');

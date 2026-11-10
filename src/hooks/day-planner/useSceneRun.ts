@@ -213,10 +213,21 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           () => !pageRef.current.inFlight && pageRef.current.still?.promptId === pick.take.promptId,
           CHECKS_TIMEOUT_MS
         );
+        const clipBefore = pageRef.current.still?.clipPromptId;
         await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
+        // The page has the queued clip after its next render (pageRef follows in an effect):
+        // read at once, it was always the still before — every clip of a real run was called
+        // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
+        await until(() => {
+          const still = pageRef.current.still;
+          return (
+            still?.clipStatus === 'error' ||
+            Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
+          );
+        }, OPEN_TIMEOUT_MS);
         const queued = pageRef.current.still?.clipStatus;
         const landed =
-          queued === 'queued' || queued === 'running'
+          queued === 'queued' || queued === 'running' || queued === 'completed'
             ? await until(() => {
                 const status = pageRef.current.still?.clipStatus;
                 return status === 'completed' || status === 'error';
