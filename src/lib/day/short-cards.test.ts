@@ -6,7 +6,8 @@ import { dayAsShort, dayShortFingerprint } from './day-as-short';
 import { dayLengthSlotIds } from './planner';
 import { createScene, type SavedScene } from './scenes';
 import { draftShots } from './script-shots';
-import { shortCardsForScriptScenes } from './short-cards';
+import { applyReimport, reconcileScript } from './script-reimport';
+import { shortCardsForScriptScenes, shortCardsOfRemovedScenes } from './short-cards';
 import { shortMomentsOf } from './short-moments';
 
 const day = {
@@ -169,5 +170,82 @@ describe('a scene added on Script gets its card (Step 5f part 2)', () => {
     assert.equal(shortCardsForScriptScenes({ day, script, scenes: short.scenes, castId: 'mara', leadName: 'Mara' }), null);
     const { script: withCafe, scenes } = shortWithCafe();
     assert.equal(shortCardsForScriptScenes({ day, script: withCafe, scenes, castId: 'theo', leadName: 'Theo' }), null);
+  });
+});
+
+describe('a scene removed on Script takes its card with it', () => {
+  /** The short, then a new version of it imported on Script (as SceneScriptReimport applies it). */
+  function reimported(edit: (source: string) => string) {
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const script = { ...short.script, shots: short.shots };
+    const source = edit(script.source);
+    const made = new Set(short.scenes.map(scene => scene.id));
+    const rows = reconcileScript(parseScript(script.source), parseScript(source), script.shots, made);
+    return { short, script: applyReimport(script, source, rows, { madeSceneIds: made, now: 2000 }) };
+  }
+  const withoutScene = (heading: string) => (source: string) =>
+    source.replace(new RegExp(`${heading}[\\s\\S]*?(?=\\n(?:INT|EXT)\\.|$)`), '');
+
+  it('empties the card and its still, unties its Scene, and the board writes no scene back', () => {
+    const { short, script } = reimported(withoutScene('INT. KITCHEN - MORNING'));
+    assert.ok(!/KITCHEN/.test(script.source));
+    const out = shortCardsOfRemovedScenes({ day, script, scenes: short.scenes, castId: 'mara', now: 3000 })!;
+    assert.deepEqual(out.cleared, ['morning']);
+    const morning = out.slots.find(slot => slot.id === 'morning')!;
+    assert.equal(morning.location, undefined);
+    assert.equal(morning.sceneHints, undefined);
+    assert.equal(morning.line, undefined);
+    assert.equal(out.slots.find(slot => slot.id === 'afternoon')!.location, 'beach');
+    assert.deepEqual(out.stills, []);
+    // The Scene stays, its takes too — only untied from the card.
+    assert.equal(out.scenes.length, 1);
+    const kitchen = out.scenes[0]!;
+    const before = short.scenes.find(scene => scene.id === kitchen.id)!;
+    assert.equal(before.fromDaySlot, 'morning');
+    assert.equal(kitchen.fromDaySlot, undefined);
+    assert.deepEqual(kitchen.takes, before.takes);
+    assert.deepEqual(kitchen.fromScript, before.fromScript);
+    // The board's next edit: no kitchen again.
+    const scenes = short.scenes.map(scene => (scene.id === kitchen.id ? kitchen : scene));
+    const again = dayAsShort({
+      day: { ...day, slots: out.slots, stills: out.stills } as DayToolCache,
+      castId: 'mara',
+      leadName: 'Mara',
+      now: 4000,
+      existing: { script, scenes },
+    })!;
+    assert.deepEqual(
+      parseScript(again.script.source).scenes.map(scene => scene.heading),
+      ['EXT. BEACH - DAY', 'INT. BEDROOM - NIGHT']
+    );
+    // And the emptied card is free for the next scene written on Script.
+    const cafe = { ...again.script, source: again.script.source.replace('EXT. BEACH', `${CAFE}\nEXT. BEACH`), shots: again.shots };
+    const added = shortCardsForScriptScenes({
+      day: { ...day, slots: out.slots, stills: out.stills } as DayToolCache,
+      script: cafe,
+      scenes: again.scenes,
+      castId: 'mara',
+      leadName: 'Mara',
+      now: 5000,
+    })!;
+    assert.equal(added.dayLength, 4);
+    assert.ok(['morning', 'evening'].includes(added.scenes[0]!.fromDaySlot!));
+  });
+
+  it('leaves a card whose scene only got a new heading (its shots moved with it)', () => {
+    const { short, script } = reimported(source => source.replace('EXT. BEACH - DAY', 'EXT. SANDY BEACH - DAY'));
+    assert.match(script.source, /SANDY BEACH/);
+    assert.equal(shortCardsOfRemovedScenes({ day, script, scenes: short.scenes, castId: 'mara' }), null);
+  });
+
+  it('clears nothing when every scene is there, the script reads as none, or it is another Cast’s', () => {
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const script = { ...short.script, shots: short.shots };
+    assert.equal(shortCardsOfRemovedScenes({ day, script, scenes: short.scenes, castId: 'mara' }), null);
+    assert.equal(
+      shortCardsOfRemovedScenes({ day, script: { ...script, source: '' }, scenes: short.scenes, castId: 'mara' }),
+      null
+    );
+    assert.equal(shortCardsOfRemovedScenes({ day, script, scenes: short.scenes, castId: 'ines' }), null);
   });
 });

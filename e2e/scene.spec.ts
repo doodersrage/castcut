@@ -6,6 +6,8 @@ import { closeDaySheets, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
+import { dayShortFingerprint } from '../src/lib/day/day-as-short';
+import type { DayToolCache } from '../src/lib/play/settings';
 
 /**
  * Scene — one shot, exactly as you want it: Day's slot editor and engine on one shot, the Cast's
@@ -4722,6 +4724,92 @@ test('a scene added on Script gets its card on the Short', async ({ page }) => {
     return `${(script?.source.match(/INT\. CAFE/g) ?? []).length}|${scenes.map(entry => entry.fromDaySlot).join(',')}`;
   };
   await expect.poll(cafe, { timeout: 15_000 }).toBe('1|afternoon');
+});
+
+// A scene removed on Script (a new version imported without it) takes its card with it: the card
+// was tied to it through its Scene, and the board's next sync wrote the scene back (2026-11-10).
+test('a scene removed on Script empties its card on the Short', async ({ page }) => {
+  const moment = (id: string, slotId: string, sceneId: string, location: string, beat: string, n: number) => ({
+    id,
+    castId: CAST,
+    name: location,
+    slot: { id: slotId, label: slotId, location, sceneHints: beat },
+    dayMood: 'everyday',
+    takes: [],
+    fromDaySlot: slotId,
+    fromScript: { scriptId: 'short-cut', sceneId, shotId: `${sceneId}-moment` },
+    createdAt: n,
+    updatedAt: n,
+  });
+  // The board as it last went into its short (in step): the re-import is the only change.
+  const board = {
+    stillsCharacterId: CAST,
+    dayMood: 'everyday',
+    slots: [
+      { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+      { id: 'afternoon', label: 'Afternoon', location: 'cafe', sceneHints: 'waits at the window table' },
+      { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reading in bed' },
+    ],
+    dayLength: 3,
+  } as DayToolCache;
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: {
+      day: {
+        ...board,
+        shortLink: { castId: CAST, scriptId: 'short-cut', fingerprint: dayShortFingerprint(board), syncedAt: 1 },
+        shortLinkedFor: [CAST],
+      },
+      scene: {
+        isolateSubject: false,
+        scenes: [
+          moment('cut-morning', 'morning', 'int-small-kitchen-morning', 'small kitchen', 'making coffee', 1),
+          moment('cut-cafe', 'afternoon', 'int-cafe-afternoon', 'cafe', 'waits at the window table', 2),
+          moment('cut-night', 'night', 'int-bedroom-night', 'bedroom', 'reading in bed', 3),
+        ],
+        scripts: [
+          {
+            id: 'short-cut',
+            castId: CAST,
+            name: 'Cut down',
+            // The café re-imported away on Script; its shot stays, as no longer in the script.
+            source: 'INT. SMALL KITCHEN - MORNING\n\nmaking coffee\n\nINT. BEDROOM - NIGHT\n\nreading in bed\n',
+            castMap: { 'SCENE CAST': CAST },
+            shots: [
+              { id: 'int-small-kitchen-morning-moment', sceneId: 'int-small-kitchen-morning', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'cut-morning' },
+              { id: 'int-cafe-afternoon-moment', sceneId: 'int-cafe-afternoon', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'cut-cafe' },
+              { id: 'int-bedroom-night-moment', sceneId: 'int-bedroom-night', purpose: 'action', framing: 'knees', who: [], seconds: 3, madeSceneId: 'cut-night' },
+            ],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        ],
+      },
+    },
+  }, { once: true });
+  await openScriptPage(page);
+  await expect(page.getByTestId('script-open-short-cut')).toBeVisible({ timeout: 60_000 });
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('reading in bed').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('waits at the window table')).toHaveCount(0, { timeout: 30_000 });
+  // The café's Scene stays, untied from the card; the short gets no café back, after a reload too.
+  const cafe = async () => {
+    const scene = JSON.parse((await storedSceneTool(page)) || '{}') as {
+      scripts?: Array<{ id: string; source: string }>;
+      scenes?: Array<{ id: string; fromDaySlot?: string }>;
+    };
+    const script = scene.scripts?.find(entry => entry.id === 'short-cut');
+    const own = (scene.scenes ?? []).find(entry => entry.id === 'cut-cafe');
+    return `${(script?.source.match(/CAFE/g) ?? []).length}|${own ? (own.fromDaySlot ?? 'untied') : 'gone'}`;
+  };
+  await expect.poll(cafe, { timeout: 15_000 }).toBe('0|untied');
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('reading in bed').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('waits at the window table')).toHaveCount(0);
+  await expect.poll(cafe, { timeout: 15_000 }).toBe('0|untied');
 });
 
 // An episode just written (no shots of its own yet) takes a short's scene as its first (real

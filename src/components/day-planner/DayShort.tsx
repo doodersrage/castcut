@@ -12,7 +12,7 @@ import { normalizeSceneRun, scriptRunProgress } from '@/lib/day/scene-run';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
-import type { DaySlot, DaySlotStill } from '@/lib/day/planner';
+import { DAY_LENGTH_MAX, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
 import {
   normalizeDayShortLink,
   saveDayAsShort,
@@ -229,6 +229,18 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
               ? ' — it and the board both changed the same moments, so the board’s changes there stay here.'
               : ' — the board and its Scenes stay in step.'}
           </span>
+          {sync.cardless ? (
+            <span
+              className="block text-[var(--tint-warning-text,var(--accent-text))]"
+              role="status"
+              data-testid="day-short-cardless"
+            >
+              {sync.cardless === 1 ? 'One scene' : `${sync.cardless} scenes`} of it{' '}
+              {sync.cardless === 1 ? 'has' : 'have'} no card: the board holds {DAY_LENGTH_MAX}{' '}
+              moments. {sync.cardless === 1 ? 'It is' : 'They are'} still in the script — open it on
+              Script.
+            </span>
+          ) : null}
         </p>
       ) : null}
       {short.runHere && short.link ? (

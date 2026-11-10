@@ -3808,8 +3808,15 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
     grows by one (to 40). Tied through one Scene (`fromDaySlot`): her line's shot's, else the
     first shot's, else a loose one; with none, a Scene made from the card on her line's planned
     shot (else the first free one, else loose). The card is what that Scene holds, so nothing
-    goes back into the script. Not done: a scene deleted on Script leaves its card, and the
-    board writes it back (as before); past 40 a scene gets no card (not said).
+    goes back into the script. Past 40 a scene gets no card: the board now says how many
+    (`cardless`, "N scenes of it have no card").
+  - **A scene removed on Script (2026-11-10):** a new version imported without it left its
+    card tied through its Scene, and the board's next edit wrote the scene back.
+    `shortCardsOfRemovedScenes` (same pull) empties a card whose Scenes' scene is gone (by its
+    id and its shot's, so a heading changed on re-import doesn't count), drops its still, and
+    unties the Scene (`fromDaySlot` off; takes and script link kept). The pull remembers the
+    board it wrote until the page renders it: saving the Scenes reran it on the old board and
+    the emptied card came back (caught by the e2e spec).
   - **Part 3 — deferred (user, 2026-11-09):** the board's sync already keeps the copy equal to
     the Scenes; a true one record means card edits write the script and Scenes directly (a
     rework of the board's editing, two releases). Released 3.15 and ran Step 5 live first.

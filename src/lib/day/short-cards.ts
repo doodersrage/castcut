@@ -23,6 +23,7 @@ import {
 } from './planner';
 import { sceneFromDaySlot, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
+import { parseScript } from '../script/parse';
 import { cueOf } from './short-dialogue';
 import { shortMomentsOf, shortSlotOrder, type ShortMoment } from './short-moments';
 
@@ -195,5 +196,79 @@ export function shortCardsForScriptScenes(input: {
     script: nextScript,
     scenes: changed,
     left,
+  };
+}
+
+export type ShortCardsCleared = {
+  slots: DaySlot[];
+  /** The board's stills without the cleared cards'. */
+  stills: DayToolCache['stills'];
+  /** The Scenes no longer tied to a card (they stay, with their takes). */
+  scenes: SavedScene[];
+  cleared: DaySlotId[];
+};
+
+/**
+ * A scene removed on Script takes its card with it (2026-11-10): the card was tied to the scene
+ * through its Scene (`fromDaySlot`), which stays when the scene goes ("listed as no longer in the
+ * script"). Left tied, the card kept the moment and the board's next edit wrote the scene back.
+ * The card is emptied (and its still, a copy of the Scene's take), and the Scene untied from it —
+ * the Scene keeps its takes and its link to the script. A card whose Scene's scene is still in
+ * the script (by its id, or its shot's — a heading changed on re-import moves the shots) is left
+ * be. Null when no card's scene is gone. Pure.
+ */
+export function shortCardsOfRemovedScenes(input: {
+  day: Pick<DayToolCache, 'slots' | 'dayLength' | 'stills'>;
+  script: SavedScript;
+  scenes: readonly SavedScene[];
+  castId: string;
+  now?: number;
+}): ShortCardsCleared | null {
+  const { script, castId } = input;
+  if (!castId.trim() || script.castId !== castId) return null;
+  const present = new Set(parseScript(script.source).scenes.map(scene => scene.id));
+  // No scene read at all: not a script emptied on purpose — nothing is cleared.
+  if (!present.size) return null;
+  const shown = new Set(
+    shortMomentsOf(script, input.scenes)
+      .map(moment => moment.daySlot)
+      .filter(Boolean)
+  );
+  const shots = script.shots ?? [];
+  const inScript = (scene: SavedScene) =>
+    present.has(scene.fromScript!.sceneId) ||
+    shots.some(
+      shot =>
+        (shot.madeSceneId === scene.id || shot.id === scene.fromScript!.shotId) &&
+        present.has(shot.sceneId)
+    );
+  const tied = input.scenes.filter(
+    scene =>
+      scene.fromScript?.scriptId === script.id && scene.castId === castId && scene.fromDaySlot
+  );
+  const slots = normalizeDaySlots(input.day.slots, input.day.dayLength);
+  const cleared = slots
+    .map(slot => slot.id)
+    .filter(slotId => {
+      if (shown.has(slotId)) return false;
+      const own = tied.filter(scene => scene.fromDaySlot === slotId);
+      return own.length > 0 && !own.some(inScript);
+    });
+  if (!cleared.length) return null;
+  const now = input.now ?? Date.now();
+  const gone = new Set<DaySlotId>(cleared);
+  return {
+    slots: normalizeDaySlots(
+      slots.map(slot => (gone.has(slot.id) ? ({ id: slot.id } as DaySlot) : slot)),
+      input.day.dayLength
+    ),
+    stills: (input.day.stills ?? []).filter(still => !gone.has(still.slotId)),
+    scenes: tied
+      .filter(scene => gone.has(scene.fromDaySlot!))
+      .map(scene => {
+        const { fromDaySlot: _card, ...rest } = scene;
+        return { ...rest, updatedAt: now };
+      }),
+    cleared,
   };
 }

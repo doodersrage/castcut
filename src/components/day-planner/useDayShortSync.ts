@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
@@ -8,8 +8,14 @@ import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { normalizeSavedScenes, upsertScene } from '@/lib/day/scenes';
 import { addScriptPatch } from '@/lib/day/scene-scripts';
 import { scriptsCacheOf } from '@/lib/day/scene-script-store';
-import { shortCardsForScriptScenes } from '@/lib/day/short-cards';
-import { dayStillsCachePatch, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
+import { shortCardsForScriptScenes, shortCardsOfRemovedScenes } from '@/lib/day/short-cards';
+import {
+  DAY_LENGTH_MAX,
+  dayStillsCachePatch,
+  normalizeDaySlots,
+  type DaySlot,
+  type DaySlotStill,
+} from '@/lib/day/planner';
 import {
   dayMomentsFromShort,
   dayShortFingerprint,
@@ -40,7 +46,13 @@ export function useDayShortSync(input: {
   stills: DaySlotStill[];
   link: DayShortLink | undefined;
   updateDay: (patch: Partial<DayToolCache>) => void;
-}): { scriptName: string | null; scenesOwn: boolean; autoError: string | null } {
+}): {
+  scriptName: string | null;
+  scenesOwn: boolean;
+  autoError: string | null;
+  /** Scenes of the short with no card: the board is full (40 moments). */
+  cardless: number;
+} {
   const { character, toolSettings, slots, stills, link, updateDay } = input;
   const castId = character?.id ?? '';
   const scriptId = castId && link?.castId === castId ? link.scriptId : '';
@@ -80,17 +92,35 @@ export function useDayShortSync(input: {
         .map(scene => `${scene.id}:${scene.updatedAt}`)
         .join(',')
     : '';
+  // The board this last wrote, until the page has it: saving the Scenes runs this again, maybe
+  // before that write is rendered — read from the old board, a card just emptied came back.
+  const pulledRef = useRef<{ from: string; day: DayToolCache; link: DayShortLink } | null>(null);
   useEffect(() => {
     // No Scenes read (none yet, or not loaded): nothing to go by — every scene would look new.
     if (!script || !scenesStamp) return;
-    const { day: now, link: current, updateDay: update } = latest.current;
+    const { updateDay: update } = latest.current;
+    let { day: now, link: current } = latest.current;
+    const pending = pulledRef.current;
+    // What the page shows now (a write still on its way chains from it).
+    const shown = current?.fingerprint ?? '';
+    if (pending && shown === pending.from) {
+      now = pending.day;
+      current = pending.link;
+    } else pulledRef.current = null;
     if (!current || dayShortFingerprint(now) !== current.fingerprint) return;
     // The script's text changed on Script since doesn't stop it (part 2b, 2026-11-09): the
     // Scenes still hold the moments — and a slim copy (slimDayBoard) holds nothing else.
     const sceneCache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
-    const scenes = normalizeSavedScenes(sceneCache.scenes);
-    const moments = dayMomentsFromShort(now, scenes, { castId, scriptId: script.id });
-    const pulled = moments ? { ...now, slots: moments } : now;
+    const stored = normalizeSavedScenes(sceneCache.scenes);
+    // A scene removed on Script (2026-11-10): its card is emptied and its Scene untied from it,
+    // or the board's next edit wrote the scene back. The Scene stays, with its takes.
+    const cleared = shortCardsOfRemovedScenes({ day: now, script, scenes: stored, castId });
+    const scenes = cleared
+      ? cleared.scenes.reduce((all, scene) => upsertScene(all, scene), stored)
+      : stored;
+    const base = cleared ? { ...now, slots: cleared.slots, stills: cleared.stills } : now;
+    const moments = dayMomentsFromShort(base, scenes, { castId, scriptId: script.id });
+    const pulled = moments ? { ...base, slots: moments } : base;
     // A scene added on Script gets its card (Step 5f part 2): an empty one, else one more. Its
     // Scene is tied to it (made when it has none) — the board then shows what that Scene holds.
     const added = shortCardsForScriptScenes({
@@ -100,26 +130,36 @@ export function useDayShortSync(input: {
       castId,
       leadName: latest.current.leadName,
     });
-    if (added) {
-      if (added.script !== script)
-        applySceneScriptsPatch(
-          addScriptPatch(scriptsCacheOf(loadSceneScriptStore()), added.script)
-        );
+    if (added && added.script !== script)
+      applySceneScriptsPatch(addScriptPatch(scriptsCacheOf(loadSceneScriptStore()), added.script));
+    if (cleared || added)
       saveToolSettings('scene', {
         ...sceneCache,
-        scenes: added.scenes.reduce((all, scene) => upsertScene(all, scene), scenes),
+        scenes: (added?.scenes ?? []).reduce((all, scene) => upsertScene(all, scene), scenes),
       });
-    }
-    if (!moments && !added) return;
+    if (!cleared && !moments && !added) return;
     const next = added
       ? { ...pulled, slots: added.slots, dayLength: added.dayLength, slotOrder: added.slotOrder }
       : pulled;
+    const shortLink = { ...current, fingerprint: dayShortFingerprint(next) };
+    if (shortLink.fingerprint !== current.fingerprint)
+      pulledRef.current = { from: shown, day: next, link: shortLink };
     update({
       slots: next.slots,
+      ...(cleared ? dayStillsCachePatch(next.stills ?? [], castId) : {}),
       ...(added ? { dayLength: added.dayLength, slotOrder: added.slotOrder } : {}),
-      shortLink: { ...current, fingerprint: dayShortFingerprint(next) },
+      shortLink,
     });
   }, [castId, scenesStamp, script]);
+
+  // Past the board's 40 moments a scene written on Script gets no card (2026-11-10): said, not
+  // left silent. Below 40 the pull above gives it one.
+  const full = normalizeDaySlots(slots, toolSettings.dayLength).length >= DAY_LENGTH_MAX;
+  const cardless = useMemo(() => {
+    if (!script || !full || !scenesStamp) return 0;
+    const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
+    return shortMomentsOf(script, scenes).filter(moment => !moment.daySlot).length;
+  }, [full, scenesStamp, script]);
 
   // The board in its short's order (Step 5f, 2026-11-09): its cards as the script orders its
   // scenes — moved on Script, moved here. A card with no scene stays after the one it followed.
@@ -194,5 +234,10 @@ export function useDayShortSync(input: {
     return () => window.clearTimeout(timer);
   }, [castId, dayPrint, edited]);
 
-  return { scriptName: script?.name ?? null, scenesOwn, autoError: script ? null : autoError };
+  return {
+    scriptName: script?.name ?? null,
+    scenesOwn,
+    autoError: script ? null : autoError,
+    cardless,
+  };
 }
