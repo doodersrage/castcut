@@ -3810,7 +3810,20 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
     shot (else the first free one, else loose). The card is what that Scene holds, so nothing
     goes back into the script. Not done: a scene deleted on Script leaves its card, and the
     board writes it back (as before); past 40 a scene gets no card (not said).
-  - **Part 3 (next):** stop reading the board copy for linked Shorts; write it one more release.
+  - **Part 3 — deferred (user, 2026-11-09):** the board's sync already keeps the copy equal to
+    the Scenes; a true one record means card edits write the script and Scenes directly (a
+    rework of the board's editing, two releases). Released 3.15 and ran Step 5 live first.
+- **Live run, 2026-11-09** (`shortscene` in scripts/scene-real-render.mts; Slyne, 3 moments,
+  production build, own data): beats 11 s, dialogue 31 s — 3 scenes, 2 with both speakers (11
+  and 6 lines); 30 shots planned, made, rendered and kept; 3 scene cards with their strips; the
+  kitchen scene added to a new episode's cut (16 shots). Found and fixed: a run never waited
+  for the clip it queued — every clip called "didn't render" and lost while ComfyUI rendered it
+  (f674cbd2; after it, 14 of 14 animated); an episode with no shots couldn't take a short's
+  scene (129f2abb); gallery auto-tags sent clips to the vision model (cbe3ff1b). Open: the
+  partner's lines came out (V.O.) in two scenes though present (prompt now says who is there
+  in person — not reproduced at that rate offline: 1 in 15 before, 0 in 15 after); headings
+  carry the whole place description ("KITCHEN LIT BY MORNING SUN THROUGH…"); ~6 min a shot
+  animated here.
 
 **Risks.** Re-planning a scene's shots after an edit must never drop a take (5b's matching is
 the riskiest piece; tested on real shorts). Render time grows ~6×: the estimate is shown before

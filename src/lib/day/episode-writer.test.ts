@@ -98,6 +98,12 @@ describe('writing an episode (Part 19 G3)', () => {
     assert.match(messages.at(-1)!.content, /Write scene 2: EXT\. STREET - DAY — She runs/);
     assert.match(messages.at(-1)!.content, /How the scene before ended:\nMARA/);
   });
+
+  it('says who is in the scene is there in person (no voice-over for them)', () => {
+    const withHim = { ...outline, scenes: outline.scenes.map(scene => ({ ...scene, who: ['her partner'] })) };
+    const messages = episodeSceneMessages({ outline: withHim, index: 0, lead: 'Mara', cast: [] });
+    assert.match(messages.at(-1)!.content, /\(with her partner — there in person, seen: no \(V\.O\.\) for them\)/);
+  });
 });
 
 describe('a short from Day', () => {

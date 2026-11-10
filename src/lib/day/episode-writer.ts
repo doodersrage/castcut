@@ -440,7 +440,11 @@ export function episodeSceneMessages(input: {
         input.story?.trim() ? `The story so far — keep it true:\n${input.story.trim()}` : '',
         input.before?.trim() ? `How the scene before ended:\n${input.before.trim()}` : '',
         `Write scene ${input.index + 1}: ${scene.heading} — ${scene.summary}` +
-          (scene.who.length ? ` (with ${scene.who.join(', ')})` : ''),
+          // There in person: a partner with no name came out as a voice on the phone (PARTNER
+          // (V.O.)) across the breakfast table she was sitting at (real Short run, 2026-11-09).
+          (scene.who.length
+            ? ` (with ${scene.who.join(', ')} — there in person, seen: no (V.O.) for them)`
+            : ''),
       ]
         .filter(Boolean)
         .join('\n\n'),
