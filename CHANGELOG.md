@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.15.3] - 2026-11-10
+
+- Step 5f part 3b: a linked Short stores its board slim
+- A run whose take wasn't queued says why, and keeps it
+
 ## [v3.15.2] - 2026-11-10
 
 - Step 5f part 3a: every reader fills a Short's cards from its short
