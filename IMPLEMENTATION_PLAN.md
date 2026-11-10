@@ -3820,6 +3820,21 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
   - **Part 3 — deferred (user, 2026-11-09):** the board's sync already keeps the copy equal to
     the Scenes; a true one record means card edits write the script and Scenes directly (a
     rework of the board's editing, two releases). Released 3.15 and ran Step 5 live first.
+    Started 2026-11-10 (user), readers first:
+    - **3a — every reader fills the cards from the short** (no stored change): the raw reads
+      of `tools.day` that use the cards go through `loadDayBoard` / `dayBoardFromShort` — Same
+      Day / new outfit / theme remixes, the look switch's copy into the page, the dialogue
+      writer (both reads), Queue's job labels. The rest read only stills or settings (Day still
+      counts, face-check plate, partner health, gallery references, parked Days written from
+      filled boards). `dayBoardFromShort` restamps the link's fingerprint when it fills an
+      in-step copy, so a page or writer holding the filled board has no edit "waiting".
+      The Day page itself is filled by its pull (saves cards and link together), not at load.
+    - **3b — the board saves the slim copy** (`slimDayBoard`, its reader shipped in 3.13; 3a
+      the rollback): must save the cards and the link together, always — a partial save of the
+      page's link (fingerprint of the whole board) over a slim copy reads as an edit waiting,
+      and readers would see empty cards. Planned: the Day tool's persist writes `slots` +
+      `shortLink` from the page state whenever either is in the batch, then slims.
+    - **3c — the board's edits write the Scenes** (then the copy goes).
 - **Live run, 2026-11-09** (`shortscene` in scripts/scene-real-render.mts; Slyne, 3 moments,
   production build, own data): beats 11 s, dialogue 31 s — 3 scenes, 2 with both speakers (11
   and 6 lines); 30 shots planned, made, rendered and kept; 3 scene cards with their strips; the

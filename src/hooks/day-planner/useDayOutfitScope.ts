@@ -19,8 +19,9 @@ import {
 } from '@/lib/day/outfit-scope';
 import type { DaySlot, DaySlotId } from '@/lib/day/planner';
 import { outfitPicks } from '@/lib/fitting/outfit-handoff';
-import { loadToolSettings, type SharedToolSettings } from '@/lib/settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE, type DayToolCache } from '@/lib/play/settings';
+import { type SharedToolSettings } from '@/lib/settings/cache';
+import { loadDayBoard } from '@/lib/day/day-board-client';
+import { type DayToolCache } from '@/lib/play/settings';
 
 /**
  * One look and one clothing for the whole Day (day-outfit-scope.ts): what it is, which slots
@@ -114,7 +115,7 @@ export function useDayOutfitScope({
       });
       // switchCastPlate wrote Day's saved settings (the look's photo / shoes, the slots); this
       // page's copy takes the same, so its next save does not put the old ones back.
-      const saved = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      const saved = loadDayBoard();
       updateToolSettings({
         slots: saved.slots,
         outfitHandoffKept: undefined,

@@ -2,12 +2,9 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { getCharacter, loadCharacters, type CharacterRecord } from '@/lib/character/os';
-import {
-  DEFAULT_DAY_TOOL_CACHE,
-  DEFAULT_SCENE_TOOL_CACHE,
-  type DayToolCache,
-} from '@/lib/play/settings';
+import { DEFAULT_SCENE_TOOL_CACHE, type DayToolCache } from '@/lib/play/settings';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
+import { loadDayBoard } from '@/lib/day/day-board-client';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { dayShortFingerprint } from '@/lib/day/day-as-short';
 import { episodeSceneTail } from '@/lib/day/episode-writer';
@@ -60,7 +57,7 @@ export function useShortDialogue(input: {
       if (!castId || !leadName) return;
       stopRef.current = false;
       // The board as Write it left it, its short brought up to it.
-      let day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      let day = loadDayBoard();
       const synced = saveDayAsShort({
         day,
         castId,
@@ -176,7 +173,7 @@ export function useShortDialogue(input: {
         });
         // The card says her first line; the link moves with it, so the board doesn't write the
         // scene back over itself.
-        day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+        day = loadDayBoard();
         const slots = normalizeDaySlots(day.slots, day.dayLength).map(entry =>
           entry.id === slotId ? { ...entry, line: result.line } : entry
         );

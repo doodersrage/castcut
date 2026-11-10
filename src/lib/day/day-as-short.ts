@@ -576,7 +576,14 @@ export function dayBoardFromShort<
   const moments = dayMomentsFromShort(day, scenes, link);
   const withMoments = moments ? { ...day, slots: moments } : day;
   const stills = dayStillsFromShort(withMoments, scenes, link);
-  return stills ? { ...withMoments, stills } : withMoments;
+  const whole = stills ? { ...withMoments, stills } : withMoments;
+  if (whole === day) return day;
+  // In step still (Step 5f part 3, 2026-11-10): the link's fingerprint is the board read back,
+  // so a page holding it (or a slim copy filled) has no edit waiting that it would write.
+  return {
+    ...whole,
+    shortLink: { ...link, fingerprint: dayShortFingerprint(whole as DayToolCache) },
+  };
 }
 
 /**

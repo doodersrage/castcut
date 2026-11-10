@@ -374,6 +374,18 @@ describe('a Short saved slim (step 4c part 2b)', () => {
     assert.deepEqual(later.slots, whole.slots);
   });
 
+  it('reads back in step: its link is the whole board’s, so a page holding it writes nothing (5f part 3)', () => {
+    const slim = slimDayBoard(linked, short.scenes)!;
+    const whole = dayBoardFromShort(slim, short.scenes);
+    assert.equal(whole.shortLink!.fingerprint, dayShortFingerprint(whole));
+    assert.equal(whole.shortLink!.fingerprint, linked.shortLink!.fingerprint);
+    // Read again, it is the same board (nothing more to take).
+    assert.equal(dayBoardFromShort(whole, short.scenes), whole);
+    // An edit waiting on the copy: as it is, its link untouched.
+    const waiting = { ...whole, slots: whole.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'cooks' } : slot)) } as DayToolCache;
+    assert.equal(dayBoardFromShort(waiting, short.scenes), waiting);
+  });
+
   it('isn’t slimmed when it would lose something', () => {
     // An edit waiting to go into the short.
     const waiting = { ...linked, slots: linked.slots!.map(slot => (slot.id === 'evening' ? { ...slot, sceneHints: 'cooks' } : slot)) } as DayToolCache;

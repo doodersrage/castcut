@@ -4,7 +4,8 @@
  */
 
 import type { DaySlot, DaySlotStill } from '../day/planner';
-import type { SavedScene, SceneJob } from '../day/scenes';
+import { normalizeSavedScenes, type SavedScene, type SceneJob } from '../day/scenes';
+import { dayBoardFromShort } from '../day/day-as-short';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import { galleryToolHrefForEntry } from '../gallery/tool-href';
 import type { QueueJobDescriber, QueueJobLabeller } from '../queue/job-context';
@@ -196,9 +197,13 @@ export function repointPlayJobIds(input: {
 export const PLAY_QUEUE_JOB_DESCRIBER: QueueJobDescriber = {
   labeller: () => {
     const tools = loadSettingsCache().tools;
+    // A Short's cards as its short has them (a slim copy keeps only their ids; Step 5f part 3).
+    const day = tools.day
+      ? dayBoardFromShort(tools.day, normalizeSavedScenes(tools.scene?.scenes))
+      : undefined;
     return playJobLabeller(
       buildPlayJobIndex({
-        daySlots: tools.day?.slots,
+        daySlots: day?.slots,
         dayStills: tools.day?.stills,
         story: tools.roleplay?.story,
         scene: tools.scene,

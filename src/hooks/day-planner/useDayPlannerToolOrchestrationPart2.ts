@@ -37,7 +37,7 @@ import {
   ensureCastVoiceClip,
 } from '@/lib/cast/voice';
 import { swapDayForCast } from '@/lib/day/cast-park';
-import { shortBoardOf } from '@/lib/day/day-board-client';
+import { loadDayBoard, shortBoardOf } from '@/lib/day/day-board-client';
 import { swapSceneForCast, type SceneToolCache } from '@/lib/day/scenes';
 import { useFootwearPhoto } from '@/hooks/useFootwearPhoto';
 import { nextDayThread, planTomorrowSlots } from '@/lib/day/thread';
@@ -138,7 +138,6 @@ import {
   loadToolSettings,
   saveSharedSettings,
 } from '@/lib/settings/cache';
-import { DEFAULT_DAY_TOOL_CACHE } from '@/lib/play/settings';
 
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { filmResolutionForCutOptions } from '@/lib/video/resolution';
@@ -1480,7 +1479,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       }
       applyRemixDayFilmState(applyOptions);
       dayThemeRef.current = dayThemeById(applyOptions.themeId)?.label;
-      const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      const next = loadDayBoard();
       stillsRef.current = [];
       updateToolSettings({
         // A new Day is a whole day again (One event ends with its Day).
@@ -1615,7 +1614,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       return;
     }
     applyRemixDayFilmState({ kind: 'new-outfit' });
-    const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+    const next = loadDayBoard();
     stillsRef.current = [];
     updateToolSettings({
       // A new Day is a whole day again (One event ends with its Day).
@@ -1655,7 +1654,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const theme = dayThemeById(params.get('theme'));
       applyRemixDayFilmState(theme ? { kind: 'theme', themeId: theme.id } : undefined);
       dayThemeRef.current = theme?.label;
-      const next = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+      const next = loadDayBoard();
       stillsRef.current = [];
       updateToolSettings({
         // A new Day is a whole day again (One event ends with its Day).
