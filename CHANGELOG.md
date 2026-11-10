@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.15.4] - 2026-11-10
+
+- Step 5f: a Short stores only what its Scenes don't hold
+- Step 5f part 3c: the board's card edits write their Scenes at once
+
 ## [v3.15.3] - 2026-11-10
 
 - Step 5f part 3b: a linked Short stores its board slim
