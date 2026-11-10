@@ -4,12 +4,12 @@
  */
 
 import type { DaySlot, DaySlotStill } from '../day/planner';
-import { normalizeSavedScenes, type SavedScene, type SceneJob } from '../day/scenes';
-import { dayBoardFromShort } from '../day/day-as-short';
+import type { SavedScene, SceneJob } from '../day/scenes';
 import type { RoleplayStoryBeat } from '../story/roleplay';
 import { galleryToolHrefForEntry } from '../gallery/tool-href';
 import type { QueueJobDescriber, QueueJobLabeller } from '../queue/job-context';
-import { loadSettingsCache, saveToolSettings } from '../settings/cache';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
+import { DEFAULT_DAY_TOOL_CACHE } from './settings';
 
 export type PlayJobRef =
   | { tool: 'day'; slotLabel: string; kind: 'still' | 'clip' }
@@ -197,14 +197,13 @@ export function repointPlayJobIds(input: {
 export const PLAY_QUEUE_JOB_DESCRIBER: QueueJobDescriber = {
   labeller: () => {
     const tools = loadSettingsCache().tools;
-    // A Short's cards as its short has them (a slim copy keeps only their ids; Step 5f part 3).
-    const day = tools.day
-      ? dayBoardFromShort(tools.day, normalizeSavedScenes(tools.scene?.scenes))
-      : undefined;
+    // A Short's cards and stills as its short has them (a slim copy keeps only their ids, and
+    // leaves stills to its Scenes' kept takes; Step 5f part 3): read through the board's store.
+    const day = tools.day ? loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE) : undefined;
     return playJobLabeller(
       buildPlayJobIndex({
         daySlots: day?.slots,
-        dayStills: tools.day?.stills,
+        dayStills: day?.stills,
         story: tools.roleplay?.story,
         scene: tools.scene,
       })
@@ -213,7 +212,7 @@ export const PLAY_QUEUE_JOB_DESCRIBER: QueueJobDescriber = {
   repoint: (from, to) => {
     const tools = loadSettingsCache().tools;
     const repointed = repointPlayJobIds({
-      dayStills: tools.day?.stills,
+      dayStills: tools.day ? loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE).stills : undefined,
       story: tools.roleplay?.story,
       from,
       to,

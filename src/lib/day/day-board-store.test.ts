@@ -3,12 +3,24 @@ import { describe, it } from 'node:test';
 import type { DayToolCache } from '../play/settings';
 import {
   dayAsShort,
+  dayBoardFromShort,
   dayShortFingerprint,
+  dayStillsFromShort,
   shortEditClashes,
   shortScenesUnedited,
+  shortSceneCachePatch,
   shortScenesWithBoard,
 } from './day-as-short';
-import { normalizeSavedScenes, upsertScene, type SavedScene } from './scenes';
+import {
+  keptTakeOf,
+  normalizeSavedScenes,
+  sceneWorkingPatch,
+  scenesWithWorking,
+  takeAsStill,
+  upsertScene,
+  type SavedScene,
+  type SceneToolCache,
+} from './scenes';
 import { storedDayBoard, wholeDayBoard } from './day-board-store';
 
 const day = {
@@ -107,7 +119,7 @@ describe('the board’s edits into its Scenes at once (Step 5f part 3c)', () => 
     ),
   } as DayToolCache;
   const into = (scenes: readonly SavedScene[], day: DayToolCache) =>
-    (shortScenesWithBoard({ day, scenes, link, now: 5000 }) ?? []).reduce(
+    (shortScenesWithBoard({ day, inStep: linked, scenes, link, now: 5000 }) ?? []).reduce(
       (all, scene) => upsertScene(all, scene),
       [...scenes]
     );
@@ -127,14 +139,49 @@ describe('the board’s edits into its Scenes at once (Step 5f part 3c)', () => 
     const again = into(scenes, linked);
     assert.equal(tied(again, 'night').slot.sceneHints, 'reads in bed');
     assert.equal(tied(again, 'night').shortSynced, undefined);
-    assert.equal(shortScenesWithBoard({ day: linked, scenes: short.scenes, link }), null);
+    assert.equal(shortScenesWithBoard({ day: linked, inStep: linked, scenes: short.scenes, link }), null);
   });
 
-  it('leaves the Scene open on Scene, and a card with no Scene, alone', () => {
+  it('writes the Scene open on Scene into its page’s working copy too', () => {
     const night = tied(short.scenes, 'night');
-    assert.equal(shortScenesWithBoard({ day: edited, scenes: short.scenes, link, skip: night.id }), null);
+    const cache = { scenes: short.scenes, activeSceneId: night.id, ...sceneWorkingPatch(night) } as SceneToolCache;
+    const patch = shortSceneCachePatch({ cache, day: edited, inStep: linked, link, now: 5000 })!;
+    assert.equal(tied(patch.scenes!, 'night').slot.sceneHints, 'reads in bed by lamplight');
+    assert.equal(patch.slots?.[0]?.sceneHints, 'reads in bed by lamplight');
+    // Recorded from it, its page's slot stays the edit (not the old moment back).
+    const after = { ...cache, ...patch } as SceneToolCache;
+    assert.equal(tied(scenesWithWorking(after, 6000) ?? after.scenes!, 'night').slot.sceneHints, 'reads in bed by lamplight');
+    // Its page edited the moment since (not recorded yet): that is Scene's — left alone.
+    const onPage = { ...cache, slots: [{ ...night.slot, sceneHints: 'asleep over the book' }] } as SceneToolCache;
+    assert.equal(shortSceneCachePatch({ cache: onPage, day: edited, inStep: linked, link, now: 5000 }), null);
+    // Another Scene open: only the scenes.
+    const other = { ...cache, activeSceneId: 'elsewhere' } as SceneToolCache;
+    assert.equal(shortSceneCachePatch({ cache: other, day: edited, inStep: linked, link, now: 5000 })!.slots, undefined);
+  });
+
+  it('leaves a card with no Scene alone', () => {
+    const night = tied(short.scenes, 'night');
     const loose = short.scenes.filter(scene => scene.id !== night.id);
-    assert.equal(shortScenesWithBoard({ day: edited, scenes: loose, link }), null);
+    assert.equal(shortScenesWithBoard({ day: edited, inStep: linked, scenes: loose, link }), null);
+  });
+
+  it('leaves a Scene changed elsewhere since the board last matched, and writes nothing before it has', () => {
+    const night = tied(short.scenes, 'night');
+    const onScene = upsertScene([...short.scenes], {
+      ...night,
+      slot: { ...night.slot, sceneHints: 'asleep over the book' },
+      updatedAt: night.updatedAt + 10,
+    });
+    assert.equal(shortScenesWithBoard({ day: edited, inStep: linked, scenes: onScene, link }), null);
+    assert.equal(shortScenesWithBoard({ day: edited, inStep: null, scenes: short.scenes, link }), null);
+    // A second edit of a card already written early still goes in (its mark is the script's).
+    const twice = {
+      ...edited,
+      slots: edited.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'reads by the window' } : slot)),
+    } as DayToolCache;
+    const scenes = into(into(short.scenes, edited), twice);
+    assert.equal(tied(scenes, 'night').slot.sceneHints, 'reads by the window');
+    assert.equal(tied(scenes, 'night').shortSynced?.sceneHints, 'reads in bed');
   });
 
   it('the script’s update then writes the same as without it — and the Scenes lose the mark', () => {
@@ -183,6 +230,78 @@ describe('the board’s edits into its Scenes at once (Step 5f part 3c)', () => 
     assert.equal(whole.shortLink!.fingerprint, linked.shortLink!.fingerprint);
     assert.equal(dayShortFingerprint(whole), dayShortFingerprint(edited));
     assert.notEqual(dayShortFingerprint(whole), whole.shortLink!.fingerprint);
+  });
+});
+
+describe('a still that is a take of its Scene is stored as that take', () => {
+  const link = { castId: 'mara', scriptId: short.script.id };
+  const morningScene = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+  const morningTake = takeAsStill('morning', keptTakeOf(morningScene)!);
+  const asTake = [{ slotId: 'morning', fromTake: morningScene.keptTakeId }];
+  // A still the board took from its short (Make the short's renders): the kept take, as it shows.
+  const fromTakes = { ...linked, stills: [morningTake] } as DayToolCache;
+  const inStep = { ...fromTakes, shortLink: { ...linked.shortLink!, fingerprint: dayShortFingerprint(fromTakes) } } as DayToolCache;
+
+  it('stores a still that is its Scene’s take as that take, and reads it back', () => {
+    // A still the Day made itself is no take's: kept (the first suite's).
+    assert.equal(dayStillsFromShort(linked, short.scenes, link), null);
+    const slim = stored(storedDayBoard(inStep, short.scenes));
+    assert.deepEqual(slim.stills, asTake);
+    const whole = wholeDayBoard(slim, short.scenes);
+    // (In step, the reader lists every card's still, empty ones too.)
+    assert.deepEqual(whole.stills!.filter(still => still.status), [morningTake]);
+    sameMoments(whole);
+    assert.equal(whole.shortLink!.fingerprint, inStep.shortLink!.fingerprint);
+    // 3.15.3 and 3.15.4 (dayBoardFromShort in step) read it back the same: the rollback.
+    assert.deepEqual(
+      dayBoardFromShort(slim, short.scenes).stills!.find(still => still.slotId === 'morning'),
+      morningTake
+    );
+  });
+
+  it('keeps a still the board holds more of (a previous take), and one rendering', () => {
+    const more = [{ ...morningTake, previousTake: { imageUrl: '/old.png' } }];
+    const withMore = { ...inStep, stills: more } as DayToolCache;
+    const withMoreLinked = { ...withMore, shortLink: { ...inStep.shortLink!, fingerprint: dayShortFingerprint(withMore) } } as DayToolCache;
+    assert.deepEqual(stored(storedDayBoard(withMoreLinked, short.scenes)).stills, more);
+  });
+
+  it('with an edit waiting too, read back still waiting', () => {
+    const edited = {
+      ...inStep,
+      slots: inStep.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'reads in bed by lamplight' } : slot)),
+    } as DayToolCache;
+    const scenes = (shortScenesWithBoard({ day: edited, inStep, scenes: short.scenes, link }) ?? []).reduce(
+      (all, scene) => upsertScene(all, scene),
+      [...short.scenes]
+    );
+    const slim = stored(storedDayBoard(edited, scenes));
+    assert.deepEqual(slim.stills, asTake);
+    assert.deepEqual(by(slim, 'morning'), { id: 'morning' });
+    const whole = wholeDayBoard(slim, scenes);
+    assert.deepEqual(whole.stills, [morningTake]);
+    assert.equal(by(whole, 'night').sceneHints, 'reads in bed by lamplight');
+    assert.equal(whole.shortLink!.fingerprint, inStep.shortLink!.fingerprint);
+    assert.equal(dayShortFingerprint(whole), dayShortFingerprint(edited));
+  });
+
+  it('reads it back once its take is unkept (a moment written anew): the board keeps showing it', () => {
+    const slim = stored(storedDayBoard(inStep, short.scenes));
+    const { keptTakeId: _kept, ...unkept } = morningScene;
+    const scenes = upsertScene([...short.scenes], unkept as SavedScene);
+    const whole = wholeDayBoard(slim, scenes);
+    assert.deepEqual(whole.stills!.filter(still => still.status), [morningTake]);
+    // In step still: nothing for the board to write.
+    assert.equal(whole.shortLink!.fingerprint, dayShortFingerprint(whole));
+    // Its take gone from the Scene: no still.
+    const gone = upsertScene([...short.scenes], { ...unkept, takes: [] } as SavedScene);
+    assert.deepEqual(wholeDayBoard(slim, gone).stills!.filter(still => still.status), []);
+  });
+
+  it('keeps a still another Cast’s board holds', () => {
+    const other = { ...inStep, stillsCharacterId: 'someone-else' } as DayToolCache;
+    const slim = storedDayBoard(other, short.scenes);
+    assert.deepEqual(slim.stills, other.stills);
   });
 });
 

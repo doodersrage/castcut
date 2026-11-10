@@ -3860,8 +3860,36 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
       an edit waiting (or a new still) is stored slim too (`waitingSlimBoard`: link unchanged, read
       back as the same board still waiting, else whole). Rollback: 3.15.3. It fills a slim card
       out of step, and a release that drops `shortSynced` misses only an edit still waiting in
-      the script, not in the Scene. 3.15.2 can't read a slim copy out of step. Next: the copy
-      goes (the board stops storing what its Scenes hold, even whole).
+      the script, not in the Scene. 3.15.2 can't read a slim copy out of step.
+      CI (3.15.4 attempt) failed "a Short moment edited on its Scene shows on the board" twice.
+      It was not reproduced locally (dev or production build, alone or with all of
+      scene.spec.ts). Guard added since: a card is written early only into a Scene that still holds the
+      card as the board had it when it last matched its short on that page (`inStep`). One
+      changed elsewhere since (on Scene, another tab, a page just opened) is left to the
+      script's update and its clash check, as before 3c.
+    - **3d — what the Scenes hold isn't stored (user's choice 2026-11-10: stills + the open
+      Scene).** Two cases stay whole by need: an edit waiting on a "both changed" choice, and a
+      new card before its Scene is made. Done:
+      - **Stills:** a slim card's still that is exactly a take of its Scene, as that take shows
+        (`takeAsStill`, which Make the short's renders are), is stored as that take,
+        `{ slotId, fromTake }` (`stillsLeftToScenes`, checked by reading it back: cards, stills,
+        link), and read back as the take (`takeStillsRead`, before anything else reads it).
+        It's stored as the take, not left to the Scene's kept take, because the board keeps
+        showing a still after a rewritten moment unkeeps its take. Cut counts it (a first
+        version that left it to the kept take failed "stay in step": Cut lost the shot). A still
+        the board finished, reframed or holds a previous take of, or another Cast's, is kept
+        whole. Its take deleted from the Scene: no still. 3.15.4 and before read the pointer as
+        an empty still, and in step put the kept take back on it. The job labeller and job
+        repoint read stills through the store. The board's stills write-through compares
+        against the stills as stored (`storedDayStills`, pointers read as their takes), so a
+        kept take still becomes the board's. Gallery references read raw: each pointer's take is
+        in the Scene's takes, which they hold.
+      - **The open Scene:** no longer skipped. `shortSceneCachePatch` records its page's
+        working copy first (as the script's update reads it), so an edit made on its page is
+        Scene's and left alone. The card's edit then goes into the working copy too. The
+        script's update (`saveDayAsShort`) now also writes a changed moment into the open
+        Scene's working copy. Before, it could leave that copy stale and the page could write
+        the old moment back.
 - **Live run, 2026-11-09** (`shortscene` in scripts/scene-real-render.mts; Slyne, 3 moments,
   production build, own data): beats 11 s, dialogue 31 s — 3 scenes, 2 with both speakers (11
   and 6 lines); 30 shots planned, made, rendered and kept; 3 scene cards with their strips; the

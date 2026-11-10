@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
-import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
+import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { normalizeSavedScenes, upsertScene } from '@/lib/day/scenes';
 import { addScriptPatch } from '@/lib/day/scene-scripts';
 import { scriptsCacheOf } from '@/lib/day/scene-script-store';
@@ -20,11 +20,12 @@ import {
   dayMomentsFromShort,
   dayShortFingerprint,
   dayStillsFromShort,
-  shortScenesWithBoard,
+  shortSceneCachePatch,
 } from '@/lib/day/day-as-short';
 import { applySceneScriptsPatch, loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { shortMomentsOf, shortSlotOrder } from '@/lib/day/short-moments';
 import { saveDayAsShort, type DayShortLink } from '@/lib/day/scene-links';
+import { storedDayStills } from '@/lib/day/day-board-store';
 
 /** How long the board is left alone before its edits go into the short. */
 const SYNC_AFTER_MS = 1500;
@@ -90,8 +91,8 @@ export function useDayShortSync(input: {
       update(dayStillsCachePatch(next, castId));
       return;
     }
-    const storedStills = loadSettingsCache().tools.day?.stills;
-    const stored = Array.isArray(storedStills) ? storedStills : [];
+    // As stored (a still stored as its take read as that take), not filled from the short.
+    const stored = storedDayStills();
     if (dayStillsFromShort({ ...now, stills: stored }, scenes, link))
       update(dayStillsCachePatch(now.stills ?? [], castId));
   }, [castId, script, stillsKey]);
@@ -194,24 +195,28 @@ export function useDayShortSync(input: {
   // reader of the board have a card's edit now; the script's text and shots follow below. Not
   // while the script was changed since (on Script or Scene): the edit waits for what's chosen.
   const editedSince = script ? script.updatedAt > (link?.syncedAt ?? 0) : false;
+  // The board as it last matched its short on this page: a Scene still holding that is the
+  // board's to write; one that doesn't was changed elsewhere since (shortScenesWithBoard).
+  const inStepRef = useRef<{ scriptId: string; day: DayToolCache } | null>(null);
+  useEffect(() => {
+    if (script && fingerprint && fingerprint === linkedFingerprint)
+      inStepRef.current = { scriptId: script.id, day: latest.current.day };
+  });
   useEffect(() => {
     if (!script || !fingerprint || fingerprint === linkedFingerprint || editedSince) return;
     const timer = window.setTimeout(() => {
       const { day: now, link: current } = latest.current;
       if (!current) return;
       const sceneCache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
-      const stored = normalizeSavedScenes(sceneCache.scenes);
-      const changed = shortScenesWithBoard({
+      const inStep = inStepRef.current?.scriptId === script.id ? inStepRef.current.day : null;
+      const patch = shortSceneCachePatch({
+        cache: sceneCache,
         day: now,
-        scenes: stored,
+        inStep,
         link: { castId, scriptId: script.id },
-        ...(sceneCache.activeSceneId ? { skip: sceneCache.activeSceneId } : {}),
       });
-      if (!changed) return;
-      saveToolSettings('scene', {
-        ...sceneCache,
-        scenes: changed.reduce((all, scene) => upsertScene(all, scene), stored),
-      });
+      if (!patch) return;
+      saveToolSettings('scene', { ...sceneCache, ...patch });
       // Stored again now its Scenes hold the cards: slim, the edit still waiting (day-board-store).
       saveToolSettings('day', { slots: now.slots });
     }, EDIT_INTO_SCENES_MS);

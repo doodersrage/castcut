@@ -18,7 +18,16 @@ import {
   type DaySlotStill,
 } from './planner';
 import { slotDayPart } from './parts';
-import { keptTakeOf, sceneFromDaySlot, takeAsStill, type SavedScene } from './scenes';
+import {
+  keptTakeOf,
+  normalizeSavedScenes,
+  sceneFromDaySlot,
+  scenesWithWorking,
+  takeAsStill,
+  upsertScene,
+  type SavedScene,
+  type SceneToolCache,
+} from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
 import type { PlannedShot } from './script-shots';
 import type { ScriptScene } from '../script/parse';
@@ -441,20 +450,27 @@ export function syncedSlotOf(scene: SavedScene | undefined): DaySlot | undefined
  * The board's card edits into its short's Scenes at once (Step 5f part 3c, 2026-11-10): each card
  * a Scene of the short holds, as that Scene's moment — what dayAsShort writes there a moment
  * later with the script — the card as the script last took it kept beside it (`shortSynced`).
- * A card back as the script has it loses that again. Not a card with no Scene, an emptied one
- * (its scene goes with the script's update), or `skip` (the Scene open on Scene: its page's
- * working copy would write over it). The changed Scenes; null when none. Pure.
+ * A card back as the script has it loses that again. Not a card with no Scene, or an emptied one
+ * (its scene goes with the script's update). Only a Scene that still holds the card as `inStep` had it
+ * (the board when it last matched its short): one changed since from elsewhere — on Scene,
+ * another tab, a page just opened that hasn't matched yet — is left for the script's update and
+ * its clash check, as before. The changed Scenes; null when none. Pure.
  */
 export function shortScenesWithBoard(input: {
   day: DayToolCache;
+  /** The board as it last matched its short; none: nothing is written. */
+  inStep: DayToolCache | null;
   scenes: readonly SavedScene[];
   link: { castId: string; scriptId: string };
-  skip?: string;
   now?: number;
 }): SavedScene[] | null {
-  const { link } = input;
+  const { link, inStep } = input;
+  if (!inStep) return null;
   const now = input.now ?? Date.now();
   const changed: SavedScene[] = [];
+  const momentOf = (day: DayToolCache, scene: SavedScene, slotId: DaySlotId) =>
+    sceneFromDaySlot({ day, slotId, castId: link.castId, name: scene.name, id: scene.id, now })
+      ?.slot;
   for (const slot of momentsOf(input.day)) {
     const scene = input.scenes.find(
       entry =>
@@ -462,17 +478,12 @@ export function shortScenesWithBoard(input: {
         entry.castId === link.castId &&
         entry.fromDaySlot === slot.id
     );
-    if (!scene || scene.id === input.skip) continue;
-    const moment = sceneFromDaySlot({
-      day: input.day,
-      slotId: slot.id,
-      castId: link.castId,
-      name: scene.name,
-      id: scene.id,
-      now,
-    })?.slot;
-    if (!moment || JSON.stringify(moment) === JSON.stringify(scene.slot)) continue;
+    if (!scene) continue;
     const synced = syncedSlotOf(scene)!;
+    const was = momentOf(inStep, scene, slot.id);
+    if (!was || JSON.stringify(was) !== JSON.stringify(synced)) continue;
+    const moment = momentOf(input.day, scene, slot.id);
+    if (!moment || JSON.stringify(moment) === JSON.stringify(scene.slot)) continue;
     const { shortSynced: _synced, ...rest } = scene;
     changed.push({
       ...rest,
@@ -482,6 +493,32 @@ export function shortScenesWithBoard(input: {
     });
   }
   return changed.length ? changed : null;
+}
+
+/**
+ * shortScenesWithBoard on Scene's settings: what to save, or null. The Scene open on Scene is
+ * read as its page left it (its working copy recorded, as the script's update reads it), and
+ * written there too: its page shows the card's edit, and doesn't write the old moment back.
+ */
+export function shortSceneCachePatch(input: {
+  cache: SceneToolCache;
+  day: DayToolCache;
+  inStep: DayToolCache | null;
+  link: { castId: string; scriptId: string };
+  now?: number;
+}): (Pick<SceneToolCache, 'scenes'> & Partial<Pick<SceneToolCache, 'slots'>>) | null {
+  const now = input.now ?? Date.now();
+  const scenes = normalizeSavedScenes(
+    scenesWithWorking(input.cache, now) ?? input.cache.scenes ?? [],
+    now
+  );
+  const changed = shortScenesWithBoard({ ...input, scenes, now });
+  if (!changed) return null;
+  const open = changed.find(scene => scene.id === input.cache.activeSceneId);
+  return {
+    scenes: changed.reduce((all, scene) => upsertScene(all, scene), scenes),
+    ...(open ? { slots: [open.slot] } : {}),
+  };
 }
 
 /**

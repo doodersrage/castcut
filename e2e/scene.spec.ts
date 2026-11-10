@@ -2911,10 +2911,21 @@ test('Short and its short stay in step: kept takes back, beats out', async ({ pa
             get.onsuccess = () => {
               db.close();
               const tools = get.result?.value?.tools ?? {};
+              type Take = { id: string; promptId?: string };
+              const scene = (tools.scene?.scenes ?? []).find((entry: { fromDaySlot?: string }) => entry.fromDaySlot === 'night') as
+                | { keptTakeId?: string; takes?: Take[]; slot?: { sceneHints?: string } }
+                | undefined;
+              const stored = (tools.day?.stills ?? []).find((still: { slotId: string }) => still.slotId === 'night') as
+                | { promptId?: string; fromTake?: string }
+                | undefined;
+              // The board's still as it reads it: stored, or stored as the take of its Scene it is
+              // (`fromTake`: a slim card's still that is exactly that take; Step 5f).
+              const ofTake = scene?.takes?.find(take => take.id === stored?.fromTake)?.promptId;
               resolve(
                 JSON.stringify({
-                  night: (tools.day?.stills ?? []).find((still: { slotId: string }) => still.slotId === 'night')?.promptId ?? null,
-                  beat: (tools.scene?.scenes ?? []).find((scene: { fromDaySlot?: string }) => scene.fromDaySlot === 'night')?.slot?.sceneHints ?? null,
+                  night: stored?.promptId ?? ofTake ?? null,
+                  beat: scene?.slot?.sceneHints ?? null,
+                  form: stored?.fromTake ? 'take' : stored ? 'still' : 'none',
                 })
               );
             };
@@ -2922,6 +2933,8 @@ test('Short and its short stay in step: kept takes back, beats out', async ({ pa
         })
     );
   await expect.poll(dayStills, { timeout: 30_000 }).toContain('"night":"night-take"');
+  // Stored as the take it is (Step 5f): the board's card slim, its still its Scene's take.
+  await expect.poll(dayStills, { timeout: 20_000 }).toContain('"form":"take"');
 
   // The board's edit goes into the short: the night's beat, a moment later.
   await openDaySlotSheet(page, 'night');

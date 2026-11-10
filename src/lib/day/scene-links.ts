@@ -11,6 +11,7 @@ import {
   nextSceneName,
   normalizeSavedScenes,
   sceneFromDaySlot,
+  sceneSlotOf,
   scenesWithWorking,
   sendSceneToDayPatch,
   upsertScene,
@@ -268,7 +269,16 @@ export function saveDayAsShort(input: {
   const run = input.render
     ? autopilotRun(runFromScript({ script, scenes }), input.render)
     : undefined;
-  saveToolSettings('scene', { ...cache, scenes, ...(run ? { run } : {}) });
+  // The Scene open on Scene shows its moment as written now: its page's working copy too, or it
+  // would write the old one back (Step 5f).
+  const open = scenes.find(
+    scene => scene.id === cache.activeSceneId && scene.fromScript?.scriptId === scriptId
+  );
+  const working =
+    open && JSON.stringify(sceneSlotOf(cache.slots)) !== JSON.stringify(open.slot)
+      ? { slots: [open.slot] }
+      : {};
+  saveToolSettings('scene', { ...cache, scenes, ...working, ...(run ? { run } : {}) });
   return {
     scriptId,
     ...(run ? { runId: run.id } : {}),
