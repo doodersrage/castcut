@@ -194,9 +194,11 @@ export function dayAsShort(input: {
   // The card as it last went into the short (its Scene's slot): only what changed since is
   // written — a beat rewritten on Script isn't put back by a card that never touched it.
   const syncedOf = (slotId: DaySlotId) =>
-    prior0?.scenes.find(
-      entry => entry.fromScript?.scriptId === prior0.script.id && entry.fromDaySlot === slotId
-    )?.slot;
+    syncedSlotOf(
+      prior0?.scenes.find(
+        entry => entry.fromScript?.scriptId === prior0.script.id && entry.fromDaySlot === slotId
+      )
+    );
   const patched = (slot: DaySlot): string | null => {
     const own = priorMoments.get(slot.id);
     if (!own) return null;
@@ -303,7 +305,7 @@ export function dayAsShort(input: {
     );
     // A whole-scene moment: its shots planned again from its new text, each carrying its Scene.
     const own = sceneMoments.get(slot.id);
-    const lineBefore = before?.slot.line;
+    const lineBefore = syncedSlotOf(before)?.line;
     const planned = own
       ? replannedMomentShots(
           own.moment.shots.map(entry => entry.shot),
@@ -345,11 +347,11 @@ export function dayAsShort(input: {
       // one isn't this moment's — it stays among the takes, unkept, and Make the short renders
       // the moment again. (Live 2026-11-07: a seaside day's kept stills stood in for an
       // old-town day written over it, and the run skipped seven of its twelve moments.)
-      const rewritten = momentRewritten(before.slot, scene.slot);
+      const rewritten = momentRewritten(syncedSlotOf(before)!, scene.slot);
       // Else its kept take, or a still the Day made since (not one the Scene had: that could be
       // the take just unkept).
       const kept = rewritten ? undefined : (before.keptTakeId ?? fromDay[fromDay.length - 1]?.id);
-      const { keptTakeId: _old, ...rest } = before;
+      const { keptTakeId: _old, shortSynced: _synced, ...rest } = before;
       scenes.push({
         ...rest,
         slot: scene.slot,
@@ -425,6 +427,81 @@ export function dayAsShort(input: {
   const order = new Map(parsed.scenes.map((scene, at) => [scene.id, at]));
   shots.sort((a, b) => (order.get(a.sceneId) ?? 0) - (order.get(b.sceneId) ?? 0));
   return { script, shots, scenes: [...scenes, ...alongside], leadSpeaker };
+}
+
+/**
+ * The card as its short's script last took it (Step 5f part 3c): the Scene's own moment, unless
+ * the board wrote an edit into it that the script hasn't taken yet.
+ */
+export function syncedSlotOf(scene: SavedScene | undefined): DaySlot | undefined {
+  return scene ? (scene.shortSynced ?? scene.slot) : undefined;
+}
+
+/**
+ * The board's card edits into its short's Scenes at once (Step 5f part 3c, 2026-11-10): each card
+ * a Scene of the short holds, as that Scene's moment — what dayAsShort writes there a moment
+ * later with the script — the card as the script last took it kept beside it (`shortSynced`).
+ * A card back as the script has it loses that again. Not a card with no Scene, an emptied one
+ * (its scene goes with the script's update), or `skip` (the Scene open on Scene: its page's
+ * working copy would write over it). The changed Scenes; null when none. Pure.
+ */
+export function shortScenesWithBoard(input: {
+  day: DayToolCache;
+  scenes: readonly SavedScene[];
+  link: { castId: string; scriptId: string };
+  skip?: string;
+  now?: number;
+}): SavedScene[] | null {
+  const { link } = input;
+  const now = input.now ?? Date.now();
+  const changed: SavedScene[] = [];
+  for (const slot of momentsOf(input.day)) {
+    const scene = input.scenes.find(
+      entry =>
+        entry.fromScript?.scriptId === link.scriptId &&
+        entry.castId === link.castId &&
+        entry.fromDaySlot === slot.id
+    );
+    if (!scene || scene.id === input.skip) continue;
+    const moment = sceneFromDaySlot({
+      day: input.day,
+      slotId: slot.id,
+      castId: link.castId,
+      name: scene.name,
+      id: scene.id,
+      now,
+    })?.slot;
+    if (!moment || JSON.stringify(moment) === JSON.stringify(scene.slot)) continue;
+    const synced = syncedSlotOf(scene)!;
+    const { shortSynced: _synced, ...rest } = scene;
+    changed.push({
+      ...rest,
+      slot: moment,
+      ...(JSON.stringify(moment) === JSON.stringify(synced) ? {} : { shortSynced: synced }),
+      updatedAt: Math.max(now, scene.updatedAt + 1),
+    });
+  }
+  return changed.length ? changed : null;
+}
+
+/**
+ * Board edits written into the Scenes that the short's script never took (Step 5f part 3c): its
+ * script kept as it is (chosen over the board's edits) — each Scene back to its moment as the
+ * script has it. Null when none. Pure.
+ */
+export function shortScenesUnedited(
+  scenes: readonly SavedScene[],
+  scriptId: string,
+  now = Date.now()
+): SavedScene[] | null {
+  const back = scenes
+    .filter(scene => scene.shortSynced && scene.fromScript?.scriptId === scriptId)
+    .map(({ shortSynced, ...scene }) => ({
+      ...scene,
+      slot: shortSynced!,
+      updatedAt: Math.max(now, scene.updatedAt + 1),
+    }));
+  return back.length ? back : null;
 }
 
 const momentWords = (value: string | undefined) =>
@@ -671,9 +748,11 @@ export function shortEditClashes(input: {
   for (const slot of momentsOf(input.day)) {
     const moment = bySlot.get(slot.id);
     const scene = moment ? parsed.scenes.find(entry => entry.id === moment.sceneId) : undefined;
-    const synced = input.scenes.find(
-      entry => entry.fromScript?.scriptId === input.script.id && entry.fromDaySlot === slot.id
-    )?.slot;
+    const synced = syncedSlotOf(
+      input.scenes.find(
+        entry => entry.fromScript?.scriptId === input.script.id && entry.fromDaySlot === slot.id
+      )
+    );
     if (!scene || !synced) continue;
     const both = (card: string, was: string, written: string) =>
       card !== was && written !== was && card !== written;

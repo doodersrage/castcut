@@ -4921,6 +4921,33 @@ test('a Short stores its board slim and shows it whole', async ({ page }) => {
   const source = JSON.parse((await storedSceneTool(page)) || '{}').scripts?.find((entry: { id: string }) => entry.id === 'short-slim')?.source ?? '';
   expect(source).toContain('making coffee');
   expect(source).toContain('reading in bed');
+
+  // A card's edit (Step 5f part 3c): into its Scene and the script, the board slim after.
+  await openDaySlotSheet(page, 'night');
+  await page.getByTestId('day-slot-sheet').getByTestId('day-slot-beat').fill('asleep over the book');
+  await closeDaySheets(page);
+  const night = async () => {
+    const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+    const scene = (tool.scenes ?? []).find((entry: { id: string }) => entry.id === 'slim-night');
+    const text = tool.scripts?.find((entry: { id: string }) => entry.id === 'short-slim')?.source ?? '';
+    return JSON.stringify({
+      beat: scene?.slot?.sceneHints ?? null,
+      waiting: Boolean(scene?.shortSynced),
+      script: text.includes('asleep over the book'),
+    });
+  };
+  await expect
+    .poll(night, { timeout: 30_000 })
+    .toBe(JSON.stringify({ beat: 'asleep over the book', waiting: false, script: true }));
+  // Slim: what the board keeps of a card its Scene holds (the beat editor's own sceneHintsDay).
+  const slimOnly = async () =>
+    JSON.parse(await slim()).every((keys: string) =>
+      keys.split(',').every(key => ['id', 'eventMove', 'sceneHintsDay'].includes(key))
+    );
+  await expect.poll(slimOnly, { timeout: 20_000 }).toBe(true);
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByText('asleep over the book').first()).toBeVisible({ timeout: 30_000 });
 });
 
 // An episode just written (no shots of its own yet) takes a short's scene as its first (real

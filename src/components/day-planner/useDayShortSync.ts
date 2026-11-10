@@ -20,6 +20,7 @@ import {
   dayMomentsFromShort,
   dayShortFingerprint,
   dayStillsFromShort,
+  shortScenesWithBoard,
 } from '@/lib/day/day-as-short';
 import { applySceneScriptsPatch, loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { shortMomentsOf, shortSlotOrder } from '@/lib/day/short-moments';
@@ -27,6 +28,8 @@ import { saveDayAsShort, type DayShortLink } from '@/lib/day/scene-links';
 
 /** How long the board is left alone before its edits go into the short. */
 const SYNC_AFTER_MS = 1500;
+/** A card's edit into its Scene: soon, once typing pauses. */
+const EDIT_INTO_SCENES_MS = 250;
 
 /**
  * The board on the script road (2026-11-06): a Day with a short and the short stay one.
@@ -187,6 +190,33 @@ export function useDayShortSync(input: {
   // Short → short: the board's edits, a moment after the last one.
   const fingerprint = script ? dayShortFingerprint(day) : '';
   const linkedFingerprint = link?.fingerprint ?? '';
+  // …and into the short's Scenes at once (Step 5f part 3c, 2026-11-10): Scene, Cut and every
+  // reader of the board have a card's edit now; the script's text and shots follow below. Not
+  // while the script was changed since (on Script or Scene): the edit waits for what's chosen.
+  const editedSince = script ? script.updatedAt > (link?.syncedAt ?? 0) : false;
+  useEffect(() => {
+    if (!script || !fingerprint || fingerprint === linkedFingerprint || editedSince) return;
+    const timer = window.setTimeout(() => {
+      const { day: now, link: current } = latest.current;
+      if (!current) return;
+      const sceneCache = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
+      const stored = normalizeSavedScenes(sceneCache.scenes);
+      const changed = shortScenesWithBoard({
+        day: now,
+        scenes: stored,
+        link: { castId, scriptId: script.id },
+        ...(sceneCache.activeSceneId ? { skip: sceneCache.activeSceneId } : {}),
+      });
+      if (!changed) return;
+      saveToolSettings('scene', {
+        ...sceneCache,
+        scenes: changed.reduce((all, scene) => upsertScene(all, scene), stored),
+      });
+      // Stored again now its Scenes hold the cards: slim, the edit still waiting (day-board-store).
+      saveToolSettings('day', { slots: now.slots });
+    }, EDIT_INTO_SCENES_MS);
+    return () => window.clearTimeout(timer);
+  }, [castId, editedSince, fingerprint, linkedFingerprint, script]);
   useEffect(() => {
     if (!script || !fingerprint || fingerprint === linkedFingerprint) return;
     const timer = window.setTimeout(() => {

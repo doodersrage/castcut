@@ -90,6 +90,13 @@ export type SavedScene = {
   keptTakeId?: string;
   /** "Open as Scene": the Day slot it was copied from. */
   fromDaySlot?: DaySlotId;
+  /**
+   * A Short's card edit not yet in its script (Step 5f part 3c, 2026-11-10): the board writes a
+   * card's edit into its Scene's `slot` at once, and this keeps the card as the script last took
+   * it, so the script's update (a moment later) writes only what changed. Gone once it has.
+   * Older releases drop it: the script then misses that one waiting edit (the Scene has it).
+   */
+  shortSynced?: DaySlot;
   /** "Make it a Scene" (M3 S4): the script, its scene and the planned shot it was made from. */
   fromScript?: SceneScriptLink;
   /** "Continue scene": the scene and take whose clip's last frame this scene starts from. */
@@ -427,6 +434,9 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
     ...(keptTakeId ? { keptTakeId } : {}),
     ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
       ? { fromDaySlot: scene.fromDaySlot }
+      : {}),
+    ...(scene.shortSynced && typeof scene.shortSynced === 'object'
+      ? { shortSynced: sceneSlotOf([scene.shortSynced as DaySlot]) }
       : {}),
     ...scriptLinkField(scene.fromScript),
     ...continuationField(scene.continuesFrom),

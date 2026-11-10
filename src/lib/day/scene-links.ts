@@ -16,7 +16,12 @@ import {
   upsertScene,
   type SavedScene,
 } from './scenes';
-import { dayAsShort, dayShortFingerprint, shortEditClashes } from './day-as-short';
+import {
+  dayAsShort,
+  dayShortFingerprint,
+  shortEditClashes,
+  shortScenesUnedited,
+} from './day-as-short';
 import { shortShotScenes } from './short-render';
 import { loadCharacters } from '../character/os';
 import { loadLocations } from '../location/records';
@@ -194,6 +199,10 @@ export function saveDayAsShort(input: {
   if (linked && (!boardChanged || (editedOnScene && input.asIs))) {
     // As it is: nothing new on the board, or the script kept as it is (chosen).
     scriptId = linked.id;
+    // The board's edits its Scenes took at once (Step 5f part 3c) go too: they say what the
+    // script says again.
+    const back = shortScenesUnedited(scenes, linked.id);
+    if (back) scenes = back.reduce<SavedScene[]>((all, scene) => upsertScene(all, scene), scenes);
   } else {
     wrote = true;
     if (!linked) {

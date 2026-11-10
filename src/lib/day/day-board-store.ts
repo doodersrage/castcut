@@ -8,8 +8,13 @@
  */
 import { DEFAULT_SCENE_TOOL_CACHE, type DayToolCache } from '../play/settings';
 import { loadToolSettings, registerToolStoreCodec } from '../settings/cache';
-import { dayBoardFromShort, dayMomentsFromShort, slimDayBoard } from './day-as-short';
-import type { DaySlot } from './planner';
+import {
+  dayBoardFromShort,
+  dayMomentsFromShort,
+  dayShortFingerprint,
+  slimDayBoard,
+} from './day-as-short';
+import { normalizeDaySlots, type DaySlot } from './planner';
 import { normalizeSavedScenes, type SavedScene } from './scenes';
 
 /** What a slim moment keeps: the rest is its Scene's. */
@@ -69,7 +74,58 @@ export function storedDayBoard<T extends Partial<DayToolCache>>(
   scenes: readonly SavedScene[]
 ): T {
   if (!day.shortLink?.scriptId || !Array.isArray(day.slots)) return day;
-  return (slimDayBoard(day as T & Pick<DayToolCache, 'slots'>, scenes) as T | null) ?? day;
+  return (
+    (slimDayBoard(day as T & Pick<DayToolCache, 'slots'>, scenes) as T | null) ??
+    waitingSlimBoard(day, scenes) ??
+    day
+  );
+}
+
+/**
+ * Slim with an edit waiting to go into its short (Step 5f part 3c): its Scenes took the card
+ * edits at once (shortScenesWithBoard), so they hold every card already — only the script's
+ * update is to come. The link stays as it was (the edit still waiting, the board writes it), and
+ * it must read back as the same board with the same edit waiting, else it is stored whole.
+ * 3.15.3 reads it (wholeDayBoard fills a slim card out of step): the release to roll back to.
+ */
+function waitingSlimBoard<T extends Partial<DayToolCache>>(
+  day: T,
+  scenes: readonly SavedScene[]
+): T | null {
+  const link = day.shortLink!;
+  if (!link.castId) return null;
+  const board = day as T & Pick<DayToolCache, 'slots'>;
+  if (dayShortFingerprint(board as DayToolCache) === link.fingerprint) return null;
+  if (dayMomentsFromShort(board, scenes, link)) return null;
+  const held = new Set(
+    scenes
+      .filter(
+        scene =>
+          scene.fromScript?.scriptId === link.scriptId &&
+          scene.castId === link.castId &&
+          scene.fromDaySlot
+      )
+      .map(scene => scene.fromDaySlot)
+  );
+  const slots = normalizeDaySlots(board.slots, board.dayLength);
+  if (!slots.some(slot => held.has(slot.id))) return null;
+  const slim = {
+    ...day,
+    slots: slots.map(slot =>
+      held.has(slot.id)
+        ? ({
+            id: slot.id,
+            ...(slot.eventMove ? { eventMove: slot.eventMove } : {}),
+            ...(slot.sceneHintsDay ? { sceneHintsDay: slot.sceneHintsDay } : {}),
+          } as DaySlot)
+        : slot
+    ),
+  };
+  const back = wholeDayBoard(JSON.parse(JSON.stringify(slim)) as T, scenes);
+  return JSON.stringify(normalizeDaySlots(back.slots, board.dayLength)) === JSON.stringify(slots) &&
+    back.shortLink?.fingerprint === link.fingerprint
+    ? slim
+    : null;
 }
 
 function savedScenes(): SavedScene[] {

@@ -3847,7 +3847,21 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
       lag its short's kept takes (the page reads them in as it loads, so it had nothing to pull
       and the stored copy kept the old stills — caught by the in-step e2e spec). Rollback:
       3.15.2 (3.13+ read slim).
-    - **3c — the board's edits write the Scenes** (then the copy goes).
+    - **3c — the board's edits write the Scenes** (then the copy goes). User chose the central
+      write (2026-11-10): one place for every edit, not the 18 places that edit cards.
+      `useDayShortSync` writes a changed card into its Scene's `slot` 250 ms after the
+      edit (`shortScenesWithBoard`), and the script's text and shots follow at 1.5 s as before. The Scene keeps
+      the card as the script last took it (`SavedScene.shortSynced`, optional), and dayAsShort /
+      shortEditClashes diff against that (`syncedSlotOf`), so the script's update writes only
+      what changed, the same as without the early write, and drops the mark. Not while the script
+      was changed since (the edit waits for the choice; "keep the script" puts early-written
+      Scenes back, `shortScenesUnedited`). Not the Scene open on Scene (its working copy would
+      write over it), nor a card with no Scene. With its Scenes holding every card, a board with
+      an edit waiting (or a new still) is stored slim too (`waitingSlimBoard`: link unchanged, read
+      back as the same board still waiting, else whole). Rollback: 3.15.3. It fills a slim card
+      out of step, and a release that drops `shortSynced` misses only an edit still waiting in
+      the script, not in the Scene. 3.15.2 can't read a slim copy out of step. Next: the copy
+      goes (the board stops storing what its Scenes hold, even whole).
 - **Live run, 2026-11-09** (`shortscene` in scripts/scene-real-render.mts; Slyne, 3 moments,
   production build, own data): beats 11 s, dialogue 31 s — 3 scenes, 2 with both speakers (11
   and 6 lines); 30 shots planned, made, rendered and kept; 3 scene cards with their strips; the
