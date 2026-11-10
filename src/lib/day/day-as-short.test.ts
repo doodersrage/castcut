@@ -35,6 +35,17 @@ describe('a Day as a short', () => {
     assert.equal(dayMomentHeading({ id: 'morning', label: 'Morning', location: 'kitchen' }), 'INT. KITCHEN - MORNING');
     assert.equal(dayMomentHeading({ id: 'afternoon-2', label: 'Late afternoon', location: 'the beach' }), 'EXT. THE BEACH - DAY');
     assert.equal(dayMomentHeading({ id: 'night', label: 'Night' }), 'INT. NIGHT - NIGHT');
+    // Write it's settings carry their light (for the still): the heading names the place only,
+    // inside or out by the whole setting.
+    assert.equal(
+      dayMomentHeading({ id: 'morning', label: 'Morning', location: 'kitchen lit by morning sun through rain-streaked windows' }),
+      'INT. KITCHEN - MORNING'
+    );
+    assert.equal(
+      dayMomentHeading({ id: 'afternoon', label: 'Afternoon', location: 'bookstore with warm lamps and damp pavement light outside' }),
+      'EXT. BOOKSTORE - DAY'
+    );
+    assert.equal(dayMomentHeading({ id: 'evening', label: 'Evening', location: 'rooftop bar at sunset, string lights' }), 'EXT. ROOFTOP BAR - EVENING');
   });
 
   it('writes a scene per moment with a place, beat or line — the lead says the line', () => {
@@ -578,5 +589,40 @@ describe('a short in the board’s order (Step 5f)', () => {
       'EXT. BEACH - DAY',
       'EXT. ROOFTOP - EVENING',
     ]);
+  });
+});
+
+describe('a short written with long headings (before they were shortened)', () => {
+  it('keeps them through a board sync: only a place edited on the card writes the short one', () => {
+    const long = 'kitchen lit by morning sun through rain-streaked windows';
+    const board = {
+      stillsCharacterId: 'mara',
+      dayLength: 2,
+      slots: [
+        { id: 'morning', label: 'Morning', location: long, sceneHints: 'pours coffee' },
+        { id: 'night', label: 'Night', location: 'bedroom', sceneHints: 'reads in bed' },
+      ],
+    } as unknown as DayToolCache;
+    const short = dayAsShort({ day: board, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    // As an earlier release wrote it: the whole setting in the heading.
+    const source = short.script.source.replace('INT. KITCHEN - MORNING', `INT. ${long.toUpperCase()} - MORNING`);
+    const sceneId = parseScript(source).scenes[0]!.id;
+    const shots = short.shots.map(shot => (shot.sceneId === 'int-kitchen-morning' ? { ...shot, sceneId } : shot));
+    const scenes = short.scenes.map(scene =>
+      scene.fromScript?.sceneId === 'int-kitchen-morning' ? { ...scene, fromScript: { ...scene.fromScript, sceneId } } : scene
+    );
+    const existing = { script: { ...short.script, source, shots }, scenes };
+    const beat = {
+      ...board,
+      slots: board.slots!.map(slot => (slot.id === 'night' ? { ...slot, sceneHints: 'falls asleep reading' } : slot)),
+    } as DayToolCache;
+    const again = dayAsShort({ day: beat, castId: 'mara', leadName: 'Mara', now: 2000, existing })!;
+    assert.equal(parseScript(again.script.source).scenes[0]!.heading, `INT. ${long.toUpperCase()} - MORNING`);
+    const moved = {
+      ...board,
+      slots: board.slots!.map(slot => (slot.id === 'morning' ? { ...slot, location: 'garden lit by low sun' } : slot)),
+    } as DayToolCache;
+    const edited = dayAsShort({ day: moved, castId: 'mara', leadName: 'Mara', now: 3000, existing })!;
+    assert.equal(parseScript(edited.script.source).scenes[0]!.heading, 'EXT. GARDEN - MORNING');
   });
 });

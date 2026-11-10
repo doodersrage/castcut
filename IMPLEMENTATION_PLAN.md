@@ -3821,9 +3821,13 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
   (f674cbd2; after it, 14 of 14 animated); an episode with no shots couldn't take a short's
   scene (129f2abb); gallery auto-tags sent clips to the vision model (cbe3ff1b). Open: the
   partner's lines came out (V.O.) in two scenes though present (prompt now says who is there
-  in person — not reproduced at that rate offline: 1 in 15 before, 0 in 15 after); headings
-  carry the whole place description ("KITCHEN LIT BY MORNING SUN THROUGH…"); ~6 min a shot
-  animated here.
+  in person — not reproduced at that rate offline: 1 in 15 before, 0 in 15 after — and
+  `withPeoplePresent` takes (V.O.)/(O.S.) off the cue of anyone in the moment as a written
+  scene goes in); headings carried the whole place description ("KITCHEN LIT BY MORNING SUN
+  THROUGH…") — now the place only (`momentHeadingPlace`; inside/out still by the whole setting;
+  a short written before keeps its headings until a card's place is edited). Left as they are:
+  ~6 min a shot animated here (the GPU), and 2 of 30 shots kept with "the face doesn't match"
+  (flagged for a look).
 
 **Risks.** Re-planning a scene's shots after an edit must never drop a take (5b's matching is
 the riskiest piece; tested on real shorts). Render time grows ~6×: the estimate is shown before

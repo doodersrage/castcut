@@ -105,6 +105,31 @@ export function momentDialogueOutline(input: {
  * whose link moved, the card's line (the lead's first) and Who's who for its Cast members. Null
  * when the moment has no scene in the short, or the written text isn't one scene.
  */
+/**
+ * The people in the moment are there, seen: a (V.O.) / (O.S.) on their cue is taken off (a live
+ * run wrote "PARTNER (V.O.)" for every line of the partner sitting across the table from her,
+ * 2026-11-09 — then rendered as a voice over her shots). Someone else heard, not seen (a voice on
+ * the phone), keeps it. Matched by cue: "her partner" is PARTNER too. Pure.
+ */
+export function withPeoplePresent(written: string, people: readonly MomentPerson[]): string {
+  const cues = new Set(
+    people.flatMap(person => [
+      cueOf(person.name),
+      cueOf(person.name.replace(/^(?:her|his|their|the|a|an)\s+/i, '')),
+    ])
+  );
+  if (!cues.size) return written;
+  return written
+    .split('\n')
+    .map(line => {
+      const match = /^(\s*)([^a-z(]+?)\s*\((?:V\.?\s?O\.?|O\.?\s?S\.?|O\.?\s?C\.?)\)\s*$/.exec(
+        line
+      );
+      return match && cues.has(match[2]!.trim()) ? `${match[1]}${match[2]!.trim()}` : line;
+    })
+    .join('\n');
+}
+
 export function withMomentDialogue(input: {
   script: SavedScript;
   scenes: readonly SavedScene[];
@@ -125,10 +150,11 @@ export function withMomentDialogue(input: {
   const parsed = parseScript(input.script.source);
   const at = parsed.scenes.findIndex(scene => scene.id === moment.sceneId);
   const old = parsed.scenes[at];
-  const written = parseScript(input.written.trim());
+  const text = withPeoplePresent(input.written.trim(), input.people);
+  const written = parseScript(text);
   if (!old || written.scenes.length !== 1) return null;
   const lines = input.script.source.split('\n');
-  lines.splice(old.from - 1, old.to - old.from + 1, ...input.written.trim().split('\n'));
+  lines.splice(old.from - 1, old.to - old.from + 1, ...text.split('\n'));
   const source = `${lines.join('\n').trimEnd()}\n`;
   const reparsed = parseScript(source);
   if (reparsed.scenes.length !== parsed.scenes.length) return null;

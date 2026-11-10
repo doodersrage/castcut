@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import type { DayToolCache } from '../play/settings';
 import { dayAsShort } from './day-as-short';
-import { momentDialogueOutline, momentPeople, withMomentDialogue } from './short-dialogue';
+import { momentDialogueOutline, momentPeople, withMomentDialogue, withPeoplePresent } from './short-dialogue';
 import { shortMomentsOf } from './short-moments';
 
 const day = {
@@ -106,5 +106,30 @@ describe('a Short’s moments written with their dialogue (Step 5c)', () => {
     const base = { script, scenes: short.scenes, castId: 'mara', leadName: 'Mara', people: [] };
     assert.equal(withMomentDialogue({ ...base, slotId: 'evening', written: 'INT. X - DAY\n\nHi.\n' }), null);
     assert.equal(withMomentDialogue({ ...base, slotId: 'morning', written: 'INT. A - DAY\n\nOne.\n\nINT. B - DAY\n\nTwo.\n' }), null);
+  });
+});
+
+describe('the people in the moment are there, seen', () => {
+  it('takes (V.O.) off a person in the moment, by their cue; a voice on the phone keeps it', () => {
+    const written = [
+      'INT. KITCHEN - MORNING',
+      '',
+      'Her partner sits opposite.',
+      '',
+      'PARTNER (V.O.)',
+      'I’m right here.',
+      '',
+      'MOM (V.O.)',
+      'Call me back!',
+      '',
+      'MARA (V.O.)',
+      'I never did.',
+    ].join('\n');
+    const out = withPeoplePresent(written, [{ name: 'her partner' }]);
+    assert.match(out, /^PARTNER\nI’m right here\./m);
+    assert.match(out, /^MOM \(V\.O\.\)$/m);
+    assert.match(out, /^MARA \(V\.O\.\)$/m);
+    assert.equal(withPeoplePresent(written, []), written);
+    assert.match(withPeoplePresent('THEO (O.S.)\nHey.', [{ name: 'Theo' }]), /^THEO\nHey\.$/);
   });
 });

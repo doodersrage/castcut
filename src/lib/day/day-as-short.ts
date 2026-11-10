@@ -36,15 +36,35 @@ const TIME_OF_PART: Record<string, string> = {
 const OUTSIDE =
   /\b(beach|park|street|garden|yard|pier|harbou?r|market|rooftop|terrace|balcony|pool|trail|forest|woods|field|lake|river|shore|square|plaza|court|track|pitch|stadium|campsite|patio|deck|bridge|boardwalk|promenade|outside|outdoors?)\b/i;
 
+/**
+ * The place a heading names: the card's setting up to where it starts saying how it looks — "kitchen
+ * lit by morning sun through rain-streaked windows" is the KITCHEN (Write it gives a setting its
+ * light, for the still; a heading that carried it all read badly — live run, 2026-11-09). Pure.
+ */
+export function momentHeadingPlace(setting: string): string {
+  const flat = setting
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const cut = flat
+    .split(
+      /\s*[,;:(]\s*|\s+[-–—]\s+|\s+(?:lit|with|where|through|under|beneath|overlooking|facing|full of|filled with|glowing|bathed|at (?:dawn|dusk|night|sunset|sunrise)|in the (?:morning|afternoon|evening|rain|dark))\b/i
+    )[0]!
+    .trim();
+  const place = cut.length >= 3 ? cut : flat;
+  return place.split(' ').slice(0, 6).join(' ');
+}
+
 /** "INT. KITCHEN - MORNING" for a moment: its place (else its label) and its part of the day. */
 export function dayMomentHeading(slot: Pick<DaySlot, 'id' | 'label' | 'location'>): string {
-  const place = (slot.location?.trim() || slot.label?.trim() || 'Home')
-    .replace(/[\r\n]+/g, ' ')
+  const setting = slot.location?.trim() || slot.label?.trim() || 'Home';
+  const place = momentHeadingPlace(setting)
     .replace(/\s+-\s+/g, ' ')
     .slice(0, 60)
     .toUpperCase();
   const time = TIME_OF_PART[slotDayPart(slot)] ?? 'DAY';
-  return `${OUTSIDE.test(place) ? 'EXT.' : 'INT.'} ${place} - ${time}`;
+  // Inside or out by the whole setting ("… damp pavement light outside" is out).
+  return `${OUTSIDE.test(setting) ? 'EXT.' : 'INT.'} ${place} - ${time}`;
 }
 
 function speakerKey(name: string): string {
