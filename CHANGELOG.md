@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.15.2] - 2026-11-10
+
+- Step 5f part 3a: every reader fills a Short's cards from its short
+- A scene removed on Script empties its card; a full board says what has no card
+
 ## [v3.15.1] - 2026-11-10
 
 - A Short's headings name the place only; people in a moment are never voice-overs
