@@ -25,6 +25,7 @@ import {
   runTakesTaken,
   settleHandedRun,
   withRunLog,
+  pausedNotQueued,
   withRunOutcome,
   pausedAfterError,
   withRunRedo,
@@ -367,23 +368,26 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           const before = pageRef.current.still?.promptId;
           save({ ...run, current: { sceneId, at: Date.now() } });
           await vmRef.current.queueSlot(pageRef.current.slot, { byPlayer: true });
+          // Queued (a new take on the card), or refused: the card's take is an error and the
+          // page says why — no need to wait out the timeout for that. (A second's grace, so an
+          // error left from before this take isn't read as this one's.)
+          const askedAt = Date.now();
           const queued = await until(() => {
             const id = pageRef.current.still?.promptId;
-            return Boolean(id && id !== before);
+            if (id && id !== before) return true;
+            return (
+              Date.now() - askedAt > 1000 &&
+              pageRef.current.still?.status === 'error' &&
+              Boolean(vmRef.current.error)
+            );
           }, QUEUE_TIMEOUT_MS);
-          promptId = queued ? pageRef.current.still?.promptId : undefined;
+          const newId = pageRef.current.still?.promptId;
+          promptId = queued && newId && newId !== before ? newId : undefined;
           const latest = runRef.current ?? run;
           if (!promptId) {
-            save(
-              withRunLog(
-                {
-                  ...withRunOutcome(latest, sceneId, 'failed', 'its take wasn’t queued'),
-                  state: 'paused',
-                  stopReason: `${scene.name}’s take wasn’t queued — see the note on the card.`,
-                },
-                { at: Date.now(), sceneId, event: 'paused', detail: 'a take was not queued' }
-              )
-            );
+            // Why, from the page now — kept in the run, since the page forgets it on a reload.
+            const why = vmRef.current.error || (queued ? pageRef.current.note : null);
+            save(pausedNotQueued(latest, sceneId, scene.name, why));
             return;
           }
           save(

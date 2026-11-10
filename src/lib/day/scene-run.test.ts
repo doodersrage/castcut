@@ -20,6 +20,7 @@ import {
   shotsToPrepare,
   RUN_MAX_TAKES,
   pausedAfterError,
+  pausedNotQueued,
   withRunRedo,
   withRunLog,
   withRunOutcome,
@@ -315,6 +316,22 @@ describe('an episode run (Part 19 G1)', () => {
     assert.deepEqual(paused.log.at(-1), { at: 9, event: 'paused', detail: 'error: Cannot read properties of undefined' });
     const done = { ...run, state: 'done' as const };
     assert.equal(pausedAfterError(done, 'x'), done);
+  });
+
+  it('pauses a run whose take wasn’t queued, keeping the page’s reason (gone after a reload)', () => {
+    const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
+    const running = { ...run, state: 'running' as const, current: { sceneId: 'a', at: 6 } };
+    const paused = pausedNotQueued(running, 'a', '1B EMPTY CITY STREET · Dialogue', 'ComfyUI is not reachable\n at 127.0.0.1:8188', 9);
+    assert.equal(paused.state, 'paused');
+    assert.equal(paused.current, undefined);
+    assert.equal(paused.outcomes?.a, 'failed');
+    assert.equal(paused.stopReason, '1B EMPTY CITY STREET · Dialogue’s take wasn’t queued: ComfyUI is not reachable at 127.0.0.1:8188');
+    assert.deepEqual(paused.log.at(-1), { at: 9, sceneId: 'a', event: 'paused', detail: 'a take was not queued: ComfyUI is not reachable at 127.0.0.1:8188' });
+    // No reason: it timed out. A long one still fits what a saved run keeps.
+    assert.match(pausedNotQueued(running, 'a', 'Kitchen', null, 9).stopReason!, /no take appeared on the card within 5 minutes$/);
+    const long = pausedNotQueued(running, 'a', 'x'.repeat(120), 'y'.repeat(400), 9);
+    assert.ok(long.stopReason!.length <= 200);
+    assert.equal(normalizeSceneRun(long)?.stopReason, long.stopReason);
   });
 });
 

@@ -586,3 +586,29 @@ export function pausedAfterError(run: SceneRun, message: string, now = Date.now(
     { at: now, event: 'paused', detail: `error: ${why}` }
   );
 }
+
+/**
+ * A run whose Scene's take wasn't queued: paused, saying why — the page's error (or note) at the
+ * time, which is gone after a reload, so it is kept in the run (2026-11-10: "see the note on the
+ * card" pointed at a note that a reload had cleared). No reason: no take appeared in time.
+ */
+export function pausedNotQueued(
+  run: SceneRun,
+  sceneId: string,
+  sceneName: string,
+  reason: string | null | undefined,
+  now = Date.now()
+): SceneRun {
+  const why =
+    (reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 140) ||
+    'no take appeared on the card within 5 minutes';
+  const name = sceneName.replace(/\s+/g, ' ').trim().slice(0, 50) || 'The Scene';
+  return withRunLog(
+    {
+      ...withRunOutcome(run, sceneId, 'failed', `its take wasn’t queued: ${why}`, now),
+      state: 'paused',
+      stopReason: `${name}’s take wasn’t queued: ${why}`.slice(0, 200),
+    },
+    { at: now, sceneId, event: 'paused', detail: `a take was not queued: ${why}` }
+  );
+}
