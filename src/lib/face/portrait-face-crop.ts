@@ -15,7 +15,11 @@ export type PortraitFaceCropRect = {
 };
 
 export type PortraitFaceCropOptions = {
-  /** Fraction of source height used for the crop window (default 0.26). */
+  /**
+   * Fraction of source height used for the crop window (default 0.26, at most 0.75). The cap was
+   * 0.4 until 2026-11-11: the partner stand-in asked 0.58 of a head-and-shoulders portrait and got
+   * the top 40% — a forehead, which every face check refused.
+   */
   heightRatio?: number;
   /** Crop width as a fraction of crop height (default 0.92 — slightly tall portrait). */
   aspect?: number;
@@ -39,7 +43,7 @@ export function computePortraitFaceCropRect(
 ): PortraitFaceCropRect {
   const w = Math.max(1, Math.floor(width));
   const h = Math.max(1, Math.floor(height));
-  const heightRatio = clamp(options?.heightRatio ?? 0.26, 0.12, 0.4);
+  const heightRatio = clamp(options?.heightRatio ?? 0.26, 0.12, 0.75);
   const aspect = clamp(options?.aspect ?? 0.92, 0.6, 1.2);
   const topInsetRatio = clamp(options?.topInsetRatio ?? 0.015, 0, 0.08);
 

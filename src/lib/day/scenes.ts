@@ -158,7 +158,8 @@ export type SceneToolCache = DayToolCache &
     /**
      * One partner a film: the invented stand-in partner each script's shots share — scriptId →
      * the stand-in. Opening a Scene drops the page's stand-in, so every Scene of a live Short
-     * made a new man (2026-11-11: seven faces for one partner).
+     * made a new man (2026-11-11: seven faces for one partner). Keyed `scriptId` for the
+     * partner and `scriptId|who` for anyone else the film shows ("…|elderly man").
      */
     scriptPartners?: Record<string, import('./partner-stand-in').DayPartnerStandIn>;
   };
@@ -1622,14 +1623,14 @@ export function sceneContinuing(input: {
 /** At most this many scripts keep their stand-in partner (the oldest are dropped first). */
 export const SCENE_SCRIPT_PARTNERS_MAX = 100;
 
-/** A stored `scriptPartners` map, well-formed: scriptId → a stand-in with a face file. */
+/** A stored `scriptPartners` map, well-formed: scriptId (or scriptId|who) → a stand-in with a face file. */
 export function sceneScriptPartners(
   value: unknown
 ): Record<string, import('./partner-stand-in').DayPartnerStandIn> {
   if (!value || typeof value !== 'object') return {};
   const out: [string, import('./partner-stand-in').DayPartnerStandIn][] = [];
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    if (!/^[^|]{1,120}$/.test(key) || !raw || typeof raw !== 'object') continue;
+    if (!/^[^|]{1,120}(?:\|[^|]{1,60})?$/.test(key) || !raw || typeof raw !== 'object') continue;
     const entry = raw as Record<string, unknown>;
     const filename = typeof entry.filename === 'string' ? entry.filename.trim() : '';
     if (entry.noun !== 'man' && entry.noun !== 'woman') continue;

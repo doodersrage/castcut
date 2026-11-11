@@ -528,7 +528,8 @@ export type ShotSceneDraft = {
 
 /**
  * The text without its sentences led by someone else ("Rob leans against the doorway…"), for a
- * shot of the lead alone. All of it when nothing would be left.
+ * shot of the lead alone. All of it when nothing would be left. Looking "at Rob", she looks at
+ * someone out of frame.
  */
 export function withoutOthersSentences(text: string, others: readonly string[]): string {
   const names = others.map(name => name.trim().split(/\s+/)[0]).filter(Boolean);
@@ -539,7 +540,13 @@ export function withoutOthersSentences(text: string, others: readonly string[]):
     'i'
   );
   const kept = text.split(/(?<=[.!?…])\s+/).filter(sentence => !led.test(sentence.trim()));
-  return kept.length ? kept.join(' ') : text;
+  // Looking at them, they are out of frame: "then back up at Partner" on her own shot drew her
+  // twice across the table (live 2026-11-11).
+  const toward = new RegExp(
+    `\\b(at|to|toward|towards)\\s+(?:${escaped.join('|')})\\b(?![’']s\\b)`,
+    'gi'
+  );
+  return (kept.length ? kept.join(' ') : text).replace(toward, '$1 someone out of frame');
 }
 
 /** Words that put a thing in the background of the shot (not where it happens). */

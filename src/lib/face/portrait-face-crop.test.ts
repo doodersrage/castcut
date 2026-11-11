@@ -27,6 +27,12 @@ describe('computePortraitFaceCropRect', () => {
     assert.ok(rect.height >= 64);
   });
 
+  it('allows a tall window up to three quarters of the height', () => {
+    assert.equal(computePortraitFaceCropRect(1000, 1000, { heightRatio: 0.58 }).height, 580);
+    assert.equal(computePortraitFaceCropRect(1000, 1000, { heightRatio: 0.9 }).height, 750);
+    assert.equal(computePortraitFaceCropRect(1000, 1000, { heightRatio: 0.4 }).height, 400);
+  });
+
   it('honors a tighter heightRatio for safer lingerie avoidance', () => {
     const rect = computePortraitFaceCropRect(900, 1600, { heightRatio: 0.2 });
     assert.ok(rect.height <= Math.round(1600 * 0.22));

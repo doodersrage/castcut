@@ -37,8 +37,66 @@ type SendComfyUi = (
  * younger than the thirties (the composed looks run from the early twenties) and carries no
  * youth-coded words (adult-age-safeguard.ts).
  */
-export function pickDayPartnerStandInLook(noun: 'man' | 'woman'): string {
-  return matureStandInLook(pickCompanionLook(noun));
+export function pickDayPartnerStandInLook(
+  noun: 'man' | 'woman',
+  options?: { elderly?: boolean }
+): string {
+  const look = matureStandInLook(pickCompanionLook(noun));
+  return options?.elderly ? elderlyStandInLook(look) : look;
+}
+
+/** An old person's look: the age said, hair gone grey (an "elderly man" was drawn in his thirties). */
+export function elderlyStandInLook(look: string): string {
+  const aged = look.replace(
+    /\bin (her|his|their) (?:early |late |mid-)?(?:twenties|thirties|forties|fifties)\b/gi,
+    (_match, who: string) => `in ${who} seventies`
+  );
+  const said = aged === look ? `${look}, in his or her seventies` : aged;
+  return `${said}, grey-haired, with a lined, weathered face`;
+}
+
+/**
+ * The other person a script's two-shot shows, from its opening ("Slyne and Elderly man, the two
+ * of them together." — script-shots.ts). The partner (PARTNER, a husband, a date…) is the film's
+ * one stand-in; anyone else gets a face of their own, so the bookstore's elderly man is not the
+ * partner's face (live 2026-11-11: he was, in his late thirties). `noun` when the words say it.
+ */
+export type ScriptShotOther = {
+  /** Lower-case, as the shot names them ("elderly man"); '' for the partner. */
+  who: string;
+  noun: 'man' | 'woman' | null;
+  elderly: boolean;
+};
+
+const PARTNER_ROLE_RE =
+  /\b(?:partner|boyfriend|girlfriend|husband|wife|fianc[eé]e?|date|lover|spouse)$/i;
+
+export function scriptShotOther(hints: string | null | undefined): ScriptShotOther | null {
+  const pair = /^\s*([^,.!?]{1,60}?)\s+and\s+([^,.!?]{1,60}?),\s+the two of them together\b/.exec(
+    hints ?? ''
+  );
+  const other = pair?.[2]?.trim();
+  if (!other) return null;
+  const words = other.toLowerCase().replace(/^.*[’']s\s+/, '');
+  if (PARTNER_ROLE_RE.test(words)) return { who: '', noun: null, elderly: false };
+  const noun =
+    /\b(?:woman|lady|girl|mother|mom|mum|grandma|grandmother|granny|aunt|sister|daughter|wife|girlfriend|waitress|actress|nun|queen)\b/.test(
+      words
+    )
+      ? 'woman'
+      : /\b(?:man|gentleman|guy|boy|father|dad|grandpa|grandfather|uncle|brother|son|husband|boyfriend|waiter|priest|king)\b/.test(
+            words
+          )
+        ? 'man'
+        : null;
+  const elderly =
+    /\b(?:elderly|old|older|aged|senior|retired|grand(?:pa|ma|father|mother)|granny)\b/.test(words);
+  return { who: words.slice(0, 60), noun, elderly };
+}
+
+/** Where a film keeps a stand-in: the script for its partner, `script|who` for anyone else. */
+export function filmStandInKey(scriptId: string, other: ScriptShotOther | null): string {
+  return other?.who ? `${scriptId}|${other.who.replace(/\|/g, ' ')}` : scriptId;
 }
 
 export function matureStandInLook(look: string): string {
@@ -65,6 +123,17 @@ export function reusableDayPartnerStandIn(
   return standIn?.filename?.trim() && standIn.noun === noun ? standIn : null;
 }
 
+/**
+ * The stand-in portrait's head crop: hair to chin with a sliver of collar at most (the portrait
+ * runs hair ~6%, chin ~72%, neckline ~76% of its height). It asked 0.58 under a 0.4 cap and
+ * kept only the forehead (live 2026-11-11: refused as no face on every two-person shot).
+ */
+export const DAY_PARTNER_STAND_IN_CROP = {
+  heightRatio: 0.74,
+  aspect: 0.85,
+  topInsetRatio: 0.03,
+} as const;
+
 export async function renderDayPartnerStandIn(input: {
   noun: 'man' | 'woman';
   /** The lead's face crop (ComfyUI input filename) — the edit's canvas, replaced entirely. */
@@ -73,8 +142,10 @@ export async function renderDayPartnerStandIn(input: {
   comfyUrl?: string;
   sendComfyUi: SendComfyUi;
   characterId?: string;
+  /** An old person (scriptShotOther): their look says so. */
+  elderly?: boolean;
 }): Promise<DayPartnerStandIn | null> {
-  const look = pickDayPartnerStandInLook(input.noun);
+  const look = pickDayPartnerStandInLook(input.noun, { elderly: input.elderly });
   const promptId = await input.sendComfyUi(buildDayPartnerStandInPrompt(look), null, undefined, {
     inputImageFilename: input.leadFaceFilename,
     identityLock: false,
@@ -95,11 +166,9 @@ export async function renderDayPartnerStandIn(input: {
   const blob = await loadImageBlobFromUrls([resultUrl]);
   // Head only: the portrait's T-shirt rode into every still as the partner's outfit.
   const name = `day-partner-${input.noun}-${Date.now()}.png`;
-  const file = await cropPortraitFaceRegionFromBlob(blob, name, {
-    heightRatio: 0.58,
-    aspect: 0.85,
-    topInsetRatio: 0.02,
-  }).catch(() => new File([blob], name, { type: blob.type || 'image/png' }));
+  const file = await cropPortraitFaceRegionFromBlob(blob, name, DAY_PARTNER_STAND_IN_CROP).catch(
+    () => new File([blob], name, { type: blob.type || 'image/png' })
+  );
   const uploaded = await resolveQueueInputImage({
     file,
     filename: file.name,

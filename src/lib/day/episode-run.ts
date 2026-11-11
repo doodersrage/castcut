@@ -50,11 +50,30 @@ export function takeChecksSkipped(
   ).map(({ kind }) => `${kind} not checked`);
 }
 
-export type EpisodeTakePick = { take: SceneTake; misses: string[]; checked: boolean };
+/**
+ * The outfit check found her undressed — naked, topless, in underwear — where the shot dressed
+ * her. Worse than any other miss: a live Short kept two topless takes over clothed twins whose
+ * face missed, a miss each (2026-11-11). An outfit that is only the wrong colour is not this.
+ */
+const BARE_RE =
+  /\b(?:naked|nude|topless|bare[- ](?:chest(?:ed)?|breasts?|torso|skin)|breasts?|nipples?|underwear|lingerie|bra|panties|no (?:top|shirt|clothes|clothing))\b/i;
+
+export function takeIsBare(checks: GalleryPlayChecks | undefined): boolean {
+  return BARE_RE.test(checks?.outfitMiss ?? '');
+}
+
+export type EpisodeTakePick = {
+  take: SceneTake;
+  misses: string[];
+  checked: boolean;
+  /** Its outfit check found her undressed (takeIsBare). */
+  bare?: boolean;
+};
 
 /**
- * The take to keep: never a rejected one; fewest misses first, then the higher face + pose
- * score, then the newest. Null when the Scene has no take to keep.
+ * The take to keep: never a rejected one; a take its outfit check passed, then one never looked
+ * at, then an undressed one (takeIsBare); then fewest misses, then the higher face + pose score, then the newest. Null when the Scene
+ * has no take to keep.
  */
 export function bestSceneTake(
   scene: Pick<SavedScene, 'takes'>,
@@ -69,19 +88,39 @@ export function bestSceneTake(
         take,
         misses: [...takeCheckMisses(checks), ...takeChecksSkipped(checks, allChecks)],
         checked: Boolean(checks),
+        bare: takeIsBare(checks),
+        // Dressed, then not looked at, then undressed.
+        dress: takeIsBare(checks) ? 2 : checks && CHECK_KINDS[0]!.ran(checks) ? 0 : 1,
         score: (checks?.face ?? 0) + (checks?.pose ?? 0),
         order,
       };
     })
     .sort(
       (a, b) =>
+        a.dress - b.dress ||
         a.misses.length - b.misses.length ||
         b.score - a.score ||
         b.take.at - a.take.at ||
         b.order - a.order
     );
   const best = ranked[0];
-  return best ? { take: best.take, misses: best.misses, checked: best.checked } : null;
+  return best
+    ? {
+        take: best.take,
+        misses: best.misses,
+        checked: best.checked,
+        ...(best.bare ? { bare: true } : {}),
+      }
+    : null;
+}
+
+/**
+ * Redos a Scene may have: the run's, and one more while its best take is still undressed — a
+ * bare still is kept only when trying again did not dress her. A run set to no redos renders
+ * none; never past EPISODE_REDO_MAX.
+ */
+export function episodeRedosFor(redo: number, pick: Pick<EpisodeTakePick, 'bare'> | null): number {
+  return pick?.bare && redo > 0 ? Math.min(EPISODE_REDO_MAX, redo + 1) : redo;
 }
 
 /** What an episode run does after each take, and how often it tries again. */

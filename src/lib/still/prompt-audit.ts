@@ -57,7 +57,9 @@ const SOLO_DECLARED_RE =
 const DUO_DECLARED_RE = /\bTWO PEOPLE\b|\bTwo people\b|\bwith (?:her|his) partner\b/;
 /** Wording that only makes sense with two people in frame. */
 const TWO_PEOPLE_RE =
-  /\bthe two people\b|\bTWO PEOPLE\b|\bboth people\b|\bface each other\b|\bfacing each other\b|\bthe two of them\b/i;
+  /\bthe two people\b|\bTWO PEOPLE\b|\bboth people\b|\beach other\b|\bone another\b|\bside by side\b|\btheir hands\b|\bthe two of them\b/i;
+/** The pair said outright: the layout or recipe is wrong, not the words — left for the notice. */
+const PAIR_NAMED_RE = /\b(?:the two people|TWO PEOPLE|both people|the two of them)\b/i;
 /** "no second person", "nobody else", "never two people" are guards, not contradictions. */
 const NEGATED_BEFORE_RE = /\b(?:no|not|never|without|nobody|avoid|do not show)\b[^.;\n]{0,40}$/i;
 
@@ -111,7 +113,9 @@ export function highestImageReference(prompt: string): number {
 }
 
 /** A line quoted as said in a beat (day/script-shots.ts): `Rob says: “…”`. */
-const SPOKEN_LINE_RE = /([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*)?) says: [“"][^”"\n]*[”"] ?/;
+// The speaker as a script shot names them: "Rob", "Rob Hale", and a part — "Elderly man" got past
+// a capitalised-only second word and was sent with its line (live 2026-11-11).
+const SPOKEN_LINE_RE = /([A-Z][\w'’.-]*(?: [\w'’.-]+)?) says: [“"][^”"\n]*[”"] ?/;
 
 export function auditStillPrompt(
   prompt: string | null | undefined,
@@ -255,8 +259,9 @@ export function auditStillPrompt(
  * Repair what can be repaired without guessing, so the still goes out right instead of with a
  * warning: shoes ordered where the scene rules them out (the footwear line goes), a two-person
  * still that also says she is alone (that phrase goes), a line that appears twice (the first
- * stays). Everything else — a one-person still describing two people, an image that is not
- * attached — needs the cause fixed and is left for the notice. Returns the prompt to queue, what
+ * stays), a one-person still's "each other" or "side by side" (withoutPairWords). Everything
+ * else — a one-person still naming "the two people", an image that is not attached — needs the
+ * cause fixed and is left for the notice. Returns the prompt to queue, what
  * was repaired, and what is still wrong.
  */
 export function repairStillPrompt(
@@ -291,6 +296,9 @@ export function repairStillPrompt(
       .replace(new RegExp(SPOKEN_LINE_RE.source, 'g'), (_, name: string) => `${name} speaks. `)
       .replace(/ speaks\. +(?=\n|$)/g, ' speaks.');
   }
+  if (has('solo-mentions-two')) {
+    next = withoutPairWords(next, /\bOne man alone\b/.test(next) ? 'his' : 'her');
+  }
   if (has('duo-says-alone')) {
     next = next
       .replace(/,\s*one (?:wo)?man alone(?=,|\.|;|$)/gi, '')
@@ -317,6 +325,37 @@ export function repairStillPrompt(
     repaired: issues.filter(issue => !stillWrong.has(issue.code)),
     remaining,
   };
+}
+
+/**
+ * A one-person still's words that pair her with someone, taken out: a clause about "each other" or
+ * "one another" goes, "side by side" goes, "their hands" are hers. A card written "sitting across
+ * from each other, hands around mugs" on a still of her alone drew her twice, facing herself
+ * (live 2026-11-11, four stills). A sentence naming the pair outright is left as it is.
+ */
+function withoutPairWords(text: string, pronoun: 'her' | 'his'): string {
+  return text.replace(/[^.!?\n]+/g, sentence => {
+    if (PAIR_NAMED_RE.test(sentence) || !TWO_PEOPLE_RE.test(sentence)) return sentence;
+    const lead = /^\s*/.exec(sentence)![0];
+    const pieces = sentence.slice(lead.length).split(/(,\s*|;\s*|\s+—\s+|\s+then\s+)/);
+    // A labelled line ("Moment: …", "POSE (most important): …") keeps its label.
+    const label = /^(?:[A-Z][A-Za-z ()]{0,40}):\s*/.exec(pieces[0] ?? '')?.[0] ?? '';
+    pieces[0] = (pieces[0] ?? '').slice(label.length);
+    const kept: string[] = [];
+    for (let index = 0; index < pieces.length; index += 2) {
+      const clause = pieces[index]!.replace(/\s*\bside by side\b/gi, '').replace(
+        /\btheir hands\b/gi,
+        `${pronoun} hands`
+      );
+      const pair = /\b(?:each other|one another)\b/i.exec(clause);
+      if (pair && !NEGATED_BEFORE_RE.test(clause.slice(0, pair.index))) continue;
+      if (!clause.trim()) continue;
+      kept.push(kept.length ? `${pieces[index - 1]}${clause}` : clause);
+    }
+    const body = kept.join('');
+    // Nothing left of a labelled line: it stays as it was, for the notice (an empty Moment is worse).
+    return body ? `${lead}${label}${body}` : label ? sentence : lead;
+  });
 }
 
 /**

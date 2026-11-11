@@ -32,7 +32,7 @@ import {
   type SceneRun,
   runEndNotice,
 } from '@/lib/day/scene-run';
-import { bestSceneTake, episodeAnimates } from '@/lib/day/episode-run';
+import { bestSceneTake, episodeAnimates, episodeRedosFor } from '@/lib/day/episode-run';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -177,7 +177,11 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const auto = run.auto!;
       const tries = (run.attempts?.[sceneId] ?? 0) + 1;
       const failing = !pick || pick.misses.length > 0;
-      if (failing && tries <= auto.redo && runTakesTaken(run) + 1 < run.maxTakes) {
+      if (
+        failing &&
+        tries <= episodeRedosFor(auto.redo, pick) &&
+        runTakesTaken(run) + 1 < run.maxTakes
+      ) {
         const why = pick ? pick.misses.join(', ') : 'no take to keep';
         save(withRunRedo(run, sceneId, `${name}: ${why} — rendering it again`));
         return true;

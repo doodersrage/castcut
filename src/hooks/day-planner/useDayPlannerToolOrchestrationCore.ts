@@ -241,6 +241,8 @@ import {
   renderDayPartnerStandIn,
   uploadDayPartnerVlFace,
   reusableDayPartnerStandIn,
+  filmStandInKey,
+  scriptShotOther,
   type DayPartnerStandIn,
 } from '@/lib/day/partner-stand-in';
 import {
@@ -2067,11 +2069,29 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         const partnerCharacter =
           partnerId && partnerId !== lookCharacter?.id ? getCharacter(partnerId) : null;
         const castPartner = toDayPartner(partnerCharacter);
-        const partnerCandidate =
-          inventedDayPartner(partnerId) ??
-          (castPartner
-            ? { ...castPartner, relation: castRelationOf(lookCharacter, partnerCharacter?.id) }
-            : null);
+        // A script's two-shot with someone other than the partner (the bookstore's elderly man):
+        // a stranger with a face of their own, never the partner's face (live 2026-11-11).
+        const shotOther = scriptLineStays() ? scriptShotOther(queueTarget.sceneHints) : null;
+        const firstName = (name: string | undefined) =>
+          (name ?? '').trim().toLowerCase().split(/\s+/)[0] ?? '';
+        const strangerInShot =
+          shotOther?.who &&
+          !(partnerCharacter && firstName(shotOther.who) === firstName(partnerCharacter.name))
+            ? shotOther
+            : null;
+        const partnerCandidate: DayPartner | null = strangerInShot
+          ? {
+              name: '',
+              noun:
+                strangerInShot.noun ??
+                inventedDayPartner(partnerId)?.noun ??
+                (leadNoun === 'man' ? 'woman' : 'man'),
+              invented: true,
+            }
+          : (inventedDayPartner(partnerId) ??
+            (castPartner
+              ? { ...castPartner, relation: castRelationOf(lookCharacter, partnerCharacter?.id) }
+              : null));
         let slotPartner: DayPartner | null = null;
         let partnerFace: { filename?: string; imageUrl?: string } | null = null;
         if (partnerCandidate && lookHasPlate) {
@@ -2110,12 +2130,16 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               const filmPartners = sceneMode
                 ? sceneScriptPartners(sceneCacheRef.current.scriptPartners)
                 : {};
+              // The partner's face is the film's and the page's; a stranger's only their own.
+              const filmKey = filmScriptId ? filmStandInKey(filmScriptId, strangerInShot) : '';
               let standIn =
-                (filmScriptId
-                  ? reusableDayPartnerStandIn(filmPartners[filmScriptId], partnerCandidate.noun)
+                (filmKey
+                  ? reusableDayPartnerStandIn(filmPartners[filmKey], partnerCandidate.noun)
                   : null) ??
-                reusableDayPartnerStandIn(partnerStandInRef.current, partnerCandidate.noun);
-              if (standIn && standIn !== partnerStandInRef.current) {
+                (strangerInShot
+                  ? null
+                  : reusableDayPartnerStandIn(partnerStandInRef.current, partnerCandidate.noun));
+              if (standIn && !strangerInShot && standIn !== partnerStandInRef.current) {
                 partnerStandInRef.current = standIn;
                 updateToolSettings({ partnerStandIn: standIn });
               }
@@ -2136,16 +2160,17 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                     comfyUrl,
                     sendComfyUi: actions.sendComfyUi,
                     characterId: lookCharacter.id,
+                    elderly: strangerInShot?.elderly,
                   }).catch(() => null);
-                  if (standIn) {
+                  if (standIn && !strangerInShot) {
                     partnerStandInRef.current = standIn;
                     updateToolSettings({ partnerStandIn: standIn });
                   }
                 }
               }
-              if (standIn && filmScriptId && filmPartners[filmScriptId] !== standIn) {
+              if (standIn && filmKey && filmPartners[filmKey] !== standIn) {
                 storeToolSettings({
-                  scriptPartners: { ...filmPartners, [filmScriptId]: standIn },
+                  scriptPartners: { ...filmPartners, [filmKey]: standIn },
                 } as Parameters<typeof storeToolSettings>[0]);
               }
               if (standIn) {
@@ -2735,6 +2760,25 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               );
               extraUrls[1] = undefined;
               extraFilenames[1] = '';
+              // A stand-in that is no face (until 2026-11-11 its crop kept only the forehead) is
+              // forgotten, page and film alike, so the next shot renders a new one instead of
+              // every shot of the film going out without the partner.
+              const badFace = partnerFace.filename?.trim();
+              if (!castPartner && badFace) {
+                if (partnerStandInRef.current?.filename === badFace) {
+                  partnerStandInRef.current = null;
+                  updateToolSettings({ partnerStandIn: undefined });
+                }
+                const filmPartners = sceneScriptPartners(sceneCacheRef.current.scriptPartners);
+                const kept = Object.fromEntries(
+                  Object.entries(filmPartners).filter(([, standIn]) => standIn.filename !== badFace)
+                );
+                if (Object.keys(kept).length !== Object.keys(filmPartners).length) {
+                  storeToolSettings({ scriptPartners: kept } as Parameters<
+                    typeof storeToolSettings
+                  >[0]);
+                }
+              }
             } else if (castPartner) {
               partnerSentFace = { partnerId: castPartner.id, filename: sentFilename };
             }

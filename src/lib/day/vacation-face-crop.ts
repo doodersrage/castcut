@@ -324,7 +324,8 @@ export async function resolveDayVacationFaceBreakPlate(input: {
             // (same VL-only path as Keep auto-crops — cast-face* used to pin RL).
             `day-vacation-face-cast-${stamp}.png`,
             {
-              heightRatio: 0.42,
+              // 0.42 was clamped to 0.4 until the cap rose (2026-11-11): kept as it ran.
+              heightRatio: 0.4,
               aspect: 0.88,
               topInsetRatio: 0.01,
             },

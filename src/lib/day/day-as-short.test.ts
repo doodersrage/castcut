@@ -96,6 +96,31 @@ describe('a Day as a short', () => {
     assert.ok(short.scenes.every(scene => scene.allowCompanions !== true));
   });
 
+  it('a card synced again shows whom its scene shows, not what it had (2026-11-11)', () => {
+    // The live Short's "Night": the dining room's card kept the solo it was made with beside a
+    // partner at the table, and its "side by side" still drew her twice.
+    const together = {
+      ...day,
+      slots: (day.slots ?? []).map(slot =>
+        slot.id === 'night' ? { ...slot, sceneHints: 'sits side by side with him, reading together' } : slot
+      ),
+    } as DayToolCache;
+    const first = dayAsShort({ day: together, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const night = (scenes: typeof first.scenes) => scenes.find(scene => scene.fromDaySlot === 'night')!;
+    assert.equal(night(first.scenes).allowCompanions, true);
+    const stale = first.scenes.map(scene => {
+      const { allowCompanions: _company, ...solo } = scene;
+      return solo;
+    }) as typeof first.scenes;
+    const again = dayAsShort({ day: together, castId: 'mara', leadName: 'Mara', now: 2000, existing: { script: first.script, scenes: stale } })!;
+    assert.equal(night(again.scenes).id, night(first.scenes).id);
+    assert.equal(night(again.scenes).allowCompanions, true);
+    // And the other way: a card whose scene is hers alone loses a companion it had.
+    const crowded = first.scenes.map(scene => ({ ...scene, allowCompanions: true })) as typeof first.scenes;
+    const third = dayAsShort({ day: together, castId: 'mara', leadName: 'Mara', now: 3000, existing: { script: first.script, scenes: crowded } })!;
+    assert.equal(third.scenes.find(scene => scene.fromDaySlot === 'morning')!.allowCompanions, undefined);
+  });
+
   it('keeps another Cast’s stills off the Scenes, and makes nothing of an empty Day', () => {
     const short = dayAsShort({ day, castId: 'rob', leadName: 'Rob', now: 1 });
     assert.equal(short?.scenes[0]!.takes.length, 0);

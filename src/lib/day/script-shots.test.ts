@@ -354,6 +354,21 @@ describe('a shot of the lead alone', () => {
       'Lena sips. Robin hums.'
     );
   });
+
+  it('looks at them out of frame (live 2026-11-11: she was drawn twice across the table)', () => {
+    assert.equal(
+      withoutOthersSentences(
+        'Slyne looks down at their hands, then back up at Partner, her expression turning playful.',
+        ['Partner', 'PARTNER']
+      ),
+      'Slyne looks down at their hands, then back up at someone out of frame, her expression turning playful.'
+    );
+    // Their things stay theirs; a name inside another word is not them.
+    assert.equal(
+      withoutOthersSentences('She glances at Rob’s glass. She waves to Robin.', ['Rob']),
+      'She glances at Rob’s glass. She waves to Robin.'
+    );
+  });
 });
 
 describe('another place in the background', () => {

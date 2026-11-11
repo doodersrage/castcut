@@ -1208,9 +1208,12 @@ describe('one partner a film (2026-11-11)', () => {
         s2: { noun: 'person', look: 'x', filename: 'b.png' },
         s3: { noun: 'woman', look: 'y', filename: ' ' },
         'a|b': man,
+        'a|b|c': man,
+        '|b': man,
         s4: 'nope',
       }),
-      { s1: man }
+      // Someone else the film shows keeps a face under script|who ("…|elderly man").
+      { s1: man, 'a|b': man }
     );
     // An older save has no map at all.
     assert.deepEqual(sceneScriptPartners(undefined), {});

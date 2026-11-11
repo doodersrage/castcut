@@ -136,6 +136,35 @@ describe('repairStillPrompt', () => {
     assert.match(result.prompt, /SCENE: the harbour\.\n/);
   });
 
+  it('takes the pair out of a one-person still’s words (live 2026-11-11: her twin across the table)', () => {
+    const morning =
+      'Day photo: One woman alone. She sits, knees bent. Moment: sitting across from each other, hands around mugs, eyes locked. Place: the kitchen.';
+    const fixed = repairStillPrompt(morning);
+    assert.equal(
+      fixed.prompt,
+      'Day photo: One woman alone. She sits, knees bent. Moment: hands around mugs, eyes locked. Place: the kitchen.'
+    );
+    assert.deepEqual(fixed.repaired.map(issue => issue.code), ['solo-mentions-two']);
+    assert.deepEqual(fixed.remaining, []);
+    const night = repairStillPrompt(
+      'POSE (most important): sitting side by side at a small table, looking into each other’s eyes — the body as that says.',
+      { people: 1 }
+    );
+    assert.equal(night.prompt, 'POSE (most important): sitting at a small table — the body as that says.');
+    assert.equal(
+      repairStillPrompt('Day photo: One man alone. Moment: he looks down at their hands.').prompt,
+      'Day photo: One man alone. Moment: he looks down at his hands.'
+    );
+    // Only "each other" in a line: never emptied — it stays, for the notice.
+    const only = 'Day photo: One woman alone. Moment: gazing at each other.';
+    const all = repairStillPrompt(only);
+    assert.equal(all.prompt, only);
+    assert.deepEqual(all.remaining.map(issue => issue.code), ['solo-mentions-two']);
+    // A two-person still keeps its words.
+    const duo = 'TWO PEOPLE in this photo. Moment: sitting side by side, facing each other.';
+    assert.equal(repairStillPrompt(duo).prompt, duo);
+  });
+
   it('leaves what it cannot repair for the notice, and a clean prompt untouched', () => {
     const solo = 'Day photo: One woman alone. Pose: the two people face each other.';
     const result = repairStillPrompt(solo);
@@ -255,6 +284,16 @@ describe('a spoken line is heard, never drawn (2026-11-11 live run)', () => {
     assert.match(out.prompt, /this time\. Lou speaks\. Lou is heard, not seen\. Lou, amused\./);
     assert.deepEqual(out.repaired.map(issue => issue.code), ['spoken-words']);
     assert.deepEqual(out.remaining, []);
+  });
+
+  it('a part as the script names it, too (live 2026-11-11, shot 2D)', () => {
+    const out = repairStillPrompt(
+      'Moment: She shrugs, tucking the book into her stack. Elderly man says: “Apologies, dear.” Elderly man, smiling.'
+    );
+    assert.equal(
+      out.prompt,
+      'Moment: She shrugs, tucking the book into her stack. Elderly man speaks. Elderly man, smiling.'
+    );
   });
 
   it('leaves a prompt with no line alone', () => {

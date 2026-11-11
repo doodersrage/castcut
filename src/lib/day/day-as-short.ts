@@ -370,9 +370,12 @@ export function dayAsShort(input: {
       // Else its kept take, or a still the Day made since (not one the Scene had: that could be
       // the take just unkept).
       const kept = rewritten ? undefined : (before.keptTakeId ?? fromDay[fromDay.length - 1]?.id);
-      const { keptTakeId: _old, shortSynced: _synced, ...rest } = before;
+      const { keptTakeId: _old, shortSynced: _synced, allowCompanions: _company, ...rest } = before;
       scenes.push({
         ...rest,
+        // Whom the written scene shows, as for a new card: kept from before, the dining room's
+        // card stayed solo beside its partner and drew her twice (live 2026-11-11).
+        ...(company ? { allowCompanions: true } : {}),
         slot: scene.slot,
         takes,
         ...(kept ? { keptTakeId: kept } : {}),

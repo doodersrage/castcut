@@ -4075,3 +4075,35 @@ The pictures showed six things the flags didn't, all fixed (user: "fix it all"):
   scene's room now rides as Image 2 there, the pose map staying Image 3 (`withRoomPhotoAsImage2`).
   Even where it was sent, the dining room changed shot to shot — how well Edit 2511 holds a room
   photo is not measured yet.
+
+**The second rerun (2026-11-11 afternoon, castcut-s8-run, build eaaf3fcb):** 23 shots in 144 min,
+all kept, 9 flagged (2 outfit "naked", 5 face, 1 pose, 1 looked computer-made). Every take had its
+checks, no line was drawn, the kitchen was hers alone, the room went with her solo shots (Edit
+2511 still ignored it on 2C, 2E, 2G). What the stills showed, all fixed (user: "fix the still
+open"):
+- **The partner was never sent:** the stand-in portrait rendered fine, but its head crop asked
+  for 0.58 of the height under a 0.4 cap — a forehead. The face check refused it on every
+  two-person shot, which then went out with neither partner nor room, and the engine invented a
+  man each time (likely the "different partner every shot" of every earlier run). The cap is 0.75,
+  the stand-in crops hair to chin (`DAY_PARTNER_STAND_IN_CROP`), and a stand-in the face check
+  refuses is forgotten, page and film, so the next shot makes a new one — stand-ins saved with the
+  old crop mend themselves. A partner kept as a Cast member from such a stand-in keeps its
+  forehead picture.
+- **The elderly man was the partner:** every invented second person took the film's one stand-in
+  — the bookstore's "Elderly man" was the partner's face, in his late thirties. A script two-shot's
+  other person (`scriptShotOther`) is the partner only when the script calls them that (PARTNER,
+  a husband, a date); anyone else gets their own stand-in under `scriptId|who`, man or woman as
+  the words say, aged when they say "elderly" or "old".
+- **Her twin across the table:** a card's Scene synced again kept the solo it was made with, so
+  the dining room's "Night" ("side by side … each other's eyes") went out as her alone and drew her
+  twice; a card now takes whom its scene shows on every sync. A one-person still's "each other",
+  "one another", "side by side" and "their hands" are repaired at queue time (`withoutPairWords`:
+  the clause goes, a labelled line is never emptied), and on a script shot of her alone she looks
+  "at someone out of frame", not "at Partner".
+- **Topless kept over dressed:** 1A and 2C each had a dressed take whose face missed and an
+  undressed one with a better face score — a miss each, and the score kept her undressed. A take
+  the outfit check found undressed (`takeIsBare`: naked, topless, underwear…) ranks below any
+  other, one never looked at in between, and a Scene whose best is still bare gets one redo more
+  than the run's (`episodeRedosFor`; none when the run redoes nothing).
+- **A part's line still sent:** "Elderly man says: “…”" got past the spoken-words check, which
+  wanted a capital on the second word.
