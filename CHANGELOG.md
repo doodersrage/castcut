@@ -9,6 +9,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.16.0] - 2026-11-11
+
+- A short goes to Cut in order; Cast's ⋯ opens; a card's Scene gone elsewhere comes back
+- The script writer: examples by tone, craft notes, your edits, a writer model
+
 ## [v3.15.4] - 2026-11-10
 
 - Step 5f: a Short stores only what its Scenes don't hold
