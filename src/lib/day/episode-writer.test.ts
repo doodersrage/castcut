@@ -214,6 +214,14 @@ describe('a scene’s length (2026-11-10)', () => {
   });
 });
 
+describe('names in the lines (2026-11-10)', () => {
+  it('asks for no line opening on a name, and a name once a scene at most', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. FLAT - DAY', summary: 'S', who: [] }] };
+    const [system] = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [] });
+    assert.match(system!.content, /never open a line with the other person’s name, and use a name once in a scene at most/);
+  });
+});
+
 describe('worked examples (2026-11-10)', () => {
   it('shows the scene example for its tone, the quiet one by default', () => {
     const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. FLAT - DAY', summary: 'S', who: [] }] };

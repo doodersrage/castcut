@@ -250,7 +250,8 @@ export const EPISODE_CRAFT_SCENE =
   'Come in late and leave early: start in the middle of something happening and end on a turn — a reaction, ' +
   'a decision or a line that lands — not on a goodbye or a walk out. Each action paragraph is one moment: ' +
   'who is where, doing what. Dialogue: mostly under fifteen words a line; people do not say exactly what they ' +
-  'feel, they talk around it; no speeches that explain the plot; people rarely say each other’s names; each ' +
+  'feel, they talk around it; no speeches that explain the plot; people rarely say each other’s names — never open a line with ' +
+  'the other person’s name, and use a name once in a scene at most; each ' +
   'person sounds like themselves. Nobody talks to themselves for long. Someone heard but not seen (on the ' +
   'phone, from another room) has (V.O.) after their name — the shot stays on who hears them. Pay off what the ' +
   'outline planted. Someone not in the cast list is introduced the first time they appear, in the action: ' +

@@ -3971,3 +3971,9 @@ off by default. The revision may now cut when a note asks (it kept every paragra
 - **A card's Scene deleted on another device:** the board read the slim card empty and the pull
   put its scene in the first empty card (the evening's), leaving the card blank with its still.
   The pull now gives a scene the empty card between its neighbours' first (`short-cards.ts`).
+
+**Nemo's habits (2026-11-10, overnight):** the scene prompt now asks for no line opening on the
+other person's name and a name once a scene at most. Same 12 shorts on Mistral Nemo: names said
+58% → 40% of raw scenes, 45% → 25% after the check; clean by every note 50% → 67%. Asking for
+"two or three parentheticals a scene" changed nothing (~0.7 a line before and after), so it was
+left out.
