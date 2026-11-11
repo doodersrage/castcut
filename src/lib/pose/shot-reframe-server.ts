@@ -11,7 +11,7 @@ import {
   stageComfyImageAsInput,
   type ComfyImageRef,
 } from '@/lib/comfyui/comfy-utility-graph-server';
-import { locateFaceInComfy } from '@/lib/face/locate-server';
+import { locateFaceInComfy, locateFacesInComfy } from '@/lib/face/locate-server';
 import {
   buildShotReframeGraph,
   pickedReframeShot,
@@ -21,6 +21,7 @@ import {
   shotReframeRect,
   type ReframeRect,
   type ReframeShot,
+  shotReframeRectForFaces,
 } from './shot-reframe';
 
 export type ShotReframeResult =
@@ -54,8 +55,27 @@ export async function reframeStillInComfy(input: {
   }
   const shot = pickedReframeShot(source.prompt);
   if (!shot) return { available: false, reason: 'No waist-up or close-up shot was picked.' };
+  // Two people: the crop is around both faces (2026-11-11). More than two are left as they are.
   if (!reframeIsSolo(source.prompt)) {
-    return { available: false, reason: 'Only one-person stills are cut to a closer shot.' };
+    if (/\bthree people\b|\bgroup\b/i.test(source.prompt)) {
+      return { available: false, reason: 'A group still keeps its frame.' };
+    }
+    const stagedName = await stageComfyImageAsInput(baseUrl, ref, 'shot-reframe-faces');
+    const faces = await locateFacesInComfy({ imageName: stagedName, comfyUrl: input.comfyUrl });
+    if (faces.length < 2) {
+      return { available: false, reason: 'two faces weren’t found to frame the shot around.' };
+    }
+    const pairRect = shotReframeRectForFaces(source.size, faces, shot);
+    if (!pairRect) return { available: false, reason: 'the still is already that close.' };
+    if (input.plan) return { available: true, plan: true, shot, rect: pairRect };
+    return cutToRect({
+      baseUrl,
+      ref,
+      rect: pairRect,
+      size: source.size,
+      shot,
+      timeoutMs: input.timeoutMs,
+    });
   }
   const located = await locateFaceInComfy({
     imageUrl: input.imageUrl,
@@ -74,13 +94,26 @@ export async function reframeStillInComfy(input: {
   const rect = shotReframeRect(source.size, located.face, shot);
   if (!rect) return { available: false, reason: 'the still is already that close.' };
   if (input.plan) return { available: true, plan: true, shot, rect };
+  return cutToRect({ baseUrl, ref, rect, size: source.size, shot, timeoutMs: input.timeoutMs });
+}
+
+/** Cut the still to the rect and enlarge it back to its size (well under a second of ComfyUI). */
+async function cutToRect(input: {
+  baseUrl: string;
+  ref: NonNullable<ReturnType<typeof parseComfyViewRef>>;
+  rect: ReframeRect;
+  size: { width: number; height: number };
+  shot: ReframeShot;
+  timeoutMs?: number;
+}): Promise<ShotReframeResult> {
+  const { baseUrl, ref, rect, shot } = input;
   const stillName = await stageComfyImageAsInput(baseUrl, ref, 'shot-reframe');
   const run = await runComfyUtilityGraph({
     baseUrl,
     label: 'shot-reframe',
     timeoutMs: input.timeoutMs ?? 60_000,
     priority: 'check',
-    prompt: buildShotReframeGraph({ stillName, rect, size: source.size }),
+    prompt: buildShotReframeGraph({ stillName, rect, size: input.size }),
     read: entry => {
       const image = (
         entry.outputs?.[SHOT_REFRAME_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined

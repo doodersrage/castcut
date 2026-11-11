@@ -1857,7 +1857,7 @@ test('a run renders Scene by Scene, keeps nothing, and resumes without a second 
       },
     })
   );
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
   }
   const empty = (id: string, name: string, at: number) => ({
@@ -1952,7 +1952,7 @@ test('an episode run keeps a take on each Scene by itself', async ({
       },
     })
   );
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
   }
   const empty = (id: string, name: string, at: number) => ({
@@ -2015,7 +2015,8 @@ test('an episode run keeps a take on each Scene by itself', async ({
   await expect(page.getByTestId('scene-run-state')).toContainText('2 of 2 done');
   expect(queued).toHaveLength(2);
 
-  // Each Scene got its take, and it was kept — nothing failed its checks, so nothing is flagged.
+  // Each Scene got its take, and it was kept. Every check is stubbed out here, so nothing was
+  // checked — and a run says so (2026-11-11): both are listed to check, "not checked".
   await expect
     .poll(async () => {
       const tool = JSON.parse((await storedSceneTool(page)) || '{}');
@@ -2029,8 +2030,12 @@ test('an episode run keeps a take on each Scene by itself', async ({
     }, { timeout: 30_000 })
     .toBe('1k|1k|landed|landed');
   await page.getByTestId('scene-run-log').locator('summary').click();
-  await expect(page.getByTestId('scene-run-log').locator('[data-event="kept"]')).toHaveCount(2);
-  await expect(page.getByTestId('scene-run-flagged')).toHaveCount(0);
+  await expect(page.getByTestId('scene-run-log').locator('[data-event="flagged"]')).toHaveCount(2);
+  await expect(page.getByTestId('scene-run-flagged')).toContainText('not checked');
+  await expect(page.getByTestId('scene-run-flagged').locator('li')).toHaveCount(2);
+  // You looked, it's fine: off the list (2026-11-11).
+  await page.getByTestId('scene-run-flagged-fine-run-a').click();
+  await expect(page.getByTestId('scene-run-flagged').locator('li')).toHaveCount(1);
 });
 
 // 2026-11-06: an episode's redos and re-rolls dropped 58 of the lead's 78 script lines — a new
@@ -2188,7 +2193,7 @@ test('after a reload a run is paused, and Resume waits for the take in flight', 
       },
     })
   );
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
   }
   const empty = (id: string, name: string, at: number) => ({
@@ -2284,7 +2289,7 @@ test('Pause stops the run after the take rendering now', async ({ page }) => {
       },
     })
   );
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
   }
   const empty = (id: string, name: string, at: number) => ({
@@ -2354,7 +2359,7 @@ async function seedRunPage(
 ) {
   const queued = await stubComfyQueue(page);
   await page.route('**/api/comfyui/jobs**', route => route.fulfill({ json: { status: jobs() } }));
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route =>
       route.fulfill({ json: { ok: true, skipped: true } })
     );
@@ -3840,7 +3845,7 @@ test('phone: a script imported, a shot made a Scene, and a run prepared and star
       },
     })
   );
-  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check']) {
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route =>
       route.fulfill({ json: { ok: true, skipped: true } })
     );

@@ -286,6 +286,37 @@ describe('guide planning', () => {
     assert.equal(plan.poseKey.endsWith(':1'), true);
   });
 
+  it('frames a pair for a script close-up: both heads in, legs out (2026-11-11)', () => {
+    const text = 'two friends talking in a kitchen';
+    const { intent, figures } = synthesizeSceneStickFigures(text, 0, {
+      allowIntimate: false,
+      forcePeople: 2,
+    });
+    assert.equal(figures.length, 2);
+    const size = { width: 1536, height: 864 };
+    const wide = planOpenPoseGuide({ intent, figures, sceneText: text, aspect: size });
+    const close = planOpenPoseGuide({
+      intent,
+      figures,
+      sceneText: text,
+      aspect: size,
+      framing: 'close-up',
+    });
+    const ANKLES = [10, 13];
+    const NOSE = 0;
+    const NECK = 1;
+    // Wide: both whole, small. Close-up: both heads and necks kept, no ankles, and bigger.
+    assert.ok(wide.keypoints.every(body => ANKLES.some(i => body[i])));
+    assert.equal(close.keypoints.length, 2);
+    for (const body of close.keypoints) {
+      assert.ok(body[NOSE] && body[NECK]);
+      assert.ok(ANKLES.every(i => !body[i]));
+    }
+    const headToNeck = (bodies: typeof wide.keypoints) =>
+      Math.abs(bodies[0]![NECK]!.y - bodies[0]![NOSE]!.y);
+    assert.ok(headToNeck(close.keypoints) > headToNeck(wide.keypoints) * 2);
+  });
+
   it('uses a library pose for the same layout on an odd reroll', () => {
     const { intent, figures } = synthesizeSceneStickFigures('sitting on a bench', 0, {
       allowIntimate: false,

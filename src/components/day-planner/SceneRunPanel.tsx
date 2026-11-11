@@ -6,6 +6,7 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { EPISODE_REDO_MAX } from '@/lib/day/episode-run';
 import {
+  flaggedByScene,
   RUN_DEFAULT_MAX_MINUTES,
   RUN_DEFAULT_MAX_TAKES,
   RUN_MAX_TAKES,
@@ -239,29 +240,58 @@ export default function SceneRunPanel({
         {run.flagged && Object.keys(run.flagged).length ? (
           <div className="space-y-1" data-testid="scene-run-flagged">
             <p className="type-caption font-medium">
-              To check — kept, but its checks weren’t happy ({Object.keys(run.flagged).length})
+              To check — kept without passing its checks ({Object.keys(run.flagged).length})
             </p>
-            <ul className="space-y-0.5">
-              {Object.entries(run.flagged).map(([sceneId, why]) => (
-                <li key={sceneId} className="flex items-center gap-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate">
-                    {byId.get(sceneId)?.name ?? sceneId}
-                    <span className="type-caption ml-2 text-[var(--text-muted)]">{why}</span>
-                  </span>
-                  {onOpenScene && byId.has(sceneId) ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={disabled}
-                      data-testid={`scene-run-flagged-open-${sceneId}`}
-                      onClick={() => onOpenScene(sceneId)}
-                    >
-                      Open
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            {flaggedByScene(run, scenes).map(({ group, shots }) => (
+              <div key={group} className="space-y-0.5">
+                <p className="type-caption text-[var(--text-muted)]">{group}</p>
+                <ul className="space-y-1">
+                  {shots.map(shot => (
+                    <li key={shot.sceneId} className="flex items-center gap-2 text-sm">
+                      {shot.thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- a ComfyUI take
+                        <img
+                          src={shot.thumb}
+                          alt=""
+                          className="h-10 w-14 shrink-0 rounded-[var(--radius-sm)] object-cover"
+                        />
+                      ) : (
+                        <span className="h-10 w-14 shrink-0 rounded-[var(--radius-sm)] bg-[var(--bg-muted)]" />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{shot.name}</span>
+                        <span className="type-caption block text-[var(--text-muted)]">
+                          {shot.why}
+                        </span>
+                      </span>
+                      {onOpenScene && byId.has(shot.sceneId) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={disabled}
+                          data-testid={`scene-run-flagged-open-${shot.sceneId}`}
+                          onClick={() => onOpenScene(shot.sceneId)}
+                        >
+                          Open
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        data-testid={`scene-run-flagged-fine-${shot.sceneId}`}
+                        title="You looked: it's fine — off the list"
+                        onClick={() => {
+                          const { [shot.sceneId]: _gone, ...rest } = run.flagged ?? {};
+                          set({ flagged: rest });
+                        }}
+                      >
+                        Looks fine
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         ) : null}
         <ol className="space-y-0.5">

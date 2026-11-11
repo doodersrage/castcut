@@ -186,6 +186,8 @@ export function useDayPoseMissRedo(
     const stillPrompt =
       loadComfyGallery().find(entry => entry.promptId === still.promptId)?.prompt ?? '';
     if (
+      // The empty place (placeOnly): no pose to check — settled as it lands.
+      target.placeOnly ||
       isIntimateDuoStillPrompt(stillPrompt) ||
       dayTwoTakesJudged(still) ||
       (expectation && bestOfTwoHardPoses && isDayHardPose(expectation.poseKey))
@@ -298,6 +300,9 @@ export function useDayPoseMissRedo(
         // A pose map that contradicts the scene's own posture cannot judge the still (the words
         // drew it): no pose redo against it.
         if (guidePostureContradictsWords(match, expectation.beat ?? target.sceneHints)) {
+          recordGalleryPlayChecks(still.promptId, {
+            poseUnjudged: 'the pose drawing disagrees with the scene',
+          });
           setStatus(
             `${target.label}: pose not judged — the pose drawing disagrees with the scene.`
           );
@@ -318,6 +323,7 @@ export function useDayPoseMissRedo(
         recordGalleryPlayChecks(still.promptId, {
           pose: match.score,
           poseMiss: poseCheckMissed(match.score),
+          poseUnjudged: '',
         });
         const { width, height } = detected.pose.canvas;
         const missView =

@@ -7,6 +7,7 @@ import { createScript, normalizeSavedScript, setScriptShotsPatch } from './scene
 import {
   addedShot,
   draftShots,
+  shotShowsNobody,
   withOffscreenLines,
   lineSeconds,
   sceneLocationOf,
@@ -431,3 +432,73 @@ describe('a line said during what someone does', () => {
     assert.doesNotMatch(made.slot.sceneHints ?? '', /glows warm/);
   });
 });
+
+describe('a line shot is at its own moment (2026-11-11 live run)', () => {
+  it('takes the action written last before the line, and how it is said', () => {
+    // The overnight Short's kitchen: every shot read "stirs her coffee".
+    const scene = parseScript(
+      [
+        'INT. KITCHEN - MORNING',
+        '',
+        'Slyne stirs her coffee, the spoon clinking against the mug. She stares across the table.',
+        '',
+        'PARTNER',
+        '(looking at their phone)',
+        'I thought we could go to the museum today.',
+        '',
+        'SLYNE',
+        '(sharply)',
+        'Again?',
+        '',
+        'Slyne rolls her eyes, sips her coffee.',
+        '',
+        'SLYNE',
+        'We went last week.',
+        '',
+      ].join('\n')
+    ).scenes[0]!;
+    const shots = draftShots(scene);
+    const cast = [{ id: 'slyne', name: 'Slyne' }];
+    const draftOf = (line: string) =>
+      shotSceneDraft({
+        shot: shots.find(shot => shot.line === line)!,
+        scene,
+        sceneIndex: 0,
+        shotIndex: 1,
+        castId: 'slyne',
+        cast,
+        castMap: { SLYNE: 'slyne' },
+        placeMap: undefined,
+      }).slot.sceneHints;
+    assert.match(draftOf('Again?')!, /^Slyne stirs her coffee.*Slyne, sharply\.$/);
+    assert.match(draftOf('We went last week.')!, /^Slyne rolls her eyes, sips her coffee\.$/);
+    assert.match(
+      draftOf('I thought we could go to the museum today.')!,
+      /Partner says: “I thought we could go to the museum today\.” Partner, looking at their phone\.$/
+    );
+  });
+});
+
+describe('a shot with nobody in it is the place alone (2026-11-11)', () => {
+  const names = ['SLYNE', 'Slyne', 'PARTNER', 'Partner'];
+  it('is an establishing, action or insert shot whose action names no one', () => {
+    assert.equal(shotShowsNobody({ purpose: 'establishing', action: 'Rain streaks down the window like wet brushstrokes.' }, names), true);
+    assert.equal(shotShowsNobody({ purpose: 'insert', action: 'A kettle starts to whistle.' }, names), true);
+  });
+  it('is never a line, a reaction, or an action with someone in it', () => {
+    assert.equal(shotShowsNobody({ purpose: 'establishing', action: 'Slyne stirs her coffee.' }, names), false);
+    assert.equal(shotShowsNobody({ purpose: 'action', action: 'She stares out at the rain.' }, names), false);
+    assert.equal(shotShowsNobody({ purpose: 'establishing', action: 'A couple walks past.' }, names), false);
+    assert.equal(shotShowsNobody({ purpose: 'dialogue', line: 'Hi.' }, names), false);
+    assert.equal(shotShowsNobody({ purpose: 'reaction' }, names), false);
+    assert.equal(shotShowsNobody({ purpose: 'establishing' }, names), false);
+  });
+  it('makes the shot’s Scene place-only, and the flag survives being stored', () => {
+    const scene = parseScript('INT. KITCHEN - MORNING\n\nRain streaks down the window.\n\nSLYNE\nMorning.\n').scenes[0]!;
+    const [wide] = draftShots(scene);
+    const draft = shotSceneDraft({ shot: wide!, scene, sceneIndex: 0, shotIndex: 0, castId: 'slyne', cast: [{ id: 'slyne', name: 'Slyne' }], castMap: { SLYNE: 'slyne' }, placeMap: undefined });
+    assert.equal(draft.slot.placeOnly, true);
+    assert.equal(normalizeSavedScene({ id: 'a', castId: 'slyne', name: 'A', slot: draft.slot, takes: [], createdAt: 1, updatedAt: 1 })?.slot.placeOnly, true);
+  });
+});
+

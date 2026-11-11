@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
 import type { DayToolCache } from '../play/settings';
 import { dayAsShort } from './day-as-short';
-import { momentDialogueOutline, momentPeople, withMomentDialogue, withPeoplePresent } from './short-dialogue';
+import { momentDialogueOutline, momentPeople, withKnownCues, withMomentDialogue, withPeoplePresent } from './short-dialogue';
 import { shortMomentsOf } from './short-moments';
 
 const day = {
@@ -131,5 +131,51 @@ describe('the people in the moment are there, seen', () => {
     assert.match(out, /^MARA \(V\.O\.\)$/m);
     assert.equal(withPeoplePresent(written, []), written);
     assert.match(withPeoplePresent('THEO (O.S.)\nHey.', [{ name: 'Theo' }]), /^THEO\nHey\.$/);
+  });
+});
+
+describe('a misspelt cue put right', () => {
+  it('writes a cue one slip from a known name as that name (a live run’s SYLNE for Slyne)', () => {
+    const written = [
+      'INT. KITCHEN - MORNING',
+      '',
+      'Slyne stirs her coffee.',
+      '',
+      'PARTNER',
+      'You like art.',
+      '',
+      'SYLNE (teasing)',
+      'Since when has a little rain stopped you?',
+      '',
+      'SLYEN',
+      'Deal.',
+      '',
+      'SLYNEE',
+      'Fine.',
+      '',
+      'MOM',
+      'Call me.',
+    ].join('\n');
+    const out = withKnownCues(written, ['Slyne', 'her partner']);
+    assert.deepEqual(parseScript(out).scenes[0]!.speakers, ['PARTNER', 'SLYNE', 'MOM']);
+    assert.match(out, /^SLYNE \(teasing\)$/m);
+    assert.match(out, /^INT\. KITCHEN - MORNING$/m);
+    assert.match(out, /^Slyne stirs her coffee\.$/m);
+  });
+
+  it('leaves a cue near two names, a short cue, and another person alone', () => {
+    assert.equal(withKnownCues('MARK\nHi.', ['Mara', 'Mary']), 'MARK\nHi.');
+    assert.equal(withKnownCues('JIM\nHi.', ['Jin']), 'JIM\nHi.');
+    assert.equal(withKnownCues('THEO\nHi.', ['Slyne']), 'THEO\nHi.');
+  });
+
+  it('maps the corrected cue to her in the short', () => {
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 })!;
+    const script = { ...short.script, shots: short.shots, castMap: { MARA: 'mara' } };
+    const written = ['INT. KITCHEN - MORNING', '', 'Theo yawns.', '', 'THEO', 'Morning.', '', 'MAAR', 'Coffee first.', ''].join('\n');
+    const out = withMomentDialogue({ script, scenes: short.scenes, slotId: 'morning', written, castId: 'mara', leadName: 'Mara', people: [theo], now: 2000 })!;
+    assert.deepEqual(parseScript(out.script.source).scenes[0]!.speakers, ['THEO', 'MARA']);
+    assert.equal(out.line, 'Coffee first.');
+    assert.ok(!('MAAR' in out.script.castMap!));
   });
 });

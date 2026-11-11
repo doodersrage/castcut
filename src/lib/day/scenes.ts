@@ -150,6 +150,11 @@ export type SceneToolCache = DayToolCache &
     removedSceneAt?: Record<string, number>;
     /** Scenes the writer wrote that you rewrote before keeping them (writer-edits.ts). */
     writerEdits?: import('./writer-edits').WriterEdit[];
+    /**
+     * One room a scene (a run's `oneRoom`, 2026-11-11): each script scene's empty room, rendered
+     * once — `${scriptId}|${sceneId}` → its ComfyUI input file.
+     */
+    scriptRooms?: Record<string, string>;
   };
 
 /**
@@ -1606,4 +1611,20 @@ export function sceneContinuing(input: {
     keptTakeId: takeId,
     continuesFrom: { sceneId: input.scene.id, takeId: input.take.id },
   };
+}
+
+/** At most this many script scenes keep their one room (the oldest are dropped first). */
+export const SCENE_SCRIPT_ROOMS_MAX = 200;
+
+/** A stored `scriptRooms` map, well-formed: `script|scene` → an input filename. */
+export function sceneScriptRooms(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') return {};
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    (entry): entry is [string, string] =>
+      /^[^|]{1,120}\|[^|]{1,160}$/.test(entry[0]) &&
+      typeof entry[1] === 'string' &&
+      Boolean(entry[1].trim()) &&
+      entry[1].length <= 240
+  );
+  return Object.fromEntries(entries.slice(-SCENE_SCRIPT_ROOMS_MAX));
 }

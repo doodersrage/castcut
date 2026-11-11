@@ -795,6 +795,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               completedStills={completedShotCount}
               completedClips={completedClipCount}
               slotTotal={slotTotal}
+              shots={short.progress ? { done: short.progress.done, of: short.progress.of } : null}
             />
             <PlayGetStartedCard
               hasCharacter={Boolean(character)}
@@ -1061,6 +1062,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               partnerOutfit={partnerOutfit}
               onNewPartnerStandIn={newPartnerStandIn}
               onKeepPartnerAsCast={keepPartnerAsCast}
+              forFilm={short.link ? 'short' : undefined}
             />
             <DayQualityStatusLines
               faceFinish={faceFinish}
@@ -1132,6 +1134,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 moment={shortMoments.bySlot[slotId]}
                 castId={short.castId}
                 leadSpeakers={shortMoments.leadSpeakers}
+                flagged={shortMoments.flagged}
               />
             )}
             castName={character?.name}

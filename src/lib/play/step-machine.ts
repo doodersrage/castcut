@@ -141,7 +141,7 @@ export const PLAY_DAY_PHASES: Array<{
   {
     id: 'cut',
     label: 'Cut film',
-    description: 'Assemble the Day reel.',
+    description: 'Assemble the Short.',
   },
   {
     id: 'save',

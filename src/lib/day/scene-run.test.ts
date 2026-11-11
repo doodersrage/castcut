@@ -11,6 +11,7 @@ import {
   scriptRunProgress,
   runTakeSettled,
   normalizeSceneRun,
+  flaggedByScene,
   pausedAfterReload,
   runFromScript,
   runProgress,
@@ -395,5 +396,36 @@ describe('what a run says when it stops', () => {
     assert.equal(runEndNotice('running', run({ state: 'paused', log: [{ at: 1, event: 'paused', detail: 'by you' }] })), null);
     assert.equal(runEndNotice('paused', run({})), null);
     assert.equal(runEndNotice(null, run({})), null);
+  });
+});
+
+describe('a run’s takes to check, grouped by scene (2026-11-11)', () => {
+  it('groups by the script scene, in the run’s order, with the kept picture', () => {
+    const scene = (id: string, name: string, kept?: string) => ({
+      id,
+      name,
+      keptTakeId: kept ? 't' : undefined,
+      takes: kept ? [{ id: 't', promptId: 't', imageUrl: kept, at: 1 }] : [],
+    });
+    const groups = flaggedByScene(
+      {
+        items: ['a', 'b', 'c'].map(sceneId => ({ sceneId, include: true })),
+        flagged: { c: 'the face doesn’t match', a: 'the pose missed', gone: 'not checked' },
+      },
+      [
+        scene('a', '1B KITCHEN · Dialogue', '/a.png'),
+        scene('b', '1C KITCHEN · Dialogue'),
+        scene('c', '2D COZY BOOKSHOP · Dialogue'),
+      ]
+    );
+    assert.deepEqual(
+      groups.map(entry => [entry.group, entry.shots.map(shot => shot.sceneId)]),
+      [
+        ['1 KITCHEN', ['a']],
+        ['2 COZY BOOKSHOP', ['c']],
+        ['Other shots', ['gone']],
+      ]
+    );
+    assert.equal(groups[0]!.shots[0]!.thumb, '/a.png');
   });
 });

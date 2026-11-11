@@ -2015,7 +2015,7 @@ export default function CutRoom() {
               )}
               <ToolActionRow className="mt-2">
                 <ButtonLink href={href('/day')} size="sm" variant="ghost">
-                  Back to Day
+                  Back to Short
                 </ButtonLink>
                 <ButtonLink href={href('/story')} size="sm" variant="ghost">
                   Back to Story

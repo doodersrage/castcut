@@ -12,10 +12,11 @@ import {
 
 /**
  * A slot whose camera pick is a waist-up or head-and-shoulders shot: Qwen-Image 2.1 draws it
- * thigh-up at best, so the finished take is cut to the shot around her face (shot-reframe.ts)
+ * thigh-up at best, and Edit 2511 drew a script's close-ups as wides of the room, so the finished
+ * take is cut to the shot around her face — or, with two people, around both (shot-reframe.ts) —
  * and the cut swapped into the slot. Runs first — Face finish, the pose check and the after
  * checks wait for it (`holdsStill`), so they look at the still the player gets. A take with no
- * face found, a lying pose, a two-person still or one already that close is left as it is.
+ * face found, a lying pose, a group still or one already that close is left as it is.
  */
 function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';

@@ -345,3 +345,13 @@ describe('comfyui-gallery pure/self-contained helpers', () => {
     });
   });
 });
+
+describe('a pose the check could not judge is kept, then cleared by a verdict (2026-11-11)', () => {
+  it('keeps why, and a later pose score clears it', () => {
+    const skipped = mergeGalleryPlayChecks(undefined, { poseUnjudged: 'the pose drawing disagrees with the scene' }, 1);
+    assert.equal(skipped.poseUnjudged, 'the pose drawing disagrees with the scene');
+    const judged = mergeGalleryPlayChecks(skipped, { pose: 0.8, poseMiss: false, poseUnjudged: '' }, 2);
+    assert.equal(judged.poseUnjudged, undefined);
+    assert.equal(judged.pose, 0.8);
+  });
+});

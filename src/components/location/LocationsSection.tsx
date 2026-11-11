@@ -8,14 +8,6 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SelectInput, TextArea, TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import { uploadComfyInputImage } from '@/lib/comfyui/image-upload';
-import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
-import { galleryEntryPrimaryViewUrl } from '@/lib/gallery/comfyui-gallery';
-import {
-  LOCATION_PICTURE_MODEL,
-  LOCATION_PICTURE_NEGATIVE,
-  locationPictureGraph,
-  locationPicturePrompt,
-} from '@/lib/location/picture';
 import {
   LOCATION_LOOK_MAX,
   LOCATION_NAME_MAX,
@@ -24,6 +16,7 @@ import {
   saveLocation,
   type LocationRecord,
 } from '@/lib/location/records';
+import { renderEmptyPlace } from '@/lib/location/picture-client';
 import { useLocations } from './useLocations';
 
 type Draft = Partial<Pick<LocationRecord, 'name' | 'look' | 'setting'>> & { aliases?: string };
@@ -57,34 +50,9 @@ export default function LocationsSection({
     setPhotoError(null);
     setRendering({ id: location.id, status: 'Rendering its picture…' });
     try {
-      const { requeueComfyJob } = await import('@/lib/comfyui/requeue');
-      const queued = await requeueComfyJob({
-        prompt: locationPicturePrompt(location),
-        negativePrompt: LOCATION_PICTURE_NEGATIVE,
-        model: LOCATION_PICTURE_MODEL,
-        tool: 'scene',
-        workflowJson: JSON.stringify(
-          locationPictureGraph(location, Math.floor(Math.random() * 2 ** 31))
-        ),
-        workflowFinal: true,
-      });
-      if (!queued.ok || !queued.promptId) {
-        throw new Error(queued.error ?? 'ComfyUI did not take the render — is it running?');
-      }
-      const [entry] = await waitForGalleryPromptIds([queued.promptId], {
-        timeoutMs: 5 * 60_000,
-        pollMs: 2_500,
-      });
-      const url = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
-      if (!url) throw new Error('The picture did not finish (it needs Qwen-Image 2.1 Turbo).');
+      const photo = await renderEmptyPlace(location, `location-${location.id}.png`);
       setRendering({ id: location.id, status: 'Keeping it…' });
-      const response = await fetch(url, { credentials: 'same-origin' });
-      if (!response.ok) throw new Error('The picture could not be read back.');
-      const file = new File([await response.blob()], `location-${location.id}.png`, {
-        type: 'image/png',
-      });
-      const uploaded = await uploadComfyInputImage({ file });
-      saveLocation({ ...location, photo: uploaded.name });
+      saveLocation({ ...location, photo });
     } catch (error) {
       setPhotoError({
         id: location.id,

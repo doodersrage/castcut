@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   dayPartnerApplies,
+  dayPartnerChoiceFor,
   inventedDayPartner,
   dayPartnerBriefLine,
   dayPartnerNoun,
@@ -251,5 +252,16 @@ describe('Suggestive duo with an outfit given', () => {
     // No outfit: the beat's clothes are what she wears.
     const own = buildRapidSuggestiveDuoRecipe({ beat })!;
     assert.match(own, /Moment: [^.]*in a silk robe over a slip/);
+  });
+});
+
+describe('one partner for the whole film on a script’s shots (2026-11-11)', () => {
+  it('turns "Someone new" into one stand-in of the other sex, on script shots only', () => {
+    assert.equal(dayPartnerChoiceFor('', { scriptShot: true, lead: 'woman' }), 'new:man');
+    assert.equal(dayPartnerChoiceFor(undefined, { scriptShot: true, lead: 'man' }), 'new:woman');
+    assert.equal(dayPartnerChoiceFor('', { scriptShot: false, lead: 'woman' }), undefined);
+    // A pick stands: a Cast member, or a same-sex stand-in.
+    assert.equal(dayPartnerChoiceFor('cast-theo', { scriptShot: true, lead: 'woman' }), 'cast-theo');
+    assert.equal(dayPartnerChoiceFor('new:woman', { scriptShot: true, lead: 'woman' }), 'new:woman');
   });
 });

@@ -2,6 +2,7 @@
 
 import { isRestoredTake } from '@/lib/day/planner';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatestRef } from '@/hooks/useLatestRef';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import {
@@ -30,6 +31,9 @@ import { dayTwoTakesPending } from '@/lib/day/two-takes';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face/match';
 import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-client';
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
+import { outfitWearerFor } from '@/lib/still/outfit-check';
+import { checkStillOutfit } from '@/lib/still/outfit-check-client';
+import { reviewOutfitLabel } from '@/lib/play/slot-quality';
 
 /**
  * Checks every Day still gets as it lands, whether or not Auto-review is on (2026-10-14):
@@ -42,8 +46,13 @@ import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
  *    if the recheck still fails), swapped into the slot like Face finish. Live: a repair fixed
  *    the spread / missing marks on 3 of 4 stills in one pass, pose and place kept.
  *
- * One person in frame only (a partner's face or tattoo would be judged as hers). Runs after
- * Day's own queue is done and after Face finish has had its turn.
+ * 3. Her outfit (2026-11-11, play/outfit-check.ts), on Everyday days when Auto-review is off (it
+ *    checks the outfit itself): described blind, then judged against the planned one. An
+ *    overnight Short kept 4 topless stills in a slip-dress kitchen with nothing looking. Also
+ *    beside someone of the other sex — the question names whose clothes.
+ *
+ * Face and marks: one person in frame only (a partner's face or tattoo would be judged as hers).
+ * Runs after Day's own queue is done and after Face finish has had its turn.
  */
 function stillKey(still: { imageUrl?: string; promptId?: string }): string {
   return still.promptId?.trim() || still.imageUrl?.trim() || '';
@@ -58,6 +67,7 @@ export function useDayStillAfterChecks(
 ) {
   const { actions, busy, character, mounted, plate, shared, slots, stills, stillsRef } = ctx;
   const { poseGuideExpectRef, toolSettings, updateToolSettings } = ctx;
+  const { autoReviewStills, wardrobeLabelFor } = ctx;
   const [status, setStatus] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const handledRef = useRef<Set<string>>(new Set());
@@ -65,6 +75,7 @@ export function useDayStillAfterChecks(
   const runningRef = useRef(false);
   /** The still being checked now (its key), so a run can wait for it (M6 D8). */
   const runningKeyRef = useRef<string | null>(null);
+  const slotsRef = useLatestRef(slots);
 
   useEffect(() => {
     if (!mounted) return;
@@ -87,6 +98,8 @@ export function useDayStillAfterChecks(
     const target = slots.find(slot => {
       const still = stills.find(entry => entry.slotId === slot.id);
       return (
+        // The empty place (placeOnly): no face, marks or outfit to check.
+        !slot.placeOnly &&
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         // A take put back from a saved scene had its passes when it landed.
@@ -107,7 +120,23 @@ export function useDayStillAfterChecks(
       toolSettings.allowCompanions === true ||
       (isDayAdultMood(mood) && normalizeDayIntimateMix(toolSettings.intimateMix) !== 'solo');
     const solo = drawn != null ? drawn === 1 : !companionsPossible;
-    if (!solo) return;
+    // The outfit: planned on an Everyday day, and not already checked by Auto-review.
+    const outfit =
+      mood === 'everyday' && !autoReviewStills
+        ? reviewOutfitLabel({
+            customDescription: toolSettings.customGarmentDescription,
+            wardrobeId: target.wardrobeId,
+            wardrobeLabel: wardrobeLabelFor(target.wardrobeId),
+          })
+        : undefined;
+    const wearer = outfit
+      ? outfitWearerFor({
+          lead: ctx.leadNoun,
+          solo,
+          prompt: loadComfyGallery().find(item => item.promptId === targetStill.promptId)?.prompt,
+        })
+      : null;
+    if (!solo && !wearer) return;
 
     runningRef.current = true;
     runningKeyRef.current = sourceKey;
@@ -117,6 +146,28 @@ export function useDayStillAfterChecks(
         const comfyStillUrl = comfyViewUrlForStill(targetStill, gallery);
         if (!comfyStillUrl) return;
         const entry = gallery.find(item => item.promptId === targetStill.promptId);
+
+        // 0. Her outfit, kept on the Gallery entry (a miss is a finding, and a run flags it).
+        if (outfit && wearer && entry) {
+          setStatus(`Checking ${target.label}'s outfit…`);
+          const verdict = await checkStillOutfit({
+            imageUrl: comfyStillUrl,
+            outfit,
+            wearer,
+            shared,
+          });
+          if (verdict) {
+            recordGalleryPlayChecks(targetStill.promptId, {
+              outfitMiss: verdict.match ? '' : verdict.seen,
+            });
+            setStatus(
+              verdict.match
+                ? `${target.label}: outfit looks right.`
+                : `${target.label}: not the planned outfit — ${verdict.seen}.`
+            );
+          }
+        }
+        if (!solo) return;
 
         // 1. Face match, kept for the Likeness chart.
         const plateUrl = plate?.imageUrl?.includes('/api/comfyui/view?')
@@ -245,6 +296,7 @@ export function useDayStillAfterChecks(
     })();
   }, [
     actions,
+    autoReviewStills,
     busy,
     character,
     ctx.leadNoun,
@@ -259,20 +311,31 @@ export function useDayStillAfterChecks(
     tick,
     toolSettings.allowCompanions,
     toolSettings.checkMarks,
+    toolSettings.customGarmentDescription,
     toolSettings.dayMood,
     toolSettings.intimateMix,
     updateToolSettings,
+    wardrobeLabelFor,
   ]);
 
   /** A finished still whose checks haven't run yet, or are running (Scene runs wait on it). */
   const afterChecksPending = useCallback(
-    (still: { imageUrl?: string; promptId?: string; status?: string; restoredFor?: string }) => {
+    (still: {
+      slotId?: string;
+      imageUrl?: string;
+      promptId?: string;
+      status?: string;
+      restoredFor?: string;
+    }) => {
       if (still.status !== 'completed' || !still.imageUrl) return false;
       if (isRestoredTake(still)) return false;
+      // The empty place (placeOnly) is never checked: nothing to wait for.
+      if (still.slotId && slotsRef.current.find(slot => slot.id === still.slotId)?.placeOnly)
+        return false;
       const key = stillKey(still);
       return !handledRef.current.has(key) || runningKeyRef.current === key;
     },
-    []
+    [slotsRef]
   );
 
   return { afterChecksStatus: status, afterChecksPending };

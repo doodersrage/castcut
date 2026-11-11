@@ -189,8 +189,21 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       pageRef.current.keepTake(pick.take.id);
       await until(() => pageRef.current.active?.keptTakeId === pick.take.id, OPEN_TIMEOUT_MS);
       run = { ...(runRef.current ?? run), attempts: { ...(run.attempts ?? {}), [sceneId]: tries } };
-      if (pick.misses.length) {
-        const why = pick.misses.join(', ');
+      // No check recorded on the kept take: said, not counted as passed. A 2026-11-11 run kept
+      // six shots "not checked" and called the run clean — Auto-review was off and the pose step
+      // skipped them; any take with nothing on it is flagged now, with why when the checks paused.
+      const unjudged = checks.get(pick.take.promptId ?? pick.take.id)?.poseUnjudged;
+      // The empty place (placeOnly) has nobody to check.
+      const placeOnly = pageRef.current.active?.slot.placeOnly === true;
+      const unchecked = placeOnly
+        ? ''
+        : !pick.checked
+          ? `not checked${vmRef.current.checksPaused ? ` (checks paused: ${vmRef.current.checksPaused})` : ''}`
+          : unjudged
+            ? `pose not judged (${unjudged})`
+            : '';
+      if (pick.misses.length || unchecked) {
+        const why = [...pick.misses, unchecked].filter(Boolean).join(', ');
         pageRef.current.noteTake(pick.take.id, {
           note: `Kept by the run — check it: ${why}`.slice(0, SCENE_TAKE_NOTE_MAX),
         });
@@ -203,7 +216,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           at: Date.now(),
           sceneId,
           event: 'kept',
-          detail: `${name}: ${pick.checked ? 'passed its checks' : 'not checked — the newest take'}`,
+          detail: `${name}: passed its checks`,
         });
       }
       save(run);

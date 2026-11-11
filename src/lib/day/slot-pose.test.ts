@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { storyPoseSceneText, dayClothedGuideContradictsBeat, planDaySlotPose, plannedDaySlotPoseKey } from './slot-pose';
+import { storyPoseSceneText, dayClothedGuideContradictsBeat, daySlotPoseLayout, planDaySlotPose, plannedDaySlotPoseKey } from './slot-pose';
 
 describe('plannedDaySlotPoseKey', () => {
   it('names the layout the slot plan draws, without drawing it', () => {
@@ -105,3 +105,36 @@ describe('storyPoseSceneText', () => {
     assert.equal(storyPoseSceneText('Lena sits on the bench.', undefined), 'Lena sits on the bench.');
   });
 });
+
+describe('a script shot at a table is drawn seated (2026-11-11 live run)', () => {
+  const layoutOf = (sceneHints: string) =>
+    daySlotPoseLayout({
+      slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints },
+      dayMood: 'everyday',
+      intimateMix: 'mixed',
+      allowCompanions: true,
+      model: 'qwen-image-edit-2511',
+      retryVariant: 0,
+    } as Parameters<typeof daySlotPoseLayout>[0]).layout;
+
+  it('sits for "across the table", not a lean for a spoon "against the mug"', () => {
+    // 9 of the kitchen's 10 shots missed the pose: drawn leaning, rendered seated.
+    assert.equal(
+      layoutOf('Slyne stirs her coffee, the spoon clinking against the mug. She stares across the table. Partner says: “You like art.”'),
+      'sit'
+    );
+    assert.equal(layoutOf('Slyne sits at a table set for two, hands wrapped around a glass of red wine.'), 'sit');
+    // 13 shots of an earlier run: drawn as a standing lean.
+    assert.equal(
+      layoutOf('Slyne leans forward in her chair, coffee cup lifted mid-gesture — steam curling from its rim as she speaks.'),
+      'sit'
+    );
+  });
+
+  it('still leans against a wall or a counter; rain against the glass is no lean', () => {
+    assert.match(layoutOf('she leans against the wall, arms folded') ?? '', /^lean/);
+    assert.match(layoutOf('her back against the kitchen counter, waiting') ?? '', /^lean/);
+    assert.notEqual(layoutOf('she watches rain drum against the glass'), 'lean');
+  });
+});
+

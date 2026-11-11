@@ -27,6 +27,7 @@ import {
   mirrorPoseFacing,
   poseFiguresRegion,
   poseFramingRegion,
+  poseFramingRegionForFigures,
   poseGuideCanvasSize,
   resolvePoseCanvas,
   resolvePoseFraming,
@@ -2193,7 +2194,9 @@ export function parsePoseGuideIntent(
     stride = 0.4;
     matched = true;
   } else if (
-    /\b(sit(?:ting|s)?|seated|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged|reclin(?:e|es|ed|ing)?|relax(?:es|ed|ing)?|on\s+a\s+(?:towel|lounge|stool|hammock|float|chaise|ledge|piling|saddle|gate|daybed)|in\s+a\s+(?:convertible|hammock|cabana|tub)|driv(?:e|es|ing)|drove|behind\s+the\s+wheel)\b/i.test(
+    // At a table is seated (2026-11-11: a script shot "stirs her coffee… stares across the table"
+    // was drawn as a standing lean, and 9 of the kitchen's 10 shots missed the pose).
+    /\b(sit(?:ting|s)?|seated|(?:across|at)\s+(?:the|a|her|his|their)\s+(?:[\w'-]+\s+)?table|table\s+for\s+(?:one|two|three|four)|couch|sofa|chair|bench|perch(?:ed|ing)?|lounge(?:s|ing)?|cross-legged|reclin(?:e|es|ed|ing)?|relax(?:es|ed|ing)?|on\s+a\s+(?:towel|lounge|stool|hammock|float|chaise|ledge|piling|saddle|gate|daybed)|in\s+a\s+(?:convertible|hammock|cabana|tub)|driv(?:e|es|ing)|drove|behind\s+the\s+wheel)\b/i.test(
       haystack
     )
   ) {
@@ -2281,7 +2284,12 @@ export function parsePoseGuideIntent(
     armRight = 'up';
     armLeft = 'out';
     matched = true;
-  } else if (/\b(lean(?:ing|s)?|against|doorway|window|slouch(?:ing)?)\b/i.test(haystack)) {
+  } else if (
+    // "Against" a surface she can lean on, not any "against" (a spoon clinking against the mug).
+    /\b(lean(?:ing|s)?|against\s+(?:the\s+|a\s+|an\s+|her\s+|his\s+)?(?:[\w'-]+\s+)?(?:wall|door|doorway|doorframe|door\s*frame|frame|jamb|counter|countertop|railing|rail|pillar|column|post|tree|car|window|fridge|bar|sink|desk|bookshelf|shelf|shelves|lamppost)|doorway|window|slouch(?:ing)?)\b/i.test(
+      haystack
+    )
+  ) {
     base = 'lean';
     lean = jitterA > 0.5 ? 0.35 : -0.35;
     stride = 0.25;
@@ -6669,12 +6677,15 @@ export function planOpenPoseGuide(input: {
   if (entry) {
     people = placeLibraryPeople(entry, size.width, size.height);
   } else {
-    // Solo beats that name a shot size get a cropped guide; duos keep everyone in frame.
+    // Solo beats that name a shot size get a cropped guide. Duos are cropped only to a framing
+    // asked for (a script shot's camera), around both of them; otherwise everyone in frame.
     // Portrait guides keep the authored placement; square/landscape ones frame the people.
     const framed =
       input.figures.length === 1
         ? poseFramingRegion(input.figures[0]!, input.framing ?? resolvePoseFraming(input.sceneText))
-        : null;
+        : input.framing
+          ? poseFramingRegionForFigures(input.figures, input.framing)
+          : null;
     const portrait = Math.abs(size.width / size.height - WIDTH / HEIGHT) < 0.02;
     const region = framed ?? (portrait ? null : poseFiguresRegion(input.figures));
     const canvas = resolvePoseCanvas({ ...size, region });

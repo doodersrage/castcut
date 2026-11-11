@@ -79,6 +79,48 @@ export function shotReframeRect(
   };
 }
 
+/**
+ * The crop for two people (a script's dialogue two-shot): around both faces — the frame as tall
+ * as the shot asks of the larger face, wide enough for both with a face's room either side, the
+ * still's aspect kept. Null when that is the still already (or nearly).
+ */
+export function shotReframeRectForFaces(
+  size: { width: number; height: number },
+  faces: readonly ReframeFace[],
+  shot: ReframeShot
+): ReframeRect | null {
+  const usable = faces.filter(face => face.width > 0 && face.height > 0).slice(0, 2);
+  if (usable.length < 2) return usable[0] ? shotReframeRect(size, usable[0], shot) : null;
+  const width = Math.floor(size.width);
+  const height = Math.floor(size.height);
+  if (!(width > 0 && height > 0)) return null;
+  const aspect = width / height;
+  const faceH = Math.max(...usable.map(face => face.height));
+  const left = Math.min(...usable.map(face => face.x));
+  const right = Math.max(...usable.map(face => face.x + face.width));
+  const top = Math.min(...usable.map(face => face.y));
+  const geometry = SHOT_REFRAME_GEOMETRY[shot];
+  let cropH = Math.max(geometry.tall * faceH, height / SHOT_REFRAME_MAX_ZOOM);
+  let cropW = cropH * aspect;
+  const needW = right - left + faceH * 2;
+  if (cropW < needW) {
+    cropW = needW;
+    cropH = cropW / aspect;
+  }
+  if (cropH >= height * SHOT_REFRAME_MIN_CHANGE || cropW >= width * SHOT_REFRAME_MIN_CHANGE) {
+    return null;
+  }
+  const centerX = (left + right) / 2;
+  const x = Math.min(Math.max(0, centerX - cropW / 2), width - cropW);
+  const y = Math.min(Math.max(0, top - geometry.above * faceH), height - cropH);
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(cropW),
+    height: Math.round(cropH),
+  };
+}
+
 // ── The ComfyUI graph ─────────────────────────────────────────────────────────────────────
 
 type Node = { class_type: string; inputs: Record<string, unknown> };
@@ -98,7 +140,13 @@ export function reframeSourceOf(graph: Record<string, unknown> | null | undefine
   const nodes = Object.values(graph as Graph).filter(
     node => node && typeof node === 'object' && typeof node.class_type === 'string'
   );
-  const encoder = nodes.find(node => node.class_type === 'TextEncodeQwenImage21');
+  // Qwen-Image 2.1, and Edit 2511 (2026-11-11: a script's close-ups on Edit 2511 came back as
+  // wides of the room, and were never cut — its graph wasn't read).
+  const encoder = nodes.find(
+    node =>
+      node.class_type === 'TextEncodeQwenImage21' ||
+      node.class_type === 'TextEncodeQwenImageEditPlus'
+  );
   if (!encoder) return null;
   const latent = nodes.find(node => LATENT_CLASS.test(node.class_type));
   const width = Number(latent?.inputs?.width);

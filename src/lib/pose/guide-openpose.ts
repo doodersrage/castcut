@@ -295,6 +295,28 @@ export function poseFramingRegion(
   return { x0: Math.min(...xs) - pad, y0: top, x1: Math.max(...xs) + pad, y1: bottom };
 }
 
+/**
+ * The region for several figures at a framing: every figure's own, together (a two-shot close-up
+ * keeps both heads and shoulders). Null for full. A script's dialogue shots are framed as close-ups
+ * and mediums, and a pair drawn full-body and small came back as wide shots of the room
+ * (2026-11-11).
+ */
+export function poseFramingRegionForFigures(
+  figures: readonly StickSkeleton[],
+  framing: PoseFraming
+): PoseDesignRegion | null {
+  const regions = figures
+    .map(figure => poseFramingRegion(figure, framing))
+    .filter((region): region is PoseDesignRegion => region !== null);
+  if (!regions.length) return null;
+  return {
+    x0: Math.min(...regions.map(region => region.x0)),
+    y0: Math.min(...regions.map(region => region.y0)),
+    x1: Math.max(...regions.map(region => region.x1)),
+    y1: Math.max(...regions.map(region => region.y1)),
+  };
+}
+
 const FACING_VECTORS: Record<'left' | 'right' | 'up' | 'down', Point> = {
   left: { x: -1, y: 0 },
   right: { x: 1, y: 0 },

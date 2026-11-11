@@ -19,15 +19,28 @@ export function useShortMoments(
   link: DayShortLink | undefined,
   castId: string,
   stamp: string
-): { bySlot: Partial<Record<DaySlotId, ShortMoment>>; leadSpeakers: string[] } {
+): {
+  bySlot: Partial<Record<DaySlotId, ShortMoment>>;
+  leadSpeakers: string[];
+  /** The last run's takes to check, by Scene id: why (2026-11-11, flags on the card's strip). */
+  flagged: Record<string, string>;
+} {
   const scriptId = castId && link?.castId === castId ? link.scriptId : '';
   return useMemo(() => {
     void stamp;
-    const none = { bySlot: {}, leadSpeakers: [] };
+    const none = { bySlot: {}, leadSpeakers: [], flagged: {} };
     if (!scriptId || typeof window === 'undefined') return none;
     const script = loadSceneScriptStore().scripts.find(entry => entry.id === scriptId);
     if (!script) return none;
-    const scenes = normalizeSavedScenes(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).scenes);
+    const sceneTool = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE);
+    const scenes = normalizeSavedScenes(sceneTool.scenes);
+    // The run of this short (its script) says which kept takes to check.
+    const run = sceneTool.run?.scriptId === scriptId ? sceneTool.run : undefined;
+    const flagged = Object.fromEntries(
+      Object.entries(run?.flagged ?? {}).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string' && Boolean(entry[1])
+      )
+    );
     const out: Partial<Record<DaySlotId, ShortMoment>> = {};
     for (const moment of shortMomentsOf(script, scenes)) {
       if (moment.daySlot && !out[moment.daySlot]) out[moment.daySlot] = moment;
@@ -36,7 +49,7 @@ export function useShortMoments(
     const leadSpeakers = Object.entries(script.castMap ?? {})
       .filter(([, id]) => id === castId)
       .map(([speaker]) => speaker.toUpperCase());
-    return { bySlot: out, leadSpeakers };
+    return { bySlot: out, leadSpeakers, flagged };
   }, [castId, scriptId, stamp]);
 }
 
@@ -48,12 +61,16 @@ export default function ShortMomentScene({
   moment,
   castId,
   leadSpeakers,
+  flagged = {},
 }: {
   moment: ShortMoment | undefined;
   castId: string;
   leadSpeakers: readonly string[];
+  /** Kept takes the run listed to check, by Scene id: why. */
+  flagged?: Readonly<Record<string, string>>;
 }) {
   if (!moment || !shortMomentHasMore(moment, leadSpeakers)) return null;
+  const toCheck = moment.shots.filter(entry => entry.scene && flagged[entry.scene.id]).length;
   const sceneHref = (sceneId: string) =>
     `${scenePagePath()}?${new URLSearchParams({ character: castId, scene: sceneId }).toString()}`;
   return (
@@ -78,10 +95,17 @@ export default function ShortMomentScene({
         <div className="mt-1.5">
           <p className="type-caption text-[var(--text-muted)]">
             {moment.shots.length} shots · {moment.rendered} kept
+            {toCheck ? (
+              <span className="text-[var(--tint-warning-text)]" data-testid="short-moment-to-check">
+                {' '}
+                · {toCheck} to check
+              </span>
+            ) : null}
           </p>
           <ol className="mt-1 flex gap-1 overflow-x-auto" aria-label="Shots">
             {moment.shots.map((entry, index) => {
-              const label = `Shot ${index + 1}: ${entry.shot.purpose}${entry.shot.speaker ? `, ${entry.shot.speaker}` : ''}`;
+              const why = entry.scene ? flagged[entry.scene.id] : undefined;
+              const label = `Shot ${index + 1}: ${entry.shot.purpose}${entry.shot.speaker ? `, ${entry.shot.speaker}` : ''}${why ? ` — to check: ${why}` : ''}`;
               const thumb = entry.kept ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a ComfyUI take, not a static asset
                 <img
@@ -97,7 +121,8 @@ export default function ShortMomentScene({
                   {entry.scene ? (
                     <a
                       href={sceneHref(entry.scene.id)}
-                      className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-[var(--bg-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                      data-flagged={why ? 'true' : undefined}
+                      className={`flex h-10 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-[var(--bg-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)] ${why ? 'ring-2 ring-[var(--tint-warning-border)]' : ''}`}
                       aria-label={`${label} — open on Scene`}
                       title={label}
                     >

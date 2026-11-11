@@ -612,3 +612,47 @@ export function pausedNotQueued(
     { at: now, sceneId, event: 'paused', detail: `a take was not queued: ${why}` }
   );
 }
+
+export type FlaggedShot = {
+  sceneId: string;
+  name: string;
+  why: string;
+  /** The kept take's picture (its framed cut when it has one). */
+  thumb?: string;
+};
+
+/**
+ * A run's takes to check, grouped by script scene ("1B KITCHEN · Dialogue" → "1 KITCHEN"), in the
+ * run's order — for the review list (2026-11-11: the names and reasons alone hid what the
+ * pictures showed at once). Scenes no longer there are listed under their id.
+ */
+export function flaggedByScene(
+  run: Pick<SceneRun, 'items' | 'flagged'>,
+  scenes: readonly Pick<SavedScene, 'id' | 'name' | 'takes' | 'keptTakeId'>[]
+): Array<{ group: string; shots: FlaggedShot[] }> {
+  const flagged = run.flagged ?? {};
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  const order = [
+    ...run.items.map(item => item.sceneId).filter(id => id in flagged),
+    ...Object.keys(flagged).filter(id => !run.items.some(item => item.sceneId === id)),
+  ];
+  const groups: Array<{ group: string; shots: FlaggedShot[] }> = [];
+  for (const sceneId of order) {
+    const scene = byId.get(sceneId);
+    const name = scene?.name ?? sceneId;
+    const match = /^(\d+)[A-Z]{0,2}\s+(.+?)\s+·/.exec(name);
+    const group = match ? `${match[1]} ${match[2]}` : 'Other shots';
+    const kept = scene?.takes.find(take => take.id === scene.keptTakeId);
+    const thumb = kept?.framedUrl || kept?.imageUrl;
+    const shot: FlaggedShot = {
+      sceneId,
+      name,
+      why: flagged[sceneId]!,
+      ...(thumb ? { thumb } : {}),
+    };
+    const last = groups.find(entry => entry.group === group);
+    if (last) last.shots.push(shot);
+    else groups.push({ group, shots: [shot] });
+  }
+  return groups;
+}

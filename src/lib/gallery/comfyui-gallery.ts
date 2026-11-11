@@ -1037,6 +1037,7 @@ export function mergeGalleryPlayChecks(
   if ('placeMiss' in checks) merged.placeMiss = checks.placeMiss?.trim() || undefined;
   if ('gestureMiss' in checks) merged.gestureMiss = checks.gestureMiss?.trim() || undefined;
   if ('keyframeMiss' in checks) merged.keyframeMiss = checks.keyframeMiss?.trim() || undefined;
+  if ('poseUnjudged' in checks) merged.poseUnjudged = checks.poseUnjudged?.trim() || undefined;
   return merged;
 }
 

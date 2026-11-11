@@ -131,7 +131,7 @@ async function outfitSecondLook(
       endpoint,
       usageContext: { route: 'play-slot-review' },
     });
-    return withOutfitSecondLook(report, { seen, answer });
+    return withOutfitSecondLook(report, { seen, answer }, outfit);
   } catch {
     return report;
   }

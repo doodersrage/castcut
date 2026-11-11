@@ -4090,7 +4090,7 @@ const phases: Record<string, Phase> = {
    * Step 5 (a moment is a scene), live: a Short written with dialogue (each moment a whole scene,
    * the people in it speaking), its shots planned, rendered with every shot animated, back on its
    * cards — then one of its scenes added to an episode's cut. SHORT_MOMENTS (3), SHORT_IDEA,
-   * SHORT_ANIMATE (all | lines | none), SHORT_RUN_MIN (240).
+   * SHORT_ANIMATE (all | lines | none), SHORT_RUN_MIN (240), SHORT_ONE_ROOM (1: one room a scene).
    */
   async shortscene(_ctx, page) {
     type ShortScripts = Array<
@@ -4197,6 +4197,12 @@ const phases: Record<string, Phase> = {
     // Render: every shot planned and animated (the default), on Short.
     const animate = process.env.SHORT_ANIMATE ?? 'all';
     if (!resume) await page.getByTestId('day-make-short-animate').first().selectOption(animate);
+    // SHORT_ONE_ROOM=1: one room a scene (each scene's empty room rendered once, every shot in it).
+    if (!resume && process.env.SHORT_ONE_ROOM === '1') {
+      await page.getByTestId('day-make-short-options-trigger').first().click();
+      await page.getByTestId('day-make-short-one-room').first().check();
+      log('one room a scene: on');
+    }
     log('button:', ((await page.getByTestId('day-make-short').first().textContent()) ?? '').trim());
     const runBefore = (((await toolSettings(page)) as { scene?: { run?: V2Run } }).scene?.run ??
       {}) as {

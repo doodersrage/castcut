@@ -71,3 +71,14 @@ describe('episode autopilot', () => {
     assert.equal(normalizeEpisodeAutopilot({ wideStills: false }).wideStills, false);
   });
 });
+
+describe('one room a scene is asked for, and kept on the run (2026-11-11)', () => {
+  it('is off unless asked; asked, the run keeps it', async () => {
+    const { normalizeEpisodeRunAuto } = await import('./episode-run');
+    assert.equal(normalizeEpisodeAutopilot({}).oneRoom, undefined);
+    assert.equal(normalizeEpisodeAutopilot({ oneRoom: true }).oneRoom, true);
+    assert.equal(normalizeEpisodeRunAuto({ keep: true, oneRoom: true })?.oneRoom, true);
+    assert.equal(normalizeEpisodeRunAuto({ keep: false, oneRoom: true })?.oneRoom, undefined);
+    assert.equal(normalizeEpisodeRunAuto({ keep: true, oneRoom: 'yes' })?.oneRoom, undefined);
+  });
+});

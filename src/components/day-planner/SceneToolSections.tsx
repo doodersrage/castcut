@@ -433,6 +433,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                       partnerOutfit={vm.partnerOutfit}
                       onNewPartnerStandIn={vm.newPartnerStandIn}
                       onKeepPartnerAsCast={vm.keepPartnerAsCast}
+                      forFilm={active?.fromScript ? 'scene' : undefined}
                     />
                     <DayQualityStatusLines
                       faceFinish={faceFinish}

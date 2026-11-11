@@ -657,6 +657,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             completedStills={completedShotCount}
             completedClips={completedClipCount}
             slotTotal={slotTotal}
+            shots={short.progress ? { done: short.progress.done, of: short.progress.of } : null}
           />
           <PlayGetStartedCard
             hasCharacter={Boolean(character)}
@@ -1003,6 +1004,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
               moment={shortMoments.bySlot[slotId]}
               castId={short.castId}
               leadSpeakers={shortMoments.leadSpeakers}
+              flagged={shortMoments.flagged}
             />
           )}
           castName={character?.name}

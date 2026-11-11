@@ -77,6 +77,22 @@ export function inventedDayPartner(id: string | null | undefined): DayPartner | 
   return option ? { name: '', noun: option.noun, invented: true } : null;
 }
 
+/**
+ * The partner a still is made with: the one picked; but on a script's shot, "Someone new" (no
+ * pick) is one stand-in of the other sex for the whole film — the same face every shot. A
+ * stranger a still was right for a photo day; in a scene, a live run's kitchen had a different
+ * man in each of its ten shots (2026-11-11).
+ */
+export function dayPartnerChoiceFor(
+  picked: string | null | undefined,
+  input: { scriptShot: boolean; lead: DayPartnerNoun | null | undefined }
+): string | undefined {
+  const id = picked?.trim();
+  if (id) return id;
+  if (!input.scriptShot) return undefined;
+  return input.lead === 'man' ? 'new:woman' : 'new:man';
+}
+
 /** Whether a slot's second person is the chosen partner (two-person still, fitting layout). */
 export function dayPartnerApplies(input: {
   partner: DayPartner | null | undefined;

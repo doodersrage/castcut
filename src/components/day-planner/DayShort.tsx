@@ -1,5 +1,6 @@
 'use client';
 
+import ActionMenu from '@/components/ui/ActionMenu';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
@@ -51,6 +52,8 @@ export function useDayShort(input: {
   /** Make the short's clips: none (a talking animatic), the moments with a line, or all. */
   // Every shot animated, in real time as near as it gets (Step 5d, the user: by default).
   const [animate, setAnimate] = useState<EpisodeAutopilot['animate']>('all');
+  // One room a scene (2026-11-11): asked for — it trades the pose map for the room.
+  const [oneRoom, setOneRoom] = useState(false);
   /** The short and the board both changed the same moments since: which to go on with. */
   const [choice, setChoice] = useState<{ note: string; render: boolean } | null>(null);
   /** The run Make the short just started here (ShortRun mounts on it). */
@@ -86,7 +89,17 @@ export function useDayShort(input: {
       ...how,
       // Make the short: an episode run over the moments with no still kept — the best take by
       // its checks, a redo when it misses one, then the cut (episode-autopilot.ts).
-      ...(render ? { render: { makeCast: false, redo: 1, animate, cutWhenDone: true } } : {}),
+      ...(render
+        ? {
+            render: {
+              makeCast: false,
+              redo: 1,
+              animate,
+              cutWhenDone: true,
+              ...(oneRoom ? { oneRoom: true } : {}),
+            },
+          }
+        : {}),
     });
     if ('error' in result) {
       setError(result.error);
@@ -134,6 +147,8 @@ export function useDayShort(input: {
     progress,
     animate,
     setAnimate,
+    oneRoom,
+    setOneRoom,
     shotCount,
     choice,
     error,
@@ -186,6 +201,22 @@ export function DayShortBarActions({ short, busy }: { short: DayShortView; busy?
         <option value="lines">animate the lines</option>
         <option value="all">animate every shot</option>
       </select>
+      {/* The run's rarer choices, out of the one-line bar (2026-11-11). */}
+      <ActionMenu label="options" testId="day-make-short-options" summaryClassName="type-caption">
+        <label
+          className="flex items-center gap-2 px-3 py-1.5 text-sm"
+          title="Render each scene's empty room once and set every shot of that scene in it — the same room shot to shot. It takes the pose map's place (the pose is kept in words)."
+        >
+          <input
+            type="checkbox"
+            checked={short.oneRoom}
+            disabled={busy}
+            data-testid="day-make-short-one-room"
+            onChange={event => short.setOneRoom(event.target.checked)}
+          />
+          One room a scene
+        </label>
+      </ActionMenu>
     </span>
   );
 }

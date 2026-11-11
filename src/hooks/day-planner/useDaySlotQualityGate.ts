@@ -85,6 +85,10 @@ import { activeDayEvent } from '@/lib/day/event';
  * computer-made is redone once on a new seed ("Redone — looked computer-made" on the
  * card); a second computer-made take only warns.
  */
+/** A failed review pauses the checks this long, doubling each time, at most the max. */
+const REVIEW_RETRY_MS = 60_000;
+const REVIEW_RETRY_MAX_MS = 15 * 60_000;
+
 export function useDaySlotQualityGate(
   ctx: DayPlannerToolOrchestrationCore,
   faceFinish?: {
@@ -123,7 +127,16 @@ export function useDaySlotQualityGate(
   const runningRef = useRef(false);
   /** The still being reviewed right now (its image URL), for Scene runs to wait on. */
   const reviewingUrlRef = useRef<string | null>(null);
-  const pausedRef = useRef(false);
+  /**
+   * Paused after a failed review, until this time (ms; 0: not paused). It was for the session
+   * (a missing vision model shouldn't error on every still), which on a 2026-11-11 overnight run
+   * left a scene's later shots unchecked and counted clean: now it tries again after a minute,
+   * then two, four… up to a quarter-hour, and a review that works clears it.
+   */
+  const pausedRef = useRef(0);
+  const failuresRef = useRef(0);
+  /** Why the review is paused, for a Scene run to say so; null when it isn't. */
+  const [checksPaused, setChecksPaused] = useState<string | null>(null);
   /** Set once the detector reports it is not installed — skip pose checks for the session. */
   const poseCheckOffRef = useRef<string | null>(null);
   const [poseCheckOff, setPoseCheckOff] = useState<string | null>(null);
@@ -143,7 +156,8 @@ export function useDaySlotQualityGate(
       // New Day, new layouts: rerolled variants start from the stable drawing again.
       poseVariantRef.current = {};
       // A new Day is a fresh chance for a gate that paused on a vision error.
-      pausedRef.current = false;
+      pausedRef.current = 0;
+      failuresRef.current = 0;
       return;
     }
     // Stills already finished when Day mounted belong to an earlier film — never re-review them.
@@ -159,15 +173,23 @@ export function useDaySlotQualityGate(
 
   useEffect(() => {
     if (!autoReviewStills) {
-      pausedRef.current = false;
+      pausedRef.current = 0;
       return;
     }
-    if (!mounted || busy || runningRef.current || pausedRef.current || !baselinedRef.current) {
+    if (
+      !mounted ||
+      busy ||
+      runningRef.current ||
+      Date.now() < pausedRef.current ||
+      !baselinedRef.current
+    ) {
       return;
     }
     const target = slots.find(slot => {
       const still = stills.find(entry => entry.slotId === slot.id);
       return (
+        // The empty place (placeOnly): nobody to review.
+        !slot.placeOnly &&
         still?.status === 'completed' &&
         Boolean(still.imageUrl) &&
         // A take put back from a saved scene had its passes when it landed.
@@ -420,6 +442,8 @@ export function useDaySlotQualityGate(
           .map(note => ` · ${note}`)
           .join('');
         // The scores follow the still into the Gallery (badge, "missed" filter, best-match sort).
+        // A review that works ends any back-off.
+        failuresRef.current = 0;
         recordGalleryPlayChecks(targetStill.promptId, {
           ...(poseMatch ? { pose: poseMatch.score, poseMiss: Boolean(decision.poseMiss) } : {}),
           ...(faceMatch !== null ? { face: faceMatch, faceMiss: Boolean(decision.faceMiss) } : {}),
@@ -554,10 +578,21 @@ export function useDaySlotQualityGate(
           await queueSlot(target);
         }
       } catch (error) {
-        // Stop after the first failure so a missing vision model doesn't error on every slot.
-        pausedRef.current = true;
+        // Stop for a while so a missing vision model doesn't error on every slot; then try again.
+        failuresRef.current += 1;
+        const waitMs = Math.min(
+          REVIEW_RETRY_MAX_MS,
+          REVIEW_RETRY_MS * 2 ** (failuresRef.current - 1)
+        );
+        pausedRef.current = Date.now() + waitMs;
         const message = error instanceof Error ? error.message : 'Review failed.';
+        console.warn('Auto-review paused:', error);
         setQualityStatus(`Auto-review paused: ${message}`);
+        setChecksPaused(message);
+        setTimeout(() => {
+          setChecksPaused(null);
+          setTick(value => value + 1);
+        }, waitMs + 100);
       } finally {
         runningRef.current = false;
         reviewingUrlRef.current = null;
@@ -602,9 +637,9 @@ export function useDaySlotQualityGate(
       status?: string;
       restoredFor?: string;
     }) => {
-      if (!autoReviewStills || pausedRef.current || !still.slotId) return false;
+      if (!autoReviewStills || Date.now() < pausedRef.current || !still.slotId) return false;
       if (still.status !== 'completed' || !still.imageUrl || isRestoredTake(still)) return false;
-      if (!slots.some(slot => slot.id === still.slotId)) return false;
+      if (!slots.some(slot => slot.id === still.slotId && !slot.placeOnly)) return false;
       const full = stills.find(
         entry => entry.slotId === still.slotId && entry.imageUrl === still.imageUrl
       );
@@ -636,6 +671,9 @@ export function useDaySlotQualityGate(
 
   return {
     autoReviewPending,
+    /** Whether the stills are checked when they land (Auto-review). */
+    autoReviewOn: autoReviewStills,
+    checksPaused: autoReviewStills ? checksPaused : null,
     realismMarks,
     qualityStatus: autoReviewStills
       ? qualityStatus

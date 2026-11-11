@@ -11,6 +11,9 @@
  * job of the IP-Adapter / LoRA locks.
  */
 
+import { outfitBareSeen, outfitJudgePrompt } from '../still/outfit-check';
+
+export { outfitJudgePrompt };
 import { STILL_FACE_MATCH_WARN_BELOW, STILL_MIN_FACE_MATCH } from '@/lib/face/match';
 import { DEFAULT_MIN_POSE_MATCH } from '@/lib/pose/score';
 import { decideRealism, REALISM_MISS_REASON } from '@/lib/still/realism';
@@ -64,19 +67,6 @@ export const OUTFIT_DESCRIBE_PROMPT =
   'Describe only the clothing the woman in this photo is wearing, in one short line: each garment ' +
   'and its main colour (for example "red strapless mini dress, black heels"). No other words.';
 
-export function outfitJudgePrompt(planned: string, seen: string): string {
-  return (
-    `A photo was meant to show a woman wearing: "${planned}".\nA description of what she wears: "${seen}".\n` +
-    'Could the description be that outfit, loosely read? Count it as the same when it is the same ' +
-    "general kind of clothing in a similar colour: any athletic wear fits a sport's sportswear " +
-    '(a wetsuit fits surfing), a costume fits its pieces (armour, robe, kimono), a suit or tuxedo ' +
-    'fits a blazer with trousers, and close colours count (burgundy/maroon, sand/gold, taupe/silver, and cream, ivory, champagne, gold and silver satin are one family). ' +
-    'Shoes and accessories do not matter. Answer no only when it is clearly a different kind of ' +
-    'clothing (a dress instead of a suit, jeans instead of a uniform, a nightie instead of swimwear) ' +
-    'or a clearly different colour. Answer only yes or no.'
-  );
-}
-
 /** The review said the outfit is wrong (a hard flag or the lowest score). */
 export function reportFlagsOutfit(report: SlotQualityReport): boolean {
   return report.flags.includes('wrong-outfit') || report.outfitMatch <= 1;
@@ -88,10 +78,13 @@ export function reportFlagsOutfit(report: SlotQualityReport): boolean {
  */
 export function withOutfitSecondLook(
   report: SlotQualityReport,
-  look: { seen: string; answer: string } | null
+  look: { seen: string; answer: string } | null,
+  /** The planned outfit: bare skin or underwear it doesn't name stays a miss, whatever the judge. */
+  planned?: string
 ): SlotQualityReport {
   if (!look || !look.seen.trim()) return report;
-  const answer = look.answer.trim().toLowerCase();
+  const bare = planned ? outfitBareSeen(planned, look.seen) : null;
+  const answer = bare ? 'no' : look.answer.trim().toLowerCase();
   if (answer.startsWith('yes')) {
     return {
       ...report,

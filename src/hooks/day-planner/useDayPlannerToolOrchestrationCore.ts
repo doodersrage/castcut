@@ -4,7 +4,14 @@ import { loadLocations, shotPlacePhoto } from '@/lib/location/records';
 import { useKeeperStandIn } from '@/hooks/fitting-room/useKeeperStandIn';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import {
+  LOCATION_PICTURE_MODEL,
+  LOCATION_PICTURE_NEGATIVE,
+  locationPictureGraph,
+  locationPicturePrompt,
+} from '@/lib/location/picture';
+import {
   castPlacePhotoFor,
+  withCastPlace,
   withPlacePhotoInAdultPrompt,
   withPlacePhotoInLongAdultBrief,
   withPlacePhotoInPrompt,
@@ -239,6 +246,7 @@ import {
 import {
   dayPartnerApplies,
   dayPartnerNoun,
+  dayPartnerChoiceFor,
   inventedDayPartner,
   toDayPartner,
   type DayPartner,
@@ -346,7 +354,7 @@ import {
   stillsAreWide,
   type SceneToolCache,
 } from '@/lib/play/settings';
-import { sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
+import { sceneScriptRooms, sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
@@ -398,6 +406,17 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         activeSceneId: (storedToolSettings as SceneToolCache).activeSceneId,
       }
     : {};
+  /** One room a scene: on when the running run asked for it (EpisodeRunAuto.oneRoom). */
+  const oneRoomRef = useRef<{ on: boolean; rooms: Record<string, string> }>({
+    on: false,
+    rooms: {},
+  });
+  oneRoomRef.current = sceneMode
+    ? {
+        on: (storedToolSettings as SceneToolCache).run?.auto?.oneRoom === true,
+        rooms: sceneScriptRooms((storedToolSettings as SceneToolCache).scriptRooms),
+      }
+    : { on: false, rooms: {} };
   const scriptLineStays = () =>
     Boolean(
       sceneCacheRef.current.scenes?.find(scene => scene.id === sceneCacheRef.current.activeSceneId)
@@ -530,6 +549,41 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   const character = getCharacter(shared.activeCharacterId);
   // Day's prompts are written for a woman lead; a man lead switches the adult duo recipe.
   const leadNoun = dayPartnerNoun(character ?? {});
+  /**
+   * The room a script shot is set in under one room a scene: made the first time a scene is shot
+   * (its empty room, from the shot's place words), then the same for every shot of it. Null when
+   * off, not a script's shot, or the render fails (the shot goes out as before).
+   */
+  const scriptSceneRoom = useCallback(
+    async (slot: DaySlot): Promise<string | null> => {
+      if (!oneRoomRef.current.on) return null;
+      const link = sceneCacheRef.current.scenes?.find(
+        scene => scene.id === sceneCacheRef.current.activeSceneId
+      )?.fromScript;
+      if (!link?.scriptId || !link.sceneId) return null;
+      const key = `${link.scriptId}|${link.sceneId}`;
+      const known = oneRoomRef.current.rooms[key];
+      if (known) return known;
+      const place =
+        withCastPlace(slot.location, character, leadNoun)?.trim() || slot.location?.trim();
+      if (!place) return null;
+      try {
+        const { renderEmptyPlace } = await import('@/lib/location/picture-client');
+        const file = await renderEmptyPlace(
+          { name: place, look: '', setting: /\boutdoors\b/i.test(place) ? 'EXT' : 'INT' },
+          `scene-room-${link.sceneId.slice(0, 40)}.png`
+        );
+        const rooms = { ...oneRoomRef.current.rooms, [key]: file };
+        oneRoomRef.current = { ...oneRoomRef.current, rooms };
+        storeToolSettings({ scriptRooms: rooms } as Parameters<typeof storeToolSettings>[0]);
+        return file;
+      } catch (error) {
+        console.warn('One room a scene: the room was not made —', error);
+        return null;
+      }
+    },
+    [character, leadNoun, storeToolSettings]
+  );
   // The Cast store hydrates after first render; a one-off read left the partner picker without
   // the Cast until something else re-rendered Day.
   const castRoster = useSyncExternalStore(
@@ -1190,6 +1244,62 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
    * light, camera and clothes carry over and the clips can end on each other. The edit's job is
    * recorded on the slot like any still, and the board picks it up from the gallery.
    */
+  /**
+   * A shot with nobody in it (`placeOnly`, a script's "Rain streaks down the window"): the empty
+   * place, rendered as a location's picture is (location/picture.ts), its action in the words —
+   * not the lead posed from the window (2026-11-11).
+   */
+  const queuePlaceShot = useCallback(
+    async (slot: DaySlot): Promise<string | null> => {
+      setError(null);
+      setActiveSlotId(slot.id);
+      actions.resetStatuses();
+      const place =
+        withCastPlace(slot.location, character, leadNoun)?.trim() ||
+        slot.location?.trim() ||
+        'the place';
+      const where = { name: place, look: slot.sceneHints?.trim() ?? '' };
+      const setting = /\boutdoors\b/i.test(place) ? ('EXT' as const) : ('INT' as const);
+      const { requeueComfyJob } = await import('@/lib/comfyui/requeue');
+      const queued = await requeueComfyJob({
+        prompt: locationPicturePrompt({ ...where, setting }),
+        negativePrompt: LOCATION_PICTURE_NEGATIVE,
+        model: LOCATION_PICTURE_MODEL,
+        tool: 'scene',
+        workflowJson: JSON.stringify(
+          locationPictureGraph({ ...where, setting }, Math.floor(Math.random() * 2 ** 31))
+        ),
+        workflowFinal: true,
+      }).catch(() => null);
+      const id = queued?.ok && queued.promptId ? queued.promptId.trim() : '';
+      const nextStills = upsertDaySlotStill(stillsRef.current, {
+        slotId: slot.id,
+        promptId: id || undefined,
+        status: id ? 'queued' : 'error',
+        imageUrl: undefined,
+        clipPromptId: undefined,
+        clipRenderPromptId: undefined,
+        clipUrl: undefined,
+        clipStatus: undefined,
+        promptCheck: undefined,
+        beatKey: rerollBeatKey(slot.sceneHints) || undefined,
+        previousTake: undefined,
+        bestOfTwo: undefined,
+        twoTakes: undefined,
+        redoReason: undefined,
+      });
+      stillsRef.current = nextStills;
+      updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      if (!id) {
+        setError(
+          `${slot.label}: the empty place didn't queue (it renders on Qwen-Image 2.1 Turbo)${queued?.error ? ` — ${queued.error}` : ''}.`
+        );
+      }
+      return id || null;
+    },
+    [actions, character, leadNoun, shared.activeCharacterId, updateToolSettings]
+  );
+
   const queueEventMoment = useCallback(
     async (slot: DaySlot, previous: DaySlot): Promise<string | null> => {
       const prevStill = stillsRef.current.find(entry => entry.slotId === previous.id);
@@ -1397,6 +1507,15 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           await queueEventMoment(slot, slots[momentIndex - 1]!);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Could not queue that moment.');
+        } finally {
+          if (manageBusy) setBusy(false);
+        }
+        return;
+      }
+      if (slot.placeOnly) {
+        if (manageBusy) setBusy(true);
+        try {
+          await queuePlaceShot(slot);
         } finally {
           if (manageBusy) setBusy(false);
         }
@@ -1933,13 +2052,15 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         // Partner: a chosen Cast member plays the second person on two-person stills — their
         // face crop takes Image 2 (the outfit is said in words), the pose map stays Image 3 — or
         // an invented man / woman ("new:…") with their own face and no extra image.
+        const partnerId = dayPartnerChoiceFor(toolSettings.partnerCharacterId, {
+          scriptShot: scriptLineStays(),
+          lead: leadNoun,
+        });
         const partnerCharacter =
-          toolSettings.partnerCharacterId && toolSettings.partnerCharacterId !== lookCharacter?.id
-            ? getCharacter(toolSettings.partnerCharacterId)
-            : null;
+          partnerId && partnerId !== lookCharacter?.id ? getCharacter(partnerId) : null;
         const castPartner = toDayPartner(partnerCharacter);
         const partnerCandidate =
-          inventedDayPartner(toolSettings.partnerCharacterId) ??
+          inventedDayPartner(partnerId) ??
           (castPartner
             ? { ...castPartner, relation: castRelationOf(lookCharacter, partnerCharacter?.id) }
             : null);
@@ -2627,6 +2748,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             () => castPlacePhotoFor(lookCharacter, queueTarget.location),
             { indoorsOnly }
           );
+        // One room a scene (a run's oneRoom): the scene's own room when nothing else gives one.
+        const sceneRoom = settingPhoto() ? null : await scriptSceneRoom(queueTarget);
         const roomPhoto: { filename: string; locationName?: string } | null =
           !adultStill &&
           !queueTarget.thirdCastId?.trim() &&
@@ -2639,7 +2762,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               !extraFilenames[1]?.trim() &&
               !extraUrls[1])) &&
           !kleinFaceFilename
-            ? settingPhoto()
+            ? (settingPhoto() ?? (sceneRoom ? { filename: sceneRoom } : null))
             : null;
         // Image 3 beside an Image 2; or, on Qwen-Image 2.1 with Image 2 free (a dressed plate wears
         // the outfit, so no clothing image rides along), Image 2 itself — the photo was never sent
@@ -3194,6 +3317,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           setting: adultStill
             ? null
             : resolveRoleplaySetting(queueTarget.location, shared.lockedLocation) || undefined,
+          framing: queueTarget.poseCamera?.shot ?? null,
         });
         const queuedPrompt = checked.prompt;
         if (checked.repaired.length > 0) {
@@ -3488,6 +3612,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     [
       actions,
       buildSlotPrompt,
+      queuePlaceShot,
+      scriptSceneRoom,
       character,
       sceneMode,
       isolatePending,

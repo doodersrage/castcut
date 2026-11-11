@@ -32,6 +32,8 @@ export type DayPartnerRowProps = {
   partnerSentFaceUrl?: string;
   /** What the Cast partner wears on two-person stills (their kept outfit), or null. */
   partnerOutfit?: string | null;
+  /** A script's film: what "Someone new" does there (DayPartnerPicker). */
+  forFilm?: 'scene' | 'short';
 };
 
 /**
@@ -52,6 +54,7 @@ export default function DayPartnerRow({
   onKeepPartnerAsCast,
   partnerSentFaceUrl,
   partnerOutfit,
+  forFilm,
 }: DayPartnerRowProps) {
   if (people === 'solo') return null;
   const mood = normalizeDayMood(dayMood);
@@ -84,6 +87,7 @@ export default function DayPartnerRow({
           standInUrl={partnerStandInUrl}
           sentFaceUrl={partner && !partner.invented ? partnerSentFaceUrl : undefined}
           disabled={busy}
+          forFilm={forFilm}
           onChange={onPartnerChange}
         />
       </div>

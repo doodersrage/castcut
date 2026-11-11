@@ -42,6 +42,7 @@ import {
   takeAsStill,
   type SavedScene,
   type SceneToolCache,
+  sceneScriptRooms,
 } from './scenes';
 import { activeCutSources, cutRoomShots, cutRoomSourceShots, splitCutRoomKey } from '../film/cut-room';
 import { buildCastFile, parseCastFile } from '../cast/transfer';
@@ -1183,5 +1184,16 @@ describe('a Scene from any moment of a long board', () => {
       assert.equal(slot.sceneHints, `beat ${id}`, id);
       assert.equal(slot.location, 'office', id);
     }
+  });
+});
+
+describe('the rooms one room a scene made (2026-11-11)', () => {
+  it('keeps script|scene → filename, drops the malformed', () => {
+    assert.deepEqual(
+      sceneScriptRooms({ 's1|int-kitchen-morning': 'scene-room-a.png', bad: 'x.png', 's1|y': 3, 's1|z': ' ' }),
+      { 's1|int-kitchen-morning': 'scene-room-a.png' }
+    );
+    assert.deepEqual(sceneScriptRooms(null), {});
+    assert.deepEqual(sceneScriptRooms('nope'), {});
   });
 });

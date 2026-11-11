@@ -3977,3 +3977,67 @@ other person's name and a name once a scene at most. Same 12 shorts on Mistral N
 58% → 40% of raw scenes, 45% → 25% after the check; clean by every note 50% → 67%. Asking for
 "two or three parentheticals a scene" changed nothing (~0.7 a line before and after), so it was
 left out.
+
+**The overnight Short on Nemo (2026-11-11):** 3 scenes written in 25 s; 26 shots in 133 min, all
+kept with a clip; 12 flagged — 9 "the pose missed" (9 of the kitchen's 10), 3 "the face doesn't
+match" (all on the lead's misspelt cue). Fixes:
+- **A misspelt cue** (SYLNE for Slyne) was nobody in Who's who, and her shots read "Sylne says".
+  A cue one slip (a letter changed, added, dropped, two swapped) from exactly one known name, four
+  letters or more, is written as that name (`withKnownCues`, short-dialogue.ts).
+- **The kitchen's pose misses:** "the spoon clinking against the mug" drew a standing lean — any
+  "against" did — while the shot was seated across the table. A table ("across the table", "at
+  the kitchen table", "a table for two") is seated now, in the guide's words and in the everyday
+  posture class; "against" leans only on something to lean on. "Leans forward in her chair" is
+  seated too (13 shots of the 2026-11-09 run were drawn as a lean). Over both runs' 56 shots:
+  sit 26 → 39, lean 14 → 1 (rain on a window — a shot with nobody in it still gets a figure).
+- **Six shots kept "not checked", run called clean:** Auto-review was off for the run (its
+  default), so a still's checks were the pose step's (useDayPoseMissRedo) and the after-checks'.
+  The pose step skips a still whose drawing disagrees with the scene's words ("pose not judged")
+  without recording anything — likely the dining room's six, not yet proven. Meanwhile Auto-review
+  no longer pauses for the session on one failed review (a minute, doubling, at most 15), and a
+  run with Auto-review on flags a take kept with no checks.
+- **No new poses:** every miss in the two runs was a misread of the words, none a missing pose.
+- **Topless stills, nothing looking:** 4 of the kitchen's 11 stills were her in the plate's
+  fitting underwear, on an Everyday day dressed in a slip dress. With Auto-review off nothing
+  checked clothes. The after-checks now check the outfit on Everyday days when Auto-review is off
+  (play/outfit-check.ts, `/api/outfit-check`): described without the plan (told it, the 8B tagged
+  three of them "slip dress"), then judged loosely — and bare skin or underwear the plan doesn't
+  name is a miss before the judge, which said yes to "naked". Alone, or beside someone of the
+  other sex. Auto-review's second look keeps that rule too. On the run's 26 kept stills: the 4
+  topless and a bookshop still in a brown dress and cardigan missed, 21 passed (the dining room's
+  grey dresses are its planned "stone sweater dress"), ~0.6 s a still.
+
+**From stills to film (2026-11-11, user: "anything else we should change since changing focus to
+film generation?"):** what the overnight run's pictures showed, and what changed.
+- **One partner a film:** "Someone new" is a different stranger on each two-person still — the
+  kitchen had a different man in each of its ten shots. On a script's shots it is now one stand-in
+  of the other sex for the whole film, rendered once and reused (`dayPartnerChoiceFor`); a pick
+  (a Cast member, "Same woman / man") stands as before.
+- **Framing kept:** close-up and medium shots came back as wides of the room. The two-person pose
+  map ignored the framing (only a solo map was cropped) — it is cropped around both now
+  (`poseFramingRegionForFigures`). And the prompt asked for the feet: the mandatory footwear line
+  and a redo's "both arms and both legs" are dropped from head and waist shots before queueing
+  (`repairStillPrompt`, `feet-out-of-frame`).
+- **Each line at its own moment:** every shot of a scene read its first action ("stirs her coffee")
+  and, in the bookshop, his ("she is He scans the store"). A line's shot reads the action written
+  last before it, and how it is said ("Slyne, sharply.").
+- **Runs say what wasn't checked:** a take kept with no check on it is flagged "not checked",
+  Auto-review on or off; the list reads "kept without passing its checks".
+- **Labels:** Cut's "Back to Day" is "Back to Short". "Stills" stays: they are stills until
+  Animate, and Film's steps were named so on purpose (2026-11-04).
+- **The crop to the shot, on Edit 2511 and for two:** a picked close-up or medium is cut from the
+  finished take around the face (shot-reframe.ts) — but only Qwen-Image 2.1 graphs were read and
+  only one-person stills cut, so none of the run's shots was. Edit 2511's graph is read now, and a
+  two-shot is cut around both faces (`shotReframeRectForFaces`); a group still keeps its frame.
+- **A shot with nobody in it** ("Rain streaks down the window", an establishing shot of only
+  atmosphere) is the place alone: `placeOnly` on its Scene (`shotShowsNobody`), queued as the empty
+  place (location/picture.ts, Qwen-Image 2.1 Turbo) — no face, pose or outfit checks, settled as it
+  lands, never "not checked".
+- **One room a scene** (asked for: Render the short's "one room a scene", the run's
+  `auto.oneRoom`): a script scene with no room photo has its empty room rendered once
+  (`renderEmptyPlace`, kept in `scriptRooms`), and every shot of that scene is set in it. It takes
+  the pose map's place, so it is off unless asked, to be measured live.
+- **A pose the check couldn't judge** is recorded (`poseUnjudged`) and the run lists it — before,
+  it left nothing, and the take read as clean.
+- **Not done:** the partner's reverse shots (his close-up on his line). He is rendered beside her
+  only; a shot of him alone needs him as the still's subject and an over-the-shoulder pose map.

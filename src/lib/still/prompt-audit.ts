@@ -19,6 +19,7 @@ export type StillPromptIssueCode =
   | 'repeated-line'
   | 'outfit-two-sources'
   | 'template-leftover'
+  | 'feet-out-of-frame'
   | 'empty-slot'
   | 'scene-surface-mismatch';
 
@@ -42,6 +43,12 @@ export type StillPromptContext = {
    * it back from the prompt with {@link settingInStillPrompt}.
    */
   setting?: string | null;
+  /**
+   * The shot's framing, when it has one (a script shot's camera): a close-up or a medium leaves
+   * the feet out of frame, so a line that orders shoes "on both feet" or asks for "both legs"
+   * pulls the shot wide (2026-11-11: a run's head shots came back as wides of the kitchen).
+   */
+  framing?: 'full' | 'knees' | 'waist' | 'head' | null;
 };
 
 const SOLO_DECLARED_RE =
@@ -204,6 +211,18 @@ export function auditStillPrompt(
     }
   }
 
+  if (context.framing === 'head' || context.framing === 'waist') {
+    const feet =
+      FOOTWEAR_LINE_RE.exec(text)?.[0] ?? /\bboth arms and both legs\b/i.exec(text)?.[0] ?? '';
+    if (feet) {
+      add(
+        'feet-out-of-frame',
+        'A close or medium shot orders shoes or legs — it may pull the shot wide.',
+        feet
+      );
+    }
+  }
+
   const leftover = /\{\{[^}]{1,40}\}\}|\[object Object\]|\bundefined\b|\bNaN\b/.exec(text)?.[0];
   if (leftover) {
     add('template-leftover', 'The prompt contains an unfilled placeholder.', leftover);
@@ -246,6 +265,11 @@ export function repairStillPrompt(
         'the outfit $1'
       )
       .replace(/\bthe exact outfit and shoes ((?:she|he) wears in)\b/g, 'the exact outfit $1');
+  }
+  if (has('feet-out-of-frame')) {
+    next = next
+      .replace(/^[ \t]*FOOTWEAR \(mandatory\):[^\n]*\n?/gm, '')
+      .replace(/\btorso angle, both arms and both legs\b/g, 'torso angle and both arms');
   }
   if (has('duo-says-alone')) {
     next = next

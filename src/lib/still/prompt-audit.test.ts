@@ -216,3 +216,28 @@ describe('the prompt check kept on the card', () => {
     assert.equal(long?.remaining[0]?.length, 200);
   });
 });
+
+describe('a close or medium shot orders no shoes or legs (2026-11-11 live run)', () => {
+  const prompt = [
+    'Edit Image 1: POSE FIRST: the two people — Slyne stirs her coffee, exactly as the pose map in Image 2 shows.',
+    'OUTFIT (mandatory): she wears an oversized forest green slip dress.',
+    'FOOTWEAR (mandatory): on her own feet (the person from the first image) she wears strappy heeled sandals — exactly these, on both feet; the other person wears dark brown leather shoes — never the same pair.',
+    'Day photo: A woman and a man together. Camera: head-and-shoulders close-up.',
+    'QUALITY FIX: Match the Image 3 skeleton exactly — torso angle, both arms and both legs; do not keep the Image 1 standing pose.',
+  ].join('\n');
+
+  it('drops them from a head or waist shot, and keeps the rest', () => {
+    const out = repairStillPrompt(prompt, { framing: 'head' });
+    assert.doesNotMatch(out.prompt, /FOOTWEAR|both legs/);
+    assert.match(out.prompt, /torso angle and both arms;/);
+    assert.match(out.prompt, /OUTFIT \(mandatory\)/);
+    assert.deepEqual(out.repaired.map(issue => issue.code), ['feet-out-of-frame']);
+    assert.doesNotMatch(repairStillPrompt(prompt, { framing: 'waist' }).prompt, /FOOTWEAR/);
+  });
+
+  it('leaves a wide shot, or a still with no framing, as it was', () => {
+    assert.equal(repairStillPrompt(prompt, { framing: 'full' }).prompt, prompt);
+    assert.equal(repairStillPrompt(prompt, { framing: 'knees' }).prompt, prompt);
+    assert.equal(repairStillPrompt(prompt).prompt, prompt);
+  });
+});

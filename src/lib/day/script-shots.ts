@@ -84,7 +84,7 @@ export function lineSeconds(text: string): number {
  * 0%, two-shots 10% vs 6%). Words as often nouns (sigh, hands, steps, waves) left out; “looks” only when it acts (looks at, around, up…).
  */
 export const DOING_RE =
-  /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?|looks? (?:at|around|up|down|out|away|back|over))\b/i;
+  /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?|sips?|grins?|shrugs?|frowns?|winks?|blushes|tucks?|touches|taps?|lowers?|raises?|tilts?|slumps?|flips?|scans?|looks? (?:at|around|up|down|out|away|back|over))\b/i;
 
 /** A cue's extension for a voice heard, not seen: V.O., O.S., O.C. (any dots). */
 const OFFSCREEN_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
@@ -408,6 +408,41 @@ export function sceneLocationOf(
   return scene.setting === 'EXT' ? `${words}, outdoors` : words;
 }
 
+/** Where a shot's line is in its scene's elements (-1: no line, or not found). */
+function shotLineAt(shot: Pick<PlannedShot, 'line' | 'speaker'>, scene: ScriptScene): number {
+  if (!shot.line || !shot.speaker) return -1;
+  return scene.elements.findIndex(
+    element =>
+      element.kind === 'dialogue' &&
+      Boolean(element.speaker) &&
+      speakerKey(element.speaker!) === shot.speaker &&
+      clean(element.text) === shot.line
+  );
+}
+
+/** Anyone in the words: a name, a pronoun for a person, someone saying or doing. */
+const SOMEONE_RE =
+  /\b(?:she|he|they|her|him|his|them|hers|someone|somebody|people|person|man|woman|men|women|crowd|couple|friends?|partner|says|reacts)\b/i;
+
+/**
+ * A shot that shows nobody — an establishing, action or insert shot whose action names no one
+ * ("Rain streaks down the window."). It is the place alone (2026-11-11: such a shot rendered
+ * the lead anyway, posed from the window's words). Names are the scene's speakers and the Cast's.
+ */
+export function shotShowsNobody(
+  shot: Pick<PlannedShot, 'purpose' | 'action' | 'line'>,
+  names: readonly string[]
+): boolean {
+  if (shot.line || shot.purpose === 'dialogue' || shot.purpose === 'reaction') return false;
+  const text = shot.action?.trim();
+  if (!text || SOMEONE_RE.test(text)) return false;
+  const words = names
+    .flatMap(name => name.trim().split(/\s+/))
+    .filter(word => word.length > 1)
+    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return !words.length || !new RegExp(`\\b(?:${words.join('|')})\\b`, 'i').test(text);
+}
+
 export type ShotSceneDraft = {
   name: string;
   slot: DaySlot;
@@ -525,10 +560,23 @@ export function shotSceneDraft(input: {
   // café glows warm under string lights"), and a still posed from it guessed — the overnight
   // episode's shots on such text missed their pose twice as often (2026-11-08).
   const actions = scene.elements.filter(element => element.kind === 'action');
+  // A line's own moment (2026-11-11): the action written last before it — every shot of a live
+  // run's kitchen read the scene's opening ("stirs her coffee") while the script had her roll her
+  // eyes, sip, set the mug down between the lines.
+  const at = shotLineAt(shot, scene);
+  const before = at >= 0 ? scene.elements.slice(0, at).reverse() : [];
+  const momentAction = before.find(
+    element => element.kind === 'action' && DOING_RE.test(element.text)
+  );
   const sceneActionRaw =
     !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
-      ? (actions.find(element => DOING_RE.test(element.text)) ?? actions[0])?.text
+      ? (momentAction ?? actions.find(element => DOING_RE.test(element.text)) ?? actions[0])?.text
       : undefined;
+  // How it is said ("(teasing)"), for the face of whoever says it on screen.
+  const manner =
+    at > 0 && scene.elements[at - 1]!.kind === 'parenthetical' && !shot.offscreen
+      ? clean(scene.elements[at - 1]!.text.replace(/^\(|\)$/g, ''), 60)
+      : '';
   // Her alone: what someone else does isn't in the picture ("Rob leans against the doorway, arms
   // crossed" drew her arms crossed, and 40 episode shots failed that check, 2026-11-07).
   const sceneActionText = withoutOtherPlaces(sceneActionRaw, scene.place, input.places ?? []);
@@ -552,6 +600,7 @@ export function shotSceneDraft(input: {
     shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
       ? `${nameOf(shot.speaker)} says: “${shot.line}”${shot.offscreen ? ` ${nameOf(shot.speaker)} is heard, not seen.` : ''}`
       : '',
+    manner && shot.speaker ? `${nameOf(shot.speaker)}, ${manner}.` : '',
     shot.purpose === 'reaction' && shot.who[0] ? `${nameOf(shot.who[0])} reacts.` : '',
   ]
     .filter(Boolean)
@@ -576,6 +625,12 @@ export function shotSceneDraft(input: {
       ...(locationId ? { locationId } : {}),
       ...(beat ? { sceneHints: beat, sceneHintsTyped: beat } : {}),
       poseCamera: { shot: shot.framing },
+      ...(shotShowsNobody(shot, [
+        ...scene.speakers.flatMap(speaker => [speaker, nameOf(speaker)]),
+        ...(leadName ? [leadName] : []),
+      ])
+        ? { placeOnly: true }
+        : {}),
       ...(leadSpeaks && shot.line ? { line: shot.line } : {}),
       ...(leadVoiceOver && shot.line ? { narration: shot.line } : {}),
     },

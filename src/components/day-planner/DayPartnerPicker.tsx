@@ -21,6 +21,7 @@ export default function DayPartnerPicker({
   standInUrl,
   sentFaceUrl,
   disabled,
+  forFilm,
   onChange,
 }: {
   /** '' = someone new each still, `new:woman` / `new:man`, or a Cast id. */
@@ -31,6 +32,12 @@ export default function DayPartnerPicker({
   /** The face picture actually sent for the picked Cast partner (after the first duo still). */
   sentFaceUrl?: string;
   disabled?: boolean;
+  /**
+   * What "Someone new" does here (2026-11-11): on a script's shots one stand-in plays the partner
+   * in the whole film (`scene`); on a Short with a script, quick stills still get a stranger each
+   * and the rendered short gets one (`short`).
+   */
+  forFilm?: 'scene' | 'short';
   onChange: (next: string) => void;
 }) {
   return (
@@ -44,8 +51,13 @@ export default function DayPartnerPicker({
       tiles={[
         {
           id: '',
-          label: 'Someone new',
-          title: 'A different stranger on each two-person still',
+          label: forFilm === 'scene' ? 'One for the film' : 'Someone new',
+          title:
+            forFilm === 'scene'
+              ? 'One stranger plays the partner in every shot of this film — the same face shot to shot'
+              : forFilm === 'short'
+                ? 'A different stranger on each quick still; one stranger for the whole film when the short is rendered'
+                : 'A different stranger on each two-person still',
           glyph: '?',
         },
         ...DAY_NEW_PARTNER_OPTIONS.map(option => ({

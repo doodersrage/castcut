@@ -515,6 +515,11 @@ export type DaySlot = {
   eventMove?: string;
   /** Voice-over over this slot's shot in the cut (film-narration.ts) — not said on screen. */
   narration?: string;
+  /**
+   * The shot shows the place with nobody in it (a script's "Rain streaks down the window"): it is
+   * rendered as the empty place (location/picture.ts), not as the lead (2026-11-11).
+   */
+  placeOnly?: boolean;
 };
 
 /**
@@ -976,6 +981,7 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       poseLayout: readText(slot.poseLayout, 40) || undefined,
       line: normalizeSpokenLine(slot.line) || undefined,
       ...(slot.lineFullFrame === true ? { lineFullFrame: true } : {}),
+      ...(slot.placeOnly === true ? { placeOnly: true } : {}),
       lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
       ...(readText(slot.thirdCastId, 120) ? { thirdCastId: readText(slot.thirdCastId, 120) } : {}),
@@ -1395,7 +1401,9 @@ export function dayEverydayPoseClass(beat: string | null | undefined): string {
     return 'KNEEL';
   }
   if (
-    /\b(sit(?:ting|s)?|seated|curled|cross-legged|bench|booth|couch|sofa|stool|perch(?:ed|ing)?|knees drawn|armchair)\b/.test(
+    // In a chair, at a table (2026-11-11: "leans forward in her chair" was a standing lean,
+    // and 13 shots of a live run's café scene were drawn so).
+    /\b(sit(?:ting|s)?|seated|curled|cross-legged|bench|booth|couch|sofa|stool|perch(?:ed|ing)?|knees drawn|armchair|(?:in|on) (?:her|his|their|a|the) (?:[\w'-]+ )?chair|(?:across|at) (?:the|a|her|his|their) (?:[\w'-]+ )?table|table for (?:one|two|three|four))\b/.test(
       hay
     )
   ) {

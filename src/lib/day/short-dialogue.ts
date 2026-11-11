@@ -130,6 +130,55 @@ export function withPeoplePresent(written: string, people: readonly MomentPerson
     .join('\n');
 }
 
+/** Whether two cues are one slip apart: a letter changed, added, dropped, or two swapped. */
+function oneSlipApart(a: string, b: string): boolean {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false;
+  if (a.length === b.length) {
+    const off = [...a].flatMap((char, index) => (char === b[index] ? [] : [index]));
+    if (off.length === 1) return true;
+    return (
+      off.length === 2 &&
+      off[1] === off[0]! + 1 &&
+      a[off[0]!] === b[off[1]!] &&
+      a[off[1]!] === b[off[0]!]
+    );
+  }
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  for (let index = 0; index < long.length; index++) {
+    if (long.slice(0, index) + long.slice(index + 1) === short) return true;
+  }
+  return false;
+}
+
+/**
+ * A misspelt cue put right (2026-11-11): a live run's writer wrote SYLNE for Slyne, so her lines
+ * were nobody's in Who's who (unmapped, "the face doesn't match" on 3 of them) and her shot text
+ * read "Sylne says". A cue one slip from exactly one known name (the lead's, the people's), four
+ * letters or more, is written as that name. Pure.
+ */
+export function withKnownCues(written: string, names: readonly string[]): string {
+  const known = [
+    ...new Set(
+      names.flatMap(name => [
+        cueOf(name),
+        cueOf(name.replace(/^(?:her|his|their|the|a|an)\s+/i, '')),
+      ])
+    ),
+  ];
+  const lines = written.split('\n');
+  return lines
+    .map((line, index) => {
+      const match = /^(\s*)([A-Z][A-Z0-9 '\-]*[A-Z0-9])(\s*\(.*\))?\s*$/.exec(line);
+      if (!match || /^(?:INT|EXT|EST|I\/E)\b/.test(match[2]!)) return line;
+      if (!lines[index + 1]?.trim()) return line;
+      const cue = match[2]!;
+      if (cue.length < 4 || known.includes(cue)) return line;
+      const near = known.filter(name => name.length >= 4 && oneSlipApart(cue, name));
+      return near.length === 1 ? `${match[1]}${near[0]}${match[3] ?? ''}` : line;
+    })
+    .join('\n');
+}
+
 export function withMomentDialogue(input: {
   script: SavedScript;
   scenes: readonly SavedScene[];
@@ -150,7 +199,10 @@ export function withMomentDialogue(input: {
   const parsed = parseScript(input.script.source);
   const at = parsed.scenes.findIndex(scene => scene.id === moment.sceneId);
   const old = parsed.scenes[at];
-  const text = withPeoplePresent(input.written.trim(), input.people);
+  const text = withKnownCues(withPeoplePresent(input.written.trim(), input.people), [
+    input.leadName,
+    ...input.people.map(person => person.name),
+  ]);
   const written = parseScript(text);
   if (!old || written.scenes.length !== 1) return null;
   const lines = input.script.source.split('\n');

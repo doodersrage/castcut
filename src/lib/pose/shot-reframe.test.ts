@@ -9,6 +9,7 @@ import {
   SHOT_REFRAME_PREFIX,
   SHOT_REFRAME_SAVE_NODE,
   shotReframeRect,
+  shotReframeRectForFaces,
 } from './shot-reframe';
 
 type Nodes = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
@@ -117,3 +118,40 @@ describe('buildShotReframeGraph', () => {
     assert.ok(!Object.values(graph).some(node => /Loader|Sampler/.test(node.class_type)));
   });
 });
+
+describe('a two-shot and an Edit 2511 still are cut too (2026-11-11)', () => {
+  const size = { width: 1536, height: 864 };
+  // Two faces of a kitchen two-shot drawn wide: small, side by side.
+  const her = { x: 560, y: 220, width: 60, height: 76 };
+  const him = { x: 900, y: 200, width: 64, height: 80 };
+
+  it('crops around both faces, both kept, the still’s aspect kept', () => {
+    const rect = shotReframeRectForFaces(size, [him, her], 'head')!;
+    assert.ok(rect);
+    assert.ok(rect.x <= her.x && rect.x + rect.width >= him.x + him.width);
+    assert.ok(rect.y <= Math.min(her.y, him.y));
+    assert.ok(Math.abs(rect.width / rect.height - 1536 / 864) < 0.02);
+    assert.ok(rect.height < 864 * 0.9);
+  });
+
+  it('keeps the frame when the two are already that close, and one face is the solo crop', () => {
+    const close = [
+      { x: 300, y: 150, width: 300, height: 380 },
+      { x: 900, y: 140, width: 300, height: 380 },
+    ];
+    assert.equal(shotReframeRectForFaces(size, close, 'head'), null);
+    assert.deepEqual(shotReframeRectForFaces(size, [her], 'waist'), shotReframeRect(size, her, 'waist'));
+  });
+
+  it('reads an Edit 2511 still’s graph: its prompt and canvas', () => {
+    const graph = {
+      '4': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { prompt: 'Camera: head-and-shoulders close-up.' } },
+      '906': { class_type: 'EmptySD3LatentImage', inputs: { width: 1536, height: 864, batch_size: 1 } },
+    };
+    assert.deepEqual(reframeSourceOf(graph), {
+      prompt: 'Camera: head-and-shoulders close-up.',
+      size: { width: 1536, height: 864 },
+    });
+  });
+});
+

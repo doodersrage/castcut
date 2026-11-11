@@ -23,6 +23,8 @@ export type EpisodeAutopilot = {
   cutWhenDone: boolean;
   /** Shoot the stills 16:9 (the Scene's wideStills): an episode is cut wide. Unset = on. */
   wideStills?: boolean;
+  /** One room a scene: each script scene's empty room rendered once, every shot set in it. */
+  oneRoom?: boolean;
 };
 
 export const DEFAULT_EPISODE_AUTOPILOT: EpisodeAutopilot = {
@@ -44,6 +46,7 @@ export function normalizeEpisodeAutopilot(raw: unknown): EpisodeAutopilot {
     animate: value.animate === 'lines' || value.animate === 'all' ? value.animate : 'none',
     cutWhenDone: value.cutWhenDone !== false,
     wideStills: value.wideStills !== false,
+    ...(value.oneRoom === true ? { oneRoom: true } : {}),
   };
 }
 
@@ -70,6 +73,7 @@ export function autopilotRun(run: SceneRun, pilot: EpisodeAutopilot): SceneRun {
     animate: pilot.animate !== 'none',
     ...(pilot.animate === 'lines' ? { animateOnly: 'lines' as const } : {}),
     ...(pilot.cutWhenDone ? { cutWhenDone: true } : {}),
+    ...(pilot.oneRoom ? { oneRoom: true } : {}),
   };
   return {
     ...run,

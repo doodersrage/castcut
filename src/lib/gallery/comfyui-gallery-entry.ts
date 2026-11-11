@@ -27,6 +27,11 @@ export type GalleryPlayChecks = {
    * parts and what their checks saw ("part 3: something new in the place").
    */
   keyframeMiss?: string;
+  /**
+   * The pose check ran but couldn't judge the still (why: its drawing disagreed with the scene's
+   * words). Not a miss — a run lists it to check (2026-11-11: six shots were skipped so, silently).
+   */
+  poseUnjudged?: string;
   at: number;
 };
 

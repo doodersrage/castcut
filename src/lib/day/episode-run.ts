@@ -74,6 +74,12 @@ export type EpisodeRunAuto = {
   animateOnly?: 'lines';
   /** When the run is done, cut the film (episode autopilot: the Scene page opens Cut). */
   cutWhenDone?: boolean;
+  /**
+   * One room a scene (2026-11-11): the first shot of a script scene with no room photo renders
+   * the empty room (location/picture.ts), and every shot of that scene is set in it — the kitchen
+   * was ten kitchens. It takes the pose map's place (the pose stays in words), so it is asked for.
+   */
+  oneRoom?: boolean;
 };
 
 export const EPISODE_REDO_MAX = 3;
@@ -94,6 +100,7 @@ export function normalizeEpisodeRunAuto(raw: unknown): EpisodeRunAuto | undefine
     animate,
     ...(animate && value.animateOnly === 'lines' ? { animateOnly: 'lines' } : {}),
     ...(keep && value.cutWhenDone === true ? { cutWhenDone: true } : {}),
+    ...(keep && value.oneRoom === true ? { oneRoom: true } : {}),
   };
 }
 
