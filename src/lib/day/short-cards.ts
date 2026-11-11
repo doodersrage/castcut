@@ -101,11 +101,32 @@ export function shortCardsForScriptScenes(input: {
     return grown;
   };
 
+  // A scene's own card, when its Scene went (deleted on another device, 2026-11-10): the empty
+  // card between its neighbours' cards on the board — a still on it is the moment's. Without
+  // this the scene took the first empty card anywhere, and its own stayed blank with its still.
+  const order = orderDaySlots(board, input.day.slotOrder).map(slot => slot.id);
+  const cardBetween = (moment: ShortMoment): DaySlotId | null => {
+    const at = moments.indexOf(moment);
+    const prev = moments
+      .slice(0, at)
+      .reverse()
+      .find(entry => entry.daySlot)?.daySlot;
+    const next = moments.slice(at + 1).find(entry => entry.daySlot)?.daySlot;
+    const from = prev ? order.indexOf(prev) + 1 : 0;
+    const to = next ? order.indexOf(next) : order.length;
+    if (from < 0 || to < from) return null;
+    const own = order
+      .slice(from, to)
+      .map(id => board.find(slot => slot.id === id))
+      .find(slot => slot && empty(slot) && !claimed.has(slot.id));
+    return own?.id ?? null;
+  };
+
   const leadLine = (moment: ShortMoment) =>
     moment.lines.find(line => leads.has(line.speaker.toUpperCase()) && !line.offscreen);
 
   for (const moment of missing) {
-    const slotId = freeCard();
+    const slotId = cardBetween(moment) ?? freeCard();
     if (!slotId) {
       left += 1;
       continue;

@@ -27,6 +27,7 @@ import {
   type DaySlotStill,
 } from './planner';
 import { normalizeDayWeather, type DayWeather } from './weather';
+import { parseScript } from '../script/parse';
 
 /** One render of a scene. */
 export type SceneTake = {
@@ -1330,16 +1331,36 @@ export function sceneStillFraming(scene: Pick<SavedScene, 'slot' | 'allowCompani
  */
 export function scriptScenesInOrder(
   scenes: ReadonlyArray<SavedScene> | undefined,
-  script: { id: string; shots?: ReadonlyArray<{ madeSceneId?: string }> }
+  script: {
+    id: string;
+    /** Its text: each Scene goes where its scene is in it. */
+    source?: string;
+    shots?: ReadonlyArray<{ madeSceneId?: string; sceneId?: string }>;
+  }
 ): SavedScene[] {
   const mine = (scenes ?? []).filter(scene => scene.fromScript?.scriptId === script.id);
-  const rank = new Map<string, number>();
+  const shotRank = new Map<string, number>();
+  const shotScene = new Map<string, string>();
   (script.shots ?? []).forEach((shot, index) => {
-    if (shot.madeSceneId && !rank.has(shot.madeSceneId)) rank.set(shot.madeSceneId, index);
+    if (!shot.madeSceneId || shotRank.has(shot.madeSceneId)) return;
+    shotRank.set(shot.madeSceneId, index);
+    if (shot.sceneId) shotScene.set(shot.madeSceneId, shot.sceneId);
   });
+  // The script's scenes in order (2026-11-10): a Scene no shot was made for — a Short's card
+  // Scene, a one-shot short's moment — went to the end by when it was made, so a short sent to
+  // Cut played out of order. It goes with its scene now; its shots' order within it.
+  const sceneRank = new Map<string, number>();
+  if (script.source)
+    parseScript(script.source).scenes.forEach((entry, index) => sceneRank.set(entry.id, index));
+  const LAST = Number.MAX_SAFE_INTEGER;
+  const placeOf = (scene: SavedScene) =>
+    sceneRank.get(scene.fromScript?.sceneId ?? '') ??
+    sceneRank.get(shotScene.get(scene.id) ?? '') ??
+    LAST;
   return mine.sort(
     (a, b) =>
-      (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER) ||
+      placeOf(a) - placeOf(b) ||
+      (shotRank.get(a.id) ?? LAST) - (shotRank.get(b.id) ?? LAST) ||
       a.createdAt - b.createdAt
   );
 }

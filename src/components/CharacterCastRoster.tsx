@@ -425,7 +425,10 @@ export default function CharacterCastRoster() {
                     </Button>
                     {/* One clear action plus the next step; the rest in a menu (7 buttons per
                         card read as clutter — UI review 2026-10-15). */}
+                    {/* Portaled: the card clips (overflow-hidden for its plate), and the panel opening
+                        under the card's bottom row was cut off whole — the ⋯ seemed to do nothing. */}
                     <ActionMenu
+                      portal
                       label="⋯"
                       caret={false}
                       summaryAriaLabel={`More for ${character.name}`}

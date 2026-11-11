@@ -417,14 +417,26 @@ export function moveCutShot(keys: string[], key: string, delta: -1 | 1): string[
 /** The shot list's order: the player's order first, then any new shots in their natural order. */
 export function orderedCutShots<T extends { key: string }>(shots: T[], edits?: CutShotEdits): T[] {
   const rank = new Map((edits?.order ?? []).map((key, index) => [key, index]));
-  return [...shots].sort((a, b) => {
-    const ra = rank.get(a.key);
-    const rb = rank.get(b.key);
-    if (ra != null && rb != null) return ra - rb;
-    if (ra != null) return -1;
-    if (rb != null) return 1;
-    return 0;
+  if (!rank.size) return [...shots];
+  const out = shots
+    .filter(shot => rank.has(shot.key))
+    .sort((a, b) => rank.get(a.key)! - rank.get(b.key)!);
+  // A shot the order doesn't have (made since it was set: a shot rendered, a scene come in) goes
+  // where its source has it — right after the shot before it there. At the end, a short's shots
+  // rendered after an edit played after its last scene (user, 2026-11-10).
+  shots.forEach((shot, index) => {
+    if (rank.has(shot.key)) return;
+    let at = 0;
+    for (let before = index - 1; before >= 0; before -= 1) {
+      const placed = out.indexOf(shots[before]!);
+      if (placed >= 0) {
+        at = placed + 1;
+        break;
+      }
+    }
+    out.splice(at, 0, shot);
   });
+  return out;
 }
 
 /**

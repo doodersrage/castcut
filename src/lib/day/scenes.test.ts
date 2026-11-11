@@ -1141,6 +1141,38 @@ describe('one script’s Scenes for Cut', () => {
     // Unordered, Cut goes by when each was made.
     assert.deepEqual(sceneCutShots(ordered, 'c').map(shot => shot.key), ['a', 'c', 'b']);
   });
+
+  it('puts a Scene no shot was made for with its scene, by the script — not at the end', () => {
+    // A short of three scenes: scene 2's card Scene was made last and no planned shot names it.
+    const source = 'INT. KITCHEN - MORNING\n\nShe pours.\n\nINT. CAFE - DAY\n\nShe waits.\n\nEXT. PARK - EVENING\n\nShe walks.\n';
+    const at = (id: string, sceneId: string, createdAt: number) =>
+      ({ ...scene(id, 'x', createdAt), fromScript: { scriptId: 'x', sceneId, shotId: id } }) as SavedScene;
+    const scenes = [
+      at('k1', 'int-kitchen-morning', 1),
+      at('p1', 'ext-park-evening', 2),
+      at('c1', 'int-cafe-day', 3),
+      at('cafe-card', 'int-cafe-day', 9),
+      at('k-card', 'int-kitchen-morning', 8),
+    ];
+    const script = {
+      id: 'x',
+      source,
+      shots: [
+        { madeSceneId: 'k1', sceneId: 'int-kitchen-morning' },
+        { madeSceneId: 'p1', sceneId: 'ext-park-evening' },
+        { madeSceneId: 'c1', sceneId: 'int-cafe-day' },
+      ],
+    };
+    assert.deepEqual(
+      scriptScenesInOrder(scenes, script).map(entry => entry.id),
+      ['k1', 'k-card', 'c1', 'cafe-card', 'p1']
+    );
+    // A one-shot short (no planned shots): by the script's scenes, not when each was made.
+    assert.deepEqual(
+      scriptScenesInOrder(scenes, { id: 'x', source }).map(entry => entry.id),
+      ['k1', 'k-card', 'c1', 'cafe-card', 'p1']
+    );
+  });
 });
 
 describe('a Scene from any moment of a long board', () => {

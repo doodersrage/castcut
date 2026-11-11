@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createScene, type SavedScene } from '../day/scenes';
-import {
-  cutAddedSceneList,
-  cutOrderWithAfter,
-  normalizeCutAddedScenes,
-} from './cut-added-scenes';
+import { cutAddedSceneList, cutOrderWithAfter, normalizeCutAddedScenes, cutAddedScenesFor, cutAddedScenesTagged } from './cut-added-scenes';
 
 const scene = (id: string, scriptId: string, sceneId: string, shotId: string, at: number): SavedScene =>
   createScene({ castId: 'mara', name: id, id, fromScript: { scriptId, sceneId, shotId }, now: at });
@@ -66,5 +62,23 @@ describe('a cut with scenes from another script (Step 5e)', () => {
       [{ scriptId: 'short', sceneIds: ['sh-1'] }]
     );
     assert.deepEqual(normalizeCutAddedScenes(undefined), []);
+  });
+});
+
+describe('added scenes belong to the cut they were added to (2026-11-10)', () => {
+  it('reads, keeps and shows them per cut; tags older ones with the cut they were in', () => {
+    const added = normalizeCutAddedScenes([
+      { scriptId: 'short-a', sceneIds: ['a1'], toScriptId: 'episode' },
+      { scriptId: 'short-a', sceneIds: ['a1'], toScriptId: 'other-episode' },
+      { scriptId: 'short-b', sceneIds: ['b1'] },
+    ]);
+    assert.equal(added.length, 3);
+    assert.deepEqual(cutAddedScenesFor(added, 'episode').map(entry => entry.toScriptId ?? '-'), ['episode', '-']);
+    // A short sent to Cut: not the episodes' added scenes.
+    assert.deepEqual(cutAddedScenesFor(added, 'short-c').map(entry => entry.scriptId), ['short-b']);
+    const tagged = cutAddedScenesTagged(added, 'episode');
+    assert.deepEqual(cutAddedScenesFor(tagged, 'short-c'), []);
+    assert.deepEqual(cutAddedScenesFor(tagged, 'episode').map(entry => entry.scriptId), ['short-a', 'short-b']);
+    assert.deepEqual(cutAddedScenesTagged(added, undefined), added);
   });
 });

@@ -34,4 +34,23 @@ describe('withCutShotEdit / orderedCutShots', () => {
       ['c', 'a', 'b']
     );
   });
+  it('puts a shot the order lacks after the one before it in its source, not at the end', () => {
+    // A short cut, its order set; then its scenes 2 and 4 get new shots (rendered since).
+    const shots = ['s1', 's2', 's2b', 's3', 's4', 's4b'].map(key => ({ key }));
+    assert.deepEqual(
+      orderedCutShots(shots, { order: ['s1', 's2', 's3', 's4'] }).map(shot => shot.key),
+      ['s1', 's2', 's2b', 's3', 's4', 's4b']
+    );
+    // Moved by hand, the new one follows its neighbour where it now is.
+    assert.deepEqual(
+      orderedCutShots(shots, { order: ['s3', 's1', 's2', 's4'] }).map(shot => shot.key),
+      ['s3', 's1', 's2', 's2b', 's4', 's4b']
+    );
+    // New before any ordered one: first; no order: the source's.
+    assert.deepEqual(
+      orderedCutShots([{ key: 'n' }, { key: 'a' }], { order: ['a'] }).map(shot => shot.key),
+      ['n', 'a']
+    );
+    assert.deepEqual(orderedCutShots(shots).map(shot => shot.key), shots.map(shot => shot.key));
+  });
 });

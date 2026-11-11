@@ -10,7 +10,16 @@
 import { scriptScenesInOrder, type SavedScene } from '../day/scenes';
 
 /** Scenes added to a cut from another script: the Scenes they were added by. */
-export type CutAddedScenes = { scriptId: string; sceneIds: string[] };
+export type CutAddedScenes = {
+  scriptId: string;
+  sceneIds: string[];
+  /**
+   * The cut's script they were added to (2026-11-10, optional): the list is the Cut's, and a
+   * short sent to Cut showed scenes added to an episode's cut after its own. Unset: added before
+   * this — the cut's script then (tagged when the cut moves to another script).
+   */
+  toScriptId?: string;
+};
 
 const ADDED_MAX = 24;
 const IDS_MAX = 48;
@@ -29,14 +38,37 @@ export function normalizeCutAddedScenes(raw: unknown): CutAddedScenes[] {
       .map(id => id.trim().slice(0, 160))
       .slice(0, IDS_MAX);
     if (!scriptId || !sceneIds.length) continue;
+    const toScriptId =
+      typeof record.toScriptId === 'string' ? record.toScriptId.trim().slice(0, 160) : '';
     const same = out.find(
-      added => added.scriptId === scriptId && added.sceneIds.some(id => sceneIds.includes(id))
+      added =>
+        added.scriptId === scriptId &&
+        (added.toScriptId ?? '') === toScriptId &&
+        added.sceneIds.some(id => sceneIds.includes(id))
     );
     if (same) continue;
-    out.push({ scriptId, sceneIds });
+    out.push({ scriptId, sceneIds, ...(toScriptId ? { toScriptId } : {}) });
     if (out.length >= ADDED_MAX) break;
   }
   return out;
+}
+
+/** The entries added to this script's cut (and those from before entries said which). */
+export function cutAddedScenesFor(
+  added: readonly CutAddedScenes[],
+  scriptId: string | undefined
+): CutAddedScenes[] {
+  return added.filter(entry => !entry.toScriptId || entry.toScriptId === scriptId);
+}
+
+/** Entries from before they said which cut: said to be `scriptId`'s (the cut's script then). */
+export function cutAddedScenesTagged(
+  added: readonly CutAddedScenes[],
+  scriptId: string | undefined
+): CutAddedScenes[] {
+  return scriptId
+    ? added.map(entry => (entry.toScriptId ? entry : { ...entry, toScriptId: scriptId }))
+    : [...added];
 }
 
 /**

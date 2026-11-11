@@ -22,6 +22,7 @@ import {
   type SceneToolCache,
 } from './scenes';
 import { storedDayBoard, wholeDayBoard } from './day-board-store';
+import { shortCardsForScriptScenes } from './short-cards';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -107,6 +108,27 @@ describe('the Short’s board stored slim (Step 5f part 3b)', () => {
     sameMoments(wholeDayBoard(next, rest));
     // Without it, the slim card would read empty: its Scene said what it was.
     assert.equal(by(wholeDayBoard(slim, rest), 'night').sceneHints, undefined);
+  });
+});
+
+describe('a card’s Scene deleted on another device (2026-11-10)', () => {
+  it('the board reads in step, and the pull gives the scene its own card back, its still kept', () => {
+    // Stored slim here; the sync's merge then takes the morning card's Scene away (deleted there).
+    const slim = stored(storedDayBoard(linked, short.scenes));
+    const gone = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+    const scenes = short.scenes.filter(scene => scene.id !== gone.id);
+    const read = wholeDayBoard(slim, scenes);
+    // Nothing waiting: the board doesn't write the empty card into its short (the scene stays).
+    assert.equal(read.shortLink!.fingerprint, dayShortFingerprint(read));
+    const pulled = shortCardsForScriptScenes({ day: read, script: short.script, scenes, castId: 'mara', leadName: 'Mara', now: 2000 })!;
+    const morning = pulled.slots.find(slot => slot.id === 'morning')!;
+    assert.equal(morning.sceneHints, 'pours coffee by the window');
+    assert.equal(morning.line, 'Coffee first.');
+    assert.match(String(morning.location), /kitchen/i);
+    // Its own card, not the empty evening one; the still is still the board's.
+    assert.ok(!pulled.slots.find(slot => slot.id === 'evening')?.location);
+    assert.deepEqual(pulled.scenes.map(scene => scene.fromDaySlot), ['morning']);
+    assert.deepEqual(read.stills, linked.stills);
   });
 });
 

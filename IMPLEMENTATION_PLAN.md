@@ -3957,3 +3957,17 @@ the dialogue, same time a short. Its habits: names said in the lines (45–58% o
 parenthetical on most lines, an outline that doesn't parse ~1 in 10 (the route now asks once
 more). The editor's read added ~30 s a short on both models with no gain the notes could see:
 off by default. The revision may now cut when a note asks (it kept every paragraph before).
+
+**Fixes after (user, 2026-11-10):**
+- **Cast → a card's ⋯ did nothing:** the card clips (its plate fills it) and the menu's panel
+  opened under its bottom row, cut off whole. The menu is portaled now (`ActionMenu portal`).
+- **A short sent to Cut came after other scenes, out of order:** three causes. A Scene no shot
+  was made for (a card's, a one-shot short's) went to the end by when it was made —
+  `scriptScenesInOrder` now goes by the script's scenes, then the shots. Scenes added to an
+  episode's cut were the Cut's, shown in every script's cut — each entry now says which cut
+  (`CutAddedScenes.toScriptId`, optional; older ones are tagged with the cut's script when it
+  changes). A shot the order lacked (rendered after an edit) went to the end — it goes after the
+  shot before it in its source now (`orderedCutShots`).
+- **A card's Scene deleted on another device:** the board read the slim card empty and the pull
+  put its scene in the first empty card (the evening's), leaving the card blank with its still.
+  The pull now gives a scene the empty card between its neighbours' first (`short-cards.ts`).
