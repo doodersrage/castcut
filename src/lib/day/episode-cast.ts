@@ -6,7 +6,10 @@ import type { CharacterRecord } from '@/lib/character/os';
  * keeps: how they look, what they are to the lead, what they carry. Pure.
  */
 export function episodeCastAbout(
-  member: Pick<CharacterRecord, 'id' | 'descriptor' | 'relationships' | 'props'> | null | undefined,
+  member:
+    | Pick<CharacterRecord, 'id' | 'descriptor' | 'relationships' | 'props' | 'speech'>
+    | null
+    | undefined,
   lead?: Pick<CharacterRecord, 'id' | 'relationships'> | null
 ): string {
   if (!member) return '';
@@ -26,5 +29,9 @@ export function episodeCastAbout(
     .filter(Boolean)
     .slice(0, 2);
   if (props.length) parts.push(`has a ${props.join(' and a ')}`);
-  return parts.join('; ').slice(0, 240);
+  // How they talk, as a manner (Cast → How they talk, for the writer): what makes their lines
+  // theirs without dialect or a phrase to repeat.
+  const manner = member.speech?.manner?.replace(/\s+/g, ' ').trim();
+  if (manner) parts.push(`talks: ${manner.slice(0, 120)}`);
+  return parts.join('; ').slice(0, 320);
 }

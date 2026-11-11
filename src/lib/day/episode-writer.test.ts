@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { parseScript } from '../script/parse';
+import { scriptNotes } from './script-notes';
 import { createScript, normalizeSavedScript, seriesSoFar } from './scene-scripts';
 import {
   episodeFountain,
+  EPISODE_EXAMPLE_SCENE,
+  EPISODE_EXAMPLE_SCENES,
+  episodeExampleFor,
   episodeOutlineMessages,
   episodeOutlineTokens,
   episodeSceneCount,
@@ -115,8 +119,8 @@ describe('a short from Day', () => {
     assert.equal(normalizeEpisodeScenes(99), 40);
     assert.equal(episodeLengthScenes({ minutes: 30, scenes: 5 }), 5);
     assert.equal(episodeLengthScenes({ minutes: 30 }), 40);
-    const [, user] = episodeOutlineMessages({ premise: 'A rainy Saturday', lead: 'Mara', cast: [], minutes: 30, scenes: 5 });
-    assert.match(user!.content, /a short — write exactly 5 scenes, about 4 minutes on screen/);
+    const messages = episodeOutlineMessages({ premise: 'A rainy Saturday', lead: 'Mara', cast: [], minutes: 30, scenes: 5 });
+    assert.match(messages.at(-1)!.content, /a short — write exactly 5 scenes, about 4 minutes on screen/);
   });
 
   it('carries the idea, its mood and its moments to the Scene page, and back', () => {
@@ -199,6 +203,49 @@ describe('the writer’s craft (2026-11-08)', () => {
     assert.match(text, /under fifteen words a line/);
     assert.match(text, /\(V\.O\.\) after their name/);
     assert.match(text, /no camera directions/);
+  });
+});
+
+describe('a scene’s length (2026-11-10)', () => {
+  it('asks for a page counted as it is filmed: sixteen elements at most', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. FLAT - DAY', summary: 'S', who: [] }] };
+    const [system] = episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [] });
+    assert.match(system!.content, /at most sixteen elements in all, counting each action paragraph and each spoken line/);
+  });
+});
+
+describe('worked examples (2026-11-10)', () => {
+  it('shows the scene example for its tone, the quiet one by default', () => {
+    const outline = { title: 'T', logline: 'L', scenes: [{ heading: 'INT. FLAT - DAY', summary: 'S', who: [] }] };
+    const example = (tone?: string) =>
+      episodeSceneMessages({ outline, index: 0, lead: 'Lena', cast: [], tone })[2]!.content;
+    assert.match(example('light comedy'), /Priya/);
+    assert.match(example('flirty and playful, glamorous, always clothed'), /Priya/);
+    assert.match(example('romance'), /Nadia/);
+    assert.match(example('intimate and sensual, between consenting adults'), /Nadia/);
+    assert.match(example('a tense mystery'), /Joss/);
+    assert.match(example('everyday slice of life, warm and observant'), /Mara/);
+    assert.match(example('sporty and driven: training, the match, the team, in the right kit'), /Mara/);
+    assert.match(example(undefined), /Mara/);
+    assert.match(example('melancholy'), /Mara/);
+    assert.equal(episodeExampleFor('nothing matches'), EPISODE_EXAMPLE_SCENE);
+  });
+
+  it('keeps every rule in its own examples: no script note fires on them', () => {
+    for (const { key, example } of EPISODE_EXAMPLE_SCENES) {
+      const scene = parseScript(example[1]).scenes[0]!;
+      assert.deepEqual(scriptNotes({ scriptId: key, scene }).map(note => note.rule), [], key);
+    }
+  });
+
+  it('shows a short’s outline worked through, not an episode’s', () => {
+    const short = episodeOutlineMessages({ premise: 'P', lead: 'Lena', cast: [], minutes: 2, scenes: 4 });
+    assert.equal(short.length, 4);
+    assert.match(short[1]!.content, /write exactly 3 scenes/);
+    const outline = parseEpisodeOutline(short[2]!.content);
+    assert.equal(outline?.scenes.length, 3);
+    assert.match(short[3]!.content, /write exactly 4 scenes/);
+    assert.equal(episodeOutlineMessages({ premise: 'P', lead: 'Lena', cast: [], minutes: 30 }).length, 2);
   });
 });
 

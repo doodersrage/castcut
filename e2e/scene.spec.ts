@@ -1322,6 +1322,8 @@ test('Write an episode: an outline, scenes written one by one, kept as a script'
     if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     // Check each scene's rewrite (a scene with script notes): the scene back as it was.
     if (sent.step === 'revise') return route.fulfill({ json: { text: (sent as { scene?: string }).scene ?? '' } });
+    // The editor's read (2026-11-10): no notes.
+    if (sent.step === 'critique') return route.fulfill({ json: { notes: [] } });
     steps.push(sent.index === undefined ? sent.step : `${sent.step}:${sent.index}`);
     if (sent.step === 'outline') {
       await route.fulfill({
@@ -1466,6 +1468,8 @@ test('Make the episode: the autopilot keeps, plans, prepares and starts the run'
     if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     // Check each scene's rewrite (a scene with script notes): the scene back as it was.
     if (sent.step === 'revise') return route.fulfill({ json: { text: (sent as { scene?: string }).scene ?? '' } });
+    // The editor's read (2026-11-10): no notes.
+    if (sent.step === 'critique') return route.fulfill({ json: { notes: [] } });
     if (sent.step === 'outline') {
       await route.fulfill({
         json: {
@@ -3169,6 +3173,8 @@ test('Make it a short in Sport: the mood goes with the script', async ({ page })
     if (sent.step === 'note') return route.fulfill({ json: { text: '' } });
     // Check each scene's rewrite (a scene with script notes): the scene back as it was.
     if (sent.step === 'revise') return route.fulfill({ json: { text: (sent as { scene?: string }).scene ?? '' } });
+    // The editor's read (2026-11-10): no notes.
+    if (sent.step === 'critique') return route.fulfill({ json: { notes: [] } });
     if (sent.step === 'outline') {
       await route.fulfill({
         json: {
@@ -4111,8 +4117,12 @@ test('Write it with dialogue writes each moment’s scene; the card shows its li
     const body = route.request().postDataJSON() as {
       step: string;
       index: number;
+      scene?: string;
       outline: { scenes: Array<{ heading: string; who: string[] }> };
     };
+    // Checked and read by the editor (2026-11-10): no notes, the scene back as it was.
+    if (body.step === 'critique') return route.fulfill({ json: { notes: [] } });
+    if (body.step === 'revise') return route.fulfill({ json: { text: body.scene ?? '' } });
     const scene = body.outline.scenes[body.index]!;
     asked.push(scene);
     const text = scene.who.length

@@ -147,6 +147,20 @@ export function dayShortMoodAvailable(
   return options.adult === true || (id !== 'intimate' && id !== 'raunchy');
 }
 
+/**
+ * The tone a Day mood writes in (the writer's examples are picked by it), or undefined: Intimate's
+ * only with adult writing allowed.
+ */
+export function dayMoodTone(
+  mood: string | null | undefined,
+  options: { adult?: boolean } = {}
+): string | undefined {
+  const id = String(mood ?? '')
+    .trim()
+    .toLowerCase();
+  return dayShortMoodAvailable(id, options) ? DAY_MOOD_TONES[id] : undefined;
+}
+
 export function dayShortSeed(input: {
   premise: string;
   mood: string | null | undefined;
@@ -274,6 +288,13 @@ export function episodeOutlineMessages(input: {
         (scenes ? EPISODE_SHAPE_SHORT : EPISODE_SHAPE_EPISODE) +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
+    // A short's outline worked through (an episode's is a different shape).
+    ...(scenes
+      ? ([
+          { role: 'user', content: EPISODE_EXAMPLE_OUTLINE[0] },
+          { role: 'assistant', content: EPISODE_EXAMPLE_OUTLINE[1] },
+        ] as ChatMessage[])
+      : []),
     {
       role: 'user',
       content: [
@@ -396,6 +417,182 @@ export const EPISODE_EXAMPLE_SCENE: [string, string] = [
   ].join('\n'),
 ];
 
+/**
+ * More worked examples (2026-11-10, "more training for the writer"): one is shown, picked by the
+ * tone — a comedy reads differently from a reunion or a confrontation, and one quiet example
+ * pulled every scene toward it. Each keeps every rule (two people, a moment a paragraph, short
+ * lines that talk around the feeling, no names said, in late and out on a turn). Not from any
+ * real script.
+ */
+export const EPISODE_EXAMPLE_SCENES: readonly {
+  key: 'comic' | 'warm' | 'tense' | 'quiet';
+  /** A tone this example suits. */
+  match: RegExp;
+  example: readonly [string, string];
+}[] = [
+  {
+    key: 'comic',
+    match:
+      /\b(?:com(?:edy|ic|edic)|funny|farce|silly|playful|light|witty|sitcom|flirt(?:y|ing)?|cheeky)\b/i,
+    example: [
+      'The cast: Priya (a woman), Dev (a man — her flatmate).\n\nWrite scene 2: INT. FLAT HALLWAY - EVENING — Priya killed Dev’s prized fern and swapped in a plastic one; he comes home and admires it, and she has to keep a straight face — until he waters it.',
+      [
+        'INT. FLAT HALLWAY - EVENING',
+        '',
+        'Priya stands beside the fern on the shelf, arms folded, like a guard.',
+        '',
+        'Dev drops his bag at the door and stops at the fern.',
+        '',
+        'DEV',
+        'Look at him. Thriving.',
+        '',
+        'PRIYA',
+        '(too quickly)',
+        'He’s had a good week.',
+        '',
+        'DEV',
+        'New leaves, even.',
+        '',
+        'PRIYA',
+        'I talked to him. Like you said.',
+        '',
+        'Dev picks up the watering can from the floor.',
+        '',
+        'PRIYA',
+        '(lunging, then catching herself)',
+        'He’s fine! He’s — very hydrated.',
+        '',
+        'Dev pours. The water runs straight off the leaves and onto his socks.',
+        '',
+        'He looks down at his socks. Then, slowly, at her.',
+      ].join('\n'),
+    ],
+  },
+  {
+    key: 'warm',
+    match: /\b(?:roman(?:ce|tic)|love|tender|sweet|reunion|intimate|sensual|longing|wistful)\b/i,
+    example: [
+      'The cast: Nadia (a woman), Sam (a man — her ex, back in town).\n\nWrite scene 1: EXT. HARBOUR WALL - EVENING — Sam is back after two years; Nadia acts as if she hasn’t been waiting, but she still takes her tea the way he used to make it.',
+      [
+        'EXT. HARBOUR WALL - EVENING',
+        '',
+        'Nadia sits on the harbour wall, a flask of tea beside her, two cups.',
+        '',
+        'Sam stops a few steps away, hands in his pockets.',
+        '',
+        'SAM',
+        'Two cups.',
+        '',
+        'NADIA',
+        'One’s for the gulls.',
+        '',
+        'SAM',
+        '(gently amused)',
+        'Three sugars for the gulls?',
+        '',
+        'Nadia pours the second cup without looking at him and holds it out.',
+        '',
+        'NADIA',
+        'Some habits stick.',
+        '',
+        'Sam takes the cup and sits down beside her, not quite close.',
+        '',
+        'SAM',
+        'Some people, too.',
+        '',
+        'Nadia keeps her eyes on the water. She shifts an inch closer.',
+      ].join('\n'),
+    ],
+  },
+  {
+    key: 'tense',
+    match:
+      /\b(?:tense|thriller|suspense|myster(?:y|ious)|dark|crime|danger(?:ous)?|edgy|confront\w*|secret|noir)\b/i,
+    example: [
+      'The cast: Joss (a woman), Kieran (a man — her business partner).\n\nWrite scene 4: INT. BACK OFFICE - NIGHT — Joss has found a second set of books; Kieran comes back for his coat and finds her at his desk — she doesn’t accuse him, she makes him explain.',
+      [
+        'INT. BACK OFFICE - NIGHT',
+        '',
+        'Joss sits at Kieran’s desk under the one lamp, a ledger open in front of her.',
+        '',
+        'Kieran stops in the doorway, one arm in his coat.',
+        '',
+        'KIERAN',
+        'You’re here late.',
+        '',
+        'JOSS',
+        'So are these.',
+        '',
+        'She turns the ledger round to face him.',
+        '',
+        'KIERAN',
+        'That’s old. Tax things.',
+        '',
+        'JOSS',
+        '(evenly)',
+        'Then sit down and teach me.',
+        '',
+        'Kieran holds the door frame. He doesn’t come in.',
+        '',
+        'JOSS',
+        'Sit.',
+        '',
+        'Slowly, Kieran takes his coat back off.',
+      ].join('\n'),
+    ],
+  },
+  { key: 'quiet', match: /$^/, example: EPISODE_EXAMPLE_SCENE },
+];
+
+/** The example for a tone: the first whose tone it is, else the quiet one. */
+export function episodeExampleFor(tone: string | undefined): readonly [string, string] {
+  const text = tone?.trim() ?? '';
+  return (
+    (text && EPISODE_EXAMPLE_SCENES.find(entry => entry.match.test(text))?.example) ||
+    EPISODE_EXAMPLE_SCENE
+  );
+}
+
+/**
+ * An outline worked through (2026-11-10): the outline had rules and no example, and its scenes
+ * often only moved people about. Three scenes, each turning something, a detail planted and paid
+ * off — the same story the quiet scene example comes from. Shown for a short only: an episode's
+ * dozens of scenes are a different shape.
+ */
+export const EPISODE_EXAMPLE_OUTLINE: readonly [string, string] = [
+  [
+    'Premise: Theo keeps borrowing money from his sister Mara and won’t say why.',
+    'The lead: Mara. The cast to use: Mara (a woman), Theo (a man — her brother). Add other people only if the story needs them.',
+    'Tone: quiet family drama.',
+    'Length: a short — write exactly 3 scenes, about a minute on screen.',
+  ].join('\n'),
+  JSON.stringify({
+    title: 'The Spare Key',
+    logline:
+      'Mara wants her brother Theo to tell her the truth about the money, but he would rather lose her trust than admit he is in trouble.',
+    scenes: [
+      {
+        heading: 'INT. MARA’S KITCHEN - MORNING',
+        summary:
+          'Mara finds Theo asleep on her sofa, let in with the spare key she gave him years ago; he jokes his way past why he is here — but she sees the overdue letter in his coat.',
+        who: ['Mara', 'Theo'],
+      },
+      {
+        heading: 'INT. MARA’S KITCHEN - NIGHT',
+        summary:
+          'Theo asks for money again; Mara wants him to say why and he won’t — she gives it to him, but takes the spare key back.',
+        who: ['Mara', 'Theo'],
+      },
+      {
+        heading: 'EXT. MARA’S FRONT STEP - MORNING',
+        summary:
+          'Theo comes back with the first repayment and, at last, the truth; Mara says nothing — she takes the spare key from her pocket and holds it out to him.',
+        who: ['Mara', 'Theo'],
+      },
+    ],
+  }),
+];
+
 export function episodeSceneMessages(input: {
   outline: EpisodeOutline;
   index: number;
@@ -407,11 +604,14 @@ export function episodeSceneMessages(input: {
   story?: string;
   tone?: string;
   adult?: boolean;
+  /** A scene of the writer's you rewrote (writer-edits.ts): written the way you rewrite. */
+  yourEdit?: { written: string; kept: string };
 }): ChatMessage[] {
   const scene = input.outline.scenes[input.index]!;
   const list = input.outline.scenes
     .map((entry, i) => `${i + 1}. ${entry.heading} — ${entry.summary}`)
     .join('\n');
+  const example = episodeExampleFor(input.tone);
   return [
     {
       role: 'system',
@@ -419,16 +619,19 @@ export function episodeSceneMessages(input: {
         'You are a television writer. Write ONE scene of a screenplay in Fountain format and nothing else — no ' +
         'notes, no markdown. Start with the scene heading on its own line. Then action in short present-tense ' +
         'paragraphs of what the camera sees, and dialogue: the speaker’s name in CAPITALS on its own line, their ' +
-        'line under it. Blank lines between elements. About one page: four to eight short beats, lines people ' +
-        'would say aloud. Where it matters how a line is said, put it in parentheses on its own line between ' +
+        'line under it. Blank lines between elements. ' +
+        // Length (2026-11-10): "four to eight short beats" came back as 20–40 paragraphs — each
+        // one a shot. Counted the way the scene is filmed, with the number to stop at.
+        'About one page, some 45 seconds on screen: at most sixteen elements in all, counting each action ' +
+        'paragraph and each spoken line — most scenes need ten to fourteen. Lines people would say aloud. Where it matters how a line is said, put it in parentheses on its own line between ' +
         'the name and the line — how the voice sounds (amused, bristling, near tears, teasing), not only ' +
         'quietly or softly. Do not write the next scene. ' +
         EPISODE_CRAFT_SCENE +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
-    // The example: how a scene reads when the rules are kept.
-    { role: 'user', content: EPISODE_EXAMPLE_SCENE[0] },
-    { role: 'assistant', content: EPISODE_EXAMPLE_SCENE[1] },
+    // The example for its tone: how a scene reads when the rules are kept.
+    { role: 'user', content: example[0] },
+    { role: 'assistant', content: example[1] },
     {
       role: 'user',
       content: [
@@ -437,6 +640,11 @@ export function episodeSceneMessages(input: {
         `The cast: ${castLine(input.lead, input.cast)}.`,
         input.tone?.trim() ? `Tone: ${input.tone.trim()}.` : '',
         `The episode's scenes:\n${list}`,
+        input.yourEdit?.written.trim() && input.yourEdit.kept.trim()
+          ? 'The person you write for rewrote one of your scenes. Write the way they rewrote it — its ' +
+            'kind of lines, its length, what it keeps and cuts — not the way it was first written.\n' +
+            `As you wrote it:\n${input.yourEdit.written.trim()}\n\nAs they rewrote it:\n${input.yourEdit.kept.trim()}`
+          : '',
         input.story?.trim() ? `The story so far — keep it true:\n${input.story.trim()}` : '',
         input.before?.trim() ? `How the scene before ended:\n${input.before.trim()}` : '',
         `Write scene ${input.index + 1}: ${scene.heading} — ${scene.summary}` +
@@ -509,7 +717,10 @@ export function episodeReviseMessages(input: {
       content:
         'You are a script editor. Rewrite ONE scene of a screenplay in Fountain format to fix the notes you are ' +
         'given, changing as little as you can: keep its heading, its people, what happens and how it ends, and every ' +
-        'line that is fine. Reply with the scene only — no notes, no markdown. ' +
+        'line that is fine. ' +
+        // A long scene's note asks for cuts: "as little as you can" kept every paragraph (2026-11-10).
+        'Where a note asks to cut, cut: drop the paragraphs and lines that repeat or only decorate, keeping what ' +
+        'moves the scene on. Reply with the scene only — no notes, no markdown. ' +
         EPISODE_CRAFT_SCENE +
         (input.adult ? ` ${EPISODE_ADULT_RULES}` : ''),
     },
@@ -522,6 +733,58 @@ export function episodeReviseMessages(input: {
       ].join('\n\n'),
     },
   ];
+}
+
+/**
+ * The editor's read (2026-11-10, "more training for the writer"): a second look at a written scene
+ * against the same craft, as notes — at most three, each quoting what it is about — or none. The
+ * rules found by rule (script-notes.ts) catch words; this catches what they can't: a scene that
+ * doesn't turn, a line that explains the plot, two people who sound alike. The notes go to the
+ * same revision as the rule's.
+ */
+export function episodeCritiqueMessages(input: {
+  scene: string;
+  summary?: string;
+  lead: string;
+  cast: readonly EpisodeCastMember[];
+}): ChatMessage[] {
+  return [
+    {
+      role: 'system',
+      content:
+        'You are a script editor reading ONE scene of a screenplay. Check it against these rules: it starts in the ' +
+        'middle of something and ends on a turn (a reaction, a decision, a line that lands), not a goodbye or a walk ' +
+        'out; something changes between its start and its end; people talk around what they feel instead of saying ' +
+        'it; no line explains the plot; each person sounds like themselves; lines are short and sound spoken; the ' +
+        'action says what someone does. Reply with at most three notes, one per line, each starting with "- ", ' +
+        'quoting the words it is about and saying what to change. Only real problems — if the scene keeps the ' +
+        'rules, reply with the single word NONE.',
+    },
+    {
+      role: 'user',
+      content: [
+        `The cast: ${castLine(input.lead, input.cast)}.`,
+        input.summary?.trim() ? `What the scene is meant to do: ${input.summary.trim()}` : '',
+        `The scene:\n${input.scene.trim()}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+    },
+  ];
+}
+
+/** The editor's notes (at most three), or none: "NONE", chatter and empty lines dropped. */
+export function parseEpisodeCritique(reply: string | null | undefined): string[] {
+  const text = (reply ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  if (!text || /^\W*none\W*$/i.test(text)) return [];
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => /^(?:[-*•]|\d+[.)])\s+/.test(line))
+    .map(line => line.replace(/^(?:[-*•]|\d+[.)])\s+/, '').trim())
+    .filter(line => line.length > 8 && !/^none\b/i.test(line))
+    .map(line => line.slice(0, 300))
+    .slice(0, 3);
 }
 
 /**

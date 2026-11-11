@@ -6,6 +6,7 @@ import { TextInput } from '@/components/ui/Field';
 import { ToolSection } from '@/components/ui/ToolPageShell';
 import {
   CAST_CATCHPHRASES_MAX,
+  CAST_MANNER_MAX,
   CAST_PRONUNCIATIONS_MAX,
   normalizeCastSpeech,
   pronounceLine,
@@ -32,6 +33,11 @@ export default function CastSpeechSection({
   const [word, setWord] = useState('');
   const [sayAs, setSayAs] = useState('');
   const [phrase, setPhrase] = useState('');
+  const [manner, setManner] = useState(speech.manner ?? '');
+  const saveManner = () => {
+    if (manner.trim() === (speech.manner ?? '')) return;
+    save({ ...speech, manner });
+  };
   const save = (next: CastSpeech) => {
     const saved = saveCastSpeech(character.id, next);
     if (saved) onUpdated?.(saved);
@@ -109,6 +115,25 @@ export default function CastSpeechSection({
             </div>
           ) : null}
           {example ? <p className="type-caption text-[var(--text-muted)]">{example}</p> : null}
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-[var(--text-primary)]">For the writer</p>
+          <TextInput
+            aria-label="How they talk, for the writer"
+            placeholder="says little, jokes when nervous, never finishes a sentence"
+            maxLength={CAST_MANNER_MAX}
+            value={manner}
+            data-testid="cast-speech-manner"
+            onChange={event => setManner(event.target.value)}
+            onBlur={saveManner}
+            onKeyDown={event => {
+              if (event.key === 'Enter') saveManner();
+            }}
+          />
+          <p className="type-caption text-[var(--text-muted)]">
+            A manner in a few words — the script writer writes their lines that way. Leave out
+            accents and phrases to repeat: it overdoes them.
+          </p>
         </div>
         <div className="space-y-2">
           <p className="text-sm font-medium text-[var(--text-primary)]">Their lines</p>

@@ -35,6 +35,12 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'script-unfilmable': 'Script: hard to film',
   'script-camera': 'Script: camera direction',
   'script-no-action': 'Script: nothing seen happening',
+  'script-on-the-nose': 'Script: feeling said outright',
+  'script-names': 'Script: names said in the lines',
+  'script-weak-ending': 'Script: ends on a goodbye',
+  'script-long-scene': 'Script: scene runs long',
+  'script-repeated-line': 'Script: a line said twice',
+  'script-unseen': 'Script: tells what can’t be seen',
 };
 
 const RULES = Object.keys(CONTINUITY_RULE_LABELS) as ContinuityRule[];

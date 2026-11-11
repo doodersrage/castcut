@@ -7,7 +7,10 @@ import { loadSettingsCache, loadToolSettings, saveToolSettings } from '@/lib/set
 import { loadDayBoard } from '@/lib/day/day-board-client';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { dayShortFingerprint } from '@/lib/day/day-as-short';
-import { episodeSceneTail } from '@/lib/day/episode-writer';
+import { dayMoodTone, episodeSceneTail } from '@/lib/day/episode-writer';
+import { SCENE_EDITOR_DEFAULT, checkWrittenScene } from '@/lib/day/scene-check';
+import { episodeCastAbout } from '@/lib/day/episode-cast';
+import { writerEditFor } from '@/lib/day/writer-edits';
 import { normalizeSavedScenes, upsertScene } from '@/lib/day/scenes';
 import { addScriptPatch } from '@/lib/day/scene-scripts';
 import { scriptsCacheOf } from '@/lib/day/scene-script-store';
@@ -98,14 +101,45 @@ export function useShortDialogue(input: {
             .flatMap(id =>
               peopleOf(normalizeDaySlots(day.slots, day.dayLength).find(slot => slot.id === id)!)
             )
-            .map(person => [
-              person.name,
-              { name: person.name, ...(person.sex ? { sex: person.sex } : {}) },
-            ])
+            .map(person => {
+              // Who they are (looks, what they are to her, how they talk), as Write an episode has.
+              const about = person.castId
+                ? episodeCastAbout(getCharacter(person.castId), getCharacter(castId))
+                : '';
+              return [
+                person.name,
+                {
+                  name: person.name,
+                  ...(person.sex ? { sex: person.sex } : {}),
+                  ...(about ? { about } : {}),
+                },
+              ];
+            })
         ).values(),
       ];
       const llmBody = sharedLlmRequestBody(loadSettingsCache().shared);
+      // Its mood's tone (the example the writer is shown); adult writing isn't asked here.
+      const tone = dayMoodTone(day.dayMood);
+      // Your latest rewrite of a written scene (writer-edits.ts): written the way you rewrite.
+      const yourEdit = writerEditFor(
+        loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).writerEdits,
+        tone
+      );
+      const base = { lead: leadName, cast: castList, ...(tone ? { tone } : {}), ...llmBody };
+      const post = async <T>(body: Record<string, unknown>): Promise<T> => {
+        const response = await fetch('/api/script-episode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ ...base, ...body }),
+        });
+        const data = (await response.json().catch(() => ({}))) as T & { error?: string };
+        if (!response.ok) throw new Error(data.error ?? 'The LLM could not write it.');
+        return data;
+      };
       let before = '';
+      // The scenes written so far: a line said there again is noted (scene-check.ts).
+      const earlier: string[] = [];
       let failed = 0;
       for (let index = 0; index < slotIds.length; index += 1) {
         if (stopRef.current) break;
@@ -113,27 +147,25 @@ export function useShortDialogue(input: {
         const slotId = slotIds[index]!;
         let text: string | null = null;
         try {
-          const response = await fetch('/api/script-episode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-              step: 'scene',
-              outline,
-              index,
-              lead: leadName,
-              cast: castList,
-              before,
-              ...llmBody,
-            }),
+          const data = await post<{ text?: string }>({
+            step: 'scene',
+            outline,
+            index,
+            before,
+            ...(yourEdit ? { yourEdit } : {}),
           });
-          const data = (await response.json().catch(() => ({}))) as {
-            text?: string;
-            error?: string;
-          };
-          if (!response.ok || !data.text)
-            throw new Error(data.error ?? 'The LLM could not write it.');
-          text = data.text;
+          if (!data.text) throw new Error('The LLM could not write it.');
+          // Checked by rule (and read by the editor when that's on), as Write an episode (scene-check.ts).
+          text = (
+            await checkWrittenScene({
+              text: data.text,
+              post,
+              check: true,
+              edit: SCENE_EDITOR_DEFAULT,
+              summary: outline.scenes[index]?.summary,
+              earlier,
+            })
+          ).text;
         } catch (error) {
           failed += 1;
           setState(current => ({
@@ -185,6 +217,7 @@ export function useShortDialogue(input: {
         updateDay({ slots, shortLink: link });
         day = { ...day, slots, shortLink: link };
         before = episodeSceneTail(text);
+        earlier.push(text);
       }
       const stopped = stopRef.current;
       setState({

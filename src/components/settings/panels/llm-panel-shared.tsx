@@ -43,6 +43,8 @@ export type ServerLlmSnapshot = {
   allowTemplateFallback?: boolean;
   serverTemperature?: string;
   embedModel?: string;
+  /** LLM_WRITER_MODEL, when set. */
+  writerModel?: string;
   inFlight?: number;
   maxInflight?: number;
   busy?: boolean;

@@ -52,7 +52,19 @@ export type ContinuityRule =
   /** A camera direction in the action (shots are planned). */
   | 'script-camera'
   /** Lines with no action line: nothing seen happening. */
-  | 'script-no-action';
+  | 'script-no-action'
+  /** A line says the feeling outright ("I'm so angry"): craft, the writer talks around it. */
+  | 'script-on-the-nose'
+  /** Names said in several lines of one scene. */
+  | 'script-names'
+  /** A scene that ends on a goodbye or someone walking out, not a turn. */
+  | 'script-weak-ending'
+  /** A scene of more than NOTE_SCENE_BEATS beats (a page is 8–16). */
+  | 'script-long-scene'
+  /** The same line said twice in one scene. */
+  | 'script-repeated-line'
+  /** The action tells what someone thinks or knows: nothing a still can show. */
+  | 'script-unseen';
 
 export type ContinuitySeverity =
   /** Objectively required: the shot can't be used as it is. */

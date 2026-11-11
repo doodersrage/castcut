@@ -62,6 +62,9 @@ function clean(value: unknown, max: number): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 }
 
+/** How they talk, for the writer: a few words. */
+export const CAST_MANNER_MAX = 120;
+
 export function normalizeCastSpeech(raw: unknown): CastSpeech | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const record = raw as CastSpeech;
@@ -82,8 +85,10 @@ export function normalizeCastSpeech(raw: unknown): CastSpeech | undefined {
     ),
   ].slice(0, CAST_CATCHPHRASES_MAX);
   const accent = normalizeCastAccent(record.accent);
+  const manner = clean(record.manner, CAST_MANNER_MAX);
   const next: CastSpeech = {
     ...(accent ? { accent } : {}),
+    ...(manner ? { manner } : {}),
     ...(pronunciations.length ? { pronunciations } : {}),
     ...(catchphrases.length ? { catchphrases } : {}),
   };

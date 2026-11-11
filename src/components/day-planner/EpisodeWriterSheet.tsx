@@ -19,8 +19,10 @@ import {
   type EpisodeWriteSeed,
 } from '@/lib/day/episode-writer';
 import { DEFAULT_EPISODE_AUTOPILOT, type EpisodeAutopilot } from '@/lib/day/episode-autopilot';
-import { scriptNotes } from '@/lib/day/script-notes';
-import { parseScript } from '@/lib/script/parse';
+import { SCENE_EDITOR_DEFAULT, betterScene, checkWrittenScene } from '@/lib/day/scene-check';
+import { normalizeWriterEdits, writerEditFor } from '@/lib/day/writer-edits';
+import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 
 const AREA =
@@ -88,6 +90,18 @@ export default function EpisodeWriterSheet({
   const notesRef = useRef<string[]>([]);
   // Each scene checked by the script notes' rules, and rewritten once if they find something.
   const [checkScenes, setCheckScenes] = useState(true);
+  // And read by the editor (an LLM's notes on the craft), revised for them: slower.
+  const [editScenes, setEditScenes] = useState(SCENE_EDITOR_DEFAULT);
+  // Each scene written twice, the better kept: twice as long.
+  const [bestOfTwo, setBestOfTwo] = useState(false);
+  // Your rewrites of its scenes (writer-edits.ts): it is shown one, to write the way you do.
+  const [yourEdits, setYourEdits] = useState(() =>
+    normalizeWriterEdits(loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).writerEdits)
+  );
+  const forgetEdits = () => {
+    saveToolSettings('scene', { writerEdits: [] });
+    setYourEdits([]);
+  };
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stopRef = useRef(false);
@@ -138,48 +152,59 @@ export default function EpisodeWriterSheet({
     for (let index = done.length; index < outline.scenes.length; index += 1) {
       if (stopRef.current) break;
       setBusy(`Writing scene ${index + 1} of ${outline.scenes.length}…`);
-      let text: string | null = null;
-      // One try again: a small model sometimes writes nothing usable.
-      for (let attempt = 0; attempt < 2 && !text; attempt += 1) {
-        try {
-          text = (
-            await post<{ text: string }>({
-              ...base,
-              step: 'scene',
-              outline,
-              index,
-              before: index > 0 ? episodeSceneTail(done[index - 1] ?? '') : '',
-              story: episodeStorySoFar(notesRef.current.slice(0, index)),
-            })
-          ).text;
-        } catch (err) {
-          if (attempt === 1) {
-            setError(
-              `Scene ${index + 1}: ${err instanceof Error ? err.message : 'not written'} — Carry on tries it again.`
-            );
+      const writeOnce = async (): Promise<string | null> => {
+        // One try again: a small model sometimes writes nothing usable.
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            return (
+              await post<{ text: string }>({
+                ...base,
+                step: 'scene',
+                outline,
+                index,
+                before: index > 0 ? episodeSceneTail(done[index - 1] ?? '') : '',
+                story: episodeStorySoFar(notesRef.current.slice(0, index)),
+                yourEdit: writerEditFor(yourEdits, tone),
+              })
+            ).text;
+          } catch (err) {
+            if (attempt === 1) {
+              setError(
+                `Scene ${index + 1}: ${err instanceof Error ? err.message : 'not written'} — Carry on tries it again.`
+              );
+            }
           }
         }
+        return null;
+      };
+      let text = await writeOnce();
+      // Best of two: a second draft, and the one with fewer notes kept (scene-check.ts).
+      if (text && bestOfTwo && !stopRef.current) {
+        setBusy(
+          `Writing scene ${index + 1} of ${outline.scenes.length} again, to keep the better…`
+        );
+        const second = await writeOnce();
+        if (second) text = betterScene([text, second], done);
       }
       if (!text) break;
-      // Checked by rule (script-notes.ts): one rewrite when it finds something, kept if better.
-      if (checkScenes) {
-        const notesOf = (fountain: string) => {
-          const parsed = parseScript(fountain).scenes[0];
-          return parsed ? scriptNotes({ scriptId: 'draft', scene: parsed }) : [];
-        };
-        const found = notesOf(text);
-        if (found.length) {
-          setBusy(`Checking scene ${index + 1} of ${outline.scenes.length}…`);
-          const revised = await post<{ text: string }>({
-            ...base,
-            step: 'revise',
-            scene: text,
-            notes: found.map(note => `${note.evidence} — ${note.suggestion}`),
+      // Checked by rule (script-notes.ts), and read by the editor when asked: one rewrite for
+      // what they find, kept if no worse (scene-check.ts).
+      if (checkScenes || editScenes) {
+        const of = `${index + 1} of ${outline.scenes.length}`;
+        text = (
+          await checkWrittenScene({
+            text,
+            post: body => post({ ...base, ...body }),
+            check: checkScenes,
+            edit: editScenes,
+            summary: outline.scenes[index]!.summary,
+            earlier: done,
+            onStage: stage =>
+              setBusy(
+                stage === 'editing' ? `Reading scene ${of} as an editor…` : `Checking scene ${of}…`
+              ),
           })
-            .then(data => data.text)
-            .catch(() => null);
-          if (revised && notesOf(revised).length < found.length) text = revised;
-        }
+        ).text;
       }
       done.push(text);
       setWritten([...done]);
@@ -307,6 +332,32 @@ export default function EpisodeWriterSheet({
               />
               Check each scene
             </label>
+            <label
+              className="flex items-center gap-1"
+              title="Each scene read once more by the LLM as an editor — does it turn, do people talk around what they feel, does anyone explain the plot — and rewritten for its notes. About 40% slower; most worth it with a larger writer model (Settings → LLM)"
+            >
+              <input
+                type="checkbox"
+                checked={editScenes}
+                disabled={busy !== null}
+                data-testid="episode-edit-scenes"
+                onChange={event => setEditScenes(event.target.checked)}
+              />
+              Editor’s read
+            </label>
+            <label
+              className="flex items-center gap-1"
+              title="Each scene written twice and the one with fewer script notes kept. Writing takes about twice as long"
+            >
+              <input
+                type="checkbox"
+                checked={bestOfTwo}
+                disabled={busy !== null}
+                data-testid="episode-best-of-two"
+                onChange={event => setBestOfTwo(event.target.checked)}
+              />
+              Best of two
+            </label>
             {adultAllowed ? (
               <label
                 className="flex items-center gap-1"
@@ -321,6 +372,25 @@ export default function EpisodeWriterSheet({
                 />
                 Adult
               </label>
+            ) : null}
+            {yourEdits.length ? (
+              <span
+                className="flex items-center gap-1"
+                data-testid="episode-your-edits"
+                title="Scenes it wrote that you changed before keeping the script: it is shown your latest rewrite, to write the way you do"
+              >
+                Writes like your{' '}
+                {yourEdits.length === 1 ? 'last edit' : `last ${yourEdits.length} edits`}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy !== null}
+                  data-testid="episode-forget-edits"
+                  onClick={forgetEdits}
+                >
+                  Forget them
+                </Button>
+              </span>
             ) : null}
             <label className="flex min-w-48 flex-1 items-center gap-1">
               Tone

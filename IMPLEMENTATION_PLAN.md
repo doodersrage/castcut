@@ -3914,3 +3914,46 @@ Day's own engine hand-offs) need a home on the scene or are retired — listed i
 **Done when:** a Short writes a scene with two speakers, plans its shots, renders them animated
 in voice, shows them on its card, and the scene can be appended into an episode's cut; today's
 Shorts open and render as before; rollback to the release before each increment loses nothing.
+
+### The writer, trained further (user, 2026-11-10: "Anymore training we can give our writer?" — chose all four, then "do all" of six more)
+
+Measured on LM Studio's loaded model (nsfwvision-qwen3-vl-8b-v3): the same 6 premises × 2, 4
+scenes each, scored by the script notes (scratchpad `writer-ab`: gen*.mts, score.mts). The
+baseline kept the rules it was told (no feeling said outright, no goodbye endings), but ran long —
+22 beats a scene, 31% over 24, each beat a shot — repeated lines across scenes (19%) and told
+inner life in the action (15%): 52% of scenes clean by every note.
+
+- **Examples by tone** (`EPISODE_EXAMPLE_SCENES`, `episodeExampleFor`): comic, warm, tense, and
+  the quiet one as before, picked by the tone or the Short's mood (`dayMoodTone`); a short's
+  outline has a worked example (`EPISODE_EXAMPLE_OUTLINE`, 3 scenes; not an episode's).
+- **More script notes, fixed by the same revision**: `script-on-the-nose`, `script-names`,
+  `script-weak-ending`, `script-long-scene` (> 24 beats), `script-repeated-line` (in the scene, or
+  said in an earlier one — `scriptNotes({ earlier })`, also on the Script page),
+  `script-unseen` (inner life in the action, two or more).
+- **The editor's read** (`episodeCritiqueMessages`, step `critique`; off by default — `SCENE_EDITOR_DEFAULT`, measured below —, a toggle in
+  Write an episode): up to three notes, which go with the rule's to one revision; kept only when
+  no worse by rule and still the scene (`checkWrittenScene`, scene-check.ts). Short's dialogue
+  now gets the same check and editor, its mood's tone, and each person's "about".
+- **Learns from your edits** (`tools.scene.writerEdits`, optional, newest 4; writer-edits.ts):
+  scenes of the writer's you change before Keep this script are kept as written and as kept; the
+  scene writer is shown the newest (its tone's first). "Forget them" in the writer.
+- **Length**: the scene prompt asks for at most sixteen elements (action paragraphs and lines).
+- **Best of two** (off by default): each scene written twice, the one with fewer notes kept
+  (`betterScene`).
+- **How they talk** (`CastSpeech.manner`, optional): a manner for the writer in Cast → How they
+  talk, in each person's "about" (`episodeCastAbout`).
+- **A writer model** (`sessionLlmWriterModel` in Settings → LLM, `LLM_WRITER_MODEL` on the
+  server; `resolveWriterLlmModel`): writing on a larger text model while image checks stay on
+  the vision one. Not measured here — no larger model on this machine.
+
+Stored data: two optional fields (`writerEdits`, `speech.manner`); older releases ignore both.
+
+**Measured (2026-11-10, writer-ab; script notes per scene, "names" aside):** on the 8B vision
+model, two runs of the same writer differ by about ±10 points, so most prompt gains were within
+noise; what held in both: inner life in the action 15% → 2–5%, lines said again 19% → 10–13%.
+Mistral Nemo 12B (Q4_K_M, same prompts, loaded beside the 8B while ComfyUI was idle): clean 52%
+→ 75% raw, 80% checked; 15 beats a scene (21 on the 8B), long scenes 40% → 5%, no repeats, twice
+the dialogue, same time a short. Its habits: names said in the lines (45–58% of scenes), a
+parenthetical on most lines, an outline that doesn't parse ~1 in 10 (the route now asks once
+more). The editor's read added ~30 s a short on both models with no gain the notes could see:
+off by default. The revision may now cut when a note asks (it kept every paragraph before).

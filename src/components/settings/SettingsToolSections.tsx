@@ -215,6 +215,7 @@ export default function SettingsToolSections(vm: SettingsToolViewModel) {
                 allowTemplateFallback: health?.config.allowTemplateFallback,
                 serverTemperature: serverEnvFieldValue(health?.serverEnv, 'LLM_TEMPERATURE'),
                 embedModel: serverEnvFieldValue(health?.serverEnv, 'LLM_EMBED_MODEL'),
+                writerModel: serverEnvFieldValue(health?.serverEnv, 'LLM_WRITER_MODEL'),
                 inFlight: health?.llm.inFlight,
                 maxInflight: health?.llm.maxInflight,
                 busy: health?.llm.busy,

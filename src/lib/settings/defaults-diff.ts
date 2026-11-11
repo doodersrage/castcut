@@ -81,6 +81,7 @@ export const PREFERENCE_KEYS: ReadonlyArray<{
   { key: 'sessionLlmProvider', label: 'LLM provider', area: LLM },
   { key: 'sessionLlmModel', label: 'LLM text model', area: LLM },
   { key: 'sessionLlmVisionModel', label: 'LLM vision model', area: LLM },
+  { key: 'sessionLlmWriterModel', label: 'LLM script writer model', area: LLM },
   { key: 'sessionLlmTemperature', label: 'LLM temperature', area: LLM },
   { key: 'sessionAllowTemplateFallback', label: 'Template fallback', area: LLM },
   { key: 'galleryWorkflowRetentionDays', label: 'Workflow retention (days)', area: DATA },

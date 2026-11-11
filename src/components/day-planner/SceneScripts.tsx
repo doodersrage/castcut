@@ -101,8 +101,9 @@ import type { CharacterAppearanceFormDraft } from '@/lib/character/appearance';
 import { queueCastLookPlate } from '@/lib/cast/plate-queue';
 import { tryAttachPendingOutfitPlate } from '@/lib/look/outfit-plate';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
-import { DEFAULT_FITTING_TOOL_CACHE } from '@/lib/play/settings';
-import { loadToolSettings } from '@/lib/settings/cache';
+import { DEFAULT_FITTING_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
+import { loadToolSettings, saveToolSettings } from '@/lib/settings/cache';
+import { withWriterEdits, writerEditsBetween } from '@/lib/day/writer-edits';
 
 const NO_DECISIONS: FindingDecision[] = [];
 let decisionsCache: { key: string; value: FindingDecision[] } | null = null;
@@ -492,6 +493,13 @@ export default function SceneScripts({
     return id === 'import' ? null : id;
   });
   const [draft, setDraft] = useState<string | null>(null);
+  // What the writer handed to the box, as it wrote it: what you change before keeping it is
+  // kept for the writer to learn from (writer-edits.ts).
+  const writtenRef = useRef<{ text: string; tone?: string } | null>(null);
+  // A box closed, or another script put in it, isn't the writer's any more.
+  useEffect(() => {
+    if (draft === null) writtenRef.current = null;
+  }, [draft]);
   /** The mood of a short written from Short, kept with its script (its Scenes made in it). */
   const [draftMoodAsked, setDraftMood] = useState<string | null>(null);
   /** A written episode's summary and the script it follows (the series), kept with it. */
@@ -612,12 +620,12 @@ export default function SceneScripts({
       locations,
     });
     const byScene = new Map(
-      openParsed.scenes.map(scene => {
+      openParsed.scenes.map((scene, at) => {
         const shots = shotsForScene(open.shots, scene.id);
         const counts = sceneCoverage(shots, scenes, cut);
         // Script notes (what can't be filmed, by rule) from the words; coverage once it has shots.
         const findings = [
-          ...scriptNotes({ scriptId: open.id, scene }),
+          ...scriptNotes({ scriptId: open.id, scene, earlier: openParsed.scenes.slice(0, at) }),
           ...coverageFindings({
             scriptId: open.id,
             scene,
@@ -682,6 +690,23 @@ export default function SceneScripts({
       return;
     }
     update(addScriptPatch(cache, script));
+    // The scenes of the writer's you rewrote: it writes more like them next time.
+    const written = writtenRef.current;
+    writtenRef.current = null;
+    const edits = written
+      ? writerEditsBetween({ written: written.text, kept: draft, tone: written.tone })
+      : [];
+    if (edits.length) {
+      saveToolSettings('scene', {
+        writerEdits: withWriterEdits(
+          loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE).writerEdits,
+          edits
+        ),
+      });
+      setShelfNote(
+        `Your changes to ${edits.length === 1 ? 'a scene' : `${edits.length} scenes`} are kept for the writer: it writes more like them next time.`
+      );
+    }
     setDraft(null);
     setDraftMood(null);
     setError(null);
@@ -876,6 +901,7 @@ export default function SceneScripts({
   ) => {
     if (!(await roomForScript())) {
       setDraft(source);
+      writtenRef.current = { text: source, ...(writeSeed?.tone ? { tone: writeSeed.tone } : {}) };
       setDraftMood(writeSeed?.mood ?? null);
       return;
     }
@@ -1130,6 +1156,10 @@ export default function SceneScripts({
             if (pilot) void runAutopilot(fountain, pilot, kept);
             else {
               setDraft(fountain);
+              writtenRef.current = {
+                text: fountain,
+                ...(writeSeed?.tone ? { tone: writeSeed.tone } : {}),
+              };
               setDraftMood(writeSeed?.mood ?? null);
               // On a Cast with no script yet, the box is under the page's folded More.
               revealScripts();
@@ -1169,6 +1199,7 @@ export default function SceneScripts({
                   const archived = readScriptArchive(text, castId);
                   if (archived) void restore(archived);
                   else {
+                    writtenRef.current = null;
                     setDraft(text);
                     setDraftSeries(null);
                   }

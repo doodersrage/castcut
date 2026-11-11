@@ -40,6 +40,7 @@ export default function SettingsLlmPanel({
       sessionLlmProvider: next === 'server' ? undefined : next,
       sessionLlmModel: undefined,
       sessionLlmVisionModel: undefined,
+      sessionLlmWriterModel: undefined,
       sessionLlmEmbedModel: undefined,
     });
     catalog.setCatalogLoading(true);

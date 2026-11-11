@@ -544,6 +544,8 @@ export type SharedToolSettings = {
   sessionLlmModel?: string;
   /** Session override for the vision LLM model (undefined = server LLM_VISION_MODEL default). */
   sessionLlmVisionModel?: string;
+  /** Session override for the script writer's model (undefined = LLM_WRITER_MODEL, else the text model). */
+  sessionLlmWriterModel?: string;
   /** Session override for the embedding model (undefined = server LLM_EMBED_MODEL). */
   sessionLlmEmbedModel?: string;
   /** Extra ComfyUI pool URLs merged with COMFYUI_POOL at queue time. */

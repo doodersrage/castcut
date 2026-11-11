@@ -74,6 +74,26 @@ export default function LlmModelDefaultsPanel({
       />
 
       <SessionLlmModelSelect
+        label="Script writer model"
+        value={sharedSettings.sessionLlmWriterModel ?? ''}
+        serverDefault={sessionProvider === 'server' ? server?.writerModel : undefined}
+        entries={catalogForSelect}
+        loading={catalogLoading}
+        disabled={!sharedMounted}
+        error={catalogError}
+        emptyLabel={
+          server?.writerModel && sessionProvider === 'server'
+            ? `Server default (${server.writerModel})`
+            : 'The text model'
+        }
+        onChange={sessionLlmWriterModel => updateSharedSettings({ sessionLlmWriterModel })}
+      />
+      <p className="type-caption text-[var(--text-muted)]" data-testid="settings-llm-writer-hint">
+        Writes scripts and Short dialogue. A larger instruct model (14B and up) writes tighter
+        scenes than a small vision model; image checks keep the vision model.
+      </p>
+
+      <SessionLlmModelSelect
         label="Session embed model override"
         value={sharedSettings.sessionLlmEmbedModel ?? ''}
         serverDefault={sessionProvider === 'server' ? server?.embedModel : undefined}

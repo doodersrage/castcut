@@ -215,6 +215,11 @@ export type CastSpeech = {
   accent?: string;
   pronunciations?: CastPronunciation[];
   catchphrases?: string[];
+  /**
+   * How they talk, for the script writer (2026-11-10): a manner in a few words ("says little,
+   * jokes when nervous"), not dialect or words to repeat (episode-cast.ts).
+   */
+  manner?: string;
 };
 
 export type CastRelationKind =

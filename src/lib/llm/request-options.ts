@@ -14,6 +14,8 @@ export type LlmRequestOptions = {
   llmModel?: string;
   /** Vision model override for this request (falls back to server LLM_VISION_MODEL). */
   llmVisionModel?: string;
+  /** The script writer's model for this request (resolveWriterLlmModel). */
+  llmWriterModel?: string;
   /** false = template-only for this request/browser; undefined = server LLM_ENABLED default. */
   llmEnabled?: boolean;
   /** Session public provider (OpenRouter / Groq). Server env when unset. */
@@ -28,6 +30,7 @@ export type LlmRequestBody = {
   allowTemplateFallback?: boolean;
   llmModel?: string;
   llmVisionModel?: string;
+  llmWriterModel?: string;
   llmEnabled?: boolean;
   llmProvider?: string;
   llmApiKey?: string;
@@ -50,6 +53,11 @@ export function parseLlmRequestOptions(body?: LlmRequestBody | null): LlmRequest
       ? body.llmVisionModel.trim()
       : undefined;
 
+  const llmWriterModel =
+    typeof body?.llmWriterModel === 'string' && body.llmWriterModel.trim()
+      ? body.llmWriterModel.trim().slice(0, 200)
+      : undefined;
+
   const llmEnabled = typeof body?.llmEnabled === 'boolean' ? body.llmEnabled : undefined;
   const provider = normalizeSessionLlmProvider(body?.llmProvider);
   const llmApiKey =
@@ -62,6 +70,7 @@ export function parseLlmRequestOptions(body?: LlmRequestBody | null): LlmRequest
     allowTemplateFallback: allowFallback,
     llmModel,
     llmVisionModel,
+    ...(llmWriterModel ? { llmWriterModel } : {}),
     llmEnabled,
     ...(provider !== 'server' ? { llmProvider: provider } : {}),
     ...(provider !== 'server' && llmApiKey ? { llmApiKey } : {}),
@@ -97,6 +106,19 @@ export function resolveRequestLlmEnabled(options?: LlmRequestOptions): boolean {
 
 export function resolveRequestLlmModel(options?: LlmRequestOptions): string | undefined {
   return options?.llmModel?.trim() || undefined;
+}
+
+/**
+ * The script writer's model (2026-11-10): writing wants a stronger text model than the small
+ * vision one that tags images — Settings → LLM's writer model, else the server's
+ * LLM_WRITER_MODEL, else the text model as for everything else.
+ */
+export function resolveWriterLlmModel(options?: LlmRequestOptions): string | undefined {
+  return (
+    options?.llmWriterModel?.trim() ||
+    process.env.LLM_WRITER_MODEL?.trim() ||
+    resolveRequestLlmModel(options)
+  );
 }
 
 export function resolveRequestVisionModel(options?: LlmRequestOptions): string | undefined {
@@ -148,6 +170,7 @@ export function sharedLlmRequestBody(
     | 'sessionAllowTemplateFallback'
     | 'sessionLlmModel'
     | 'sessionLlmVisionModel'
+    | 'sessionLlmWriterModel'
     | 'sessionLlmEnabled'
     | 'sessionLlmProvider'
     | 'sessionLlmApiKey'
@@ -157,6 +180,7 @@ export function sharedLlmRequestBody(
   allowTemplateFallback?: boolean;
   llmModel?: string;
   llmVisionModel?: string;
+  llmWriterModel?: string;
   llmEnabled?: boolean;
   llmProvider?: SessionLlmProvider;
   llmApiKey?: string;
@@ -172,6 +196,9 @@ export function sharedLlmRequestBody(
     ...(shared.sessionLlmModel?.trim() ? { llmModel: shared.sessionLlmModel.trim() } : {}),
     ...(shared.sessionLlmVisionModel?.trim()
       ? { llmVisionModel: shared.sessionLlmVisionModel.trim() }
+      : {}),
+    ...(shared.sessionLlmWriterModel?.trim()
+      ? { llmWriterModel: shared.sessionLlmWriterModel.trim() }
       : {}),
     ...(typeof shared.sessionLlmEnabled === 'boolean'
       ? { llmEnabled: shared.sessionLlmEnabled }

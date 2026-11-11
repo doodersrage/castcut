@@ -105,6 +105,15 @@ export function getServerEnvSummary(): ServerEnvSummary {
           uiOverride: 'Settings → LLM → session temperature slider',
         },
         {
+          key: 'LLM_WRITER_MODEL',
+          label: 'Script writer model',
+          // Empty when unset: the writer uses the text model (Settings shows that).
+          value: process.env.LLM_WRITER_MODEL?.trim() || '',
+          configured: flag(process.env.LLM_WRITER_MODEL),
+          uiOverride: 'Settings → LLM → Script writer model',
+          hint: 'Writes scripts and Short dialogue. Falls back to LLM_MODEL when unset.',
+        },
+        {
           key: 'LLM_EMBED_MODEL',
           label: 'Embedding model',
           value:

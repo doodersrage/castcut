@@ -6,6 +6,7 @@ import {
   EPISODE_MINUTES_MAX,
   EPISODE_MINUTES_MIN,
   EPISODE_SCENES_MAX,
+  episodeCritiqueMessages,
   episodeOutlineMessages,
   episodeOutlineTokens,
   episodeLengthScenes,
@@ -14,6 +15,7 @@ import {
   episodeReviseMessages,
   episodeStoryNoteMessages,
   normalizeEpisodeHeading,
+  parseEpisodeCritique,
   parseEpisodeOutline,
   parseEpisodeScene,
   type EpisodeCastMember,
@@ -21,11 +23,12 @@ import {
 } from '@/lib/day/episode-writer';
 import { newCastPartMessages, parseNewCastPart, partCanBeCast } from '@/lib/day/script-new-cast';
 import { chatCompletion } from '@/lib/llm/client';
+import { WRITER_EDIT_CHARS } from '@/lib/day/writer-edits';
 import {
   parseLlmRequestOptions,
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
-  resolveRequestLlmModel,
+  resolveWriterLlmModel,
 } from '@/lib/llm/request-options';
 
 export const runtime = 'nodejs';
@@ -40,9 +43,18 @@ function castFrom(value: unknown): EpisodeCastMember[] {
     .map(member => ({
       name: text(member.name, 40),
       ...(member.sex === 'woman' || member.sex === 'man' ? { sex: member.sex } : {}),
-      ...(text(member.about, 240) ? { about: text(member.about, 240) } : {}),
+      ...(text(member.about, 320) ? { about: text(member.about, 320) } : {}),
     }))
     .filter(member => member.name);
+}
+
+/** A scene of the writer's the person rewrote (writer-edits.ts), held to its length. */
+function editFrom(value: unknown): { written: string; kept: string } | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as Record<string, unknown>;
+  const written = text(raw.written, WRITER_EDIT_CHARS);
+  const kept = text(raw.kept, WRITER_EDIT_CHARS);
+  return written && kept && written !== kept ? { written, kept } : undefined;
 }
 
 /** The outline as sent back for a scene, held to what the writer reads. */
@@ -96,7 +108,7 @@ export async function POST(request: Request) {
       messages,
       maxTokens,
       temperature: 0.7,
-      model: resolveRequestLlmModel(llm),
+      model: resolveWriterLlmModel(llm),
       endpoint: resolveRequestLlmEndpoint(llm),
       usageContext: { route: 'script-episode' },
     });
@@ -115,26 +127,30 @@ export async function POST(request: Request) {
       );
       // A short from Day asks for its scenes by count (its moments), not minutes.
       const scenes = normalizeEpisodeScenes(body.scenes);
-      const outline = parseEpisodeOutline(
-        // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
-        await call(
-          episodeOutlineMessages({
-            premise,
-            lead,
-            cast,
-            minutes,
-            scenes,
-            tone,
-            adult,
-            series: text(body.series, 2400) || undefined,
-            places: (Array.isArray(body.places) ? body.places : [])
-              .map(place => text(place, 60))
-              .filter(Boolean)
-              .slice(0, 12),
-          }),
-          episodeOutlineTokens(episodeLengthScenes({ minutes, scenes }))
-        )
-      );
+      // Once more when the reply doesn't read as an outline (a 12B model, ~1 in 10: 2026-11-10).
+      let outline: EpisodeOutline | null = null;
+      for (let attempt = 0; attempt < 2 && !outline; attempt += 1) {
+        outline = parseEpisodeOutline(
+          // 3,000 fit 24 scenes; a half hour's 40 ran past it and the outline was cut off.
+          await call(
+            episodeOutlineMessages({
+              premise,
+              lead,
+              cast,
+              minutes,
+              scenes,
+              tone,
+              adult,
+              series: text(body.series, 2400) || undefined,
+              places: (Array.isArray(body.places) ? body.places : [])
+                .map(place => text(place, 60))
+                .filter(Boolean)
+                .slice(0, 12),
+            }),
+            episodeOutlineTokens(episodeLengthScenes({ minutes, scenes }))
+          )
+        );
+      }
       if (!outline)
         return apiError('The model did not write an outline this time — try again.', 502);
       return apiJson({ outline });
@@ -155,6 +171,7 @@ export async function POST(request: Request) {
           story: text(body.story, 1600) || undefined,
           tone,
           adult,
+          yourEdit: editFrom(body.yourEdit),
         }),
         1400
       );
@@ -176,6 +193,21 @@ export async function POST(request: Request) {
         .trim()
         .slice(0, 500);
       return apiJson({ text: note });
+    }
+    if (body.step === 'critique') {
+      // The editor's read of a written scene: notes for the revision, or none.
+      const scene = text(body.scene, 8000);
+      if (!scene) return apiError('Send the scene.', 400);
+      const reply = await call(
+        episodeCritiqueMessages({
+          scene,
+          summary: text(body.summary, 600) || undefined,
+          lead,
+          cast,
+        }),
+        300
+      );
+      return apiJson({ notes: parseEpisodeCritique(reply) });
     }
     if (body.step === 'revise') {
       // A scene rewritten to fix its script notes (script-notes.ts).
@@ -215,7 +247,7 @@ export async function POST(request: Request) {
       if (!draft) return apiError('The model did not say how they look — try again.', 502);
       return apiJson({ draft });
     }
-    return apiError('Say which step: outline, scene or part.', 400);
+    return apiError('Say which step: outline, scene, note, critique, revise or part.', 400);
   } catch (error) {
     return apiError(error instanceof Error ? error.message : 'Could not write the episode.', 502);
   }

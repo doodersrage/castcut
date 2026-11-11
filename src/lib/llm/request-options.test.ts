@@ -216,3 +216,25 @@ describe("llm-request-options", () => {
     );
   });
 });
+
+describe('the script writer’s model (2026-11-10)', () => {
+  it('is Settings’ writer model, else LLM_WRITER_MODEL, else the text model', async () => {
+    const { parseLlmRequestOptions, resolveWriterLlmModel, sharedLlmRequestBody } = await import(
+      './request-options'
+    );
+    const before = process.env.LLM_WRITER_MODEL;
+    try {
+      delete process.env.LLM_WRITER_MODEL;
+      assert.equal(resolveWriterLlmModel(parseLlmRequestOptions({ llmModel: 'small' })), 'small');
+      assert.equal(resolveWriterLlmModel(parseLlmRequestOptions({})), undefined);
+      process.env.LLM_WRITER_MODEL = 'server-writer';
+      assert.equal(resolveWriterLlmModel(parseLlmRequestOptions({ llmModel: 'small' })), 'server-writer');
+      const body = sharedLlmRequestBody({ sessionLlmModel: 'small', sessionLlmWriterModel: ' big ' });
+      assert.equal(body.llmWriterModel, 'big');
+      assert.equal(resolveWriterLlmModel(parseLlmRequestOptions(body)), 'big');
+    } finally {
+      if (before === undefined) delete process.env.LLM_WRITER_MODEL;
+      else process.env.LLM_WRITER_MODEL = before;
+    }
+  });
+});

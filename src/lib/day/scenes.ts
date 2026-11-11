@@ -147,6 +147,8 @@ export type SceneToolCache = DayToolCache &
      * bring it back (storage/tool-record-merge.ts).
      */
     removedSceneAt?: Record<string, number>;
+    /** Scenes the writer wrote that you rewrote before keeping them (writer-edits.ts). */
+    writerEdits?: import('./writer-edits').WriterEdit[];
   };
 
 /**
