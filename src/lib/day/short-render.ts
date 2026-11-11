@@ -63,7 +63,11 @@ export function shortShotScenes(input: {
         ...(input.day as Record<string, unknown>),
         ...(input.script.mood ? { dayMood: input.script.mood } : {}),
         partnerCharacterId: draft.partnerCharacterId ?? input.day.partnerCharacterId ?? '',
-        ...scriptShotCompanions(draft.partnerCharacterId, draft.partnerInFrame),
+        ...scriptShotCompanions(
+          draft.partnerCharacterId,
+          draft.partnerInFrame,
+          draft.othersInFrame
+        ),
       },
       outfit: input.day as Record<string, unknown>,
       // Distinct times keep their order (and ids) apart.

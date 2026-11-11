@@ -29,7 +29,7 @@ import {
   type SceneToolCache,
 } from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
-import type { PlannedShot } from './script-shots';
+import { sceneShowsOthers, type PlannedShot } from './script-shots';
 import type { ScriptScene } from '../script/parse';
 import type { DaySlotId } from './planner';
 import { shortMomentHasMore, shortMomentsOf, type ShortMoment } from './short-moments';
@@ -329,7 +329,7 @@ export function dayAsShort(input: {
     const byPosition = `scene-${script.id}-${index + 1}`;
     const id = before?.id ?? (taken.has(byPosition) ? `scene-${script.id}-${slot.id}` : byPosition);
     taken.add(id);
-    const scene = sceneFromDaySlot({
+    const fromSlot = sceneFromDaySlot({
       day: input.day,
       slotId: slot.id,
       castId,
@@ -337,7 +337,17 @@ export function dayAsShort(input: {
       id,
       now: now + index,
     });
-    if (!scene) return;
+    if (!fromSlot) return;
+    // The card's shot shows whom its written scene shows: her alone when nobody else is seen.
+    const company = sceneShowsOthers(sceneOfSlot.get(slot.id)!, [
+      leadSpeaker,
+      speakerKey(input.leadName.trim().split(/\s+/)[0] ?? ''),
+      ...Object.entries(script.castMap ?? {})
+        .filter(([, member]) => member === castId)
+        .map(([speaker]) => speaker),
+    ]);
+    const { allowCompanions: _companions, ...withoutCompanions } = fromSlot;
+    const scene: SavedScene = company ? { ...fromSlot, allowCompanions: true } : withoutCompanions;
     const fromScript = { scriptId: script.id, sceneId, shotId };
     if (before) {
       // The moment's shot as the Day has it now; every take it had, and the Day's still if new.

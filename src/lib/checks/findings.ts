@@ -23,6 +23,8 @@ export type ContinuityRule =
   | 'place-miss'
   /** A longer clip's part ran from a keyframe that failed every draft's checks (M12 T3). */
   | 'keyframe-miss'
+  /** The realism check called the still computer-made (2026-11-11). */
+  | 'realism-miss'
   /** A shot plays media whose source is gone (Cut's pins, film/cut-pins.ts). */
   | 'source-gone'
   /** Cross-shot (film/continuity-rules.ts): the outfit or look changes with no stated change. */
@@ -172,6 +174,15 @@ export function findingsForGalleryEntry(
       'Auto-review',
       `Not the planned place — she is in ${checks.placeMiss.trim()}`,
       'Redo it, or change where the shot is set.'
+    );
+  }
+  if (checks?.realismMiss?.trim()) {
+    add(
+      'realism-miss',
+      'warns',
+      'Realism',
+      `It ${checks.realismMiss.trim()}`,
+      'Redo it, or pick another take.'
     );
   }
   if (checks?.keyframeMiss?.trim()) {

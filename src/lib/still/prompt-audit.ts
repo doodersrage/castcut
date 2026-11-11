@@ -20,6 +20,7 @@ export type StillPromptIssueCode =
   | 'outfit-two-sources'
   | 'template-leftover'
   | 'feet-out-of-frame'
+  | 'spoken-words'
   | 'empty-slot'
   | 'scene-surface-mismatch';
 
@@ -108,6 +109,9 @@ export function highestImageReference(prompt: string): number {
   }
   return highest;
 }
+
+/** A line quoted as said in a beat (day/script-shots.ts): `Rob says: “…”`. */
+const SPOKEN_LINE_RE = /([A-Z][\w'’.-]*(?: [A-Z][\w'’.-]*)?) says: [“"][^”"\n]*[”"] ?/;
 
 export function auditStillPrompt(
   prompt: string | null | undefined,
@@ -223,6 +227,15 @@ export function auditStillPrompt(
     }
   }
 
+  const spoken = SPOKEN_LINE_RE.exec(text)?.[0];
+  if (spoken) {
+    add(
+      'spoken-words',
+      'A spoken line is quoted in the prompt — the model may paint it as a caption or a sign.',
+      spoken.trim()
+    );
+  }
+
   const leftover = /\{\{[^}]{1,40}\}\}|\[object Object\]|\bundefined\b|\bNaN\b/.exec(text)?.[0];
   if (leftover) {
     add('template-leftover', 'The prompt contains an unfilled placeholder.', leftover);
@@ -270,6 +283,13 @@ export function repairStillPrompt(
     next = next
       .replace(/^[ \t]*FOOTWEAR \(mandatory\):[^\n]*\n?/gm, '')
       .replace(/\btorso angle, both arms and both legs\b/g, 'torso angle and both arms');
+  }
+  if (has('spoken-words')) {
+    // The words are heard, never drawn: "Rob says: “…”" → "Rob speaks." (2026-11-11: a live
+    // Short painted its lines as captions and a bookshop sign).
+    next = next
+      .replace(new RegExp(SPOKEN_LINE_RE.source, 'g'), (_, name: string) => `${name} speaks. `)
+      .replace(/ speaks\. +(?=\n|$)/g, ' speaks.');
   }
   if (has('duo-says-alone')) {
     next = next

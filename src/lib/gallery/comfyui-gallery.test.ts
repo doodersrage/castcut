@@ -56,6 +56,7 @@ describe('comfyui-gallery pure/self-contained helpers', () => {
         poseMiss: true,
         face: 0.8,
         outfitMiss: 'jeans and a hoodie',
+        outfitChecked: true,
         placeMiss: 'a kitchen',
         gestureMiss: 'no cup',
         at: 5,
@@ -66,6 +67,12 @@ describe('comfyui-gallery pure/self-contained helpers', () => {
       assert.equal(redo.placeMiss, undefined);
       assert.equal(redo.gestureMiss, 'no cup');
       assert.equal(redo.at, 9);
+      // A passing outfit check still says it ran; the realism verdict is kept and cleared.
+      assert.equal(redo.outfitChecked, true);
+      const fake = mergeGalleryPlayChecks(redo, { realismMiss: 'looked computer-made (3/10)' }, 10);
+      assert.equal(fake.realismMiss, 'looked computer-made (3/10)');
+      assert.equal(mergeGalleryPlayChecks(fake, { realismMiss: '' }, 11).realismMiss, undefined);
+      assert.equal(mergeGalleryPlayChecks({ pose: 1, at: 1 }, { pose: 1 }, 2).outfitChecked, undefined);
     });
   });
 

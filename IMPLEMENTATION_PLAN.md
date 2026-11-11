@@ -4041,3 +4041,37 @@ film generation?"):** what the overnight run's pictures showed, and what changed
   it left nothing, and the take read as clean.
 - **Not done:** the partner's reverse shots (his close-up on his line). He is rendered beside her
   only; a shot of him alone needs him as the still's subject and an over-the-shoulder pose map.
+
+**The rerun (2026-11-11 evening, castcut-s7-run, build 2bb837d5, one room a scene on):** 21 shots
+in 150 min, all kept, 7 flagged — 1 pose missed (9 the night before), 2 pose not judged, 4 face.
+The pictures showed six things the flags didn't, all fixed (user: "fix it all"):
+- **An unchecked twin kept as passing:** the pose step redoes a take that looks computer-made the
+  moment it lands, so the first take never had its outfit or face checked — and a take with no
+  miss on it ranked above its twin whose outfit check said "naked". Bookshop 2F was kept topless,
+  unflagged (2I the same). The realism verdict is kept on the take (`realismMiss`), a passing
+  outfit check says it ran (`outfitChecked`), and a take missing a check a sibling had is
+  "the outfit not checked" / "the face not checked" (`takeChecksSkipped` in `bestSceneTake`).
+- **Strangers on a phone call:** the writer's cue "V.O. (PHONE)" named nobody, so "V.O." was a
+  speaker in the room: every bookshop wide and reaction had a man in it. A cue that is only the
+  tag, or a PHONE / FILTERED extension, is a voice heard, not seen (`isOffscreenCue`); a voice only
+  ever heard is in no wide (`offscreenOnlySpeakers`); the writer names it after the one other
+  person when there is one (`withKnownCues`), else it reads "Voice says".
+- **Duo decided by words:** the script named no Cast partner, so every shot took the Day's
+  "companions on" and the people count came from the words ("her partner's voice"). A script
+  shot now says who else is seen (`othersInFrame`, stand-ins included — "Slyne and Slyne's
+  partner, the two of them together"), and that sets its Scene's Duo.
+- **A board card against its scene:** the "Morning" card's own still ("sitting across from each
+  other") put a man at her table in a scene where she is alone. A card's Scene shows whom its
+  written scene shows (`sceneShowsOthers`).
+- **Seven partners for one:** opening a Scene drops the page's stand-in (`sceneWorkingPatch`), so
+  each Scene invented its own man — "a South Asian man in his early thirties" was saved, and the
+  dining room's prompts asked for "an Indigenous man in his sixties". The stand-in is kept per
+  script (`scriptPartners`) and reused by every shot of it; New partner replaces it.
+- **Lines painted as text:** `Partner says: “…”` reached the image prompt, and Edit 2511 drew it
+  as captions and a shop sign. The queue-time check turns it into "Partner speaks."
+  (`spoken-words`); the beat keeps the words for Cut's read lines.
+- **The room on her shots alone:** one room a scene only reached two-person shots (Image 3, over
+  the pose map); her solo shots on Edit 2511 had Image 2 free and went out with no room. The
+  scene's room now rides as Image 2 there, the pose map staying Image 3 (`withRoomPhotoAsImage2`).
+  Even where it was sent, the dining room changed shot to shot — how well Edit 2511 holds a room
+  photo is not measured yet.

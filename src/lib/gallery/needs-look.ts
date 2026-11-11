@@ -40,5 +40,6 @@ export function galleryNeedsLookReasons(
     checks.outfitMiss ? `wearing ${checks.outfitMiss}, not the planned outfit` : '',
     checks.placeMiss ? `in ${checks.placeMiss}, not the planned place` : '',
     checks.keyframeMiss ? `a part's keyframe failed its checks (${checks.keyframeMiss})` : '',
+    checks.realismMiss ? checks.realismMiss : '',
   ].filter(Boolean);
 }

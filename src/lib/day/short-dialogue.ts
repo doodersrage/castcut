@@ -165,9 +165,21 @@ export function withKnownCues(written: string, names: readonly string[]): string
       ])
     ),
   ];
+  const lead = names[0] ? cueOf(names[0]) : '';
+  const others = [
+    ...new Set(
+      names.slice(1).map(name => cueOf(name.replace(/^(?:her|his|their|the|a|an)\s+/i, '')))
+    ),
+  ].filter(name => name && name !== lead);
   const lines = written.split('\n');
   return lines
     .map((line, index) => {
+      // A cue that is only how the voice is heard ("V.O. (PHONE)"): the one other person here,
+      // when there is exactly one, says it off screen (2026-11-11: the shots read "V.o. says").
+      const tagOnly = /^(\s*)(?:V\.?\s*O|O\.?\s*[SC]|VOICE)\.?(?:\s*\(.*\))?\s*$/.exec(line);
+      if (tagOnly && lines[index + 1]?.trim()) {
+        return others.length === 1 ? `${tagOnly[1]}${others[0]} (V.O.)` : line;
+      }
       const match = /^(\s*)([A-Z][A-Z0-9 '\-]*[A-Z0-9])(\s*\(.*\))?\s*$/.exec(line);
       if (!match || /^(?:INT|EXT|EST|I\/E)\b/.test(match[2]!)) return line;
       if (!lines[index + 1]?.trim()) return line;

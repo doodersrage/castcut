@@ -241,3 +241,24 @@ describe('a close or medium shot orders no shoes or legs (2026-11-11 live run)',
     assert.equal(repairStillPrompt(prompt).prompt, prompt);
   });
 });
+
+describe('a spoken line is heard, never drawn (2026-11-11 live run)', () => {
+  // The bookshop shot 2F's prompt: the model painted the line as a sign behind her.
+  const prompt = [
+    'Edit Image 1: POSE FIRST: she is She moves on, stopping at the art section this time, exactly as the pose map in Image 2 shows.',
+    'Day photo: One woman alone. Camera: head-and-shoulders close-up. Moment: She moves on, stopping at the art section this time. Lou says: “I thought we were just grabbing lunch?” Lou is heard, not seen. Lou, amused. Place: cozy bookshop.',
+  ].join('\n');
+
+  it('takes the words out and keeps who speaks', () => {
+    const out = repairStillPrompt(prompt);
+    assert.doesNotMatch(out.prompt, /grabbing lunch|“/);
+    assert.match(out.prompt, /this time\. Lou speaks\. Lou is heard, not seen\. Lou, amused\./);
+    assert.deepEqual(out.repaired.map(issue => issue.code), ['spoken-words']);
+    assert.deepEqual(out.remaining, []);
+  });
+
+  it('leaves a prompt with no line alone', () => {
+    const plain = 'Day photo: One woman alone. Moment: She reads. Place: cozy bookshop.';
+    assert.equal(repairStillPrompt(plain).prompt, plain);
+  });
+});

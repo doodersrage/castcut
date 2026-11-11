@@ -5,6 +5,7 @@ import {
   episodeAnimates,
   normalizeEpisodeRunAuto,
   takeCheckMisses,
+  takeChecksSkipped,
 } from './episode-run';
 
 const take = (id: string, at: number, extra = {}) => ({ id, promptId: id, imageUrl: `/${id}.png`, at, ...extra });
@@ -40,6 +41,31 @@ describe('episode run: which take to keep', () => {
     const unchecked = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, () => undefined);
     assert.deepEqual([unchecked?.take.id, unchecked?.checked], ['b', false]);
     assert.equal(bestSceneTake({ takes: [] }, () => undefined), null);
+  });
+
+  it('never keeps a take whose outfit or face went unchecked as passing (2026-11-11, shot 2F)', () => {
+    // Take 1 was redone at once for looking computer-made, so only its pose was read; take 2's
+    // after-checks found her naked. Take 1 was topless too, and the run kept it as "passed".
+    const checks: Record<string, object> = {
+      first: { pose: 0.5, poseMiss: false, realismMiss: 'looked computer-made (3/10)', at: 1 },
+      second: { pose: 0.5, poseMiss: false, outfitMiss: 'naked', outfitChecked: true, face: 0.7, faceMiss: false, at: 2 },
+    };
+    const pick = bestSceneTake({ takes: [take('first', 1), take('second', 2)] }, id => checks[id] as never);
+    assert.equal(pick?.take.id, 'second');
+    assert.deepEqual(pick?.misses, ['the outfit (naked)']);
+    // Older saves have no realismMiss: the missing outfit and face checks still count.
+    const old: Record<string, object> = { first: { pose: 0.5, at: 1 }, second: checks.second! };
+    const oldPick = bestSceneTake({ takes: [take('first', 1), take('second', 2)] }, id => old[id] as never);
+    assert.equal(oldPick?.take.id, 'second');
+    assert.deepEqual(
+      takeChecksSkipped(old.first as never, [old.first as never, old.second as never]),
+      ['the outfit not checked', 'the face not checked']
+    );
+    // A passing outfit check leaves no outfitMiss — outfitChecked says it ran.
+    assert.deepEqual(
+      takeChecksSkipped({ outfitChecked: true, face: 0.8, at: 1 }, [checks.second as never]),
+      []
+    );
   });
 });
 

@@ -22,7 +22,32 @@ export function takeCheckMisses(checks: GalleryPlayChecks | undefined): string[]
   if (typeof checks.clipCutAt === 'number') misses.push('the clip cuts away');
   if (checks.clipSilent) misses.push('the clip has no sound');
   if (checks.keyframeMiss?.trim()) misses.push(checks.keyframeMiss.trim());
+  if (checks.realismMiss?.trim()) misses.push(`it ${checks.realismMiss.trim()}`);
   return misses;
+}
+
+/** The checks a take can have run, by what they leave on it. */
+const CHECK_KINDS: { kind: string; ran: (checks: GalleryPlayChecks) => boolean }[] = [
+  {
+    kind: 'the outfit',
+    ran: checks => checks.outfitChecked === true || Boolean(checks.outfitMiss?.trim()),
+  },
+  { kind: 'the face', ran: checks => typeof checks.face === 'number' },
+];
+
+/**
+ * What a take wasn't checked for that another take of the same Scene was: a take whose checks
+ * never ran is not a take that passed them. On 2026-11-11 a take redone at once for looking
+ * computer-made never had its outfit looked at, and the run kept it — topless — over its twin,
+ * whose outfit check said "naked". Pure.
+ */
+export function takeChecksSkipped(
+  checks: GalleryPlayChecks | undefined,
+  siblings: (GalleryPlayChecks | undefined)[]
+): string[] {
+  return CHECK_KINDS.filter(
+    ({ ran }) => !(checks && ran(checks)) && siblings.some(other => other && ran(other))
+  ).map(({ kind }) => `${kind} not checked`);
 }
 
 export type EpisodeTakePick = { take: SceneTake; misses: string[]; checked: boolean };
@@ -35,13 +60,14 @@ export function bestSceneTake(
   scene: Pick<SavedScene, 'takes'>,
   checksOf: (promptId: string) => GalleryPlayChecks | undefined
 ): EpisodeTakePick | null {
-  const ranked = scene.takes
-    .filter(take => take.review !== 'rejected')
+  const takes = scene.takes.filter(take => take.review !== 'rejected');
+  const allChecks = takes.map(take => checksOf(take.promptId ?? take.id));
+  const ranked = takes
     .map((take, order) => {
-      const checks = checksOf(take.promptId ?? take.id);
+      const checks = allChecks[order];
       return {
         take,
-        misses: takeCheckMisses(checks),
+        misses: [...takeCheckMisses(checks), ...takeChecksSkipped(checks, allChecks)],
         checked: Boolean(checks),
         score: (checks?.face ?? 0) + (checks?.pose ?? 0),
         order,

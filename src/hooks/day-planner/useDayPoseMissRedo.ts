@@ -228,6 +228,14 @@ export function useDayPoseMissRedo(
           setStatus(`Checking ${target.label}…`);
           const { checkStillRealism } = await import('@/lib/pose/gesture-vision-client');
           const realism = await checkStillRealism({ imageUrl, shared });
+          // Kept on the take: a run must not keep a computer-made take as passing.
+          if (realism) {
+            recordGalleryPlayChecks(still.promptId, {
+              realismMiss: realism.computerMade
+                ? `looked computer-made (${realism.rating}/10)`
+                : '',
+            });
+          }
           const decision = poseRedoDecision({
             enabled: redoPoseMisses,
             autoReview: autoReviewStills,
@@ -324,6 +332,13 @@ export function useDayPoseMissRedo(
           pose: match.score,
           poseMiss: poseCheckMissed(match.score),
           poseUnjudged: '',
+          ...(realism
+            ? {
+                realismMiss: realism.computerMade
+                  ? `looked computer-made (${realism.rating}/10)`
+                  : '',
+              }
+            : {}),
         });
         const { width, height } = detected.pose.canvas;
         const missView =

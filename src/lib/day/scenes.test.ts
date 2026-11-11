@@ -42,6 +42,7 @@ import {
   takeAsStill,
   type SavedScene,
   type SceneToolCache,
+  sceneScriptPartners,
   sceneScriptRooms,
 } from './scenes';
 import { activeCutSources, cutRoomShots, cutRoomSourceShots, splitCutRoomKey } from '../film/cut-room';
@@ -1195,5 +1196,23 @@ describe('the rooms one room a scene made (2026-11-11)', () => {
     );
     assert.deepEqual(sceneScriptRooms(null), {});
     assert.deepEqual(sceneScriptRooms('nope'), {});
+  });
+});
+
+describe('one partner a film (2026-11-11)', () => {
+  it('keeps scriptId → a stand-in with a face file, drops the malformed', () => {
+    const man = { noun: 'man', look: 'a South Asian man in his early thirties', filename: 'day-partner-a.png', imageUrl: '/view?a' };
+    assert.deepEqual(
+      sceneScriptPartners({
+        s1: man,
+        s2: { noun: 'person', look: 'x', filename: 'b.png' },
+        s3: { noun: 'woman', look: 'y', filename: ' ' },
+        'a|b': man,
+        s4: 'nope',
+      }),
+      { s1: man }
+    );
+    // An older save has no map at all.
+    assert.deepEqual(sceneScriptPartners(undefined), {});
   });
 });

@@ -83,6 +83,19 @@ describe('a Day as a short', () => {
     assert.equal(short.shots[1]!.purpose, 'action');
   });
 
+  it('renders a card’s shot alone when its scene shows nobody else, whatever the Day’s Duo (2026-11-11)', () => {
+    // The live Short's "Morning": companions on for the Day, a kitchen scene with her alone — the
+    // card's still put a man at her table.
+    const short = dayAsShort({
+      day: { ...day, allowCompanions: true } as DayToolCache,
+      castId: 'mara',
+      leadName: 'Mara',
+      now: 1000,
+    })!;
+    assert.ok(short.scenes.length > 0);
+    assert.ok(short.scenes.every(scene => scene.allowCompanions !== true));
+  });
+
   it('keeps another Cast’s stills off the Scenes, and makes nothing of an empty Day', () => {
     const short = dayAsShort({ day, castId: 'rob', leadName: 'Rob', now: 1 });
     assert.equal(short?.scenes[0]!.takes.length, 0);

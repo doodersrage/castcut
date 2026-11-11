@@ -218,6 +218,7 @@ export function useScenePage(vm: DayEngineView) {
       input: Pick<Parameters<typeof createScene>[0], 'name' | 'slot' | 'fromScript'> & {
         partnerCharacterId?: string;
         partnerInFrame?: boolean;
+        othersInFrame?: boolean;
         /** The script's mood (a short's), over the page's. */
         mood?: string;
       },
@@ -228,7 +229,7 @@ export function useScenePage(vm: DayEngineView) {
         setNote('A take is rendering — make the scene when it lands.');
         return null;
       }
-      const { partnerCharacterId, partnerInFrame, mood, ...shot } = input;
+      const { partnerCharacterId, partnerInFrame, othersInFrame, mood, ...shot } = input;
       const scene = createScene({
         castId,
         ...shot,
@@ -237,7 +238,7 @@ export function useScenePage(vm: DayEngineView) {
           ...(mood ? { dayMood: mood } : {}),
           // The script's second person, else nobody named (an invented stranger).
           partnerCharacterId: partnerCharacterId ?? '',
-          ...scriptShotCompanions(partnerCharacterId, partnerInFrame),
+          ...scriptShotCompanions(partnerCharacterId, partnerInFrame, othersInFrame),
         },
         outfit: cache as Record<string, unknown>,
       });
@@ -278,7 +279,11 @@ export function useScenePage(vm: DayEngineView) {
             // A short's mood (Sport, Vacation…) over the page's own.
             ...(script.mood ? { dayMood: script.mood } : {}),
             partnerCharacterId: draft.partnerCharacterId ?? '',
-            ...scriptShotCompanions(draft.partnerCharacterId, draft.partnerInFrame),
+            ...scriptShotCompanions(
+              draft.partnerCharacterId,
+              draft.partnerInFrame,
+              draft.othersInFrame
+            ),
           },
           outfit: cache as Record<string, unknown>,
           // Distinct times keep their order (and ids) apart.

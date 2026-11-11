@@ -86,8 +86,40 @@ export function lineSeconds(text: string): number {
 export const DOING_RE =
   /\b(?:sits?|sitting|sat|stands?|standing|stood|walks?|walking|leans?|leaning|kneels?|kneeling|crouch(?:es|ing)?|lies|lying|holds?|holding|pours?|wipes?|stirs?|reaches?|turns?|grabs?|picks?|stares?|nods?|smiles?|laughs?|lifts?|pushes?|pulls?|opens?|closes?|carries|carrying|runs?|enters?|leaves|hugs?|kisses?|points?|writes?|reads?|drinks?|eats?|cooks?|cleans?|counts?|paints?|dances?|shakes?|throws?|catches?|cries?|folds?|hangs?|knocks?|moves?|puts?|takes?|gives?|wraps?|glances?|watches?|waits?|paces?|sips?|grins?|shrugs?|frowns?|winks?|blushes|tucks?|touches|taps?|lowers?|raises?|tilts?|slumps?|flips?|scans?|looks? (?:at|around|up|down|out|away|back|over))\b/i;
 
-/** A cue's extension for a voice heard, not seen: V.O., O.S., O.C. (any dots). */
-const OFFSCREEN_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
+/** A voice heard, not seen: V.O., O.S., O.C. (any dots), a phone's or a filtered voice. */
+const OFFSCREEN_RE =
+  /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c|(?:(?:on|over|through) )?(?:the )?phone|filtered|voice)\.?$/i;
+
+/**
+ * Is this cue a voice heard, not seen? By its extension ("TOMAS (V.O.)", "MOM (ON PHONE)", "V.O.;
+ * PHONE"), or a cue that is only the tag ("V.O. (PHONE)": a live Short's writer named nobody, and
+ * the shots read "V.o. says" and drew a stranger beside her, 2026-11-11).
+ */
+export function isOffscreenCue(element: { speaker?: string; extension?: string }): boolean {
+  const parts = (element.extension ?? '').split(/[;,/]/).map(part => part.trim());
+  return (
+    parts.some(part => OFFSCREEN_RE.test(part)) || OFFSCREEN_RE.test(element.speaker?.trim() ?? '')
+  );
+}
+
+/** A cue that names nobody, only how the voice is heard ("V.O.", "VOICE"). */
+function isTagOnlyCue(speaker: string): boolean {
+  return OFFSCREEN_RE.test(speaker.trim());
+}
+
+/**
+ * Speakers only ever heard in a scene, never seen (each of their lines V.O., O.S. or a phone):
+ * they are not in its wide or anyone's reaction. Keys as speakerKey gives them.
+ */
+export function offscreenOnlySpeakers(scene: ScriptScene): Set<string> {
+  const seen = new Set<string>();
+  const heard = new Set<string>();
+  for (const element of scene.elements) {
+    if (element.kind !== 'dialogue' || !element.speaker) continue;
+    (isOffscreenCue(element) ? heard : seen).add(speakerKey(element.speaker));
+  }
+  return new Set([...heard].filter(speaker => !seen.has(speaker)));
+}
 
 /** Who hears a line heard, not seen: the one who spoke last, or next, or anyone else here. */
 function hearerOf(
@@ -96,10 +128,14 @@ function hearerOf(
   everyone: readonly string[]
 ): string | undefined {
   const speaker = speakerKey(dialogue[index]!.speaker!);
+  const others = [...dialogue.slice(0, index).reverse(), ...dialogue.slice(index + 1)]
+    .map(entry => speakerKey(entry.speaker!))
+    .filter(name => name !== speaker && !isTagOnlyCue(name));
+  // Someone seen here first; with nobody else seen, whoever else speaks (both on the phone).
   return (
-    [...dialogue.slice(0, index).reverse(), ...dialogue.slice(index + 1)]
-      .map(entry => speakerKey(entry.speaker!))
-      .find(name => name !== speaker) ?? everyone.find(name => name !== speaker)
+    others.find(name => everyone.includes(name)) ??
+    everyone.find(name => name !== speaker) ??
+    others[0]
   );
 }
 
@@ -109,13 +145,14 @@ function hearerOf(
  */
 export function withOffscreenLines(shots: PlannedShot[], scene: ScriptScene): PlannedShot[] {
   const dialogue = scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
-  const everyone = scene.speakers.map(speakerKey);
+  const heardOnly = offscreenOnlySpeakers(scene);
+  const everyone = scene.speakers.map(speakerKey).filter(name => !heardOnly.has(name));
   return shots.map(shot => {
     if (!shot.line || !shot.speaker || shot.offscreen) return shot;
     const index = dialogue.findIndex(
       element =>
         speakerKey(element.speaker!) === shot.speaker &&
-        OFFSCREEN_RE.test(element.extension ?? '') &&
+        isOffscreenCue(element) &&
         clean(element.text) === shot.line
     );
     if (index < 0) return shot;
@@ -128,7 +165,9 @@ export function draftShots(scene: ScriptScene): PlannedShot[] {
   const shots: Omit<PlannedShot, 'id'>[] = [];
   const action = scene.elements.filter(element => element.kind === 'action');
   const dialogue = scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
-  const everyone = scene.speakers.map(speakerKey);
+  // Who is here: a voice only heard (a phone call) is in no wide and reacts to nothing.
+  const heardOnly = offscreenOnlySpeakers(scene);
+  const everyone = scene.speakers.map(speakerKey).filter(name => !heardOnly.has(name));
   shots.push({
     sceneId: scene.id,
     purpose: 'establishing',
@@ -143,7 +182,7 @@ export function draftShots(scene: ScriptScene): PlannedShot[] {
       const speaker = speakerKey(element.speaker!);
       // Heard, not seen (V.O., O.S.): the shot is on whoever hears it — the one who spoke last,
       // or next, or anyone else here — not on the speaker (a phone call drew him in the room).
-      const offscreen = OFFSCREEN_RE.test(element.extension ?? '');
+      const offscreen = isOffscreenCue(element);
       const hearer = offscreen ? hearerOf(dialogue, index, everyone) : undefined;
       shots.push({
         sceneId: scene.id,
@@ -420,6 +459,31 @@ function shotLineAt(shot: Pick<PlannedShot, 'line' | 'speaker'>, scene: ScriptSc
   );
 }
 
+/**
+ * Does the written scene show anyone but the lead? Someone else speaks on screen (a voice only
+ * heard doesn't count), or its action puts two together. A board card's own shot follows it: the
+ * live Short's "Morning" card drew a man at her table while its scene had her alone (2026-11-11).
+ */
+export function sceneShowsOthers(scene: ScriptScene, leadCues: readonly string[]): boolean {
+  const leads = new Set(leadCues.map(speakerKey));
+  const heardOnly = offscreenOnlySpeakers(scene);
+  const speaks = scene.speakers
+    .map(speakerKey)
+    .some(speaker => !leads.has(speaker) && !heardOnly.has(speaker) && !isTagOnlyCue(speaker));
+  if (speaks) return true;
+  return scene.elements.some(
+    element =>
+      element.kind === 'action' &&
+      /\b(?:together|each other|one another|the two of them|both of them|side by side)\b/i.test(
+        element.text
+      )
+  );
+}
+
+/** A cue that is a role, not a name: PARTNER, WAITER, MOM. */
+const ROLE_CUE_RE =
+  /^(?:partner|boyfriend|girlfriend|husband|wife|friend|date|lover|mom|mum|mother|dad|father|brother|sister|son|daughter|waiter|waitress|barista|bartender|neighbou?r|boss|colleague|stranger)$/i;
+
 /** Anyone in the words: a name, a pronoun for a person, someone saying or doing. */
 const SOMEONE_RE =
   /\b(?:she|he|they|her|him|his|them|hers|someone|somebody|people|person|man|woman|men|women|crowd|couple|friends?|partner|says|reacts)\b/i;
@@ -453,6 +517,13 @@ export type ShotSceneDraft = {
    * — a Scene renders its lead, so it can't show them alone). Their Scene renders two people.
    */
   partnerInFrame?: boolean;
+  /**
+   * Anyone besides the lead seen in the shot — the partner, or a part with no Cast member (a
+   * stand-in): their Scene renders two people, and a shot of her alone renders her alone. Set on
+   * every draft; the page's Duo setting decided it before, so a script naming no Cast partner put
+   * strangers beside her on a phone call (2026-11-11).
+   */
+  othersInFrame?: boolean;
 };
 
 /**
@@ -538,6 +609,8 @@ export function shotSceneDraft(input: {
   const castOf = (speaker: string | undefined) =>
     speaker ? parts.find(part => part.speaker === speakerKey(speaker))?.castId : undefined;
   const nameOf = (speaker: string) => {
+    // A cue that names nobody ("V.O. (PHONE)"): a voice.
+    if (isTagOnlyCue(speaker)) return 'Voice';
     const id = castOf(speaker);
     const member = id ? cast.find(entry => entry.id === id) : undefined;
     return member?.name ?? speaker.charAt(0) + speaker.slice(1).toLowerCase();
@@ -551,6 +624,23 @@ export function shotSceneDraft(input: {
   // The lead's own lines and reactions stay on her; any shot that shows the partner has both.
   const partnerInFrame = Boolean(partner?.castId && shot.who.includes(partner.speaker));
   const leadName = cast.find(member => member.id === castId)?.name;
+  // Seen besides her: any speaker in the shot but her, unless only ever heard here.
+  const heardOnly = offscreenOnlySpeakers(scene);
+  const leadCues = new Set(
+    [leadName, leadName?.split(/\s+/)[0]].filter(Boolean).map(name => speakerKey(name!))
+  );
+  const isLead = (speaker: string) =>
+    castOf(speaker) === castId || leadCues.has(speakerKey(speaker));
+  const others = shot.who.filter(
+    speaker => !isLead(speaker) && !heardOnly.has(speakerKey(speaker)) && !isTagOnlyCue(speaker)
+  );
+  const othersInFrame = partnerInFrame || others.length > 0;
+  // Who the two-shot names: the Cast partner, else the part as the script calls it ("Slyne's
+  // partner" for PARTNER — a role, not a name).
+  const otherLabel = (speaker: string) =>
+    !castOf(speaker) && ROLE_CUE_RE.test(speaker.trim()) && leadName
+      ? `${leadName}’s ${speaker.trim().toLowerCase()}`
+      : nameOf(speaker);
   const partnerName = partner?.castId
     ? cast.find(member => member.id === partner.castId)?.name
     : undefined;
@@ -581,7 +671,7 @@ export function shotSceneDraft(input: {
   // crossed" drew her arms crossed, and 40 episode shots failed that check, 2026-11-07).
   const sceneActionText = withoutOtherPlaces(sceneActionRaw, scene.place, input.places ?? []);
   const sceneAction =
-    sceneActionText && !partnerInFrame
+    sceneActionText && !othersInFrame
       ? withoutOthersSentences(
           sceneActionText,
           // As the Cast names them and as the script does ("Tomás Ruiz", "TOMAS").
@@ -595,7 +685,9 @@ export function shotSceneDraft(input: {
     // "The two of them" is what the people count reads as a pair (pose map and prompt alike).
     partnerInFrame && leadName && partnerName
       ? `${leadName} and ${partnerName}, the two of them together.`
-      : '',
+      : othersInFrame && leadName && others[0]
+        ? `${leadName} and ${otherLabel(others[0])}, the two of them together.`
+        : '',
     shot.action ?? (sceneAction ? clean(sceneAction) : ''),
     shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
       ? `${nameOf(shot.speaker)} says: “${shot.line}”${shot.offscreen ? ` ${nameOf(shot.speaker)} is heard, not seen.` : ''}`
@@ -636,17 +728,21 @@ export function shotSceneDraft(input: {
     },
     ...(partner?.castId ? { partnerCharacterId: partner.castId } : {}),
     ...(partnerInFrame ? { partnerInFrame: true } : {}),
+    othersInFrame,
   };
 }
 
 /**
  * A script Scene's "Duo · companions": on when its shot shows the partner, off when it shows the
  * lead alone (the page's own setting would otherwise put the partner in every shot, or none).
- * Nothing when the script names no partner — the page's setting stands.
+ * With no Cast partner, whoever else the shot shows decides it (othersInFrame).
  */
 export function scriptShotCompanions(
   partnerCharacterId: string | undefined,
-  partnerInFrame: boolean | undefined
+  partnerInFrame: boolean | undefined,
+  /** The draft's othersInFrame: decides it when no Cast partner is named. */
+  othersInFrame?: boolean
 ): { allowCompanions?: boolean } {
-  return partnerCharacterId ? { allowCompanions: partnerInFrame === true } : {};
+  if (partnerCharacterId) return { allowCompanions: partnerInFrame === true };
+  return othersInFrame === undefined ? {} : { allowCompanions: othersInFrame };
 }

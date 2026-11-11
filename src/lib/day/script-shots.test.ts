@@ -6,6 +6,9 @@ import { createScene, normalizeSavedScene } from './scenes';
 import { createScript, normalizeSavedScript, setScriptShotsPatch } from './scene-scripts';
 import {
   addedShot,
+  isOffscreenCue,
+  sceneShowsOthers,
+  offscreenOnlySpeakers,
   draftShots,
   shotShowsNobody,
   withOffscreenLines,
@@ -157,7 +160,12 @@ describe('shot lists from a script (M3 S4)', () => {
     });
     assert.equal(unsure.partnerCharacterId, undefined);
     assert.equal(unsure.partnerInFrame, undefined);
-    assert.equal(unsure.slot.sceneHints, `${action} Tomas says: “You always say that.”`);
+    // Still his line shows him: two people, whether or not he is in the Cast (othersInFrame).
+    assert.equal(unsure.othersInFrame, true);
+    assert.equal(
+      unsure.slot.sceneHints,
+      `Nora Ortiz and Tomas, the two of them together. ${action} Tomas says: “You always say that.”`
+    );
   });
 
   it('puts the partner in the picture only on shots that show them', () => {
@@ -194,6 +202,9 @@ describe('shot lists from a script (M3 S4)', () => {
     assert.deepEqual(scriptShotCompanions('tomas', true), { allowCompanions: true });
     assert.deepEqual(scriptShotCompanions('tomas', undefined), { allowCompanions: false });
     assert.deepEqual(scriptShotCompanions(undefined, true), {});
+    // No Cast partner: who else the shot shows decides it.
+    assert.deepEqual(scriptShotCompanions(undefined, undefined, false), { allowCompanions: false });
+    assert.deepEqual(scriptShotCompanions(undefined, undefined, true), { allowCompanions: true });
   });
 
   it('reads the place as you set it', () => {
@@ -502,3 +513,97 @@ describe('a shot with nobody in it is the place alone (2026-11-11)', () => {
   });
 });
 
+
+
+describe('a phone call and a stand-in partner (2026-11-11 live Short)', () => {
+  const cast = [{ id: 'slyne', name: 'Slyne' }];
+  // The writer's own cues: a voice named only "V.O. (PHONE)", and a partner called PARTNER.
+  const bookshop = parseScript(
+    [
+      'INT. COZY BOOKSHOP - DAY',
+      '',
+      'SLYNE wanders through the store, rainwater dripping from her coat.',
+      '',
+      'V.O. (PHONE)',
+      'Hey, babe. Where are you?',
+      '',
+      'SLYNE',
+      '(looking around)',
+      "I'm here. You're not far behind me, right?",
+      '',
+      "Slyne turns towards the sound of her partner's voice but doesn't see them yet.",
+      '',
+      'V.O. (PHONE)',
+      "Yeah, I see you now. I'm by the travel books.",
+      '',
+    ].join('\n')
+  ).scenes[0]!;
+  const dining = parseScript(
+    [
+      'INT. INTIMATE DINING ROOM - EVENING',
+      '',
+      'Slyne and her partner sit side by side at a small table.',
+      '',
+      'SLYNE',
+      'What a day.',
+      '',
+      'PARTNER',
+      '(smiling)',
+      'You have a knack for finding them.',
+      '',
+    ].join('\n')
+  ).scenes[0]!;
+  const draftOf = (scene: typeof bookshop, index: number) =>
+    shotSceneDraft({
+      shot: draftShots(scene)[index]!,
+      scene,
+      sceneIndex: 0,
+      shotIndex: index,
+      castId: 'slyne',
+      cast,
+      castMap: { SLYNE: 'slyne' },
+      placeMap: undefined,
+    });
+
+  it('reads a cue that is only a tag as a voice heard, not seen', () => {
+    assert.equal(isOffscreenCue({ speaker: 'V.O.', extension: 'PHONE' }), true);
+    assert.equal(isOffscreenCue({ speaker: 'MOM', extension: 'ON THE PHONE' }), true);
+    assert.equal(isOffscreenCue({ speaker: 'TOMAS', extension: "V.O.; CONT'D" }), true);
+    assert.equal(isOffscreenCue({ speaker: 'TOMAS', extension: "CONT'D" }), false);
+    assert.deepEqual([...offscreenOnlySpeakers(bookshop)], ['V.O.']);
+  });
+
+  it('keeps her alone in the bookshop: nobody but her in the wide, the voice on her', () => {
+    const shots = draftShots(bookshop);
+    assert.deepEqual(shots[0]!.who, ['SLYNE']);
+    assert.ok(shots.every(shot => !shot.who.includes('V.O.')));
+    const voice = draftOf(bookshop, shots.findIndex(shot => shot.speaker === 'V.O.'));
+    assert.equal(voice.othersInFrame, false);
+    assert.match(voice.slot.sceneHints ?? '', /Voice says: “Hey, babe\. Where are you\?” Voice is heard, not seen\./);
+    assert.doesNotMatch(voice.slot.sceneHints ?? '', /V\.o\.|together/);
+    for (let index = 0; index < shots.length; index += 1) {
+      assert.equal(draftOf(bookshop, index).othersInFrame, false, `shot ${index}`);
+    }
+  });
+
+  it('says which written scenes show anyone but her', () => {
+    assert.equal(sceneShowsOthers(bookshop, ['SLYNE']), false);
+    assert.equal(sceneShowsOthers(dining, ['SLYNE']), true);
+    const together = parseScript('INT. CAFE - DAY\n\nSlyne and Rob sit together by the window.\n').scenes[0]!;
+    assert.equal(sceneShowsOthers(together, ['SLYNE']), true);
+  });
+
+  it('shows the stand-in partner with her on his line and in the wide', () => {
+    const shots = draftShots(dining);
+    const wide = draftOf(dining, 0);
+    assert.equal(wide.othersInFrame, true);
+    assert.match(wide.slot.sceneHints ?? '', /^Slyne and Slyne’s partner, the two of them together\./);
+    const his = draftOf(dining, shots.findIndex(shot => shot.speaker === 'PARTNER'));
+    assert.equal(his.othersInFrame, true);
+    const hers = draftOf(dining, shots.findIndex(shot => shot.speaker === 'SLYNE'));
+    assert.equal(hers.othersInFrame, false);
+    assert.deepEqual(scriptShotCompanions(hers.partnerCharacterId, hers.partnerInFrame, hers.othersInFrame), {
+      allowCompanions: false,
+    });
+  });
+});

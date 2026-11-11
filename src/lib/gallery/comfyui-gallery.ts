@@ -1033,7 +1033,12 @@ export function mergeGalleryPlayChecks(
   if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
   if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;
   // Auto-review's verdicts (M7 T2): a check that ran and passed clears an earlier miss.
-  if ('outfitMiss' in checks) merged.outfitMiss = checks.outfitMiss?.trim() || undefined;
+  if ('outfitMiss' in checks) {
+    merged.outfitMiss = checks.outfitMiss?.trim() || undefined;
+    merged.outfitChecked = true;
+  }
+  if (checks.outfitChecked) merged.outfitChecked = true;
+  if ('realismMiss' in checks) merged.realismMiss = checks.realismMiss?.trim() || undefined;
   if ('placeMiss' in checks) merged.placeMiss = checks.placeMiss?.trim() || undefined;
   if ('gestureMiss' in checks) merged.gestureMiss = checks.gestureMiss?.trim() || undefined;
   if ('keyframeMiss' in checks) merged.keyframeMiss = checks.keyframeMiss?.trim() || undefined;

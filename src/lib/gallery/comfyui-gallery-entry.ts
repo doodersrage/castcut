@@ -18,6 +18,17 @@ export type GalleryPlayChecks = {
    * look (slot-quality.ts `withOutfitSecondLook`). Empty or absent: not wrong, or not checked.
    */
   outfitMiss?: string;
+  /**
+   * The outfit was looked at (by Auto-review or the after-checks), whatever it found — a passing
+   * check leaves no outfitMiss, so without this a take never checked read the same as one that
+   * passed (2026-11-11: an unchecked topless take was kept over its checked twin).
+   */
+  outfitChecked?: boolean;
+  /**
+   * The realism check called the still computer-made (its rating, e.g. "3/10") — the pose step
+   * redoes it, and a run must not keep it as passing (2026-11-11).
+   */
+  realismMiss?: string;
   /** Auto-review's place check (still-place.ts): where she is when that isn't the planned place. */
   placeMiss?: string;
   /** The gesture check (pose/gesture.ts): what the still's hands or action didn't do. */

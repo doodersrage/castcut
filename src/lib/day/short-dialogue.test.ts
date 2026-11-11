@@ -165,6 +165,15 @@ describe('a misspelt cue put right', () => {
 
   it('leaves a cue near two names, a short cue, and another person alone', () => {
     assert.equal(withKnownCues('MARK\nHi.', ['Mara', 'Mary']), 'MARK\nHi.');
+    // A voice named only by its tag (the bookshop's "V.O. (PHONE)"): the one other person, off
+    // screen; with nobody else, or two others, it stays (the shots read it as a voice).
+    const call = 'SLYNE\nWhere are you?\n\nV.O. (PHONE)\nBy the travel books.';
+    assert.equal(
+      withKnownCues(call, ['Slyne', 'her partner']),
+      'SLYNE\nWhere are you?\n\nPARTNER (V.O.)\nBy the travel books.'
+    );
+    assert.equal(withKnownCues(call, ['Slyne']), call);
+    assert.equal(withKnownCues(call, ['Slyne', 'Rob', 'Ana']), call);
     assert.equal(withKnownCues('JIM\nHi.', ['Jin']), 'JIM\nHi.');
     assert.equal(withKnownCues('THEO\nHi.', ['Slyne']), 'THEO\nHi.');
   });

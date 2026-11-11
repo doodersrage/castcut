@@ -354,7 +354,12 @@ import {
   stillsAreWide,
   type SceneToolCache,
 } from '@/lib/play/settings';
-import { sceneScriptRooms, sceneSlotOf, sceneSlotsPatch } from '@/lib/day/scenes';
+import {
+  sceneScriptPartners,
+  sceneScriptRooms,
+  sceneSlotOf,
+  sceneSlotsPatch,
+} from '@/lib/day/scenes';
 
 const TOOL_ID = 'day' as const;
 type ClothingOption = { value: string; label: string; group?: string };
@@ -399,11 +404,14 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
    * not for one picture (Day clears it — there it was written to the picture). Clearing it lost
    * 58 of Lena's 78 lines in the 2026-11-06 episode: every redo or re-roll dropped one.
    */
-  const sceneCacheRef = useRef<Pick<SceneToolCache, 'scenes' | 'activeSceneId'>>({});
+  const sceneCacheRef = useRef<Pick<SceneToolCache, 'scenes' | 'activeSceneId' | 'scriptPartners'>>(
+    {}
+  );
   sceneCacheRef.current = sceneMode
     ? {
         scenes: (storedToolSettings as SceneToolCache).scenes,
         activeSceneId: (storedToolSettings as SceneToolCache).activeSceneId,
+        scriptPartners: (storedToolSettings as SceneToolCache).scriptPartners,
       }
     : {};
   /** One room a scene: on when the running run asked for it (EpisodeRunAuto.oneRoom). */
@@ -2092,10 +2100,25 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             })
           ) {
             if (partnerCandidate.invented && partnerCandidate.noun !== 'person') {
-              let standIn = reusableDayPartnerStandIn(
-                partnerStandInRef.current,
-                partnerCandidate.noun
-              );
+              // A script's shots share one stand-in (one partner a film): the page's is dropped
+              // whenever a Scene opens, so it is kept per script too.
+              const filmScriptId = sceneMode
+                ? sceneCacheRef.current.scenes?.find(
+                    scene => scene.id === sceneCacheRef.current.activeSceneId
+                  )?.fromScript?.scriptId
+                : undefined;
+              const filmPartners = sceneMode
+                ? sceneScriptPartners(sceneCacheRef.current.scriptPartners)
+                : {};
+              let standIn =
+                (filmScriptId
+                  ? reusableDayPartnerStandIn(filmPartners[filmScriptId], partnerCandidate.noun)
+                  : null) ??
+                reusableDayPartnerStandIn(partnerStandInRef.current, partnerCandidate.noun);
+              if (standIn && standIn !== partnerStandInRef.current) {
+                partnerStandInRef.current = standIn;
+                updateToolSettings({ partnerStandIn: standIn });
+              }
               if (!standIn && lookCharacter) {
                 const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
                 const leadFace = await resolveDayNudeIdentityPlateWithFaceCrop({
@@ -2119,6 +2142,11 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                     updateToolSettings({ partnerStandIn: standIn });
                   }
                 }
+              }
+              if (standIn && filmScriptId && filmPartners[filmScriptId] !== standIn) {
+                storeToolSettings({
+                  scriptPartners: { ...filmPartners, [filmScriptId]: standIn },
+                } as Parameters<typeof storeToolSettings>[0]);
               }
               if (standIn) {
                 partnerFace = { filename: standIn.filename };
@@ -2774,7 +2802,10 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             : roomPhoto &&
                 imageTwoFree &&
                 !partnerFace &&
-                poseModelFamily(stillModel) === 'qwen-image-2.1' &&
+                // One room a scene on Edit 2511 too: her shots alone had Image 2 free and went
+                // out with no room at all, so only the two-person shots held it (2026-11-11).
+                (poseModelFamily(stillModel) === 'qwen-image-2.1' ||
+                  (Boolean(sceneRoom) && roomPhoto.filename === sceneRoom)) &&
                 withRoomPhotoAsImage2(finalized, {
                   place: roomPhoto.locationName,
                   words: queueTarget.location,
@@ -3614,6 +3645,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       buildSlotPrompt,
       queuePlaceShot,
       scriptSceneRoom,
+      storeToolSettings,
       character,
       sceneMode,
       isolatePending,
@@ -4006,6 +4038,18 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     newPartnerStandIn: () => {
       partnerStandInRef.current = null;
       updateToolSettings({ partnerStandIn: undefined });
+      // On a script's Scene the film's partner goes too, or the next shot brings it back.
+      const filmScriptId = sceneMode
+        ? sceneCacheRef.current.scenes?.find(
+            scene => scene.id === sceneCacheRef.current.activeSceneId
+          )?.fromScript?.scriptId
+        : undefined;
+      if (filmScriptId) {
+        const { [filmScriptId]: _dropped, ...rest } = sceneScriptPartners(
+          sceneCacheRef.current.scriptPartners
+        );
+        storeToolSettings({ scriptPartners: rest } as Parameters<typeof storeToolSettings>[0]);
+      }
     },
     // The invented partner, kept as a Cast member: same face on later Days, and pickable as a
     // lead. Day switches its partner to the new Cast.

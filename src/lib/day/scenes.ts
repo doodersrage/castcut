@@ -155,6 +155,12 @@ export type SceneToolCache = DayToolCache &
      * once — `${scriptId}|${sceneId}` → its ComfyUI input file.
      */
     scriptRooms?: Record<string, string>;
+    /**
+     * One partner a film: the invented stand-in partner each script's shots share — scriptId →
+     * the stand-in. Opening a Scene drops the page's stand-in, so every Scene of a live Short
+     * made a new man (2026-11-11: seven faces for one partner).
+     */
+    scriptPartners?: Record<string, import('./partner-stand-in').DayPartnerStandIn>;
   };
 
 /**
@@ -1611,6 +1617,36 @@ export function sceneContinuing(input: {
     keptTakeId: takeId,
     continuesFrom: { sceneId: input.scene.id, takeId: input.take.id },
   };
+}
+
+/** At most this many scripts keep their stand-in partner (the oldest are dropped first). */
+export const SCENE_SCRIPT_PARTNERS_MAX = 100;
+
+/** A stored `scriptPartners` map, well-formed: scriptId → a stand-in with a face file. */
+export function sceneScriptPartners(
+  value: unknown
+): Record<string, import('./partner-stand-in').DayPartnerStandIn> {
+  if (!value || typeof value !== 'object') return {};
+  const out: [string, import('./partner-stand-in').DayPartnerStandIn][] = [];
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^[^|]{1,120}$/.test(key) || !raw || typeof raw !== 'object') continue;
+    const entry = raw as Record<string, unknown>;
+    const filename = typeof entry.filename === 'string' ? entry.filename.trim() : '';
+    if (entry.noun !== 'man' && entry.noun !== 'woman') continue;
+    if (!filename || filename.length > 240) continue;
+    out.push([
+      key,
+      {
+        noun: entry.noun,
+        look: typeof entry.look === 'string' ? entry.look.slice(0, 600) : '',
+        filename,
+        ...(typeof entry.imageUrl === 'string' && entry.imageUrl.trim()
+          ? { imageUrl: entry.imageUrl.slice(0, 600) }
+          : {}),
+      },
+    ]);
+  }
+  return Object.fromEntries(out.slice(-SCENE_SCRIPT_PARTNERS_MAX));
 }
 
 /** At most this many script scenes keep their one room (the oldest are dropped first). */
