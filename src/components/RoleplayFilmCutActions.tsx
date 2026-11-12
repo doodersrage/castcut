@@ -166,7 +166,7 @@ export default function RoleplayFilmCutActions({
             variant="secondary"
             data-testid="roleplay-remix-day"
           >
-            Same look, new Day
+            Same look, new short
           </ButtonLink>
         ) : null}
       </div>

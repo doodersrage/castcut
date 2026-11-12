@@ -168,7 +168,10 @@ export default function PlayFilmMetricsCard() {
             value={metrics.firstFilmCutAt ? 'Done' : 'Not yet'}
             detail={
               metrics.firstFilmCutAt
-                ? new Date(metrics.firstFilmCutAt).toLocaleString()
+                ? new Date(metrics.firstFilmCutAt).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })
                 : 'Open Short and Cut film.'
             }
           />

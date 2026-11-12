@@ -266,7 +266,7 @@ export function useRoleplayFilmActions(input: {
           setFirstCutCelebrate(true);
           setFilmStatus(
             character
-              ? `First film cut — watch on Cast, share, or open Same look, new Day.`
+              ? `First film cut — watch on Cast, share, or open Same look, new short.`
               : `First film cut — share or Save to Cast to attach it.`
           );
         }

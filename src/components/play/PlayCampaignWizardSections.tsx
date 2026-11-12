@@ -266,7 +266,7 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
         title={props.campaignComplete ? 'Film complete' : 'Your film'}
         description={
           props.campaignComplete
-            ? 'Watch it, cut another Day, or carry on in Story.'
+            ? 'Watch it, cut another short, or carry on in Story.'
             : 'Pick who it’s about, plan their Short, then cut the film.'
         }
       >

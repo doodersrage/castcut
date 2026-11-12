@@ -689,7 +689,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
                     clearFirstCutCelebrate();
                   }}
                 >
-                  Same look, new Day
+                  Same look, new short
                 </Link>
               ) : null}
             </div>
@@ -757,7 +757,7 @@ export default function MobilePlayToolSections({ description: _description, ...v
             className="ui-btn-secondary w-full justify-center text-center text-sm"
             data-testid="roleplay-remix-day"
           >
-            Same look, new Day
+            Same look, new short
           </Link>
         ) : null}
         {filmStatus ? <p className="type-caption text-[var(--text-muted)]">{filmStatus}</p> : null}

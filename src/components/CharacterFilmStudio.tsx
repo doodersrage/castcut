@@ -170,7 +170,7 @@ export default function CharacterFilmStudio({
               variant="primary"
               data-testid="character-film-empty-remix"
             >
-              Same look, new Day
+              Same look, new short
             </ButtonLink>
             <ButtonLink
               href={`/day?character=${encodeURIComponent(characterId)}`}
@@ -235,7 +235,7 @@ export default function CharacterFilmStudio({
               variant="secondary"
               data-testid="character-film-cut-another"
             >
-              Same look, new Day
+              Same look, new short
             </ButtonLink>
             <ButtonLink
               href="/play"

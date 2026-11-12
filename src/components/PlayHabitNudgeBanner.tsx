@@ -50,7 +50,7 @@ export default function PlayHabitNudgeBanner() {
     >
       <p className="type-overline text-[var(--accent-text)]">Tomorrow’s Day</p>
       <p className="type-heading mt-1 text-[var(--text-primary)]">
-        Cut another Day film for {nudge.characterName}?
+        Cut another short for {nudge.characterName}?
       </p>
       <p className="type-caption mt-1 text-[var(--text-muted)]">
         {nudge.fromStory
@@ -59,7 +59,7 @@ export default function PlayHabitNudgeBanner() {
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <ButtonLink href={href} size="sm" variant="primary" data-testid="play-habit-nudge-open">
-          Same look, new Day
+          Same look, new short
         </ButtonLink>
         <Button
           size="sm"

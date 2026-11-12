@@ -4190,3 +4190,20 @@ no take yet / not made); a finished run says how many failed ("1 of 2 Scenes, 1 
   script's companions (`resolveDayPoseHeadcount`), never the People pick. Time stays: the board
   writes it into the script. E2E: the 5 tests that drive these controls pass.
 
+**Film UI audit (2026-11-12, screenshots of the seven film pages on a copy of s11):** the sidebar
+changed shape between pages — Cast / Film / Outfit / Short had the slim film chrome, Script /
+Scene / Cut the full studio catalog. Fixed: the whole film path shares one "Film" sidebar
+(`ROLEPLAY_FOCUS_HREFS` + Script, Scene, Cut; the sidebar lists Scene and Cut; `isRoleplayFocusPath`
+reads the list). One offline banner (the page card hides under the app's). "Day" copy on the Film
+page, the offline banner, the habit nudge and the step machine reads "short". Film-complete dates
+read "Nov 11, 2026, 11:56 PM". The script list says "2 scenes · 5 shots · 4 kept · Nov 11, 2026"
+under each name (two scripts both called "Slyne’s day" were telling nothing).
+
+**Engine rematch (castcut-s12-rematch, the consistency set on Slyne, 5 scenes × 2 runs an
+engine, Edit 2511 as the install's engine and 2.1 Turbo pinned per Scene — the harness now pins
+through the Scene editor):** Edit 2511 framed every shot differently (a lean on the counter, a
+profile at the machine, seated at an angle, a bar shot with bokeh) and held her face closer
+(InsightFace distance mean 0.41 vs 0.60); 2.1 Turbo stood her centred and square to the camera in
+10 of 10, the pose bench's lineup again, at 1/5 the time. Pose about even (pours coffee missed on
+both). Verdict: Edit 2511 stays the engine for film; 2.1 for previews.
+

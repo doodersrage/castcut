@@ -760,7 +760,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                 data-testid="day-first-cut-remix"
                 onClick={remixSameLookDay}
               >
-                Same look, new Day
+                Same look, new short
               </Button>
             ) : null}
             {character ? (
@@ -1291,7 +1291,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                     data-testid="day-remix-day"
                     onClick={remixSameLookDay}
                   >
-                    Same look, new Day
+                    Same look, new short
                   </button>
                 </ActionMenu>
               </>

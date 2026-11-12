@@ -1,5 +1,7 @@
 'use client';
 
+import { useRenderBackend } from '@/lib/engine/render-backend-status';
+
 /**
  * A tool page's own setup gap: ComfyUI unreachable, or the cloud engine's key. First-run setup as
  * a whole (Heal & ready, system workflows) is the dashboard checklist's and, on a first queue,
@@ -47,6 +49,7 @@ export default function SetupReadinessBanner({
   const workspaceMode = useWorkspaceMode();
   const deferUntilQueueIntent =
     deferUntilQueueIntentProp ?? (workspaceMode === 'simple' || workspaceMode === 'play');
+  const renderBackend = useRenderBackend();
   const [comfyOk, setComfyOk] = useState<boolean | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -147,8 +150,9 @@ export default function SetupReadinessBanner({
     );
   }
 
-  // Only this page's gap: ComfyUI can't be reached, so nothing here renders.
-  if (comfyOk !== false) {
+  // Only this page's gap: ComfyUI can't be reached, so nothing here renders. The app's own
+  // offline banner (RenderOfflineBanner, at the top of every page) already says so: not twice.
+  if (comfyOk !== false || renderBackend.state === 'offline') {
     return null;
   }
 

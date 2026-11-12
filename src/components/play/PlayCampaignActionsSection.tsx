@@ -90,9 +90,9 @@ export default function PlayCampaignActionsSection({
               <p className="type-caption text-[var(--tint-success-text)]">
                 Film complete
                 {savedCampaign?.completedAt
-                  ? ` · ${new Date(savedCampaign.completedAt).toLocaleString()}`
+                  ? ` · ${new Date(savedCampaign.completedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
                   : ''}{' '}
-                — watch it, cut another Day, or unlock Story.
+                — watch it, cut another short, or unlock Story.
               </p>
             </div>
             {characterId ? (
@@ -112,7 +112,7 @@ export default function PlayCampaignActionsSection({
                 variant="secondary"
                 data-testid="play-campaign-cut-another"
               >
-                Same look, new Day
+                Same look, new short
               </ButtonLink>
             ) : null}
             {firstFilmDone && characterId && onOpenStory ? (

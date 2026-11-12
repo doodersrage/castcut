@@ -484,6 +484,32 @@ export default function SceneScripts({
       ),
     [cache.scripts, castId]
   );
+  // Each script's line (2026-11-12): two "Slyne’s day" read the same with names alone.
+  const scriptMeta = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const script of scripts) {
+      const sceneCount = parseScript(script.source).scenes.length;
+      const shotCount = script.shots?.length ?? 0;
+      const kept = scenes.filter(
+        scene => scene.fromScript?.scriptId === script.id && scene.keptTakeId
+      ).length;
+      const when = new Date(script.updatedAt || script.createdAt).toLocaleDateString(undefined, {
+        dateStyle: 'medium',
+      });
+      out.set(
+        script.id,
+        [
+          `${sceneCount} scene${sceneCount === 1 ? '' : 's'}`,
+          shotCount ? `${shotCount} shot${shotCount === 1 ? '' : 's'}` : '',
+          kept ? `${kept} kept` : '',
+          when,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      );
+    }
+    return out;
+  }, [scenes, scripts]);
   // /script?script=<id> opens that script (Film Director's next actions, M5 W2).
   const locations = useLocations();
   const [openId, setOpenId] = useState<string | null>(() => {
@@ -1102,7 +1128,15 @@ export default function SceneScripts({
               setOpenId(script.id === openId ? null : script.id);
             }}
           >
-            {script.name}
+            <span className="flex flex-col items-start leading-tight">
+              <span>{script.name}</span>
+              <span
+                className="type-caption font-normal text-[var(--text-muted)]"
+                data-testid={`script-meta-${script.id}`}
+              >
+                {scriptMeta.get(script.id)}
+              </span>
+            </span>
           </Button>
         ))}
         <Button

@@ -66,7 +66,7 @@ const ALL_ONBOARDING_STEPS: Omit<OnboardingStep, 'done'>[] = [
   },
   {
     id: 'watch-first-film',
-    label: 'Watch your film on Cast (or cut another Day)',
+    label: 'Watch your film on Cast (or cut another short)',
     href: '/characters',
   },
   {

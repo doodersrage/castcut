@@ -111,6 +111,11 @@ export const ROLEPLAY_FOCUS_HREFS = [
   '/day',
   '/moodboard',
   '/characters',
+  // The whole film path (2026-11-12): Script, Scene and Cut had the full studio catalog while
+  // Cast, Short and Story had the film chrome — the sidebar changed shape between pages.
+  '/script',
+  '/scene',
+  '/cut',
 ] as const;
 
 /** Destinations listed in the Play sidebar (All tools is appended separately). */
@@ -120,6 +125,8 @@ export const ROLEPLAY_FOCUS_NAV_HREFS = [
   '/fitting',
   '/day',
   '/script',
+  '/scene',
+  '/cut',
   '/story',
   '/gallery',
   '/queue',
@@ -137,13 +144,8 @@ export function isRoleplayFocusPath(pathname: string | null | undefined): boolea
   }
   const path = pathname.split('?')[0] || '/';
   return (
-    path === '/play' ||
-    path === '/story' ||
+    (ROLEPLAY_FOCUS_HREFS as readonly string[]).includes(path) ||
     path === '/roleplay' ||
-    path === '/fitting' ||
-    path === '/day' ||
-    path === '/moodboard' ||
-    path === '/characters' ||
     path.startsWith('/characters/')
   );
 }
@@ -241,7 +243,7 @@ function playNavGroups(baseGroups: AppNavGroup[]): AppNavGroup[] {
   const escapeListed = playLinks.some(link => hrefKey(link.href) === hrefKey(escape.href));
   return [
     {
-      label: 'Play',
+      label: 'Film',
       links: [
         ...playLinks,
         ...(escapeListed

@@ -1565,7 +1565,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     autoCutRef.current = false;
     pendingAutoCutRef.current = false;
     starterAutoQueueRef.current = false;
-    // Next macrotask, so queueAll sees the new slots (as Same look, new Day).
+    // Next macrotask, so queueAll sees the new slots (as Same look, new short).
     setTimeout(() => {
       void queueAllRef.current().finally(() => {
         pendingAutoCutRef.current = true;

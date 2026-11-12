@@ -239,7 +239,7 @@ export default function RoleplayStorySection({
                   onClearFirstCutCelebrate?.();
                 }}
               >
-                Same look, new Day
+                Same look, new short
               </ButtonLink>
             ) : null}
           </ToolActionRow>

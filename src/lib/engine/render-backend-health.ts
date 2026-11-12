@@ -41,7 +41,7 @@ export function settleRenderBackend(
 
 /** Shown wherever a render is refused because nothing answers. */
 export const RENDER_BACKEND_OFFLINE_MESSAGE =
-  'ComfyUI isn’t reachable, so nothing can render right now. Your Day, Story and settings are kept — start ComfyUI (or check its address in Settings → ComfyUI) and try again.';
+  'ComfyUI isn’t reachable, so nothing can render right now. Your shorts, Story and settings are kept — start ComfyUI (or check its address in Settings → ComfyUI) and try again.';
 
 /** Health JSON → status. A failed fetch (null) means the app server itself did not answer. */
 export function renderBackendFromHealth(

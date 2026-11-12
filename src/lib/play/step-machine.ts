@@ -605,13 +605,13 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
       return {
         label: 'Watch film on Cast',
         href: `/characters/${encodeURIComponent(characterId)}?media=films`,
-        reason: 'Rewatch the cut on Cast, then queue another Day reel.',
+        reason: 'Rewatch the cut on Cast, then queue another short.',
       };
     }
     return {
-      label: 'Cut another Day film',
+      label: 'Cut another short',
       href: remixDayFilmHref(characterId),
-      reason: 'Same look, new Day — clear stills and queue a fresh reel.',
+      reason: 'Same look, new short — clear stills and queue a fresh reel.',
     };
   }
 
@@ -679,7 +679,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
 
   if (cuts > 0 && saves > 0) {
     return {
-      label: watched ? 'Cut another Day film' : 'Watch film on Cast',
+      label: watched ? 'Cut another short' : 'Watch film on Cast',
       href: watched
         ? characterId
           ? remixDayFilmHref(characterId)
@@ -688,7 +688,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
           ? `/characters/${encodeURIComponent(characterId)}?media=films`
           : '/characters',
       reason: watched
-        ? 'Same look, new Day — queue a fresh reel.'
+        ? 'Same look, new short — queue a fresh reel.'
         : 'Film saved — open Cast to watch, then cut another.',
     };
   }

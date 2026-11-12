@@ -18,7 +18,7 @@ export type DayRemixMenuProps = {
 };
 
 /**
- * Extra remix options next to "Same look, new Day": keep this Day's plan with a new Outfit, or
+ * Extra remix options next to "Same look, new short": keep this Day's plan with a new Outfit, or
  * re-run the same look with a themed Setting + Beat set.
  */
 export default function DayRemixMenu({

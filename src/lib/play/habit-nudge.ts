@@ -1,5 +1,5 @@
 /**
- * Soft nudge to cut another Day film ~24h after the latest cut.
+ * Soft nudge to cut another short film ~24h after the latest cut.
  */
 
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
@@ -73,7 +73,7 @@ export function resolvePlayHabitNudge(
   const campaign = loadPlayCampaignState();
   const sharedCharacterId = loadSettingsCache().shared.activeCharacterId?.trim() || '';
   // The Cast you have picked now: the last film's lead was named on a page all about another
-  // Cast ("Cut another Day film for Tomas?" with Nora active — UI audit 2026-10-11).
+  // Cast ("Cut another short for Tomas?" with Nora active — UI audit 2026-10-11).
   const characterId = sharedCharacterId || campaign?.characterId?.trim() || '';
   if (!characterId) {
     return null;

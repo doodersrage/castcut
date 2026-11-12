@@ -198,7 +198,7 @@ describe('play-metrics', () => {
       campaign: { characterId: 'c1', stepIndex: 4, completedAt: Date.now() },
       watchedFirstFilm: true,
     });
-    assert.equal(again.label, 'Cut another Day film');
+    assert.equal(again.label, 'Cut another short');
     assert.equal(again.href, '/day?character=c1&from=look&remix=1&autoqueue=1');
   });
 

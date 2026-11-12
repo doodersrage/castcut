@@ -201,7 +201,7 @@ export function applyRemixDayFilmState(options?: {
   saveToolSettings('day', {
     ...base,
     slots: reseeds,
-    notes: 'Same look · new Day — queue fresh stills, then Cut film.',
+    notes: 'Same look · new short — queue fresh stills, then Cut film.',
   });
 }
 

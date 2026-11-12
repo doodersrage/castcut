@@ -908,7 +908,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                   data-testid="day-first-cut-remix"
                   onClick={remixSameLookDay}
                 >
-                  Same look, new Day
+                  Same look, new short
                 </Button>
               ) : null}
               {character ? (
@@ -1545,7 +1545,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     data-testid="day-remix-day"
                     onClick={remixSameLookDay}
                   >
-                    Same look, new Day
+                    Same look, new short
                   </button>
                   {completedShotCount > 0 ? (
                     <ButtonLink

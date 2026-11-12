@@ -155,7 +155,7 @@ export default function MobileGalleryTool() {
           {filmMode
             ? watchCharacter
               ? `${watchCharacter.name} — play Day films, then jump back into the reel.`
-              : 'Your Day films.'
+              : 'Your shorts, cut.'
             : 'Everything you’ve made. Tap a picture to rate it.'}
         </p>
         {!filmMode ? (
@@ -179,7 +179,7 @@ export default function MobileGalleryTool() {
                   variant="secondary"
                   data-testid="mobile-gallery-remix-day"
                 >
-                  Same look, new Day
+                  Same look, new short
                 </ButtonLink>
               ) : (
                 <ButtonLink
