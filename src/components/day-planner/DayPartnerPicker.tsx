@@ -1,6 +1,6 @@
 'use client';
 
-import PortraitTileStrip from '@/components/ui/PortraitTileStrip';
+import PortraitTileStrip, { PersonGlyph } from '@/components/ui/PortraitTileStrip';
 import { DAY_NEW_PARTNER_OPTIONS, type DayPartnerNoun } from '@/lib/day/partner';
 
 export type DayPartnerOption = {
@@ -58,14 +58,14 @@ export default function DayPartnerPicker({
               : forFilm === 'short'
                 ? 'A different stranger on each quick still; one stranger for the whole film when the short is rendered'
                 : 'A different stranger on each two-person still',
-          glyph: '?',
+          glyph: <PersonGlyph mark={forFilm === 'scene' ? '1' : '+'} />,
         },
         ...DAY_NEW_PARTNER_OPTIONS.map(option => ({
           id: option.id,
           label: option.noun === 'woman' ? 'Same woman' : 'Same man',
           title: option.label,
           thumb: value === option.id ? standInUrl : undefined,
-          glyph: option.noun === 'woman' ? '♀' : '♂',
+          glyph: <PersonGlyph />,
         })),
         ...options.map(option => ({
           id: option.id,

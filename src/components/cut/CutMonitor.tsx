@@ -313,7 +313,7 @@ export default function CutMonitor({
         >
           ⛶
         </button>
-        {extra}
+        {extra ? <span className="ml-auto flex items-center gap-1">{extra}</span> : null}
       </div>
       {loaded ? (
         <p className="type-caption text-[var(--text-muted)]" data-testid="cut-preview-notes">

@@ -132,7 +132,8 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
   const poseRedo = useDayPoseMissRedo(
     core,
     checksFirst ? undefined : faceFinishHold,
-    checksFirst ? poseChecks : undefined
+    checksFirst ? poseChecks : undefined,
+    afterChecks.checkBeforeRedo
   );
   const bestOfTwo = useDayBestOfTwo(core, faceFinishHold);
   // Two takes: the take that counted fewer oddities goes first on the card (no redo).

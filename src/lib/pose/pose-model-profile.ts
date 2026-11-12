@@ -204,6 +204,13 @@ export const POSE_MODEL_PROFILES: Record<PoseModelFamily, PoseModelProfile> = {
     adultEngine: 'qwen-rapid-aio-edit-nsfw',
     customPoseEngines: ['qwen-image-2.1-edit-noct', 'qwen-image-2.1-edit-turbo-8'],
     dressPlate: 'plate',
+    // A kit the Short picked for itself too: from the undressed plate the sampler's negative
+    // carries no reference latents, so CFG pushes the plate's underwear back in — s9
+    // (2026-11-11) kept 6/15 stills topless, and 9/9 replays of three of its shots came out
+    // topless. The same shots from the kit already on Image 1: dressed 15/15 (12 two-person, 3
+    // solo); the solo faces scored lower (0.28 / 0.20 / 0.35 against 0.59 / 0.39 / 0.26) — Face
+    // finish is there for those.
+    dressPlateAutoKit: true,
   },
   'qwen-image-2.1': {
     ...BASE,

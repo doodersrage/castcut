@@ -25,8 +25,11 @@ import {
   withoutOthersSentences,
   withoutOtherPlaces,
   withSceneShots,
+  cueAsName,
+  introLabel,
   type PlannedShot,
 } from './script-shots';
+import { scriptShotOther } from './partner-stand-in';
 
 const SOURCE = [
   'INT. KITCHEN - MORNING',
@@ -620,5 +623,74 @@ describe('a phone call and a stand-in partner (2026-11-11 live Short)', () => {
     assert.deepEqual(scriptShotCompanions(hers.partnerCharacterId, hers.partnerInFrame, hers.othersInFrame), {
       allowCompanions: false,
     });
+  });
+});
+
+describe('a stranger called Mr. is named whole and introduced (2026-11-11 s9 run)', () => {
+  const cast = [{ id: 'slyne', name: 'Slyne' }];
+  // The s9 bookshop: the prompt read "the two people — Slyne and Mr." and the shop owner got a
+  // man in his forties; only the second shot said he was elderly.
+  const shop = parseScript(
+    [
+      'INT. COZY BOOKSHOP - DAY',
+      '',
+      'SLYNE stands by the worn wooden counter, a well-loved hardcover in her hands. Her eyes sparkle as she reads the back cover.',
+      '',
+      'MR. HARRIS, an elderly man with twinkling eyes and a bow tie, looks over his glasses at her from behind the counter.',
+      '',
+      'MR. HARRIS',
+      'Find something interesting?',
+      '',
+      'SLYNE',
+      'Maybe.',
+      '',
+    ].join('\n')
+  ).scenes[0]!;
+  const draftOf = (index: number) =>
+    shotSceneDraft({
+      shot: draftShots(shop)[index]!,
+      scene: shop,
+      sceneIndex: 0,
+      shotIndex: index,
+      castId: 'slyne',
+      cast,
+      castMap: { SLYNE: 'slyne' },
+      placeMap: undefined,
+    });
+
+  it('writes a cue as a name, without the full stop', () => {
+    assert.equal(cueAsName('MR. HARRIS'), 'Mr Harris');
+    assert.equal(cueAsName('DR. LENA VOSS'), 'Dr Lena Voss');
+    assert.equal(cueAsName('JEAN-LUC'), 'Jean-Luc');
+    assert.equal(cueAsName('TOMAS'), 'Tomas');
+    assert.equal(cueAsName('Ellie McDonald'), 'Ellie McDonald');
+    assert.equal(cueAsName('Mr. Harris'), 'Mr Harris');
+  });
+
+  it('finds how the script introduces them, wherever in the scene', () => {
+    assert.equal(introLabel('MR. HARRIS', shop), ' (an elderly man)');
+    assert.equal(introLabel('SLYNE', shop), '');
+    assert.equal(introLabel('', shop), '');
+  });
+
+  it('gives every shot of him the same name and introduction, and the stand-in reads both', () => {
+    const shots = draftShots(shop);
+    const withHim = shots
+      .map((_, index) => draftOf(index))
+      .filter(draft => /together/.test(draft.slot.sceneHints ?? ''));
+    assert.ok(withHim.length > 0);
+    for (const draft of withHim) {
+      const hints = draft.slot.sceneHints ?? '';
+      assert.match(hints, /^Slyne and Mr Harris \(an elderly man\), the two of them together\./);
+      assert.doesNotMatch(hints, /\bMR?\.\s/i);
+      assert.deepEqual(scriptShotOther(hints), { who: 'mr harris', noun: 'man', elderly: true });
+    }
+  });
+
+  it('still reads a shot saved before, with the full stop', () => {
+    assert.deepEqual(
+      scriptShotOther('Slyne and Mr. harris, the two of them together. SLYNE stands by the counter.'),
+      { who: 'mr harris', noun: null, elderly: false }
+    );
   });
 });

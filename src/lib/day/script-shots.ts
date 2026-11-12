@@ -67,6 +67,49 @@ export const SHOTS_PER_SCENE = 24;
 const SHOTS_PER_SCRIPT = 600;
 const TEXT_MAX = 400;
 
+/** "Mr." / "Dr." before a name: the full stop goes, so no sentence reader cuts the name off. */
+const HONORIFIC_DOT_RE = /\b(Mr|Mrs|Ms|Mx|Dr|Prof|St|Sr|Jr)\.(?=\s)/gi;
+
+/**
+ * A script cue as a name: "MR. HARRIS" → "Mr Harris", "JEAN-LUC" → "Jean-Luc". A name already in
+ * mixed case keeps its casing ("McDonald"), losing only an honorific's full stop.
+ */
+export function cueAsName(speaker: string): string {
+  const cue = speaker.trim();
+  if (cue !== cue.toUpperCase()) return cue.replace(HONORIFIC_DOT_RE, '$1');
+  return cue
+    .toLowerCase()
+    .replace(
+      /(^|[\s'’-])(\p{L})/gu,
+      (_match, gap: string, letter: string) => gap + letter.toUpperCase()
+    )
+    .replace(HONORIFIC_DOT_RE, '$1');
+}
+
+/**
+ * How the script introduces someone ("MR. HARRIS, an elderly man with twinkling eyes, looks up"
+ * → " (an elderly man)"), from any action in the scene, for every shot of them: their stand-in
+ * face is made on the first shot they're in, which often doesn't describe them. '' when none.
+ */
+export function introLabel(speaker: string, scene: Pick<ScriptScene, 'elements'>): string {
+  const name = speaker
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\\\./g, '\\.?')
+    .replace(/\s+/g, '\\s+');
+  if (!name) return '';
+  const re = new RegExp(`(?:^|[^\\p{L}])${name},\\s+(an?\\s+[^,.;:!?()]{2,80})`, 'iu');
+  for (const element of scene.elements) {
+    if (element.kind !== 'action') continue;
+    const words = re
+      .exec(element.text)?.[1]
+      ?.replace(/\s+(?:with|who|in|wearing|holding|behind|at|from|by)\b.*$/i, '')
+      .trim();
+    if (words && words.split(/\s+/).length <= 6) return ` (${words.toLowerCase()})`;
+  }
+  return '';
+}
+
 const clean = (value: unknown, max = TEXT_MAX) =>
   typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 
@@ -620,7 +663,7 @@ export function shotSceneDraft(input: {
     if (isTagOnlyCue(speaker)) return 'Voice';
     const id = castOf(speaker);
     const member = id ? cast.find(entry => entry.id === id) : undefined;
-    return member?.name ?? speaker.charAt(0) + speaker.slice(1).toLowerCase();
+    return member?.name ?? cueAsName(speaker);
   };
   // Her line heard, not seen, is her voice over the picture (narration), not said on screen.
   const leadVoiceOver = Boolean(shot.offscreen && shot.line && castOf(shot.speaker) === castId);
@@ -693,7 +736,7 @@ export function shotSceneDraft(input: {
     partnerInFrame && leadName && partnerName
       ? `${leadName} and ${partnerName}, the two of them together.`
       : othersInFrame && leadName && others[0]
-        ? `${leadName} and ${otherLabel(others[0])}, the two of them together.`
+        ? `${leadName} and ${otherLabel(others[0])}${introLabel(others[0], scene)}, the two of them together.`
         : '',
     shot.action ?? (sceneAction ? clean(sceneAction) : ''),
     shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
@@ -704,6 +747,9 @@ export function shotSceneDraft(input: {
   ]
     .filter(Boolean)
     .join(' ')
+    // "MR. HARRIS, an elderly man": every sentence reader after this stops at "Mr." (2026-11-11
+    // s9: the prompt read "the two people — Slyne and Mr." and he got no face of his own).
+    .replace(HONORIFIC_DOT_RE, '$1')
     .slice(0, TEXT_MAX);
   const id: DayPart =
     scene.dayPart && DAY_PARTS.includes(scene.dayPart) ? scene.dayPart : 'afternoon';

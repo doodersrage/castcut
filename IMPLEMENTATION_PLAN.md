@@ -4107,3 +4107,47 @@ open"):
   than the run's (`episodeRedosFor`; none when the run redoes nothing).
 - **A part's line still sent:** "Elderly man says: “…”" got past the spoken-words check, which
   wanted a capital on the second word.
+
+**The third rerun (2026-11-11 evening, castcut-s9-run, build 71858e3d):** 15 shots in 151 min,
+12 flagged. The partner photo went with every two-person shot, no twin, no drawn quote — but 6 of
+the 15 kept stills were topless. Found by replaying stored graphs on ComfyUI (3 shots × 3 seeds),
+not by guessing from the flags (user: "do some test rendering for just those"):
+- **Why topless:** every s9 shot wore a kit the Short picked for itself, and on Edit 2511 an auto
+  kit never got a dress plate (`dressPlateAutoKit` was 2.1-only), so Image 1 was the undressed
+  plate. The KSampler's negative carries no reference latents, so CFG pushes Image 1 — underwear
+  and all — back in: replayed as queued, 9/9 topless. Rewiring the negative (with the reference
+  latents and undress words) dressed her 9/9 but lost her hair and face on two-person shots. The
+  kit already on Image 1, as queued otherwise: dressed 15/15 (12 two-person, 3 solo), hair kept;
+  solo faces scored lower (0.28 / 0.20 / 0.35 against 0.59 / 0.39 / 0.26). **Fix:**
+  `dressPlateAutoKit: true` on Edit 2511 — one plate per outfit, reused, the existing Day path
+  (the recipe already says "exactly the outfit she has on in Image 1" with no underwear clause).
+  The wiring is unchanged.
+- **Undressed takes passed the outfit check:** the 8B's blind description called open-shirt and
+  pulled-down stills dressed. Two yes/no questions follow a pass when the plan says she is dressed
+  (`outfitBareQuestions`: "Are her bare breasts or nipples visible?" then "Is her chest fully
+  covered by clothing?"); both on the bare side fail it. Probed on all 48 s9 takes: 27 topless, 21
+  dressed, matching a look at each.
+- **Every other take was never checked:** a take redone at once for pose or realism
+  (`useDayPoseMissRedo`) was replaced before the after-checks saw it. The redo now waits for its
+  outfit and face checks (`checkBeforeRedo`).
+- **"MR. HARRIS" lost his name:** the full stop cut the pair line at "Slyne and Mr." and no
+  stranger stand-in was made. Cues read as names (`cueAsName`, "Mr Harris"), the script's
+  introduction rides along ("Mr Harris (an elderly man)", `introLabel`), and old dotted hints parse.
+- **Cut:** WAN's animated-WebP clips would not play in the preview (empty timeline); they are
+  converted to MP4 once and cached (`/api/cut/playable`). UI pass: keyboard shortcuts in a
+  collapsible list, Undo/Redo kept together, why picked-shot tools are greyed, card names read
+  "Mr Harris" not "MR. HARRIS", the partner tiles drawn not "?/♀/♂", no "Animate · 0/1" before
+  any still.
+- **Measured (castcut-s11-run, 2026-11-12, bookshop, 2 moments, 5 shots):** every take dressed (8/8;
+  dress plate on Turbo in 20 s). Not tested: Mr Harris — the writer (Nemo) wrote both scenes for Slyne
+  alone. Open:
+  - the first shot stalled ("no take appeared on the card within 5 minutes", ComfyUI object_info
+    timeouts after /free and the writer load) and Resume skipped it: the run ends "done" with it failed;
+  - the solo "pulls out a book" close-up (2C) came out with two Slynes in both takes — its pose guide
+    (`walk-down-down`) is a cropped skeleton, arms spread flat, read as two bodies; and 2A's redo
+    added a woman in black at the back;
+  - the moment cards ("Morning", "Night" — Day's time names in a Short) render beside the script
+    shots of the same action, with their own kit: a stone sweater dress against the magenta wrap
+    dress of every script shot;
+  - "POSE FIRST: she is She pulls out…" (a sentence put after "she is");
+  - all 4 landed takes flagged (realism 4/10 ×3, face ×1, pose ×1).

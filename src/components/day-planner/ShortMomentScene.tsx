@@ -8,6 +8,7 @@ import { loadToolSettings } from '@/lib/settings/cache';
 import { normalizeSavedScenes } from '@/lib/day/scenes';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { shortMomentHasMore, shortMomentsOf, type ShortMoment } from '@/lib/day/short-moments';
+import { cueAsName } from '@/lib/day/script-shots';
 import type { DaySlotId } from '@/lib/day/planner';
 
 /**
@@ -82,9 +83,15 @@ export default function ShortMomentScene({
         <ul className="space-y-0.5" aria-label="Lines">
           {moment.lines.map((line, index) => (
             <li key={index} className="type-caption leading-snug">
-              <span className="font-medium">{line.speaker}</span>
+              {/* As a name ("Mr Harris"), not the script's cue ("MR. HARRIS"). */}
+              <span className="font-medium">{cueAsName(line.speaker)}</span>
               {line.offscreen ? <span className="text-[var(--text-muted)]"> (V.O.)</span> : null}
-              {line.how ? <span className="text-[var(--text-muted)]"> ({line.how})</span> : null}
+              {line.how ? (
+                <span className="italic text-[var(--text-muted)]">
+                  {' '}
+                  ({line.how.charAt(0).toLowerCase() + line.how.slice(1)})
+                </span>
+              ) : null}
               <span className="text-[var(--text-muted)]">: </span>
               {line.text}
             </li>

@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  outfitBareQuestions,
+  outfitBareQuestionsApply,
   outfitBareSeen,
   outfitCheckJudgePrompt,
+  outfitVerdictWithBareAnswers,
   outfitCheckVerdict,
   outfitDescribePrompt,
   outfitWearerFor,
@@ -63,5 +66,33 @@ describe('the outfit check (2026-11-11 overnight Short)', () => {
     assert.equal(kept.outfitSeen, 'naked');
     // Without the plan, as before: the judge's yes clears it.
     assert.ok(!withOutfitSecondLook(report, { seen: 'naked', answer: 'yes' }).flags.includes('wrong-outfit'));
+  });
+});
+
+describe('a passing outfit asked straight whether the chest is bare (2026-11-11 s9)', () => {
+  const passed = { match: true, seen: 'blue denim shirt unbuttoned' };
+  it('reads "bare chest" in a description as bare', () => {
+    assert.equal(outfitBareSeen(SLIP, 'blue denim shirt unbuttoned, bare chest'), 'bare chest');
+    assert.deepEqual(outfitCheckVerdict(SLIP, 'blue denim shirt unbuttoned, bare chest', 'yes')?.match, false);
+  });
+
+  it('misses only when both answers say bare', () => {
+    assert.deepEqual(outfitVerdictWithBareAnswers(passed, 'Yes', 'No'), {
+      match: false,
+      seen: 'topless — blue denim shirt unbuttoned',
+    });
+    // Each alone was wrong once on that run's 48 takes: a tiny figure, an open collar.
+    assert.deepEqual(outfitVerdictWithBareAnswers(passed, 'yes', 'yes'), passed);
+    assert.deepEqual(outfitVerdictWithBareAnswers(passed, 'no', null), passed);
+    assert.deepEqual(outfitVerdictWithBareAnswers(passed, null, null), passed);
+    const missed = { match: false, seen: 'naked' };
+    assert.deepEqual(outfitVerdictWithBareAnswers(missed, 'yes', 'no'), missed);
+  });
+
+  it('asks about the wearer, and never for a plan that is bare itself', () => {
+    assert.match(outfitBareQuestions('woman').shown, /her bare breasts/);
+    assert.match(outfitBareQuestions('man').shown, /shirtless/);
+    assert.equal(outfitBareQuestionsApply(SLIP), true);
+    assert.equal(outfitBareQuestionsApply('red string bikini'), false);
   });
 });

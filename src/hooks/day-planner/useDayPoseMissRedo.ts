@@ -68,7 +68,12 @@ export function useDayPoseMissRedo(
     onSettled: (slotId: string, take: string) => void;
     /** The pose check can't run this session — nothing to wait for. */
     onChecksOff: () => void;
-  }
+  },
+  /**
+   * Checks a take's outfit and face before it is redone (useDayStillAfterChecks): replaced at
+   * once, it was never looked at (2026-11-11 s9: half the takes).
+   */
+  beforeRedo?: (slotId: string, still: { promptId?: string; imageUrl?: string }) => Promise<void>
 ) {
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
   const { bestOfTwoHardPoses } = ctx;
@@ -216,8 +221,12 @@ export function useDayPoseMissRedo(
       if (nudge) rerollNudgeRef.current[target.id] = nudge;
       ledgerRef.current = { ...ledgerRef.current, [target.id]: { missedTake: take, reason } };
       setLedger(ledgerRef.current);
-      setStatus(message);
       redone = true;
+      if (beforeRedo) {
+        setStatus(`Checking ${target.label}'s outfit before it is redone…`);
+        await beforeRedo(target.id, still).catch(() => undefined);
+      }
+      setStatus(message);
       await queueSlot(target);
     };
 
@@ -438,6 +447,7 @@ export function useDayPoseMissRedo(
     dayEventActive,
     active,
     autoReviewStills,
+    beforeRedo,
     bestOfTwoHardPoses,
     redoPoseMisses,
     busy,

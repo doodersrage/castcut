@@ -8,7 +8,10 @@ import {
 import { splitImageDataUrl } from '@/lib/vision/image-prepare';
 import { resolveVisionModel } from '@/lib/vision/model-auto';
 import {
+  outfitBareQuestions,
+  outfitBareQuestionsApply,
   outfitCheckJudgePrompt,
+  outfitVerdictWithBareAnswers,
   outfitCheckVerdict,
   outfitDescribePrompt,
   type OutfitCheckVerdict,
@@ -42,11 +45,12 @@ export async function checkOutfitInStill(options: {
   const visionModel = await resolveVisionModel(options.llm);
   if (!visionModel) throw new Error('The outfit check needs a vision model on the LLM server.');
   const endpoint = resolveRequestLlmEndpoint(options.llm);
+  const still = await stillForCheck(options.imageDataUrl);
   const seen = await visionCompletion({
     // No system prompt and no plan: told what to expect, the model echoes it.
     systemPrompt: '',
     textPrompt: outfitDescribePrompt(options.wearer),
-    imageDataUrl: await stillForCheck(options.imageDataUrl),
+    imageDataUrl: still,
     maxTokens: 120,
     temperature: 0,
     model: visionModel,
@@ -69,5 +73,22 @@ export async function checkOutfitInStill(options: {
     endpoint,
     usageContext: { route: 'outfit-check' },
   });
-  return outfitCheckVerdict(options.outfit, seen, answer);
+  const verdict = outfitCheckVerdict(options.outfit, seen, answer);
+  if (!verdict?.match || !outfitBareQuestionsApply(options.outfit)) return verdict;
+  // Passed: asked straight whether the chest is bare (outfit-check.ts, outfitBareQuestions).
+  const questions = outfitBareQuestions(options.wearer);
+  const ask = (textPrompt: string) =>
+    visionCompletion({
+      systemPrompt: '',
+      textPrompt,
+      imageDataUrl: still,
+      maxTokens: 4,
+      temperature: 0,
+      model: visionModel,
+      endpoint,
+      usageContext: { route: 'outfit-check' },
+    }).catch(() => null);
+  const shown = await ask(questions.shown);
+  const covered = /^\s*yes\b/i.test(shown ?? '') ? await ask(questions.covered) : null;
+  return outfitVerdictWithBareAnswers(verdict, shown, covered);
 }

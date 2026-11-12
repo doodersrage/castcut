@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 export type PortraitTile = {
   id: string;
@@ -9,7 +9,8 @@ export type PortraitTile = {
   title?: string;
   /** A 3:4 picture — a look plate or face; the glyph shows when there is none. */
   thumb?: string;
-  glyph?: string;
+  /** Shown with no picture: a character, or a small drawing (PersonGlyph). */
+  glyph?: ReactNode;
   /** A second, smaller line under the name (a look's locked outfit). */
   caption?: string;
   /** With no thumb: a dashed "missing picture" box with this text (a look with no plate). */
@@ -17,6 +18,26 @@ export type PortraitTile = {
   /** A corner mark: done (a scene with a kept take) or to do (one still needing a take). */
   status?: 'done' | 'todo';
 };
+
+/**
+ * A head-and-shoulders outline for a tile with no face yet — the "?", "♀" and "♂" it replaced
+ * looked like placeholders beside the real faces (2026-11-11). `mark` adds a small badge.
+ */
+export function PersonGlyph({ mark }: { mark?: string }) {
+  return (
+    <span className="relative inline-flex">
+      <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>
+        <circle cx="12" cy="8.5" r="4.2" />
+        <path d="M3.5 22c0-4.9 3.8-8 8.5-8s8.5 3.1 8.5 8z" />
+      </svg>
+      {mark ? (
+        <span className="absolute -right-1.5 -top-1 rounded-full bg-[var(--bg-elevated)] px-1 text-3xs font-semibold leading-tight">
+          {mark}
+        </span>
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * Pick one person (or look) by picture: a scrolling row of 3:4 tiles with a name under each.

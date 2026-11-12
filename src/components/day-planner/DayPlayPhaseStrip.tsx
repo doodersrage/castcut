@@ -31,7 +31,8 @@ export default function DayPlayPhaseStrip({
       activeIndex={activeIndex}
       details={{
         queue: shots?.of ? `${shots.done}/${shots.of} shots` : `${completedStills}/${slotTotal}`,
-        animate: `${completedClips}/${Math.max(completedStills, 1)}`,
+        // Nothing to animate yet: no count ("Animate · 0/1" with no stills read as a job waiting).
+        ...(completedStills > 0 ? { animate: `${completedClips}/${completedStills}` } : {}),
       }}
       testId="day-play-phases"
     />

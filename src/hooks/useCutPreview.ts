@@ -163,7 +163,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-function loadVideo(url: string): Promise<HTMLVideoElement> {
+function loadVideoOnce(url: string): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
@@ -173,6 +173,19 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
     video.onerror = () => reject(new Error('Could not load a clip.'));
     video.src = url;
   });
+}
+
+/**
+ * A clip in a `<video>`; one it can't play (WAN's animated WebP — 13 of a live Short's 15 kept
+ * clips, 2026-11-11, and one left the whole preview black) comes again as an MP4 from
+ * /api/cut/playable, as the export makes it.
+ */
+function loadVideo(url: string): Promise<HTMLVideoElement> {
+  return loadVideoOnce(url).catch(() =>
+    url.startsWith('blob:') || url.startsWith('data:')
+      ? Promise.reject(new Error('Could not load a clip.'))
+      : loadVideoOnce(`/api/cut/playable?url=${encodeURIComponent(url)}`)
+  );
 }
 
 function loadAudio(url: string): Promise<HTMLAudioElement> {

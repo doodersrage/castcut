@@ -48,7 +48,45 @@ export function outfitJudgePrompt(planned: string, seen: string): string {
 
 /** Bare skin or underwear, in a description of what someone wears (outfit-check.ts). */
 const BARE_RE =
-  /\b(naked|nude|topless|bare[- ]chested|no (?:top|shirt|clothes|clothing)|nothing on|underwear|lingerie|bra|panties|knickers|thong|briefs|boxers|bikini|swimsuit)\b/i;
+  /\b(naked|nude|topless|bare[- ]chested|bare (?:chest|breasts|torso)|exposed (?:chest|breasts)|no (?:top|shirt|clothes|clothing)|nothing on|underwear|lingerie|bra|panties|knickers|thong|briefs|boxers|bikini|swimsuit)\b/i;
+
+/**
+ * Two direct questions after a description that passed (2026-11-11 s9): the description read an
+ * open denim shirt or a pulled-down slip dress as worn ("blue denim shirt", "green draped fabric
+ * over torso") on 3 of 6 topless kept stills. Asked straight, the same 8B answered both right on
+ * all 48 of that run's takes (27 topless, 21 dressed; each question alone was wrong once, on a
+ * tiny figure or an open collar), so a still is bare only when both say so.
+ */
+export function outfitBareQuestions(wearer: OutfitWearer): { shown: string; covered: string } {
+  return wearer === 'woman'
+    ? {
+        shown:
+          'Look at the woman in this photo. Are her bare breasts or nipples visible? Answer only yes or no.',
+        covered:
+          'Look at the woman in this photo. Is her chest fully covered by clothing? Answer only yes or no.',
+      }
+    : {
+        shown:
+          'Look at the man in this photo. Is he shirtless, his bare chest visible? Answer only yes or no.',
+        covered:
+          'Look at the man in this photo. Is his chest fully covered by clothing? Answer only yes or no.',
+      };
+}
+
+/** Whether to ask them: never for a plan that is bare itself (a bikini, lingerie). */
+export function outfitBareQuestionsApply(planned: string): boolean {
+  return !BARE_RE.test(planned);
+}
+
+/** A passing verdict turned into a miss when both questions say bare; else unchanged. */
+export function outfitVerdictWithBareAnswers(
+  verdict: OutfitCheckVerdict,
+  shown: string | null,
+  covered: string | null
+): OutfitCheckVerdict {
+  const bare = verdict.match && /^\s*yes\b/i.test(shown ?? '') && /^\s*no\b/i.test(covered ?? '');
+  return bare ? { match: false, seen: `topless — ${verdict.seen}`.slice(0, 160) } : verdict;
+}
 
 /**
  * Bare skin or underwear seen that the plan doesn't name (a planned bikini is a bikini): the

@@ -93,6 +93,119 @@ export function useDayStillAfterChecks(
     }
   }, [mounted, stills]);
 
+  type CheckTarget = (typeof slots)[number];
+  type CheckStill = { promptId?: string; imageUrl?: string };
+  /** Whose clothes and face to check in a still: the lead alone, or beside someone else. */
+  const checksPlanFor = (target: CheckTarget, still: CheckStill) => {
+    const mood = normalizeDayMood(toolSettings.dayMood);
+    const drawn = poseGuideExpectRef.current[target.id]?.keypoints.length;
+    const companionsPossible =
+      toolSettings.allowCompanions === true ||
+      (isDayAdultMood(mood) && normalizeDayIntimateMix(toolSettings.intimateMix) !== 'solo');
+    const solo = drawn != null ? drawn === 1 : !companionsPossible;
+    // The outfit: planned on an Everyday day, and not already checked by Auto-review.
+    const outfit =
+      mood === 'everyday' && !autoReviewStills
+        ? reviewOutfitLabel({
+            customDescription: toolSettings.customGarmentDescription,
+            wardrobeId: target.wardrobeId,
+            wardrobeLabel: wardrobeLabelFor(target.wardrobeId),
+          })
+        : undefined;
+    const wearer = outfit
+      ? outfitWearerFor({
+          lead: ctx.leadNoun,
+          solo,
+          prompt: loadComfyGallery().find(item => item.promptId === still.promptId)?.prompt,
+        })
+      : null;
+    return { solo, outfit, wearer };
+  };
+  /**
+   * Her outfit, then (alone in frame) her face, kept on the take's Gallery entry. False when
+   * there is nothing more to check on it (beside someone else: no face, no marks).
+   */
+  const outfitAndFaceChecks = async (
+    target: CheckTarget,
+    still: CheckStill,
+    comfyStillUrl: string,
+    plan: ReturnType<typeof checksPlanFor>
+  ): Promise<boolean> => {
+    const { solo, outfit, wearer } = plan;
+    const entry = loadComfyGallery().find(item => item.promptId === still.promptId);
+    // A miss is a finding, and a run flags it.
+    if (outfit && wearer && entry && still.promptId) {
+      setStatus(`Checking ${target.label}'s outfit…`);
+      const verdict = await checkStillOutfit({
+        imageUrl: comfyStillUrl,
+        outfit,
+        wearer,
+        shared,
+      });
+      if (verdict) {
+        recordGalleryPlayChecks(still.promptId, {
+          outfitMiss: verdict.match ? '' : verdict.seen,
+        });
+        setStatus(
+          verdict.match
+            ? `${target.label}: outfit looks right.`
+            : `${target.label}: not the planned outfit — ${verdict.seen}.`
+        );
+      }
+    }
+    if (!solo) return false;
+    // Face match, kept for the Likeness chart.
+    const plateUrl = plate?.imageUrl?.includes('/api/comfyui/view?')
+      ? plate.imageUrl
+      : comfyInputViewUrl(plate?.filename);
+    if (plateUrl && entry && still.promptId && typeof entry.playChecks?.face !== 'number') {
+      const measured = await measureStillFaceMatch({
+        referenceUrl: plateUrl,
+        imageUrl: comfyStillUrl,
+      }).catch(() => null);
+      if (measured?.available) {
+        recordGalleryPlayChecks(still.promptId, {
+          face: measured.similarity,
+          faceMiss: measured.similarity < STILL_MIN_FACE_MATCH,
+        });
+      }
+    }
+    return true;
+  };
+  const checksRef = useLatestRef({ checksPlanFor, outfitAndFaceChecks, slots });
+
+  /**
+   * A take about to be redone at once (useDayPoseMissRedo: the pose missed, or it looked
+   * computer-made) gets its outfit and face checked first. Replaced before the effect below
+   * reached it, every first and third take of the 2026-11-11 s9 run went unchecked, and two
+   * topless ones were kept as "outfit not checked". Waits for a check already running on it.
+   */
+  const checkBeforeRedo = useCallback(
+    async (slotId: string, still: CheckStill & { status?: string; restoredFor?: string }) => {
+      const key = stillKey(still);
+      if (!key || isRestoredTake(still)) return;
+      while (runningKeyRef.current === key) await new Promise(done => setTimeout(done, 500));
+      if (handledRef.current.has(key)) return;
+      const { checksPlanFor: planFor, outfitAndFaceChecks: run, slots: now } = checksRef.current;
+      const target = now.find(slot => slot.id === slotId);
+      if (!target || target.placeOnly) return;
+      const comfyStillUrl = comfyViewUrlForStill(still, loadComfyGallery());
+      if (!comfyStillUrl) return;
+      const plan = planFor(target, still);
+      if (!plan.solo && !plan.wearer) return;
+      handledRef.current.add(key);
+      runningKeyRef.current = key;
+      try {
+        await run(target, still, comfyStillUrl, plan);
+      } catch {
+        // A check that can't run leaves the take unchecked, as before.
+      } finally {
+        if (runningKeyRef.current === key) runningKeyRef.current = null;
+      }
+    },
+    [checksRef]
+  );
+
   useEffect(() => {
     if (!mounted || busy || runningRef.current || !baselinedRef.current) return;
     const target = slots.find(slot => {
@@ -115,27 +228,8 @@ export function useDayStillAfterChecks(
     handledRef.current.add(sourceKey);
 
     const mood = normalizeDayMood(toolSettings.dayMood);
-    const drawn = poseGuideExpectRef.current[target.id]?.keypoints.length;
-    const companionsPossible =
-      toolSettings.allowCompanions === true ||
-      (isDayAdultMood(mood) && normalizeDayIntimateMix(toolSettings.intimateMix) !== 'solo');
-    const solo = drawn != null ? drawn === 1 : !companionsPossible;
-    // The outfit: planned on an Everyday day, and not already checked by Auto-review.
-    const outfit =
-      mood === 'everyday' && !autoReviewStills
-        ? reviewOutfitLabel({
-            customDescription: toolSettings.customGarmentDescription,
-            wardrobeId: target.wardrobeId,
-            wardrobeLabel: wardrobeLabelFor(target.wardrobeId),
-          })
-        : undefined;
-    const wearer = outfit
-      ? outfitWearerFor({
-          lead: ctx.leadNoun,
-          solo,
-          prompt: loadComfyGallery().find(item => item.promptId === targetStill.promptId)?.prompt,
-        })
-      : null;
+    const { checksPlanFor: planFor, outfitAndFaceChecks: runOutfitAndFace } = checksRef.current;
+    const { solo, outfit, wearer } = planFor(target, targetStill);
     if (!solo && !wearer) return;
 
     runningRef.current = true;
@@ -147,44 +241,9 @@ export function useDayStillAfterChecks(
         if (!comfyStillUrl) return;
         const entry = gallery.find(item => item.promptId === targetStill.promptId);
 
-        // 0. Her outfit, kept on the Gallery entry (a miss is a finding, and a run flags it).
-        if (outfit && wearer && entry) {
-          setStatus(`Checking ${target.label}'s outfit…`);
-          const verdict = await checkStillOutfit({
-            imageUrl: comfyStillUrl,
-            outfit,
-            wearer,
-            shared,
-          });
-          if (verdict) {
-            recordGalleryPlayChecks(targetStill.promptId, {
-              outfitMiss: verdict.match ? '' : verdict.seen,
-            });
-            setStatus(
-              verdict.match
-                ? `${target.label}: outfit looks right.`
-                : `${target.label}: not the planned outfit — ${verdict.seen}.`
-            );
-          }
-        }
-        if (!solo) return;
-
-        // 1. Face match, kept for the Likeness chart.
-        const plateUrl = plate?.imageUrl?.includes('/api/comfyui/view?')
-          ? plate.imageUrl
-          : comfyInputViewUrl(plate?.filename);
-        if (plateUrl && entry && typeof entry.playChecks?.face !== 'number') {
-          const measured = await measureStillFaceMatch({
-            referenceUrl: plateUrl,
-            imageUrl: comfyStillUrl,
-          }).catch(() => null);
-          if (measured?.available) {
-            recordGalleryPlayChecks(targetStill.promptId, {
-              face: measured.similarity,
-              faceMiss: measured.similarity < STILL_MIN_FACE_MATCH,
-            });
-          }
-        }
+        // 0–1. Her outfit and face, kept on the Gallery entry.
+        if (!(await runOutfitAndFace(target, targetStill, comfyStillUrl, { solo, outfit, wearer })))
+          return;
 
         // 2. Her marks.
         const marks = character?.marks;
@@ -299,6 +358,7 @@ export function useDayStillAfterChecks(
     autoReviewStills,
     busy,
     character,
+    checksRef,
     ctx.leadNoun,
     faceFinish,
     mounted,
@@ -338,5 +398,5 @@ export function useDayStillAfterChecks(
     [slotsRef]
   );
 
-  return { afterChecksStatus: status, afterChecksPending };
+  return { afterChecksStatus: status, afterChecksPending, checkBeforeRedo };
 }

@@ -287,7 +287,7 @@ describe('dayStillSceneDressesItself', () => {
   });
 });
 
-describe('dayStillWantsDressPlate on 2.1 with a kit the Day picked', () => {
+describe('dayStillWantsDressPlate on 2.1 and Edit 2511 with a kit the Day picked', () => {
   it('wants the dressed plate when the auto kit has a packshot (2026-10-18)', async () => {
     const { dayStillWantsDressPlate } = await import('./still-plan');
     const base = {
@@ -306,7 +306,14 @@ describe('dayStillWantsDressPlate on 2.1 with a kit the Day picked', () => {
     };
     assert.equal(dayStillWantsDressPlate(base), true);
     assert.equal(dayStillWantsDressPlate({ ...base, packshotUrl: null }), false);
-    assert.equal(dayStillWantsDressPlate({ ...base, model: 'qwen-image-edit-2511-lightning-8' }), false);
+    // Edit 2511 too since s9 (2026-11-11): the Short's auto kits from the undressed plate came
+    // out topless 6/15.
+    assert.equal(dayStillWantsDressPlate({ ...base, model: 'qwen-image-edit-2511-lightning-8' }), true);
+    assert.equal(
+      dayStillWantsDressPlate({ ...base, model: 'qwen-image-edit-2511-lightning-8', packshotUrl: null }),
+      false
+    );
+    assert.equal(dayStillWantsDressPlate({ ...base, model: 'qwen-rapid-aio-edit' }), false);
   });
 });
 

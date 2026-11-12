@@ -25,7 +25,7 @@ export default function StoryPlayPhaseStrip({
       activeIndex={activeIndex}
       details={{
         queue: `${completedStills}/${Math.max(beatTotal, 1)}`,
-        animate: `${completedClips}/${Math.max(completedStills, 1)}`,
+        ...(completedStills > 0 ? { animate: `${completedClips}/${completedStills}` } : {}),
       }}
       testId="story-play-phases"
     />

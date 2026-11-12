@@ -25,6 +25,7 @@ import CutRenderQueue from '@/components/cut/CutRenderQueue';
 import { formatCutTimecode } from '@/lib/film/cut-preview';
 import { srtToVtt } from '@/lib/video/film-finish';
 import {
+  Fragment,
   Suspense,
   useCallback,
   useEffect,
@@ -113,6 +114,28 @@ function subscribeHash(onChange: () => void): () => void {
   return () => window.removeEventListener('hashchange', onChange);
 }
 const readHash = () => window.location.hash;
+
+/** The Cut's keys, for its shortcuts list (handled in the room and its timeline). */
+const CUT_KEYS: ReadonlyArray<readonly [string, string]> = [
+  ['Space · K / L', 'pause / play'],
+  ['J', 'back a shot'],
+  ['← →', 'previous / next shot'],
+  [', .', 'one frame back / on'],
+  ['Shift + ← →', 'a second back / on'],
+  ['Home / End', 'start / end'],
+  ['Alt + ← →', 'move the shot'],
+  ['S', 'split at the playhead'],
+  ['I / O', 'trim in / out'],
+  ['F', 'freeze frame'],
+  ['D', 'duplicate'],
+  ['Delete', 'leave it out / back in'],
+  ['M', 'marker'],
+  ['[ ]', 'previous / next marker'],
+  ['+ − \\', 'zoom'],
+  ['Shift-click', 'pick several'],
+  ['Alt while dragging an edge', 'no snapping'],
+  ['Ctrl + Z', 'undo'],
+];
 
 export default function CutRoom() {
   const vm = useCutRoom();
@@ -755,7 +778,7 @@ export default function CutRoom() {
               data-testid="cut-scenes-script"
             >
               <span className="type-caption text-[var(--text-muted)]">
-                Scenes: only “{vm.scenesScript.name}”&apos;s, in its order
+                Scenes from “{vm.scenesScript.name}” only, in script order
               </span>
               <Button
                 size="sm"
@@ -1076,6 +1099,19 @@ export default function CutRoom() {
                           >
                             {vm.bridgeBusy ? 'Preparing bridge…' : 'Bridge to next'}
                           </Button>
+                          {/* Greyed tools said nothing about why (2026-11-11 UI pass). */}
+                          {!busy && (!activeKey || !splitAt) ? (
+                            <p
+                              className="type-caption w-full text-[var(--text-muted)]"
+                              data-testid="cut-picked-hint"
+                            >
+                              {!activeKey
+                                ? 'Pick a shot in the list or on the timeline to use these.'
+                                : !activeIsClip
+                                  ? 'Split, speed, freeze and longer work on a clip — this shot is a still.'
+                                  : 'Move the playhead into the clip (not its first or last moment) to split or change speed there.'}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                       {vm.extras.some(
@@ -1873,13 +1909,21 @@ export default function CutRoom() {
                     onAdd={(id, effect) => vm.setEffect(id, effect, true)}
                   />
                 </div>
-                <p className="type-caption mt-2 text-[var(--text-muted)]">
-                  Keys: Space or K/L pause/play · J back a shot · ← → shots · , . one frame · Alt+←
-                  → move the shot · S split · I / O trim in / out · F freeze frame · D duplicate ·
-                  Delete leave it out · M marker · [ ] markers · Shift+← → a second · Home / End · +
-                  − {'\\'} zoom · Shift-click to pick several · Alt while dragging an edge: no
-                  snapping · Ctrl+Z undo · drop pictures here to add them
-                </p>
+                <details className="mt-2" data-testid="cut-keys">
+                  <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
+                    Keyboard shortcuts · drop pictures here to add them
+                  </summary>
+                  <dl className="type-caption mt-2 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-[var(--text-muted)] sm:grid-cols-[max-content_1fr_max-content_1fr]">
+                    {CUT_KEYS.map(([keys, action]) => (
+                      <Fragment key={keys}>
+                        <dt>
+                          <kbd className="font-mono text-[var(--text)]">{keys}</kbd>
+                        </dt>
+                        <dd>{action}</dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                </details>
                 {dropNote ? (
                   <p
                     className="type-caption mt-1 text-[var(--text-muted)]"

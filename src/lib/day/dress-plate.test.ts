@@ -133,8 +133,8 @@ describe('Day plate upload names', () => {
 });
 
 
-describe('Day dress plate for a kit the Day picked (Qwen-Image 2.1)', () => {
-  it('dresses the plate on 2.1 for an auto kit too, not on the other engines (2026-10-18)', () => {
+describe('Day dress plate for a kit the Day picked (Qwen-Image 2.1, Edit 2511)', () => {
+  it('dresses the plate on 2.1 and Edit 2511 for an auto kit too, not on Rapid (2026-10-18, 2026-11-11)', () => {
     const auto = {
       dayMood: 'everyday',
       plateSource: 'cast' as const,
@@ -143,7 +143,9 @@ describe('Day dress plate for a kit the Day picked (Qwen-Image 2.1)', () => {
       autoKit: true,
     };
     assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-image-2.1-edit-turbo-8' }), true);
-    assert.equal(dayDressPlateApplies({ ...auto, model: EDIT }), false);
+    // s9: the Short's auto kits from the undressed plate came out topless 6/15.
+    assert.equal(dayDressPlateApplies({ ...auto, model: EDIT }), true);
+    assert.equal(dayDressPlateApplies({ ...auto, model: EDIT, autoKit: false }), false);
     assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-rapid-aio-edit' }), false);
     // Sport and the adult moods still dress per still.
     assert.equal(dayDressPlateApplies({ ...auto, model: 'qwen-image-2.1-edit-turbo-8', dayMood: 'sport' }), false);

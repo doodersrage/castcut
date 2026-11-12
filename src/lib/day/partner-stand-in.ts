@@ -72,13 +72,19 @@ const PARTNER_ROLE_RE =
   /\b(?:partner|boyfriend|girlfriend|husband|wife|fianc[eé]e?|date|lover|spouse)$/i;
 
 export function scriptShotOther(hints: string | null | undefined): ScriptShotOther | null {
-  const pair = /^\s*([^,.!?]{1,60}?)\s+and\s+([^,.!?]{1,60}?),\s+the two of them together\b/.exec(
-    hints ?? ''
+  // Shots written before 2026-11-11 kept "Mr. Harris", whose full stop hid him.
+  const pair = /^\s*([^,.!?]{1,60}?)\s+and\s+([^,.!?]{1,100}?),\s+the two of them together\b/.exec(
+    (hints ?? '').replace(/\b(Mr|Mrs|Ms|Mx|Dr|Prof|St)\.(?=\s)/gi, '$1')
   );
-  const other = pair?.[2]?.trim();
+  const named = pair?.[2]?.trim();
+  if (!named) return null;
+  // "Mr Harris (an elderly man)": the script's introduction of them, from script-shots.
+  const intro = /\(([^)]*)\)/.exec(named)?.[1]?.toLowerCase() ?? '';
+  const other = named.replace(/\s*\([^)]*\)/g, '').trim();
   if (!other) return null;
-  const words = other.toLowerCase().replace(/^.*[’']s\s+/, '');
-  if (PARTNER_ROLE_RE.test(words)) return { who: '', noun: null, elderly: false };
+  const who = other.toLowerCase().replace(/^.*[’']s\s+/, '');
+  const words = `${who} ${intro}`.trim();
+  if (PARTNER_ROLE_RE.test(who)) return { who: '', noun: null, elderly: false };
   const noun =
     /\b(?:woman|lady|girl|mother|mom|mum|grandma|grandmother|granny|aunt|sister|daughter|wife|girlfriend|waitress|actress|nun|queen)\b/.test(
       words
@@ -91,7 +97,7 @@ export function scriptShotOther(hints: string | null | undefined): ScriptShotOth
         : null;
   const elderly =
     /\b(?:elderly|old|older|aged|senior|retired|grand(?:pa|ma|father|mother)|granny)\b/.test(words);
-  return { who: words.slice(0, 60), noun, elderly };
+  return { who: who.slice(0, 60), noun, elderly };
 }
 
 /** Where a film keeps a stand-in: the script for its partner, `script|who` for anyone else. */
