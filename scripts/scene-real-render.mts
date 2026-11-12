@@ -2837,7 +2837,10 @@ const phases: Record<string, Phase> = {
       await patchSceneSlots(
         page,
         Object.fromEntries(
-          included.map(({ scene }) => [scene.id, { engine: engine === 'default' ? undefined : engine }])
+          included.map(({ scene }) => [
+            scene.id,
+            { engine: engine === 'default' ? undefined : engine },
+          ])
         )
       );
       const script = (await v3Script(page, castId))!;
