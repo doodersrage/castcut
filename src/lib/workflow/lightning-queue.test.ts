@@ -1913,3 +1913,37 @@ describe("qwen edit reference image prep", () => {
     ]);
   });
 });
+
+describe("the reference plate on a film frame (2026-11-12, s11 2C twinned)", () => {
+  it("scales the plate in its own shape on a wide canvas; pads it on square and portrait", async () => {
+    const { refPlateScaleNode } = await import("./lightning-queue");
+    const wide = refPlateScaleNode("900", 1536, 864);
+    assert.equal(wide.class_type, "ImageScaleToTotalPixels");
+    assert.deepEqual(wide.inputs, {
+      image: ["900", 0],
+      upscale_method: "lanczos",
+      megapixels: 1.33,
+      resolution_steps: 1,
+    });
+    assert.equal(refPlateScaleNode("900", 1328, 1328).class_type, "ResizeAndPadImage");
+    assert.equal(refPlateScaleNode("900", 1104, 1472).class_type, "ResizeAndPadImage");
+  });
+
+  it("rewires an existing plate node to the canvas it is queued at, either way", async () => {
+    const { ensureRefImageScaleNode } = await import("./lightning-queue");
+    const workflow: Record<string, { class_type: string; inputs: Record<string, unknown>; _meta?: { title: string } }> = {
+      "900": { class_type: "LoadImage", inputs: { image: "plate.png" } },
+      "950": {
+        class_type: "ResizeAndPadImage",
+        inputs: { image: ["900", 0] },
+        _meta: { title: "Castcut — ref → latent size" },
+      },
+    };
+    const inserted: string[] = [];
+    assert.equal(ensureRefImageScaleNode(workflow, "900", 1536, 864, inserted), "950");
+    assert.equal(workflow["950"]!.class_type, "ImageScaleToTotalPixels");
+    assert.equal(ensureRefImageScaleNode(workflow, "900", 1328, 1328, inserted), "950");
+    assert.equal(workflow["950"]!.class_type, "ResizeAndPadImage");
+    assert.deepEqual(inserted, []);
+  });
+});

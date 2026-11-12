@@ -275,6 +275,39 @@ function refImageScaleInputs(loaderId: string, width: number, height: number) {
   };
 }
 
+/** A canvas this much wider than tall is a film frame: its plate is scaled, never padded. */
+export const REF_PLATE_WIDE_ASPECT = 1.2;
+
+/**
+ * The plate node for a canvas. On a wide (film) canvas a 3:4 plate padded to 16:9 is a narrow
+ * strip in a white frame, and Edit 2511 filled the rest with a second her or a split panel —
+ * s11 shot 2C replayed (2026-11-12): padded, 4 of 9 alone without the pose map and 0 of 9 with
+ * it; scaled to the canvas's pixels in its own shape (no crop, no bars), 6 of 6 alone, the room
+ * kept. Square and portrait canvases keep the fit + pad they were measured with.
+ */
+export function refPlateScaleNode(
+  loaderId: string,
+  width: number,
+  height: number
+): { class_type: string; inputs: Record<string, unknown> } {
+  if (width / height < REF_PLATE_WIDE_ASPECT) {
+    return {
+      class_type: 'ResizeAndPadImage',
+      inputs: refImageScaleInputs(loaderId, width, height),
+    };
+  }
+  return {
+    class_type: 'ImageScaleToTotalPixels',
+    inputs: {
+      image: [loaderId, 0] as [string, number],
+      upscale_method: 'lanczos',
+      megapixels: Math.round(((width * height) / 1_000_000) * 100) / 100,
+      // Required on newer ComfyUI; older builds ignore an input they don't know.
+      resolution_steps: 1,
+    },
+  };
+}
+
 export function ensureRefImageScaleNode(
   workflow: Record<string, WorkflowNodeRecord>,
   loaderId: string,
@@ -286,7 +319,8 @@ export function ensureRefImageScaleNode(
     if (
       node?.class_type !== 'ImageScale' &&
       node?.class_type !== 'ResizeImage' &&
-      node?.class_type !== 'ResizeAndPadImage'
+      node?.class_type !== 'ResizeAndPadImage' &&
+      node?.class_type !== 'ImageScaleToTotalPixels'
     ) {
       continue;
     }
@@ -298,15 +332,15 @@ export function ensureRefImageScaleNode(
       continue;
     }
     // Older saved graphs carry a cropping ImageScale here — rewrite it in place.
-    node.class_type = 'ResizeAndPadImage';
-    node.inputs = refImageScaleInputs(loaderId, width, height);
+    const fitted = refPlateScaleNode(loaderId, width, height);
+    node.class_type = fitted.class_type;
+    node.inputs = fitted.inputs;
     return nodeId;
   }
 
   const scaleId = nextLightningWorkflowNodeId(workflow);
   workflow[scaleId] = {
-    class_type: 'ResizeAndPadImage',
-    inputs: refImageScaleInputs(loaderId, width, height),
+    ...refPlateScaleNode(loaderId, width, height),
     _meta: { title: QWEN_REF_LATENT_SCALE_TITLE },
   };
   insertedNodeIds.push(scaleId);

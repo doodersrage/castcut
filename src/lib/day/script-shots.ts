@@ -742,7 +742,13 @@ export function shotSceneDraft(input: {
     shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
       ? `${nameOf(shot.speaker)} says: “${shot.line}”${shot.offscreen ? ` ${nameOf(shot.speaker)} is heard, not seen.` : ''}`
       : '',
-    manner && shot.speaker ? `${nameOf(shot.speaker)}, ${manner}.` : '',
+    // Her own line's manner names no one: "She pulls out a book… Slyne, sighs." read as two
+    // people beside "She" (2026-11-12, s11 2C); someone else's keeps whose face shows it.
+    manner && shot.speaker
+      ? leadSpeaks
+        ? `Manner: ${manner}.`
+        : `${nameOf(shot.speaker)}, ${manner}.`
+      : '',
     shot.purpose === 'reaction' && shot.who[0] ? `${nameOf(shot.who[0])} reacts.` : '',
   ]
     .filter(Boolean)

@@ -499,7 +499,7 @@ describe('a line shot is at its own moment (2026-11-11 live run)', () => {
         castMap: { SLYNE: 'slyne' },
         placeMap: undefined,
       }).slot.sceneHints;
-    assert.match(draftOf('Again?')!, /^Slyne stirs her coffee.*Slyne, sharply\.$/);
+    assert.match(draftOf('Again?')!, /^Slyne stirs her coffee.*Manner: sharply\.$/);
     assert.match(draftOf('We went last week.')!, /^Slyne rolls her eyes, sips her coffee\.$/);
     assert.match(
       draftOf('I thought we could go to the museum today.')!,
@@ -692,5 +692,41 @@ describe('a stranger called Mr. is named whole and introduced (2026-11-11 s9 run
       scriptShotOther('Slyne and Mr. harris, the two of them together. SLYNE stands by the counter.'),
       { who: 'mr harris', noun: null, elderly: false }
     );
+  });
+});
+
+describe('her own line’s manner names no one (2026-11-12, s11 2C twinned)', () => {
+  const corner = parseScript(
+    [
+      'INT. CRAMPED CORNER - DAY',
+      '',
+      'Slyne kneels in front of a low bookshelf.',
+      '',
+      'She pulls out a thin, worn book and examines it, then puts it back.',
+      '',
+      'SLYNE',
+      '(sighs)',
+      'Not quite...',
+      '',
+    ].join('\n')
+  ).scenes[0]!;
+
+  it('says how she says it without her name beside "She"', () => {
+    const shots = draftShots(corner);
+    const index = shots.findIndex(shot => shot.line);
+    assert.ok(index >= 0);
+    const hints =
+      shotSceneDraft({
+        shot: shots[index]!,
+        scene: corner,
+        sceneIndex: 0,
+        shotIndex: index,
+        castId: 'slyne',
+        cast: [{ id: 'slyne', name: 'Slyne' }],
+        castMap: { SLYNE: 'slyne' },
+        placeMap: undefined,
+      }).slot.sceneHints ?? '';
+    assert.match(hints, /Manner: sighs\./);
+    assert.doesNotMatch(hints, /Slyne, sighs/);
   });
 });
