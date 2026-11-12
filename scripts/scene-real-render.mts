@@ -2751,8 +2751,9 @@ const phases: Record<string, Phase> = {
       await openScene(page, castId);
       await v3DropDuplicates(page, castId);
       if (!(await v3Script(page, castId))) {
-        await page.getByTestId('scene-scripts').waitFor({ timeout: 60_000 });
-        await page.getByTestId('script-import').click();
+        // Scripts live on Script now (Scene links there), as the shortscene phase goes.
+        await go(page, `/script?character=${castId}`);
+        await page.getByTestId('script-import').first().click({ timeout: 60_000 });
         await page.getByTestId('script-import-text').fill(v3ScriptText(castId));
         await attempt(page, `${castId}: script reads as ${scenes} scenes`, async () => {
           const summary = (await page.getByTestId('script-summary').textContent())?.trim() ?? '';
@@ -2817,9 +2818,11 @@ const phases: Record<string, Phase> = {
    * too when SCENE_V3_PAIRS=1). Each new take, with its engine and role, goes to v3-takes.json.
    */
   async v3run(_ctx, page) {
-    const engine = process.env.SCENE_V3_ENGINE as V3Engine;
-    if (!V3_ENGINES.includes(engine))
-      throw new Error(`SCENE_V3_ENGINE: one of ${V3_ENGINES.join(', ')}`);
+    // 'default': no engine pinned — each Scene renders on the install's own engine (a Short's
+    // Qwen-Image-2512 edits on Edit 2511), as a player's would.
+    const engine = process.env.SCENE_V3_ENGINE as V3Engine | 'default';
+    if (engine !== 'default' && !V3_ENGINES.includes(engine))
+      throw new Error(`SCENE_V3_ENGINE: default or one of ${V3_ENGINES.join(', ')}`);
     const pairs = process.env.SCENE_V3_PAIRS === '1';
     const file = join(OUT, 'v3-takes.json');
     for (const castId of V3_CASTS) {
@@ -2833,7 +2836,9 @@ const phases: Record<string, Phase> = {
       );
       await patchSceneSlots(
         page,
-        Object.fromEntries(included.map(({ scene }) => [scene.id, { engine }]))
+        Object.fromEntries(
+          included.map(({ scene }) => [scene.id, { engine: engine === 'default' ? undefined : engine }])
+        )
       );
       const script = (await v3Script(page, castId))!;
       await go(page, `/script?character=${castId}&script=${script.id}`);
@@ -2868,7 +2873,8 @@ const phases: Record<string, Phase> = {
       await attempt(page, `${castId}: every queued Scene on ${engine}`, async () => {
         if (items.length !== included.length)
           throw new Error(`${items.length} queued, ${included.length} wanted`);
-        if (items.some(item => !item.includes(engine))) throw new Error(items.join(' | '));
+        if (engine !== 'default' && items.some(item => !item.includes(engine)))
+          throw new Error(items.join(' | '));
       });
       await shot(page, `v3-${castId}-${engine}-planned`);
       const before = new Map(
