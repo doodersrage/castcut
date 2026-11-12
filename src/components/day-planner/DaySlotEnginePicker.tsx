@@ -84,7 +84,7 @@ export default function DaySlotEnginePicker({
           })
         }
       >
-        <option value="">The Day&apos;s ({dayLabel})</option>
+        <option value="">The short&apos;s ({dayLabel})</option>
         {[...offered, ...(slot.engine && !offered.includes(slot.engine) ? [slot.engine] : [])].map(
           family => (
             <option key={family} value={family}>

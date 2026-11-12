@@ -42,7 +42,7 @@ export default function PlayCampaignStepsSection({
       <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {steps.map(step => {
           // The film's next step (the header's Continue points at it too); not the page's own
-          // default — that highlighted the optional Look under "Continue to Day".
+          // default — that highlighted the optional Look under "Continue to Short".
           const isActive = journey ? step.state === 'current' : step.id === activeStep;
           const isOptional = step.optional;
           const campaignStep =

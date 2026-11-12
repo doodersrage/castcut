@@ -36,7 +36,7 @@ export default function DaySheetsMenu({
       outfitName: id => getCachedClothingLabel(id) ?? humanizeClothingId(id),
     };
   };
-  const title = character?.name ? `${character.name}'s day` : 'The day';
+  const title = character?.name ? `${character.name}'s short` : 'The short';
   const shot = stills.filter(still => still.status === 'completed').length;
   return (
     <ActionMenu label="Sheets" testId="day-sheets-menu">
@@ -45,7 +45,7 @@ export default function DaySheetsMenu({
         className={ACTION_MENU_ITEM_CLASS}
         disabled={slots.length === 0}
         data-testid="day-sheet-storyboard"
-        title="Every slot's still with its beat, line and camera — a page to print or save as PDF"
+        title="Every moment's still with its beat, line and camera — a page to print or save as PDF"
         onClick={() =>
           openPrintSheet(
             storyboardHtml({
@@ -64,7 +64,7 @@ export default function DaySheetsMenu({
         className={ACTION_MENU_ITEM_CLASS}
         disabled={slots.length === 0}
         data-testid="day-sheet-call"
-        title="One row a slot — where, who, wearing, camera, shot or not — to print or save as PDF"
+        title="One row a moment — where, who, wearing, camera, shot or not — to print or save as PDF"
         onClick={() =>
           openPrintSheet(
             callSheetHtml({

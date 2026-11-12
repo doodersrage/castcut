@@ -34,7 +34,7 @@ export function DayBeatOwnership({
           updateSlot(slot.id, restoreDayBeatPatch(slot));
         }}
       >
-        {slot.sceneHintsDay ? "Use Day's scene" : 'Clear'}
+        {slot.sceneHintsDay ? "Use the short's scene" : 'Clear'}
       </Button>
     </span>
   );

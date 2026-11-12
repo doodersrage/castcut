@@ -156,7 +156,7 @@ describe('play-step-machine', () => {
       completedStills: 0,
       completedClips: 0,
     });
-    assert.equal(resume.label, 'Continue to Day');
+    assert.equal(resume.label, 'Continue to Short');
     assert.match(resume.href, /\/day\?.*wardrobe=kit-a/);
   });
 

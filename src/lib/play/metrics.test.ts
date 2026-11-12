@@ -164,7 +164,7 @@ describe('play-metrics', () => {
     );
     assert.equal(
       resolveNextPlayAction({ funnel: { keepTryOn: 3, firstFilmCut: 0 } }).label,
-      'Continue to Day'
+      'Continue to Short'
     );
     assert.equal(
       resolveNextPlayAction({ funnel: { firstFilmCut: 1, saveToCast: 0 } }).href,
@@ -287,7 +287,7 @@ describe('play-metrics', () => {
         savedAt: 1,
       },
     });
-    assert.equal(resume.label, 'Continue to Day');
+    assert.equal(resume.label, 'Continue to Short');
     assert.match(resume.href, /\/day\?.*wardrobe=kit-a/);
   });
 

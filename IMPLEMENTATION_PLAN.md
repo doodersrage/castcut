@@ -4157,3 +4157,21 @@ not by guessing from the flags (user: "do some test rendering for just those"):
     used as pose words keeps its own subject ("POSE FIRST: She pulls out…", `isPoseSentence`).
   - Still open: the twinned close-up (cropped pose guide), and the moment cards — not found in
     s11's own renders (14, none a moment card); its Reel still says "Morning through Night".
+  - **The twinned close-up, measured (2026-11-12):** shot 2C replayed on Edit 2511 (3 seeds a
+    variant). The 3:4 plate padded white into the 16:9 latent was the cause: padded, 0/9 alone with
+    the cropped pose map and 4/9 without it; the plate scaled to the canvas's pixels in its own
+    shape (no crop, no bars), 6/6 alone with the room kept. Asking for waist-up, or taking the name
+    out of "Slyne, sighs", changed nothing. Regression: a two-person restaurant shot and a full-body
+    kneel, 3 seeds each — two people / one person every time, poses held, the duo better dressed.
+    **Fix:** `refPlateScaleNode` — on a canvas ≥ 1.2:1 the plate is `ImageScaleToTotalPixels`;
+    square and portrait keep the fit + pad. Her own line's manner reads "Manner: sighs." (no name).
+  - **The moment cards, found:** a Short's board moment keeps its Scene, and one of the moment's
+    script shots takes it over (Step 5b-ii) — but that Scene still renders as the board moment
+    (`sceneFromDaySlot`: the slot's beat, its time name "Morning", its own per-slot kit), so s11's
+    1B and 2B came out as the moment's action in a stone sweater dress. Not fixed yet.
+
+**Film polish (2026-11-12):** the Short page no longer speaks Day — "slot" is "moment", the
+product is "the short" (Outfit's "Continue to Short", the palette's "Queue the short"); a Short
+with a script gets a **Shot list** view (slate, scene, size, who, line, takes, kept / to check /
+no take yet / not made); a finished run says how many failed ("1 of 2 Scenes, 1 failed").
+

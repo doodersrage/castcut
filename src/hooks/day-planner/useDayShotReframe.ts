@@ -86,7 +86,7 @@ export function useDayShotReframe(ctx: DayPlannerToolOrchestrationCore) {
         }
         const current = stillsRef.current.find(entry => entry.slotId === target.id);
         if (current?.status !== 'completed' || stillKey(current) !== sourceKey) {
-          setStatus(`The ${target.label} cut was discarded — the slot changed meanwhile.`);
+          setStatus(`The ${target.label} cut was discarded — the moment changed meanwhile.`);
           return;
         }
         const nextStills = upsertDaySlotStill(stillsRef.current, {

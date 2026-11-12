@@ -13,15 +13,15 @@ const base = {
 };
 
 describe('dayCommandActions (desktop and phone Day)', () => {
-  it('offers Queue the Day, and Animate all only once there is something to animate', () => {
+  it('offers Queue the short, and Animate all only once there is something to animate', () => {
     const [queue, animate] = dayCommandActions(base);
     assert.equal(queue?.id, PLAY_COMMAND_ACTION_IDS.queueDay);
-    assert.equal(queue?.label, 'Queue the Day');
+    assert.equal(queue?.label, 'Queue the short');
     assert.equal(queue?.available?.(), true);
     assert.equal(animate?.id, PLAY_COMMAND_ACTION_IDS.animateAll);
     assert.equal(animate?.available?.(), false);
     const [rest, ready] = dayCommandActions({ ...base, completedShotCount: 2, canAnimateAll: true });
-    assert.equal(rest?.label, 'Queue the rest of the Day');
+    assert.equal(rest?.label, 'Queue the rest of the short');
     assert.equal(ready?.available?.(), true);
   });
 

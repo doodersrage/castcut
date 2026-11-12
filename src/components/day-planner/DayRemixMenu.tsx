@@ -51,10 +51,10 @@ export default function DayRemixMenu({
         className={stacked ? 'w-full justify-center' : undefined}
         disabled={disabled}
         data-testid={`${testIdPrefix}-new-outfit`}
-        title="Keep this Day's settings and beats, then pick a new outfit on Outfit"
+        title="Keep this short's settings and beats, then pick a new outfit on Outfit"
         onClick={onNewOutfit}
       >
-        Same Day, new outfit
+        Same short, new outfit
       </Button>
       <SelectInput
         aria-label="Themed day"

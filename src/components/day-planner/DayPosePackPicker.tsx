@@ -126,11 +126,11 @@ export default function DayPosePackPicker({
       slotPeople,
     });
     onSlotsChange(result.slots);
-    const parts = [`${pack.name}: ${plural(result.posed, 'slot')} posed`];
+    const parts = [`${pack.name}: ${plural(result.posed, 'moment')} posed`];
     if (result.beatsFilled) parts.push(`${plural(result.beatsFilled, 'empty beat')} filled`);
     if (result.skipped) {
       parts.push(
-        `${plural(result.skipped, 'two-person slot')} kept ${result.skipped === 1 ? 'its' : 'their'} pose`
+        `${plural(result.skipped, 'two-person moment')} kept ${result.skipped === 1 ? 'its' : 'their'} pose`
       );
     }
     setStatus(`${parts.join(' · ')}.`);
@@ -138,7 +138,7 @@ export default function DayPosePackPicker({
 
   const clear = () => {
     onSlotsChange(clearPosePackFromSlots(slots));
-    setStatus('Poses cleared — each slot takes its pose from the beat again.');
+    setStatus('Poses cleared — each moment takes its pose from the beat again.');
   };
 
   const save = () => {
@@ -197,7 +197,7 @@ export default function DayPosePackPicker({
           disabled={busy}
           onChange={setFillBeats}
           data-testid="day-pose-pack-fill"
-          title="When a pack is applied, write a matching beat (and setting) into slots that have none. Beats you wrote are never changed."
+          title="When a pack is applied, write a matching beat (and setting) into moments that have none. Beats you wrote are never changed."
         >
           Fill empty beats
         </SwitchButton>
@@ -207,7 +207,7 @@ export default function DayPosePackPicker({
             variant="ghost"
             disabled={busy}
             data-testid="day-pose-pack-clear"
-            title="Every slot back to Auto — the pose comes from the beat"
+            title="Every moment back to Auto — the pose comes from the beat"
             onClick={clear}
           >
             Clear poses
@@ -273,8 +273,8 @@ export default function DayPosePackPicker({
             data-testid="day-pose-pack-save"
             title={
               posedCount === 0
-                ? 'Pick a pose on a slot first'
-                : "Save this Day's slot poses as a pack you can apply to any Day"
+                ? 'Pick a pose on a moment first'
+                : "Save this short's poses as a pack you can apply to any short"
             }
             onClick={() => {
               setName(active && !active.mine ? '' : (active?.name ?? ''));
@@ -292,7 +292,7 @@ export default function DayPosePackPicker({
             data-testid="day-pose-pack-remove"
             onClick={() => {
               removeMyPosePack(active.id);
-              setStatus(`Removed “${active.name}” from My packs. The slots keep their poses.`);
+              setStatus(`Removed “${active.name}” from My packs. The moments keep their poses.`);
             }}
           >
             Remove pack

@@ -16,7 +16,7 @@ const GENERATE_FALLBACK: EmptyCta = APP_HAS_PLAY
 /**
  * The empty-state button reads saved progress (Play campaign, pinned tools) from browser storage,
  * which the server does not have. Read during render, a returning user's first client render said
- * "Continue to Day" where the server HTML said "Start a film" — a hydration error (React #418) on
+ * "Continue to Short" where the server HTML said "Start a film" — a hydration error (React #418) on
  * Queue and Dashboard. These hooks render the server's answer first and switch after hydration.
  */
 function useCta(resolve: (fallback: EmptyCta) => EmptyCta, fallback: EmptyCta): EmptyCta {

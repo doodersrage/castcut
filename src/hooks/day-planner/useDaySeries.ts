@@ -75,7 +75,7 @@ export function useDaySeries(characterId: string | undefined) {
       return;
     }
     savePlaySeriesStore(closeActiveSeries(loadPlaySeriesStore(), characterId, Date.now()));
-    setStatus('Season closed — your next Day film starts a new one.');
+    setStatus('Season closed — your next short starts a new one.');
   }, [characterId]);
 
   return {

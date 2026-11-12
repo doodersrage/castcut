@@ -266,7 +266,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setError(null);
       // One "jobs finished" email for the whole Day, when its last still lands — not one per
       // still (the queue runs dry between slots while the next one is prepared).
-      const releaseEmail = holdJobCompletionEmail('Your Day', '/day');
+      const releaseEmail = holdJobCompletionEmail('Your short', '/day');
       // One shared face crop for the whole Day — prevents per-slot identity float.
       clearDayVacationFaceBreakCache();
       try {
@@ -1041,7 +1041,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       );
       if (shots.length === 0) {
         setFilmGuideHref(null);
-        setError('Queue and wait for at least one completed slot still before cutting a film.');
+        setError('Queue and wait for at least one finished still before cutting a film.');
         return;
       }
       const name = character?.name?.trim() || 'day';
@@ -1332,7 +1332,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         ? picked.imageUrl
         : pickPosterStillUrl(slots, stillsRef.current, activeSlotId);
     if (!posterUrl && !picked) {
-      setError('Queue and wait for at least one completed slot still before saving a poster.');
+      setError('Queue and wait for at least one finished still before saving a poster.');
       return;
     }
     setPosterBusy(true);
@@ -1372,7 +1372,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
 
   const saveFilmToCast = useCallback(() => {
     if (!character) {
-      setError('Pick a Cast character before saving the day film.');
+      setError('Pick a Cast character before saving the film.');
       return;
     }
     const film = assembledFilmRef.current;
@@ -1424,7 +1424,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       campaign: character ? { characterId: character.id, stepIndex: 3 } : null,
     });
     if (!gate.ok) {
-      setError(gate.reason ?? 'Finish a Day — every still rendered — before opening Story.');
+      setError(gate.reason ?? 'Finish a short — every still rendered — before opening Story.');
       return;
     }
     if (character) {
@@ -1474,7 +1474,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const runRemixDay = useCallback(
     (applyOptions: { kind?: DayRemixKind; themeId?: string | null }, status: string) => {
       if (!character?.id) {
-        setError('Pick a Cast character before starting a new Day.');
+        setError('Pick a Cast character before starting a new short.');
         return;
       }
       applyRemixDayFilmState(applyOptions);
@@ -1514,7 +1514,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   const castName = character?.name ?? '';
   const startTomorrow = useCallback(async () => {
     if (!castId) {
-      setError('Pick a Cast character before starting a new Day.');
+      setError('Pick a Cast character before starting a new short.');
       return;
     }
     if (writingTomorrow) return;
@@ -1589,7 +1589,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   ]);
 
   const remixSameLookDay = useCallback(() => {
-    runRemixDay({}, 'Same look · new Day — queueing fresh stills…');
+    runRemixDay({}, 'Same look · new short — queueing fresh stills…');
   }, [runRemixDay]);
 
   /** Same look, but a themed Setting + Beat set (rainy day, workday, city trip, …). */
@@ -1610,7 +1610,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
   /** Same Day plan (Settings + Beats), new Outfit: clear stills and kits, then pick on Outfit. */
   const remixNewOutfitDay = useCallback(() => {
     if (!castId) {
-      setError('Pick a Cast character before starting a new Day.');
+      setError('Pick a Cast character before starting a new short.');
       return;
     }
     applyRemixDayFilmState({ kind: 'new-outfit' });
@@ -1632,7 +1632,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     autoCutRef.current = false;
     pendingAutoCutRef.current = false;
     starterAutoQueueRef.current = false;
-    setFilmStatus('Same Day · new outfit — pick a new Outfit, then Continue to Day.');
+    setFilmStatus('Same short · new outfit — pick a new Outfit, then Continue to Short.');
     const href = remixNewOutfitHref(castId, loadLookPack());
     router.push(dayToolPathname() === '/m/day' ? toMobileStudioHref(href) : href);
   }, [castId, router, setError, setFilmStatus, stillsRef, updateShared, updateToolSettings]);
@@ -1670,7 +1670,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       setFilmStatus(
         theme
           ? `${theme.label} day — ready for fresh stills.`
-          : 'Same look · new Day — ready for fresh stills.'
+          : 'Same look · new short — ready for fresh stills.'
       );
       autoCutRef.current = false;
       params.delete('remix');
@@ -1841,7 +1841,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           slots: slots.map(slot => ({ ...slot, wardrobeId: undefined })),
         });
         updateShared({ lockedWardrobeId: undefined });
-        setFilmStatus(`Using clothing photo for Day stills.`);
+        setFilmStatus(`Using clothing photo for the short's stills.`);
       } finally {
         setGarmentUploading(false);
         setGarmentScanStatus(null);

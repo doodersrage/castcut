@@ -415,7 +415,7 @@ export function useFittingRoomQueuePart2(
           ? ' Day and Story start from this dressed plate.'
           : '';
       setSaveStatus(
-        `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · Day wears it in every slot` +
+        `Kept ${tryOn.wardrobeLabel || tryOn.wardrobeId || 'try-on'} as a Cast keeper · the short wears it in every moment` +
           (keptOwn > 0
             ? ` (${keptOwn} slot${keptOwn === 1 ? ' keeps its' : 's keep their'} own outfit).`
             : '.') +

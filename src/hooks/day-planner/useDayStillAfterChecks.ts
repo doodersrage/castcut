@@ -328,7 +328,7 @@ export function useDayStillAfterChecks(
         // Only swap if the slot still shows the image we checked (not requeued meanwhile).
         const current = stillsRef.current.find(item => item.slotId === target.id);
         if (current?.status !== 'completed' || stillKey(current) !== sourceKey) {
-          setStatus(`Marks repair on ${target.label} discarded — the slot changed meanwhile.`);
+          setStatus(`Marks repair on ${target.label} discarded — the moment changed meanwhile.`);
           return;
         }
         const nextStills = upsertDaySlotStill(stillsRef.current, {

@@ -48,7 +48,7 @@ export default function DayTemplatesMenu({
         className={ACTION_MENU_ITEM_CLASS}
         disabled={disabled || !slots.length}
         data-testid="day-template-save"
-        title="Keep this day's plan — places, beats, lines, camera, light — to start another day from"
+        title="Keep this short's plan — places, beats, lines, camera, light — to start another short from"
         onClick={() => saveDayTemplate(templateFromDay({ name: name || 'A day', slots, dayMood }))}
       >
         Save this day as a template
@@ -61,7 +61,7 @@ export default function DayTemplatesMenu({
               className={ACTION_MENU_ITEM_CLASS}
               disabled={disabled}
               data-testid="day-template-use"
-              title="Put this plan on the day's slots (Undo takes it back; the stills made stay)"
+              title="Put this plan on this short's moments (Undo takes it back; the stills made stay)"
               onClick={() => onUse(template)}
             >
               Use “{template.name}” · {template.slots.length} slots

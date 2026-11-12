@@ -553,7 +553,7 @@ export function useScenePage(vm: DayEngineView) {
       const label = daySlots.find(entry => entry.id === slotId)?.label ?? slotId;
       setNote(null);
       pushAppToast({
-        text: `${active.name} is on Day's ${label}${keptTakeOf(active) ? ' with its kept take' : ''}.`,
+        text: `${active.name} is on the Short's ${label}${keptTakeOf(active) ? ' with its kept take' : ''}.`,
         tone: 'success',
         href: dayPagePath(),
       });

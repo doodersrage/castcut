@@ -352,7 +352,7 @@ export default function DaySlotEditor({
               data-testid="day-slot-beat"
               value={slot.sceneHints ?? ''}
               className="min-h-[3.5rem] max-h-60 max-w-full [field-sizing:content]"
-              placeholder="What happens in this part of the day?"
+              placeholder="What happens in this moment?"
               onChange={event => updateSlot(slot.id, typedDayBeatPatch(slot, event.target.value))}
             />
           </label>
@@ -505,7 +505,7 @@ export default function DaySlotEditor({
               value={slot.lighting ?? ''}
               disabled={busy}
               aria-label="The light on this shot"
-              title="How this shot is lit — said in its prompt in place of Day's own light for the time of day"
+              title="How this shot is lit — said in its prompt in place of the short's own light for the time of day"
               className="!w-auto"
               data-testid="day-slot-lighting-select"
               onChange={event =>

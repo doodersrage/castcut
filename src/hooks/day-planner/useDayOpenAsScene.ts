@@ -30,7 +30,7 @@ export function useDayOpenAsScene(input: {
         castId,
       });
       if (!scene) {
-        setError('Could not open that slot as a scene.');
+        setError('Could not open that moment as a scene.');
         return;
       }
       router.push(scenePagePath());

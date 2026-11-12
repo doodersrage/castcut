@@ -214,7 +214,7 @@ export function useDayPoseMissRedo(
       // Animate) left clip 1 no longer matching moment 2 (2026-10-12). Say so; the player redoes it.
       if (dayEventActive) {
         setStatus(
-          `${target.label}: ${reason === 'realism' ? 'it looked computer-made' : reason === 'ground-sit' ? 'she sat on the ground for the pose' : 'the pose missed'} — on an event Day, redo it by hand (and the moments after it).`
+          `${target.label}: ${reason === 'realism' ? 'it looked computer-made' : reason === 'ground-sit' ? 'she sat on the ground for the pose' : 'the pose missed'} — in a One event short, redo it by hand (and the moments after it).`
         );
         return;
       }

@@ -20,7 +20,7 @@ export default function CharacterHomeActionRow({
   continueRoleplay,
 }: CharacterHomeActionRowProps) {
   // A film already under way with this Cast: carry on with it ("Start a film" sat under a
-  // header saying "Continue to Day").
+  // header saying "Continue to Short").
   const [filmUnderWay, setFilmUnderWay] = useState(false);
   const characterId = character?.id;
   useEffect(() => {

@@ -296,7 +296,7 @@ export default function DayAnimateSheet({
                 ? 'The whole clip, start to end. Write the beats splits it over the parts in order — or give each part its own beat below.'
                 : edited
                   ? 'Your direction — formatted for the engine when you Animate.'
-                  : 'The slot’s beat. Write what should happen instead, in plain words.'}
+                  : 'The moment’s beat. Write what should happen instead, in plain words.'}
             </span>
             {edited ? (
               <Button
@@ -449,7 +449,8 @@ export default function DayAnimateSheet({
                   />
                   <p className="type-caption text-[var(--text-muted)]">
                     The first clip, about {formatSeconds(chain!.firstSec)}
-                    {slot.line?.trim() ? ` — it says the slot’s line, “${slot.line.trim()}”` : ''}.
+                    {slot.line?.trim() ? ` — it says the moment’s line, “${slot.line.trim()}”` : ''}
+                    .
                   </p>
                 </div>
                 {Array.from({ length: parts }, (_, index) => (

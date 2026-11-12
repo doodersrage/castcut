@@ -1,6 +1,6 @@
 /**
  * Play's command palette actions (lib/app/command-actions.ts). App actions are registered once by
- * lib/play/features.ts; the pages add their own while open (Day: Queue the Day, Animate all; Cut:
+ * lib/play/features.ts; the pages add their own while open (Day: Queue the short, Animate all; Cut:
  * Cut the film — which replaces the "open Cut" one here).
  */
 
@@ -104,8 +104,8 @@ export function dayCommandActions({
   return [
     {
       id: PLAY_COMMAND_ACTION_IDS.queueDay,
-      label: completedShotCount > 0 ? 'Queue the rest of the Day' : 'Queue the Day',
-      subtitle: 'Day · queue every slot, morning to night',
+      label: completedShotCount > 0 ? 'Queue the rest of the short' : 'Queue the short',
+      subtitle: 'Short · queue every moment, in order',
       keywords: 'queue day render stills all slots',
       run: () => queueAll(),
       available: () => !busy && !queueBlocked,

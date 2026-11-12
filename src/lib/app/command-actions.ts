@@ -5,7 +5,7 @@
  * - app actions, registered once at start (`registerCommandActions` from a features module):
  *   "Open Story", "New Cast member" — they navigate, or do a small thing and navigate;
  * - page actions, registered by a mounted page while it is open (`registerCommandActions` in an
- *   effect, the returned function unregisters on unmount): "Queue the Day", "Animate all" — they
+ *   effect, the returned function unregisters on unmount): "Queue the short", "Animate all" — they
  *   call the very handler the page's button calls.
  *
  * An action registered under an id that is already there takes its place until it unregisters,

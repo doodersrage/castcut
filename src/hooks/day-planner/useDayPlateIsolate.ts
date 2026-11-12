@@ -313,7 +313,7 @@ export function useDayPlateIsolate(input: {
         return;
       }
       void applyIsolate({ isolate: true }).catch(err => {
-        setError(err instanceof Error ? err.message : 'Could not isolate the Day plate.');
+        setError(err instanceof Error ? err.message : 'Could not isolate the plate.');
       });
     },
     [
@@ -345,7 +345,7 @@ export function useDayPlateIsolate(input: {
     autoIsolateAttemptedRef.current = sourceKey;
     scheduleAfterCommit(() => {
       void applyIsolate({ isolate: true }).catch(err => {
-        setError(err instanceof Error ? err.message : 'Could not isolate the Day plate.');
+        setError(err instanceof Error ? err.message : 'Could not isolate the plate.');
       });
     });
   }, [

@@ -96,7 +96,7 @@ export default function DaySlotPosePreview({
         compact={compact}
         testIdPrefix="day-slot-pose-preview"
         backdropUrl={plateUrl}
-        backdropLabel="Day plate"
+        backdropLabel="Short plate"
         photoPeople={plan.headcount}
         onChange={patch => updateSlot(slot.id, patch)}
       />

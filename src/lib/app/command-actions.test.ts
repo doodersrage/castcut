@@ -42,7 +42,7 @@ describe('command palette actions registry', () => {
 
   it('hides an action while it is not available (its button is disabled)', () => {
     let ready = false;
-    registerCommandActions([{ id: 'queue', label: 'Queue the Day', available: () => ready }]);
+    registerCommandActions([{ id: 'queue', label: 'Queue the short', available: () => ready }]);
     assert.equal(listCommandActions().length, 0);
     ready = true;
     assert.equal(listCommandActions().length, 1);

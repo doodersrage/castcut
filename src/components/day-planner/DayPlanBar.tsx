@@ -82,7 +82,7 @@ export function DayMoodHints({
     mood === 'suggestive'
       ? 'Suggestive heat — clothed innuendo; Suggest day / Queue day mix spicy beats.'
       : mood === 'sport'
-        ? 'Sport — each slot picks a sport that fits that time of day (including swim, volleyball, boxing, surfing, and cycling road/gravel/MTB/CX/track), mid-action pose + athletic kit (Outfit Keep dress is discarded for the kit).'
+        ? 'Sport — each moment picks a sport that fits that time of day (including swim, volleyball, boxing, surfing, and cycling road/gravel/MTB/CX/track), mid-action pose + athletic kit (Outfit Keep dress is discarded for the kit).'
         : mood === 'vacation'
           ? 'Vacation — mixed energy: RELAXING + active (swim, kick, bike, toss, jump, dance, climb); Suggest day spreads pose classes so you don’t get three mid-strides.'
           : mood === 'intimate'
@@ -196,7 +196,7 @@ export default function DayPlanBar({
                   data-testid={`day-length-${length}`}
                   title={
                     length > 4
-                      ? `${length} stills — adds late-morning / late-night slots`
+                      ? `${length} stills — adds late-morning / late-night moments`
                       : `${length} stills`
                   }
                   onClick={() => onDayLengthChange(length)}
@@ -266,7 +266,7 @@ export default function DayPlanBar({
           <SelectInput
             value={activeMood}
             disabled={busy}
-            aria-label="Day mood"
+            aria-label="Short mood"
             data-testid="day-mood"
             title={
               intimateEnabled

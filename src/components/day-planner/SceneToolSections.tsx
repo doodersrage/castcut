@@ -286,7 +286,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
           {!active ? (
             <p className="type-caption mt-2 text-[var(--text-muted)]" data-testid="scene-empty">
               {character
-                ? `No scene open for ${character.name}. New scene starts one — or open a Day slot as a scene (its sheet → Open as Scene).`
+                ? `No scene open for ${character.name}. New scene starts one — or open a Short moment as a scene (its sheet → Open as Scene).`
                 : 'Pick a Cast lead (Setup) — scenes are kept per Cast.'}
             </p>
           ) : null}
@@ -684,7 +684,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                     variant="primary"
                     disabled={busy || queueBlocked || inFlight}
                     data-testid="scene-queue-take"
-                    title="Render this shot (Day's still engine, its checks and finishes)"
+                    title="Render this shot (the Short's still engine, its checks and finishes)"
                     onClick={() => void queueSlot(slot, { byPlayer: true })}
                   >
                     {rendering
@@ -718,14 +718,14 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                   <div className="flex flex-wrap items-center gap-2" data-testid="scene-send-day">
                     <SelectInput
                       value={sendSlotId}
-                      aria-label="Day slot"
+                      aria-label="Short moment"
                       className="!w-auto"
                       data-testid="scene-send-day-slot"
                       onFocus={refreshDaySlots}
                       onPointerDown={refreshDaySlots}
                       onChange={event => setSendSlotId(event.target.value as DaySlotId)}
                     >
-                      <option value="">Send to Short slot…</option>
+                      <option value="">Send to a Short moment…</option>
                       {daySlots.map(entry => (
                         <option key={entry.id} value={entry.id}>
                           {entry.label}
@@ -740,7 +740,7 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                       variant="secondary"
                       disabled={!sendSlotId}
                       data-testid="scene-send-day-go"
-                      title="The shot goes on that Day slot; its kept take becomes the slot's still (the old one stays as the previous take)"
+                      title="The shot goes on that Short moment; its kept take becomes the moment's still (the old one stays as the previous take)"
                       onClick={() => {
                         if (sendSlotId) sendToDay(sendSlotId);
                       }}

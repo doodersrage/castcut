@@ -138,7 +138,7 @@ export default function PlayCampaignActionsSection({
         ) : (
           <>
             {/* One next step, the same one the header names (resolveNextPlayAction): this
-                page offered "Start at Day" under a header "Continue to Day" while the Steps list
+                page offered "Start at Short" under a header "Continue to Short" while the Steps list
                 highlighted the optional Look (UI audit 2026-10-11). With no film yet it is Day. */}
             {characterId &&
             savedCampaign &&
@@ -170,7 +170,7 @@ export default function PlayCampaignActionsSection({
                 data-testid="play-campaign-start-day"
                 onClick={() => goToStep('day', activeLookPack)}
               >
-                Start at Day
+                Start at Short
               </Button>
             ) : null}
           </>

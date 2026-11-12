@@ -22,6 +22,8 @@ export function useShortMoments(
   stamp: string
 ): {
   bySlot: Partial<Record<DaySlotId, ShortMoment>>;
+  /** Every moment of the script, in script order (the shot list reads them all). */
+  moments: ShortMoment[];
   leadSpeakers: string[];
   /** The last run's takes to check, by Scene id: why (2026-11-11, flags on the card's strip). */
   flagged: Record<string, string>;
@@ -29,7 +31,7 @@ export function useShortMoments(
   const scriptId = castId && link?.castId === castId ? link.scriptId : '';
   return useMemo(() => {
     void stamp;
-    const none = { bySlot: {}, leadSpeakers: [], flagged: {} };
+    const none = { bySlot: {}, moments: [], leadSpeakers: [], flagged: {} };
     if (!scriptId || typeof window === 'undefined') return none;
     const script = loadSceneScriptStore().scripts.find(entry => entry.id === scriptId);
     if (!script) return none;
@@ -43,14 +45,15 @@ export function useShortMoments(
       )
     );
     const out: Partial<Record<DaySlotId, ShortMoment>> = {};
-    for (const moment of shortMomentsOf(script, scenes)) {
+    const moments = shortMomentsOf(script, scenes);
+    for (const moment of moments) {
       if (moment.daySlot && !out[moment.daySlot]) out[moment.daySlot] = moment;
     }
     // The lead's speaking part(s): Who's who's for this Cast.
     const leadSpeakers = Object.entries(script.castMap ?? {})
       .filter(([, id]) => id === castId)
       .map(([speaker]) => speaker.toUpperCase());
-    return { bySlot: out, leadSpeakers, flagged };
+    return { bySlot: out, moments, leadSpeakers, flagged };
   }, [castId, scriptId, stamp]);
 }
 

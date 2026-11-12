@@ -81,7 +81,7 @@ export default function DaySlotSheet({
             <button
               type="button"
               className="ui-btn-ghost ui-btn-sm flex h-8 w-8 items-center justify-center !px-0"
-              aria-label={previous ? `Previous slot: ${previous.label}` : 'Previous slot'}
+              aria-label={previous ? `Previous moment: ${previous.label}` : 'Previous moment'}
               disabled={!previous}
               data-testid="day-slot-sheet-prev"
               onClick={() => previous && onSelectSlot(previous.id)}
@@ -91,7 +91,7 @@ export default function DaySlotSheet({
             <button
               type="button"
               className="ui-btn-ghost ui-btn-sm flex h-8 w-8 items-center justify-center !px-0"
-              aria-label={next ? `Next slot: ${next.label}` : 'Next slot'}
+              aria-label={next ? `Next moment: ${next.label}` : 'Next moment'}
               disabled={!next}
               data-testid="day-slot-sheet-next"
               onClick={() => next && onSelectSlot(next.id)}
@@ -108,7 +108,7 @@ export default function DaySlotSheet({
             variant="primary"
             disabled={busy || queueBlocked}
             data-testid="day-slot-queue"
-            title="Queue this slot only"
+            title="Queue this moment only"
             onClick={onQueueSlot}
           >
             {done ? `Requeue ${label}` : `Queue ${label}`}
@@ -143,7 +143,7 @@ export default function DaySlotSheet({
               size="sm"
               variant="ghost"
               data-testid="day-slot-open-as-scene"
-              title="This shot on its own on the Scene page — render takes, keep the best, direct a move. The Day is left as it is."
+              title="This shot on its own on the Scene page — render takes, keep the best, direct a move. The short is left as it is."
               onClick={onOpenAsScene}
             >
               Open as Scene

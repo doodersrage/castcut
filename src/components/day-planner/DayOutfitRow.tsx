@@ -51,8 +51,8 @@ export function dayClothingView({
   const dayKit = photo ? '' : realKitId(dayKitId);
   const slotKit = realKitId(slotKitId);
   return {
-    day: view(dayKit, Boolean(photo), 'No kit — Day picks one per slot'),
-    slot: view(slotKit || dayKit, Boolean(photo) && !slotKit, 'No kit — Day picks one'),
+    day: view(dayKit, Boolean(photo), 'No kit — the short picks one per moment'),
+    slot: view(slotKit || dayKit, Boolean(photo) && !slotKit, 'No kit — the short picks one'),
   };
 }
 
@@ -134,7 +134,7 @@ export default function DayOutfitRow({
           <ClothingSummaryThumbStrip thumbs={clothingThumbs} testId="day-outfit-row-thumbs" />
           <div className="min-w-0">
             <p className="type-caption text-[var(--text-muted)]">
-              Look &amp; clothing · every slot
+              Look &amp; clothing · every moment
             </p>
             <p
               className="type-heading line-clamp-2 text-sm break-words sm:line-clamp-1"
@@ -146,7 +146,7 @@ export default function DayOutfitRow({
             {differ > 0 ? (
               <p className="type-caption text-[var(--text-muted)]" data-testid="day-outfit-differ">
                 <span title={slotNames(slots, differingSlotIds)}>
-                  {differ === 1 ? '1 slot differs' : `${differ} slots differ`}
+                  {differ === 1 ? '1 moment differs' : `${differ} moments differ`}
                 </span>
                 {' · '}
                 <button
@@ -159,7 +159,7 @@ export default function DayOutfitRow({
                     focusChoose();
                   }}
                 >
-                  Use for every slot
+                  Use for every moment
                 </button>
               </p>
             ) : null}
@@ -186,7 +186,7 @@ export default function DayOutfitRow({
             <span title={slotNames(slots, handoffKeptSlotIds)}>
               {kept === 1
                 ? `${slotNames(slots, handoffKeptSlotIds)} keeps its own outfit`
-                : `${kept} slots keep their own outfit`}
+                : `${kept} moments keep their own outfit`}
             </span>{' '}
             <span className="text-[var(--text-muted)]">— picked by hand, Outfit left them.</span>
           </p>
@@ -219,8 +219,8 @@ export default function DayOutfitRow({
       <ClothingSheet
         open={open}
         onClose={() => setOpen(false)}
-        title="Look & clothing · whole Day"
-        description="Every slot wears this, unless you give a slot its own in its sheet."
+        title="Look & clothing · whole short"
+        description="Every moment wears this, unless you give a moment its own in its sheet."
         testId="day-outfit-sheet"
       >
         {open ? (
@@ -229,7 +229,7 @@ export default function DayOutfitRow({
               <div className="space-y-1" data-testid="day-outfit-look">
                 <p className="type-caption text-[var(--text-muted)]">Look</p>
                 <PortraitTileStrip
-                  label="Look for the whole Day"
+                  label="Look for the whole short"
                   value={lookId}
                   disabled={busy}
                   onChange={next => next && onChooseLook(next)}

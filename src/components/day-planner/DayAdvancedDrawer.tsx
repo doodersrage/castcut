@@ -226,7 +226,7 @@ export default function DayAdvancedDrawer({
       <div
         className="flex flex-wrap items-start gap-x-2 gap-y-1"
         role="group"
-        aria-label="Day options"
+        aria-label="Short options"
         data-testid="day-options"
       >
         <span className={`${label} pt-1.5`}>Checks</span>
@@ -318,7 +318,7 @@ export default function DayAdvancedDrawer({
             title={
               autoReviewStills
                 ? 'Auto-review is on and already rerolls stills that missed their pose — this takes over when Auto-review is off.'
-                : "Read each finished still's pose back (DWPose) and, when it missed the pose guide, queue that slot once more with the pose spelled out. Once per still — never loops."
+                : "Read each finished still's pose back (DWPose) and, when it missed the pose guide, queue that moment once more with the pose spelled out. Once per still — never loops."
             }
             onChange={onRedoPoseMissesChange}
           >
@@ -407,7 +407,7 @@ export default function DayAdvancedDrawer({
         onSlotsChange={onSlotsChange}
       />
       <label className="block space-y-1.5">
-        <FieldLabel>Day notes</FieldLabel>
+        <FieldLabel>Short notes</FieldLabel>
         <TextArea
           rows={2}
           value={notes}

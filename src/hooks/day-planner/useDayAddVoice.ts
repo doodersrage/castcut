@@ -24,7 +24,7 @@ export function useDayAddVoice(ctx: DayPlannerToolOrchestrationCore) {
     async (slot: DaySlot): Promise<string | null> => {
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
       const clipUrl = still?.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
-      if (!still || !clipUrl) return 'This slot has no finished clip.';
+      if (!still || !clipUrl) return 'This moment has no finished clip.';
       if (voicingRef.current) return 'Already adding a voice — one clip at a time.';
       voicingRef.current = slot.id;
       setVoicingSlotId(slot.id);

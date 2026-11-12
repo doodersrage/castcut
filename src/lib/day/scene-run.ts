@@ -132,7 +132,7 @@ export function shotsToPrepare(
 export function scriptRunProgress(
   run: SceneRun | null | undefined,
   scriptId: string
-): { state: SceneRunState; done: number; of: number; flagged: number } | null {
+): { state: SceneRunState; done: number; of: number; flagged: number; failed: number } | null {
   if (!run || run.scriptId !== scriptId) return null;
   const included = run.items.filter(item => item.include);
   const outcomes = run.outcomes ?? {};
@@ -141,6 +141,8 @@ export function scriptRunProgress(
     done: included.filter(item => outcomes[item.sceneId]).length,
     of: included.length,
     flagged: Object.keys(run.flagged ?? {}).length,
+    // "Done" with a shot missing says so (2026-11-12, s11: the run ended "done" without its first).
+    failed: included.filter(item => outcomes[item.sceneId] === 'failed').length,
   };
 }
 
@@ -154,12 +156,15 @@ export function runEndNotice(
 ): { text: string; done: boolean } | null {
   if (before !== 'running' || !run || (run.state !== 'done' && run.state !== 'paused')) return null;
   if (run.state === 'paused' && run.log[run.log.length - 1]?.detail === 'by you') return null;
-  const done = Object.keys(run.outcomes ?? {}).length;
+  const outcomes = Object.values(run.outcomes ?? {});
+  const done = outcomes.length;
+  const failed = outcomes.filter(outcome => outcome === 'failed').length;
   const flagged = Object.keys(run.flagged ?? {}).length;
   return run.state === 'done'
     ? {
         done: true,
-        text: `“${run.label}” is done — ${done} Scene${done === 1 ? '' : 's'}${flagged ? `, ${flagged} to check` : ''}.`,
+        // A failed Scene is not one done: "4 of 5 Scenes, 1 failed" (2026-11-12).
+        text: `“${run.label}” is done — ${failed ? `${done - failed} of ${done}` : done} Scene${done === 1 ? '' : 's'}${failed ? `, ${failed} failed` : ''}${flagged ? `, ${flagged} to check` : ''}.`,
       }
     : { done: false, text: `“${run.label}” stopped: ${run.stopReason ?? 'paused'}` };
 }

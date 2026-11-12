@@ -433,7 +433,7 @@ export default function MobileFittingToolSections(vm: ViewModel) {
             className="ui-btn-primary w-full justify-center text-center"
             data-testid="fitting-continue-day"
           >
-            Continue to Day
+            Continue to Short
           </Link>
         ) : null}
         <Button

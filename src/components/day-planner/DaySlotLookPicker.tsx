@@ -48,10 +48,10 @@ export default function DaySlotLookPicker({
         tiles={[
           {
             id: '',
-            label: "Day's look",
+            label: "Short's look",
             title: active
-              ? `The whole Day's look (now ${active.label}) — follows it when it changes`
-              : "The whole Day's look",
+              ? `The whole short's look (now ${active.label}) — follows it when it changes`
+              : "The whole short's look",
             thumb: active?.thumb,
             caption: active?.label,
           },

@@ -62,7 +62,7 @@ test('play campaign wizard loads with steps and share controls', async ({ page }
   await expect(page.getByTestId('play-campaign-step-day')).toContainText('Step 2');
   await expect(page.getByTestId('play-campaign-step-roleplay')).toBeVisible();
   await expect(page.getByTestId('play-campaign-step-roleplay-locked')).toBeVisible();
-  // No Cast yet — the disabled "Start at Day" stays hidden until one exists.
+  // No Cast yet — the disabled "Start at Short" stays hidden until one exists.
   await expect(page.getByTestId('play-campaign-start-day')).toHaveCount(0);
 });
 
@@ -2154,7 +2154,7 @@ test('day pose pack poses every slot, fills only empty beats, saves and clears',
   await expect(picker).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('day-pose-pack-select').selectOption('fitness');
   await expect(picker).toHaveAttribute('data-active-pack', 'fitness');
-  await expect(page.getByTestId('day-pose-pack-status')).toContainText('4 slots posed');
+  await expect(page.getByTestId('day-pose-pack-status')).toContainText('4 moments posed');
   await expect(page.getByTestId('day-pose-pack-status')).toContainText('3 empty beats filled');
   await expect(page.getByTestId('day-pose-pack-figure').first()).toBeVisible();
   // Morning (the open slot) takes the pack's first pose and its beat.
@@ -2708,7 +2708,7 @@ test('mobile film funnel routes Fitting → Day', async ({ page }) => {
 });
 
 // Phone Day registers the same palette actions as desktop Day, gated like its own buttons.
-test('mobile Day lists Queue the Day in the command palette when its button is live', async ({
+test('mobile Day lists Queue the short in the command palette when its button is live', async ({
   page,
 }) => {
   await seedSettingsCacheOnNextLoad(page, {
@@ -2739,7 +2739,7 @@ test('mobile Day lists Queue the Day in the command palette when its button is l
     )
     .toBeTruthy();
   await dialog.getByPlaceholder(/Jump to/).fill('queue the day');
-  await expect(dialog.getByText('Queue the Day', { exact: true })).toHaveCount(
+  await expect(dialog.getByText('Queue the short', { exact: true })).toHaveCount(
     queueEnabled ? 1 : 0
   );
   // Nothing rendered yet: no Animate all (on the screen or in the palette).
@@ -4712,7 +4712,7 @@ test('Day: one look and clothing for every slot, and slots that differ go back i
   await expect(
     page.getByTestId('day-outfit-row-thumbs').locator('img[src="/footwear/black-pumps.webp"]')
   ).toHaveCount(1);
-  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 slots differ');
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 moments differ');
 
   // A slot that differs says so in its sheet, and its Clothing row shows its own kit.
   await openDaySlotSheet(page, 'afternoon');
@@ -4726,7 +4726,7 @@ test('Day: one look and clothing for every slot, and slots that differ go back i
   await page.getByTestId('day-slot-use-day').click();
   await expect(page.getByTestId('day-slot-differs')).toHaveCount(0);
   await closeDaySheets(page);
-  await expect(page.getByTestId('day-outfit-differ')).toContainText('1 slot differs');
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('1 moment differs');
 
   // "Use for every slot": the rest follow the Day in one write.
   await page.getByTestId('day-outfit-use-everywhere').click();
@@ -4742,7 +4742,7 @@ test('Day: one look and clothing for every slot, and slots that differ go back i
   const sheet = page.getByTestId('day-outfit-sheet');
   await expect(sheet).toBeVisible();
   await expect(
-    sheet.getByRole('radiogroup', { name: 'Look for the whole Day' }).getByRole('radio')
+    sheet.getByRole('radiogroup', { name: 'Look for the whole short' }).getByRole('radio')
   ).toHaveCount(2);
   await expect(sheet.getByTestId('day-outfit-clothing')).toBeVisible();
   await closeDaySheets(page);
@@ -4782,9 +4782,9 @@ test('Outfit hands a new outfit to Day: stale slot kits go, hand-picked slots st
   await page.waitForURL(/\/day/);
   await dismissBlockingOverlays(page);
   const notice = page.getByTestId('day-outfit-handoff-notice');
-  await expect(notice).toContainText('2 slots keep their own outfit', { timeout: 30_000 });
+  await expect(notice).toContainText('2 moments keep their own outfit', { timeout: 30_000 });
   await expect(page.getByTestId('day-outfit-row-summary')).toContainText('barefoot');
-  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 slots differ');
+  await expect(page.getByTestId('day-outfit-differ')).toContainText('2 moments differ');
   // Morning's stamped kit went: it wears the Day's outfit now.
   await openDaySlotSheet(page, 'morning');
   await expect(page.getByTestId('day-slot-differs')).toHaveCount(0);

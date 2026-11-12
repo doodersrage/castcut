@@ -82,7 +82,7 @@ export function useCommandPaletteCatalog({
     ];
   }, [nsfwGeneratorEnabled, onOpenShortcuts, pathname, playChrome, pluginNavItems]);
 
-  // Feature and page actions ("Queue the Day" while Day is open). Listed fresh on every render
+  // Feature and page actions ("Queue the short" while Day is open). Listed fresh on every render
   // so `available` (the button's own enabled state) is read when the palette shows.
   const router = useRouter();
   useSyncExternalStore(subscribeCommandActions, commandActionsVersion, () => 0);

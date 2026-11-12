@@ -136,7 +136,7 @@ export function castChecklist(facts: CastChecklistFacts): CastChecklist {
   ];
 
   // Next is the film's next step. UI audit (2026-10-11): with a film cut, Next sat on the optional
-  // "Outfit kept" while the header said "Continue to Day".
+  // "Outfit kept" while the header said "Continue to Short".
   for (const item of items) {
     if (OPTIONAL_ITEMS.has(item.id)) item.optional = true;
   }

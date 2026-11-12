@@ -109,12 +109,12 @@ export default function PlayContinueChip({
   if (pathname === '/play' || pathname === '/m/play') {
     return null;
   }
-  // "Continue to Day" while on Day went nowhere — and the page showed it twice.
+  // "Continue to Short" while on Day went nowhere — and the page showed it twice.
   const targetPath = cta.href.split(/[?#]/)[0] || '/';
   if (targetPath === pathname || toMobileStudioHref(targetPath) === pathname) {
     return null;
   }
-  // On Story the header said "Continue to Day" — a primary button pointing a step back.
+  // On Story the header said "Continue to Short" — a primary button pointing a step back.
   const here = filmStepIndex(pathname);
   const there = filmStepIndex(targetPath);
   if (there >= 0 && here > there) {

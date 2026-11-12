@@ -377,7 +377,7 @@ describe('a script run’s progress, for Short', () => {
       createdAt: 1,
       updatedAt: 1,
     } as unknown as SceneRun;
-    assert.deepEqual(scriptRunProgress(run, 's1'), { state: 'running', done: 1, of: 2, flagged: 0 });
+    assert.deepEqual(scriptRunProgress(run, 's1'), { state: 'running', done: 1, of: 2, flagged: 0, failed: 0 });
     assert.equal(scriptRunProgress(run, 'other'), null);
     assert.equal(scriptRunProgress(undefined, 's1'), null);
   });
@@ -413,6 +413,11 @@ describe('what a run says when it stops', () => {
     assert.equal(runEndNotice('running', run({ state: 'paused', stopReason: 'A take failed.' }))?.text, '“Overnight” stopped: A take failed.');
     assert.equal(runEndNotice('running', run({ state: 'paused', log: [{ at: 1, event: 'paused', detail: 'by you' }] })), null);
     assert.equal(runEndNotice('paused', run({})), null);
+    // A failed one is not done (2026-11-12).
+    assert.equal(
+      runEndNotice('running', run({ outcomes: { a: 'landed', b: 'failed' } }))?.text,
+      '“Overnight” is done — 1 of 2 Scenes, 1 failed.'
+    );
     assert.equal(runEndNotice(null, run({})), null);
   });
 });

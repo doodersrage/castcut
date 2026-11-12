@@ -99,7 +99,7 @@ export default function DayIdeaRow({
         .querySelector('[data-testid^="day-progress-"]')
         ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } catch (error) {
-      setNote(error instanceof Error ? error.message : 'Day from an idea failed.');
+      setNote(error instanceof Error ? error.message : 'Short from an idea failed.');
       setNoteFailed(true);
     } finally {
       setWriting(false);
@@ -117,7 +117,7 @@ export default function DayIdeaRow({
     >
       {onWriteEvent && writeDay ? (
         <SegmentedControl<IdeaMode>
-          aria-label="Plan the Day as"
+          aria-label="Plan the short as"
           value={mode}
           onChange={next => {
             setMode(next);
@@ -126,7 +126,7 @@ export default function DayIdeaRow({
             // under the whole day's cards (each made as an edit of the one before).
             if (next === 'day' && event && onSwitchToWholeDay) {
               onSwitchToWholeDay();
-              setNote('A whole day again — new scenes on every card.');
+              setNote('A whole short again — new scenes on every card.');
             }
           }}
           options={[
@@ -157,7 +157,7 @@ export default function DayIdeaRow({
                 setNote(null);
               }}
             >
-              Back to a whole day
+              Back to a whole short
             </Button>
           ) : null}
         </div>
@@ -175,7 +175,7 @@ export default function DayIdeaRow({
                 : 'An idea — e.g. a rainy Saturday that ends at a gallery opening'
           }
           aria-label={
-            eventMode ? 'One event' : shortOnly ? 'A short from an idea' : 'Day from an idea'
+            eventMode ? 'One event' : shortOnly ? 'A short from an idea' : 'A short from an idea'
           }
           data-testid="day-idea-input"
           // A line of its own on a phone: two buttons beside it left it a sliver.
@@ -191,8 +191,8 @@ export default function DayIdeaRow({
             data-testid="day-idea-write"
             title={
               eventMode
-                ? 'The LLM writes the event as consecutive moments in one place — one per slot'
-                : 'The LLM writes a beat and a place for every slot, morning to night'
+                ? 'The LLM writes the event as consecutive moments in one place — one per moment'
+                : 'The LLM writes a beat and a place for every moment, in order'
             }
           >
             {writing ? 'Writing…' : eventMode ? 'Write the event' : 'Write it'}

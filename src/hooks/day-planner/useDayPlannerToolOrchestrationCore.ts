@@ -850,8 +850,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         scheduleAfterCommit(() =>
           setFilmStatus(
             moodAligned.changed
-              ? 'Applied Look pack to day slots · refreshed adult Setting/Beat.'
-              : 'Applied Look pack to day slots.'
+              ? 'Applied Look pack to the moments · refreshed adult Setting/Beat.'
+              : 'Applied Look pack to the moments.'
           )
         );
       }
@@ -2550,7 +2550,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
                   ...(poseGuideUrl ? { previewUrl: poseGuideUrl } : {}),
                 }
               : !lookHasPlate
-                ? { state: 'skipped' as const, reason: 'no Day plate' }
+                ? { state: 'skipped' as const, reason: 'no plate' }
                 : skipPoseGuideImage
                   ? {
                       state: 'skipped' as const,
@@ -3668,7 +3668,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             : {}),
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not queue that slot.');
+        setError(err instanceof Error ? err.message : 'Could not queue that moment.');
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           status: 'error',

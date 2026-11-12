@@ -142,7 +142,7 @@ export function useDayExtendClip(ctx: DayPlannerToolOrchestrationCore) {
       length?: Pick<ClipExtendRequest, 'targetSec' | 'extendBySec'> & { label?: string }
     ): Promise<string | null> => {
       const request = extendRequestFor(slot);
-      if (!request) return 'This slot has no finished clip.';
+      if (!request) return 'This moment has no finished clip.';
       if (watchingRef.current) return 'Already making a clip longer — one at a time.';
       setExtendResult(null);
       try {

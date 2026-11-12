@@ -439,7 +439,7 @@ export function useDayPlannerToolOrchestration(variant: DayEngineVariant = 'day'
           const current = stillsRef.current.find(entry => entry.slotId === slotId);
           const patch = dayStillFixAreaPatch(current, result.imageUrl);
           if (!current || current.promptId !== still.promptId || !patch) {
-            throw new Error('The slot changed while the fix rendered — nothing was replaced.');
+            throw new Error('The moment changed while the fix rendered — nothing was replaced.');
           }
           void recordFixAreaInGallery(parent, result);
           const next = upsertDaySlotStill(stillsRef.current, patch);

@@ -29,7 +29,7 @@ export type FittingActionRowProps = {
   onGoRoleplay: () => void;
   /**
    * `panel`: the fitting room's Clothes column — Try it on first, no "Skip outfit · Day" (the
-   * header's Continue to Day is the way on).
+   * header's Continue to Short is the way on).
    */
   variant?: 'row' | 'panel';
 };
@@ -84,7 +84,7 @@ export default function FittingActionRow({
             variant="primary"
             data-testid="fitting-continue-day"
           >
-            Continue to Day
+            Continue to Short
           </ButtonLink>
         ) : null}
         <Button

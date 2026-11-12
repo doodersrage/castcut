@@ -174,7 +174,7 @@ export function applyRemixDayFilmState(options?: {
       customGarmentImageUrl: undefined,
       customGarmentImageFilename: undefined,
       customGarmentDescription: undefined,
-      notes: 'Same Day · new outfit — pick a new Outfit, then Continue to Day.',
+      notes: 'Same short · new outfit — pick a new Outfit, then Continue to Short.',
     });
     // The shared kit lock would otherwise put the old outfit back on every slot.
     saveSharedSettings({ ...loadSettingsCache().shared, lockedWardrobeId: undefined });

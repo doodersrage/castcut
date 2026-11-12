@@ -280,7 +280,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
       ) : progress ? (
         <p className="type-caption" role="status" data-testid="day-short-run">
           {progress.state === 'done'
-            ? `Its run is done — ${progress.of} Scene${progress.of === 1 ? '' : 's'}${progress.flagged ? `, ${progress.flagged} to check on Scene` : ''}.`
+            ? `Its run is done — ${progress.failed ? `${progress.of - progress.failed} of ${progress.of}` : progress.of} shot${progress.of === 1 ? '' : 's'}${progress.failed ? `, ${progress.failed} failed — redo ${progress.failed === 1 ? 'it' : 'them'} on Scene` : ''}${progress.flagged ? `, ${progress.flagged} to check on Scene` : ''}.`
             : progress.state === 'cancelled'
               ? `Its run was cancelled at ${progress.done} of ${progress.of}.`
               : `Making the short: ${progress.done} of ${progress.of} done — it renders with the Scene page open.`}{' '}

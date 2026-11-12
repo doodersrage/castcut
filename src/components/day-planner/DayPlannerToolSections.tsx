@@ -106,6 +106,8 @@ import {
 } from '@/lib/play/metrics';
 import { deriveDayPhase } from '@/lib/play/step-machine';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
+import { shortShotRows } from '@/lib/day/short-shot-list';
+import ShortShotList from './ShortShotList';
 import { CUT_TIME_CHECKS } from '@/lib/film/delivery-check';
 
 const FixAreaDialog = dynamic(() => import('@/components/fix-area/FixAreaDialog'), {
@@ -332,6 +334,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
   const openAsScene = useDayOpenAsScene({ character, toolSettings, slots, stills, setError });
   const hasCustomGarment = Boolean(toolSettings.customGarmentImageUrl?.trim());
   const [sampleWatch, setSampleWatch] = useState(false);
+  // The board as cards, or as the script's shot list (2026-11-12) — a Short with a script only.
+  const [boardView, setBoardView] = useState<'cards' | 'list'>('cards');
   const [progressLightbox, setProgressLightbox] = useState<ImageLightboxState | null>(null);
   const [fixAreaTarget, setFixAreaTarget] = useState<FixAreaTarget | null>(null);
   // Nothing renders while ComfyUI is down (the shell's banner says why); Animate all also stops
@@ -365,6 +369,10 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
       slots,
       stills.map(still => [still.slotId, still.promptId, still.status]),
     ])
+  );
+  const shotRows = useMemo(
+    () => shortShotRows(shortMoments.moments, shortMoments.flagged),
+    [shortMoments.moments, shortMoments.flagged]
   );
   // Write it, with dialogue (Step 5c): each moment's scene written with its lines.
   const shortDialogue = useShortDialogue({ character, updateDay: updateToolSettings });
@@ -1128,58 +1136,91 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               />
             </div>
           ) : null}
-          <DaySlotBoard
-            slotFooter={slotId => (
-              <ShortMomentScene
-                moment={shortMoments.bySlot[slotId]}
-                castId={short.castId}
-                leadSpeakers={shortMoments.leadSpeakers}
-                flagged={shortMoments.flagged}
-              />
-            )}
-            castName={character?.name}
-            castId={character?.id}
-            leadNoun={leadNoun}
-            slots={slots}
-            stills={stills}
-            activeSlotId={activeSlotId}
-            busy={busy}
-            queueBlocked={queueBlocked}
-            onSelectSlot={setActiveSlotId}
-            onEditSlot={openSlotSheet}
-            onOpenStill={openProgressLightbox}
-            onRetrySlot={slot => void queueSlot(slot, { byPlayer: true })}
-            onAnimateSlot={slot => setAnimateTarget(slot)}
-            onAddVoice={addVoiceToSlot}
-            voicingSlotId={voicingSlotId}
-            onExtendClip={extendSlotClip}
-            extendRequestFor={extendRequestFor}
-            extending={extending}
-            extendResult={extendResult}
-            onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
-            onRerollSlot={slot => {
-              rerollActiveSlotScene({ slotId: slot.id });
-            }}
-            qualityLedger={qualityLedger}
-            poseRedoMarks={poseRedoMarks}
-            clipChecks={clipChecks}
-            onPickTwoTake={pickTwoTake}
-            onLooksWrong={slot => void looksWrongSlot(slot.id)}
-            onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
-            mediaTools={{
-              busy: slotMedia.busy,
-              finish: slotMedia.finishSlotClip,
-              realism: slotMedia.realismSlotClip,
-              restyle: slotMedia.restyleSlotClip,
-              moves: slotMedia.copyMovesToSlot,
-              continueMoves: slotMedia.continueSlotClip,
-              dance: slotMedia.danceSlot,
-              lipSync: slotMedia.lipSyncSlot,
-              relight: slotMedia.relightSlot,
-              upscale: slotMedia.upscaleSlot,
-              sketch: slotMedia.applySketchToSlot,
-            }}
-          />
+          {shotRows.length ? (
+            <div
+              className="mb-2 flex items-center gap-2"
+              role="group"
+              aria-label="Board view"
+              data-testid="short-board-view"
+            >
+              <div className="ui-segmented">
+                {(
+                  [
+                    ['cards', 'Cards'],
+                    ['list', 'Shot list'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="ui-segmented-item"
+                    aria-pressed={boardView === value}
+                    data-active={boardView === value ? 'true' : 'false'}
+                    data-testid={`short-board-view-${value}`}
+                    onClick={() => setBoardView(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {shotRows.length && boardView === 'list' ? (
+            <ShortShotList rows={shotRows} castId={short.castId} />
+          ) : (
+            <DaySlotBoard
+              slotFooter={slotId => (
+                <ShortMomentScene
+                  moment={shortMoments.bySlot[slotId]}
+                  castId={short.castId}
+                  leadSpeakers={shortMoments.leadSpeakers}
+                  flagged={shortMoments.flagged}
+                />
+              )}
+              castName={character?.name}
+              castId={character?.id}
+              leadNoun={leadNoun}
+              slots={slots}
+              stills={stills}
+              activeSlotId={activeSlotId}
+              busy={busy}
+              queueBlocked={queueBlocked}
+              onSelectSlot={setActiveSlotId}
+              onEditSlot={openSlotSheet}
+              onOpenStill={openProgressLightbox}
+              onRetrySlot={slot => void queueSlot(slot, { byPlayer: true })}
+              onAnimateSlot={slot => setAnimateTarget(slot)}
+              onAddVoice={addVoiceToSlot}
+              voicingSlotId={voicingSlotId}
+              onExtendClip={extendSlotClip}
+              extendRequestFor={extendRequestFor}
+              extending={extending}
+              extendResult={extendResult}
+              onQueueSlot={slot => void queueSlot(slot, { byPlayer: true })}
+              onRerollSlot={slot => {
+                rerollActiveSlotScene({ slotId: slot.id });
+              }}
+              qualityLedger={qualityLedger}
+              poseRedoMarks={poseRedoMarks}
+              clipChecks={clipChecks}
+              onPickTwoTake={pickTwoTake}
+              onLooksWrong={slot => void looksWrongSlot(slot.id)}
+              onFixArea={slot => setFixAreaTarget(fixAreaTargetForSlot(slot.id))}
+              mediaTools={{
+                busy: slotMedia.busy,
+                finish: slotMedia.finishSlotClip,
+                realism: slotMedia.realismSlotClip,
+                restyle: slotMedia.restyleSlotClip,
+                moves: slotMedia.copyMovesToSlot,
+                continueMoves: slotMedia.continueSlotClip,
+                dance: slotMedia.danceSlot,
+                lipSync: slotMedia.lipSyncSlot,
+                relight: slotMedia.relightSlot,
+                upscale: slotMedia.upscaleSlot,
+                sketch: slotMedia.applySketchToSlot,
+              }}
+            />
+          )}
           <DayShortPanel short={short} busy={busy} />
           {/*
             One place for the next step (it was three: a Ready-to-cut box above the cards, buttons
@@ -1237,7 +1278,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                     className="type-caption text-[var(--text-secondary)]"
                     data-testid="day-action-status"
                   >
-                    {slotTotal ? `${completedShotCount} of ${slotTotal} stills` : 'No slots yet'}
+                    {slotTotal ? `${completedShotCount} of ${slotTotal} stills` : 'No moments yet'}
                     {completedClipCount
                       ? ` · ${completedClipCount} clip${completedClipCount === 1 ? '' : 's'}`
                       : ''}
@@ -1389,7 +1430,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             onOpenShot={
               sampleWatch ? undefined : shot => shot.key && openProgressLightbox(shot.key)
             }
-            emptyLabel="Queue the day — Morning through Night fill in here."
+            emptyLabel="Render the short — its shots fill in here, in order."
           />
           {sampleWatch ? (
             <p className="type-caption text-[var(--text-muted)]" data-testid="day-sample-cut-hint">
@@ -1651,7 +1692,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             shared={shared}
             selectedComfyNode={selectedModel?.comfyNode ?? 'model'}
             hints={toolSettings.notes}
-            queueLabel="Queue slot"
+            queueLabel="Queue moment"
             onSendComfyUi={() => void queueSlot(activeSlot, { byPlayer: true })}
           />
         ) : null}

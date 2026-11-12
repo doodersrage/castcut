@@ -61,13 +61,13 @@ export function dayContinuityLocks(input: {
               ? ` (${input.differingSlots} slot${input.differingSlots === 1 ? '' : 's'} differ)`
               : ''
           }`,
-          detail: 'The Day’s clothing is worn in every slot that does not pick its own.',
+          detail: 'The short’s clothing is worn in every moment that does not pick its own.',
         }
       : {
           id: 'clothes',
           held: false,
-          label: 'Clothes · per slot',
-          detail: 'No Day outfit — each slot picks clothes that fit its beat.',
+          label: 'Clothes · per moment',
+          detail: 'No outfit for the short — each moment picks clothes that fit its beat.',
         }
   );
 
@@ -127,8 +127,8 @@ export function dayContinuityLocks(input: {
       : {
           id: 'style',
           held: false,
-          label: 'Light · each slot its own',
-          detail: 'Light follows each time of day; set Weather to hold one look across the Day.',
+          label: 'Light · each moment its own',
+          detail: 'Light follows each time of day; set Weather to hold one look across the short.',
         }
   );
   return locks;

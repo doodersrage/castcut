@@ -629,9 +629,9 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
     const step = playStepById(progress.resumeStepId);
     const labels: Record<PlayCampaignStepId, string> = {
       character: 'Continue to Cast',
-      moodboard: 'Continue to Day',
+      moodboard: 'Continue to Short',
       fitting: 'Continue to Outfit',
-      day: 'Continue to Day',
+      day: 'Continue to Short',
       roleplay: 'Continue to Story',
     };
     return {
@@ -657,7 +657,7 @@ export function resumePlayAction(artifacts: PlayArtifacts = {}): PlayNextAction 
         });
       }
       return {
-        label: 'Continue to Day',
+        label: 'Continue to Short',
         href: dayHref,
         reason:
           keeps > 0
@@ -753,7 +753,7 @@ function dayPhaseAction(input: {
     };
   }
   return {
-    label: 'Continue to Day',
+    label: 'Continue to Short',
     href,
     reason: input.keepReason
       ? 'Outfit kept — queue Day stills and Cut film.'

@@ -68,12 +68,12 @@ function stillUrlOf(still: DaySlotStill | undefined): string {
 
 function finishedClip(still: DaySlotStill): string {
   const clipUrl = still.clipStatus === 'completed' ? still.clipUrl?.trim() : '';
-  if (!clipUrl) throw new Error('This slot has no finished clip.');
+  if (!clipUrl) throw new Error('This moment has no finished clip.');
   return clipUrl;
 }
 function shownStill(still: DaySlotStill, needsTake = false): string {
   const stillUrl = stillUrlOf(still);
-  if (!stillUrl || (needsTake && !still.promptId)) throw new Error('This slot has no still yet.');
+  if (!stillUrl || (needsTake && !still.promptId)) throw new Error('This moment has no still yet.');
   return stillUrl;
 }
 
@@ -118,7 +118,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
       work: (still: DaySlotStill) => Promise<Partial<DaySlotStill>>
     ): Promise<string | null> => {
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
-      if (!still) return 'This slot has nothing to work on yet.';
+      if (!still) return 'This moment has nothing to work on yet.';
       if (busyRef.current) return 'Another finishing job is running — one at a time.';
       busyRef.current = true;
       setBusy({ slotId: slot.id, tool });
@@ -308,7 +308,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
     (slot: DaySlot, look: string) =>
       run(slot, 'relight', async still => {
         const stillUrl = stillUrlOf(still);
-        if (!stillUrl || !still.promptId) throw new Error('This slot has no still yet.');
+        if (!stillUrl || !still.promptId) throw new Error('This moment has no still yet.');
         const url = await requestRelight(stillUrl, look);
         const kept = await keepStillInGallery({
           url,
@@ -336,7 +336,7 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
   const applySketchToSlot = useCallback(
     async (slot: DaySlot, url: string): Promise<string | null> => {
       const still = stillsRef.current.find(entry => entry.slotId === slot.id);
-      if (!still?.promptId) return 'This slot has no still yet.';
+      if (!still?.promptId) return 'This moment has no still yet.';
       const kept = await keepStillInGallery({
         url,
         kind: 'sketch',

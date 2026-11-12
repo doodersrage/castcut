@@ -348,7 +348,7 @@ export default function DaySlotBoard({
                 }`
         }
         data-testid="day-progress"
-        aria-label="Day slots"
+        aria-label="Short moments"
       >
         {slots.map(slot => {
           const still = stills.find(entry => entry.slotId === slot.id);
@@ -457,7 +457,7 @@ export default function DaySlotBoard({
                     type="button"
                     className={SHOT_CARD_MENU_ITEM_CLASS}
                     disabled={busy}
-                    title="Merged bodies, a mixed-up pose, something off: redo this slot on a new seed, and remember that this pose went wrong on this engine."
+                    title="Merged bodies, a mixed-up pose, something off: redo this moment on a new seed, and remember that this pose went wrong on this engine."
                     data-testid={`day-progress-looks-wrong-${slot.id}`}
                     onClick={() => {
                       onSelectSlot(slot.id);
@@ -860,7 +860,7 @@ export default function DaySlotBoard({
                         <Button
                           size="sm"
                           variant="overlay"
-                          title="Edit this slot (Enter)"
+                          title="Edit this moment (Enter)"
                           data-testid={`day-quick-edit-${slot.id}`}
                           onClick={edit}
                         >

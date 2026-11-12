@@ -59,15 +59,15 @@ export default function DayPlateSection({
   });
   const sourceLabel =
     plate?.source === 'keeper'
-      ? 'Kept from Outfit — locks the worn kit for Day stills. Pose may still drift on some models.'
+      ? "Kept from Outfit — locks the worn kit for the short's stills. Pose may still drift on some models."
       : plate
-        ? 'Cast look plate — identity for Day stills'
+        ? "Cast look plate — identity for the short's stills"
         : null;
 
   return (
     <ToolSection
       title="Plate"
-      description="The picture every Day still starts from."
+      description="The picture every still in this short starts from."
       data-testid="day-plate"
     >
       {onIsolateSubjectChange ? (
@@ -87,7 +87,7 @@ export default function DayPlateSection({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={previewUrl}
-          alt="Day plate"
+          alt="Short plate"
           className="max-h-64 rounded-[var(--radius-md)] border border-[var(--border-subtle)] object-contain"
           data-testid="day-plate-preview"
           data-source={plate?.source}
