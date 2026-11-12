@@ -629,3 +629,11 @@ describe('a shot’s picked light and the Cast’s film style (Part 18 R3)', () 
     assert.match(lit, /\nSTYLE: the whole picture looks shot on 35 mm film/);
   });
 });
+
+describe('a picked lean names something to lean on (2026-11-12, Turbo)', () => {
+  it('says a wall, post or railing — "something solid" stood her upright', async () => {
+    const { withPickedPostureCue } = await import('./still-prompt');
+    const out = withPickedPostureCue('Day photo: One woman alone. Moment: waits. Place: a plaza.', 'lean');
+    assert.match(out, /Pose: leaning with her shoulder and hip against a wall, post or railing beside her\. Place:/);
+  });
+});

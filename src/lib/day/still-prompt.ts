@@ -574,7 +574,9 @@ const PICKED_POSTURE_CUES: Record<string, string> = {
   crouch: 'crouching low, knees deeply bent',
   kneel: 'kneeling on the ground',
   reach: 'reaching up high with one arm',
-  lean: 'leaning with her shoulder and hip against something solid beside her',
+  // Named (2026-11-12, Turbo, 2 seeds): "something solid" stood her upright 0/2; "a wall, post or
+  // railing" leant her on a post 2/2 — a thing to lean on, in any setting.
+  lean: 'leaning with her shoulder and hip against a wall, post or railing beside her',
   lie: 'lying on the back, whole body horizontal',
   jump: 'in mid-air, both feet off the ground, knees tucked up',
 };
