@@ -246,3 +246,22 @@ describe('the shipped pose report card', () => {
     );
   });
 });
+
+describe('a shot pinned to an engine (2026-11-12)', () => {
+  it('keeps the engine you picked when it is that family; else the installed variant; else says so', async () => {
+    const { resolvePinnedEngine } = await import('./pose-engine-report');
+    const all = () => true;
+    assert.deepEqual(
+      resolvePinnedEngine({ pin: 'qwen-edit-2511', picked: 'qwen-image-edit-2511', installed: all }),
+      { model: 'qwen-image-edit-2511' }
+    );
+    assert.deepEqual(
+      resolvePinnedEngine({ pin: 'qwen-edit-2511', picked: 'qwen-image-2512', installed: all }),
+      { model: 'qwen-image-edit-2511-lightning-8' }
+    );
+    const none = resolvePinnedEngine({ pin: 'qwen-edit-2511', picked: 'qwen-image-2512', installed: () => false });
+    assert.equal(none.model, null);
+    assert.match(none.note ?? '', /Edit 2511 isn't installed here/);
+    assert.deepEqual(resolvePinnedEngine({ pin: undefined, picked: 'x', installed: all }), { model: null });
+  });
+});

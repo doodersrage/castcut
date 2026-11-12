@@ -48,6 +48,30 @@ export function pinnedEngineModel(
   return POSE_REPORT_ENGINE_MODELS[family].find(modelId => installed(modelId)) ?? null;
 }
 
+/**
+ * A shot pinned to an engine family ("Engine for this shot"): the engine you picked when it is of
+ * that family (your Edit 2511, not its Lightning sibling), else the family's first installed
+ * variant. None installed: no model, and a note for the card — the still renders on the short's
+ * engine, said rather than silent (2026-11-12: a Scene pinned to Edit 2511 rendered on 2.1 Turbo
+ * 25 times out of 25 with nothing on the card).
+ */
+export function resolvePinnedEngine(input: {
+  pin: PoseReportEngine | string | null | undefined;
+  picked: string | null | undefined;
+  installed: (modelId: string) => boolean;
+}): { model: string | null; note?: string } {
+  const pin = input.pin?.trim();
+  if (!pin || !isReportEngine(pin as PoseModelFamily)) return { model: null };
+  const family = pin as PoseReportEngine;
+  if (input.picked && poseModelFamily(input.picked) === family) return { model: input.picked };
+  const model = pinnedEngineModel(family, input.installed);
+  if (model) return { model };
+  return {
+    model: null,
+    note: `${POSE_REPORT_ENGINE_LABELS[family]} isn't installed here — rendered on the short's engine.`,
+  };
+}
+
 /** Short names for the card line. */
 export const POSE_REPORT_ENGINE_LABELS: Record<PoseReportEngine, string> = {
   'rapid-aio': 'Rapid AIO',

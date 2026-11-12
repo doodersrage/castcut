@@ -172,3 +172,15 @@ describe('modelPickerSections', () => {
     assert.ok(!unknown.some(section => section.key === 'more'));
   });
 });
+
+describe('Edit 2511 on disk reads as installed before the model map is loaded (2026-11-12)', () => {
+  it('finds the fp8 build with no map, as 2.1 finds its own', () => {
+    const installed = installedComfyModels(
+      COMFY_IMAGE_MODELS,
+      { checkpoints: [], unets: ['qwen_image_edit_2511_fp8mixed.safetensors'] } as never,
+      {}
+    )!;
+    assert.equal(installed.get('qwen-image-edit-2511'), 'qwen_image_edit_2511_fp8mixed.safetensors');
+    assert.ok(!installed.has('qwen-image-2512'));
+  });
+});

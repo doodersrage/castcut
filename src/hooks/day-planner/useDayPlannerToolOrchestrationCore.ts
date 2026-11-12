@@ -219,7 +219,7 @@ import {
   plannedDaySlotPoseKey,
 } from '@/lib/day/slot-pose';
 import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose/outcome-stats';
-import { pickPoseEngine, pinnedEngineModel } from '@/lib/pose/pose-engine-report';
+import { pickPoseEngine, resolvePinnedEngine } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -1208,11 +1208,15 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           report: blendedPoseEngineReport(),
         });
       }
-      // The card's own engine (its sheet's "Engine for this shot") wins over every hand-off; not
-      // installed (the sheet only offers installed ones), the still stays on the Day's engine.
-      const pinnedEngine = queueTarget.engine
-        ? (pinnedEngineModel(queueTarget.engine, installed) as ComfyImageModel | null)
-        : null;
+      // The card's own engine (its sheet's "Engine for this shot") wins over every hand-off: the
+      // engine picked for the short when it is that family, else the family's installed variant;
+      // none installed, the still stays on the short's engine and the card says so.
+      const pinned = resolvePinnedEngine({
+        pin: queueTarget.engine,
+        picked: shared.model,
+        installed,
+      });
+      const pinnedEngine = pinned.model as ComfyImageModel | null;
       const stillModel = pinnedEngine ?? poseEngineSwap?.model ?? routedStillModel;
       // As queueSlot sends it: with a plate, the Edit-capable (and adult nude: NSFW) variant.
       const queueModel = resolveSlotLook(queueTarget).hasPlate
@@ -1220,7 +1224,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             adultNude: isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) && omitGarment,
           })
         : stillModel;
-      return { omitGarment, stillModel, queueModel, poseEngineSwap };
+      return { omitGarment, stillModel, queueModel, poseEngineSwap, pinNote: pinned.note };
     },
     [
       intimateEnabled,
@@ -1738,7 +1742,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           }
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const { omitGarment, stillModel, poseEngineSwap } =
+        const { omitGarment, stillModel, poseEngineSwap, pinNote } =
           await resolveSlotStillModel(queueTarget);
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
@@ -3638,7 +3642,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           redoReason: options?.looksWrong && promptId ? 'looks-wrong' : undefined,
           adultHold: undefined,
           adultGated: adultSafeguards ? true : undefined,
-          engineNote: poseEngineSwap?.reason ?? clothedOnlyHandOffNote(shared.model, stillModel),
+          engineNote:
+            pinNote ?? poseEngineSwap?.reason ?? clothedOnlyHandOffNote(shared.model, stillModel),
           referenceNote: referenceNotes.length > 0 ? referenceNotes.join(' ') : undefined,
         });
         stillsRef.current = nextStills;
