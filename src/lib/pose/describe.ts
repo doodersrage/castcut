@@ -38,7 +38,7 @@ import {
   readLyingKind,
   type PostureClass,
 } from '@/lib/pose/posture';
-import { bodyCentreX, readPoseStance } from '@/lib/pose/starters';
+import { bodyCentreX, isPoseSentence, readPoseStance } from '@/lib/pose/starters';
 import { withSceneGround } from '@/lib/scene/surface';
 import {
   heldObjectWords,
@@ -1127,7 +1127,7 @@ export function describePhotoPose(
 export function customPoseFirstLine(words: string, lead: 'she' | 'he' = 'she'): string {
   const text = words.trim().replace(/[.\s]+$/, '');
   if (!text) return '';
-  return /^(?:she|he) is on the (?:left|right),/.test(text)
+  return /^(?:she|he) is on the (?:left|right),/.test(text) || isPoseSentence(text)
     ? `POSE FIRST: ${text}.`
     : `POSE FIRST: ${lead} is ${text}.`;
 }

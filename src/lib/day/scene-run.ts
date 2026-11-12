@@ -587,10 +587,16 @@ export function pausedAfterError(run: SceneRun, message: string, now = Date.now(
   );
 }
 
+/** A Scene whose take wasn't queued this many times is failed; before that Resume tries it again. */
+export const RUN_NOT_QUEUED_TRIES = 3;
+
 /**
  * A run whose Scene's take wasn't queued: paused, saying why — the page's error (or note) at the
  * time, which is gone after a reload, so it is kept in the run (2026-11-10: "see the note on the
  * card" pointed at a note that a reload had cleared). No reason: no take appeared in time.
+ * Nothing rendered, so the Scene stays open and Resume tries it again (2026-11-12, s11: the first
+ * shot timed out while ComfyUI was busy, was marked failed, and the run ended "done" without it);
+ * the RUN_NOT_QUEUED_TRIES-th time in a row it is failed, so a run resumed by itself never loops.
  */
 export function pausedNotQueued(
   run: SceneRun,
@@ -603,14 +609,36 @@ export function pausedNotQueued(
     (reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 140) ||
     'no take appeared on the card within 5 minutes';
   const name = sceneName.replace(/\s+/g, ' ').trim().slice(0, 50) || 'The Scene';
+  const tries = notQueuedTries(run, sceneId) + 1;
+  const { current: _current, ...rest } = run;
+  const failed = tries >= RUN_NOT_QUEUED_TRIES;
   return withRunLog(
     {
-      ...withRunOutcome(run, sceneId, 'failed', `its take wasn’t queued: ${why}`, now),
+      ...(failed
+        ? withRunOutcome(run, sceneId, 'failed', `its take wasn’t queued: ${why}`, now)
+        : rest),
       state: 'paused',
-      stopReason: `${name}’s take wasn’t queued: ${why}`.slice(0, 200),
+      stopReason:
+        `${name}’s take wasn’t queued: ${why}${failed ? '' : ' — resume to try it again'}`.slice(
+          0,
+          200
+        ),
     },
     { at: now, sceneId, event: 'paused', detail: `a take was not queued: ${why}` }
   );
+}
+
+/** A Scene's takes not queued in a row: its "not queued" pauses since it last landed or was queued. */
+function notQueuedTries(run: SceneRun, sceneId: string): number {
+  let tries = 0;
+  for (let i = run.log.length - 1; i >= 0; i--) {
+    const entry = run.log[i];
+    if (entry.sceneId !== sceneId) continue;
+    if (entry.event === 'paused' && entry.detail?.startsWith('a take was not queued')) tries++;
+    else if (entry.event === 'queued' || entry.event === 'landed' || entry.event === 'failed')
+      break;
+  }
+  return tries;
 }
 
 export type FlaggedShot = {

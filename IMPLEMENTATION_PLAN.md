@@ -4151,3 +4151,9 @@ not by guessing from the flags (user: "do some test rendering for just those"):
     dress of every script shot;
   - "POSE FIRST: she is She pulls out…" (a sentence put after "she is");
   - all 4 landed takes flagged (realism 4/10 ×3, face ×1, pose ×1).
+  - **Fixed after (2026-11-12):** a take that wasn't queued no longer fails its shot at once — the
+    run pauses with the shot still open and Resume tries it again; the third miss in a row fails
+    it (`RUN_NOT_QUEUED_TRIES`, counted from the run log, so no new stored field). A script action
+    used as pose words keeps its own subject ("POSE FIRST: She pulls out…", `isPoseSentence`).
+  - Still open: the twinned close-up (cropped pose guide), and the moment cards — not found in
+    s11's own renders (14, none a moment card); its Reel still says "Morning through Night".

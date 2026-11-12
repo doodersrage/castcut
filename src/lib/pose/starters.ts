@@ -552,9 +552,19 @@ export function poseFirstLine(
     .replace(/\bher\b/g, pronoun === 'he' ? 'his' : 'her');
   // A Day pose picked by name says its own name and cue — more reliable than reading joints.
   if (words?.trim()) {
-    return `POSE FIRST: ${pronoun} is ${words.trim().replace(/[.\s]+$/, '')}, exactly as the pose map in Image 3 shows.`;
+    const text = words.trim().replace(/[.\s]+$/, '');
+    return `POSE FIRST: ${isPoseSentence(text) ? text : `${pronoun} is ${text}`}, exactly as the pose map in Image 3 shows.`;
   }
   return `POSE FIRST: ${pronoun} is ${description}, exactly as the pose map in Image 3 shows${detail ? ` — ${detail}` : ''}.`;
+}
+
+/**
+ * Pose words that are already a sentence with its own subject — a script line's action ("She
+ * pulls out a book", "Slyne turns") — not a fragment to follow "she is". Words read from a guide
+ * or a named pose start lower-case ("standing, …", "seen from behind, …").
+ */
+export function isPoseSentence(words: string): boolean {
+  return /^[A-Z]/.test(words.trim());
 }
 
 /** Hands, elbows, knees and feet: 3–4 and 6–7 the arms, 9–10 and 12–13 the legs. */

@@ -152,6 +152,15 @@ describe('custom pose in words', () => {
     assert.equal(customPoseFirstLine('kneeling', 'he'), 'POSE FIRST: he is kneeling.');
   });
 
+  it('a script action keeps its own subject, never "she is She …" (live 2026-11-12, s11 2C)', () => {
+    assert.equal(
+      customPoseFirstLine('She pulls out a thin, worn book and examines it.'),
+      'POSE FIRST: She pulls out a thin, worn book and examines it.'
+    );
+    assert.equal(customPoseFirstLine('Slyne turns to the door', 'he'), 'POSE FIRST: Slyne turns to the door.');
+    assert.equal(customPoseFirstLine('standing, arms crossed'), 'POSE FIRST: she is standing, arms crossed.');
+  });
+
   it('Day: the custom pose is the recipe Pose: sentence and the brief first line', () => {
     const base = {
       dayMood: 'everyday',

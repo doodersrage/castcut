@@ -66,6 +66,18 @@ describe('pose starters', () => {
     assert.match(line, /one foot off the floor, never kneeling\.$/);
   });
 
+  it('words that are a sentence keep their own subject (live 2026-11-12)', () => {
+    const kick = poseStarterBody('stand');
+    assert.equal(
+      poseFirstLine(kick, 'she', 1, 'She pulls out a book.'),
+      'POSE FIRST: She pulls out a book, exactly as the pose map in Image 3 shows.'
+    );
+    assert.equal(
+      poseFirstLine(kick, 'she', 1, 'walking down the aisle'),
+      'POSE FIRST: she is walking down the aisle, exactly as the pose map in Image 3 shows.'
+    );
+  });
+
   it('a bend at the waist over straight legs is never "lying down"', () => {
     const stand = poseStarterBody('stand');
     const A = 2 / 3;

@@ -325,14 +325,32 @@ describe('an episode run (Part 19 G1)', () => {
     const paused = pausedNotQueued(running, 'a', '1B EMPTY CITY STREET · Dialogue', 'ComfyUI is not reachable\n at 127.0.0.1:8188', 9);
     assert.equal(paused.state, 'paused');
     assert.equal(paused.current, undefined);
-    assert.equal(paused.outcomes?.a, 'failed');
-    assert.equal(paused.stopReason, '1B EMPTY CITY STREET · Dialogue’s take wasn’t queued: ComfyUI is not reachable at 127.0.0.1:8188');
+    assert.equal(paused.outcomes?.a, undefined);
+    assert.equal(
+      paused.stopReason,
+      '1B EMPTY CITY STREET · Dialogue’s take wasn’t queued: ComfyUI is not reachable at 127.0.0.1:8188 — resume to try it again'
+    );
     assert.deepEqual(paused.log.at(-1), { at: 9, sceneId: 'a', event: 'paused', detail: 'a take was not queued: ComfyUI is not reachable at 127.0.0.1:8188' });
     // No reason: it timed out. A long one still fits what a saved run keeps.
-    assert.match(pausedNotQueued(running, 'a', 'Kitchen', null, 9).stopReason!, /no take appeared on the card within 5 minutes$/);
+    assert.match(pausedNotQueued(running, 'a', 'Kitchen', null, 9).stopReason!, /no take appeared on the card within 5 minutes — resume/);
     const long = pausedNotQueued(running, 'a', 'x'.repeat(120), 'y'.repeat(400), 9);
     assert.ok(long.stopReason!.length <= 200);
     assert.equal(normalizeSceneRun(long)?.stopReason, long.stopReason);
+  });
+
+  it('Resume tries a take that wasn’t queued again; the third miss in a row fails it (s11, 2026-11-12)', () => {
+    const run = runFromScript({ script: scriptWith({ 'int-kitchen-day~1': 'a' }), scenes: [scene('a')], now: 5, id: 'r1' });
+    const running = (r: typeof run) => ({ ...r, state: 'running' as const, current: { sceneId: 'a', at: 6 } });
+    const once = pausedNotQueued(running(run), 'a', 'Kitchen', null, 9);
+    assert.deepEqual(nextRunStep({ ...once, state: 'running' }, [scene('a')], 10), { kind: 'scene', sceneId: 'a' });
+    const twice = pausedNotQueued(running(once), 'a', 'Kitchen', null, 11);
+    assert.equal(twice.outcomes?.a, undefined);
+    const thrice = pausedNotQueued(running(twice), 'a', 'Kitchen', null, 12);
+    assert.equal(thrice.outcomes?.a, 'failed');
+    assert.doesNotMatch(thrice.stopReason!, /try it again/);
+    // A take queued in between starts the count again.
+    const queued = withRunLog(twice, { at: 11, sceneId: 'a', event: 'queued', detail: 'p1' });
+    assert.equal(pausedNotQueued(running(queued), 'a', 'Kitchen', null, 12).outcomes?.a, undefined);
   });
 });
 
