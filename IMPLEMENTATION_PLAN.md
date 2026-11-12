@@ -4218,3 +4218,9 @@ a script" reads "These moments as a script". A shot's Story state is folded unti
 something. E2E: "a shot's story state is kept after a reload" is flaky before this change too
 (the Scene page sat on "Loading scene" after the reload, 1 run in 2 on a cold dev server).
 
+**Phone pass (2026-11-12, 390×844 on the s11 copy):** no page scrolls sideways; phones go to the
+/m pages (Script has none — it opens the phone Scene). Phone Cut was 6,800 px tall: on a phone
+only the picked shot shows its settings and its state / pin lines (the rest a compact card with
+"Shot settings", which picks it); Foley lists 3 suggestions, then "Show all N" (everywhere). Now
+~4,900 px. Desktop shot cards unchanged (e2e drives their controls directly).
+

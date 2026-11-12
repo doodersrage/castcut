@@ -7,6 +7,9 @@ import { makeSoundEffectForCut } from '@/lib/clip/sound-effect-client';
 import { foleySuggestions, type FoleySuggestion } from '@/lib/film/foley';
 import type { CutEffect, CutSoundOptions } from '@/lib/video/cut-sound';
 
+/** Foley suggestions listed before Show all. */
+const FOLEY_SHOWN = 3;
+
 /**
  * Cut → Foley (foley.ts): the sounds the shots say happen — rain on the street shot, a door, a
  * phone, a café's murmur — each made with "Make a sound" (LTX-2.5, about half a minute each) and
@@ -28,6 +31,8 @@ export default function CutFoley({
   const [skipped, setSkipped] = useState<ReadonlySet<string>>(new Set());
   const [making, setMaking] = useState<{ id: string; label: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The first few; the rest on asking (UI audit 2026-11-12: nine rows stacked under the timeline).
+  const [showAll, setShowAll] = useState(false);
   const suggestions = useMemo(() => {
     if (!loaded) return [] as FoleySuggestion[];
     const shots = loaded.timeline.items
@@ -102,7 +107,7 @@ export default function CutFoley({
       </div>
       {suggestions.length ? (
         <ul className="space-y-1">
-          {suggestions.map(suggestion => (
+          {(showAll ? suggestions : suggestions.slice(0, FOLEY_SHOWN)).map(suggestion => (
             <li
               key={suggestion.id}
               className="type-caption flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] px-2 py-1"
@@ -146,6 +151,18 @@ export default function CutFoley({
               )}
             </li>
           ))}
+          {suggestions.length > FOLEY_SHOWN ? (
+            <li>
+              <Button
+                size="sm"
+                variant="link"
+                data-testid="cut-foley-more"
+                onClick={() => setShowAll(value => !value)}
+              >
+                {showAll ? 'Show fewer' : `Show all ${suggestions.length}`}
+              </Button>
+            </li>
+          ) : null}
         </ul>
       ) : (
         <p className="type-caption text-[var(--text-muted)]">
