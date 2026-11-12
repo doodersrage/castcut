@@ -1077,7 +1077,16 @@ export default function MobileDayToolSections(vm: ViewModel) {
             Import a script… (on Script)
           </Link>
         ) : null}
-        <DayShortPanel short={short} busy={busy} />
+        <DayShortPanel
+          short={short}
+          busy={busy}
+          leadName={character?.name}
+          hasPlate={hasPlate}
+          outfit={{
+            set: Boolean(shared.lockedWardrobeId?.trim() || hasCustomGarment),
+            summary: clothingView.day.summary,
+          }}
+        />
         <div className="grid gap-2" data-testid="day-queue-actions">
           <PrimaryButton
             disabled={busy || queueBlocked || short.runHere}

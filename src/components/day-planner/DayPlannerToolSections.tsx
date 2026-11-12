@@ -1223,7 +1223,16 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               }}
             />
           )}
-          <DayShortPanel short={short} busy={busy} />
+          <DayShortPanel
+            short={short}
+            busy={busy}
+            leadName={character?.name}
+            hasPlate={hasPlate}
+            outfit={{
+              set: Boolean(shared.lockedWardrobeId?.trim() || hasCustomGarment),
+              summary: clothingView.day.summary,
+            }}
+          />
           {/*
             One place for the next step (it was three: a Ready-to-cut box above the cards, buttons
             under them and the phase strip), kept in view while the cards are worked on.

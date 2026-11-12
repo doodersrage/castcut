@@ -33,6 +33,7 @@ import { filmHomeProgress } from '@/lib/play/film-home';
 import { activeLook } from '@/lib/character/os';
 import { loadSettingsCache, SETTINGS_CACHE_UPDATED_EVENT } from '@/lib/settings/cache';
 import { resolveFittingPlateFromCharacter } from '@/lib/character/plate';
+import { useCastDressedThumb } from '@/hooks/useCastDressedThumb';
 import { galleryEntryPrimaryViewUrl, galleryEntryThumbUrls } from '@/lib/gallery/comfyui-gallery';
 
 // Owns a ComfyUI queue hook — loaded only once a Cast was just created.
@@ -93,6 +94,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
   const shownFilm = home.films.find(film => film.id === watchId) ?? home.films[0] ?? null;
   const look = props.character ? activeLook(props.character) : undefined;
   const plate = resolveFittingPlateFromCharacter(props.character)?.imageUrl?.trim() || null;
+  // Her dressed look where there is one: the identity plate (her base) read as the film's lead.
+  const dressed = useCastDressedThumb(props.character) || null;
   // With a Cast picked the picker folds into a chip; creating one (or none yet) keeps it open.
   const castAsChip = Boolean(props.characterId && props.character && !creating);
   const thumbImg = (url: string | null | undefined, key?: string) =>
@@ -126,8 +129,8 @@ export default function PlayCampaignWizardSections(props: PlayCampaignWizardView
   ).map((url, index) => thumbImg(url, `${index}-${url}`));
   const latestFilmUrl = home.films[0] ? galleryEntryPrimaryViewUrl(home.films[0]) : null;
   const stepThumbs = {
-    character: thumbImg(plate),
-    fitting: look?.lockedWardrobeId ? thumbImg(plate) : null,
+    character: thumbImg(dressed ?? plate),
+    fitting: dressed ? thumbImg(dressed) : look?.lockedWardrobeId ? thumbImg(plate) : null,
     day: stillThumbs.length ? <div className="flex h-full gap-px">{stillThumbs}</div> : null,
     cut: latestFilmUrl ? (
       <video

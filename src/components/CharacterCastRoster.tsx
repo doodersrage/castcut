@@ -5,6 +5,7 @@ import ActionMenu, {
   ACTION_MENU_ITEM_CLASS,
 } from '@/components/ui/ActionMenu';
 import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
+import { useCastDressedThumbs } from '@/hooks/useCastDressedThumb';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -69,6 +70,8 @@ export default function CharacterCastRoster() {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   // Plates whose file is gone (deleted media, another machine's copy) — shown as "No plate".
   const [missingPlates, setMissingPlates] = useState<ReadonlySet<string>>(() => new Set());
+  // Her dressed (a dress plate's) picture on the card; a broken one falls back to the plate.
+  const [missingDressed, setMissingDressed] = useState<Set<string>>(() => new Set());
   const [activeCharacterId, setActiveCharacterId] = useState('');
   const characters = useSyncExternalStore(
     subscribeCharacters,
@@ -131,6 +134,7 @@ export default function CharacterCastRoster() {
         : (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
     );
   }, [characters, query, sort]);
+  const dressedThumbs = useCastDressedThumbs(shown);
 
   const forgetCharacter = async (id: string) => {
     const character = characters.find(entry => entry.id === id);
@@ -279,6 +283,10 @@ export default function CharacterCastRoster() {
               const plateUrl = missingPlates.has(character.id)
                 ? undefined
                 : castPlateThumbUrl(character);
+              const dressedUrl = missingDressed.has(character.id)
+                ? ''
+                : dressedThumbs.get(character.id) || '';
+              const cardUrl = dressedUrl || plateUrl;
               const films = filmCounts.get(character.id) ?? 0;
               const readiness = castRosterReadinessLine({
                 lookCount: looks.length,
@@ -299,18 +307,21 @@ export default function CharacterCastRoster() {
                     className="relative block aspect-[3/4] w-full overflow-hidden bg-[var(--bg-muted)]"
                     onClick={() => applyAndOpenHome(character.id)}
                   >
-                    {plateUrl ? (
+                    {cardUrl ? (
                       <span
                         className="block h-full w-full"
                         data-testid={`cast-roster-plate-${character.id}`}
+                        data-dressed={dressedUrl ? 'true' : undefined}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- cast identity plate preview */}
+                        {/* eslint-disable-next-line @next/next/no-img-element -- cast plate preview */}
                         <img
-                          src={plateUrl}
+                          src={cardUrl}
                           alt=""
                           className="h-full w-full object-cover object-top"
                           onError={() =>
-                            setMissingPlates(previous => new Set(previous).add(character.id))
+                            dressedUrl
+                              ? setMissingDressed(previous => new Set(previous).add(character.id))
+                              : setMissingPlates(previous => new Set(previous).add(character.id))
                           }
                         />
                       </span>

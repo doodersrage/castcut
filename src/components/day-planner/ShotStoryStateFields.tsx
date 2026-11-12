@@ -30,6 +30,16 @@ export default function ShotStoryStateFields({
   const [drafts, setDrafts] = useState<{ carries?: string; changes?: string; emotion?: string }>(
     {}
   );
+  const filled = Boolean(
+    state?.carries?.length || state?.changes?.length || state?.emotion?.trim() || state?.storyDay
+  );
+  const [open, setOpen] = useState(filled);
+  // The shot's state can arrive after the first render (stored settings load): open it then.
+  const [wasFilled, setWasFilled] = useState(filled);
+  if (filled !== wasFilled) {
+    setWasFilled(filled);
+    if (filled) setOpen(true);
+  }
   const save = (patch: Partial<ShotStoryState>) =>
     onChange(normalizeStoryState({ ...state, ...patch }));
   const carryChips = (key: 'carries' | 'changes') => {
@@ -72,70 +82,97 @@ export default function ShotStoryStateFields({
     setDrafts(({ [key]: _dropped, ...rest }) => rest);
   };
 
+  // Folded until it holds something (UI audit 2026-11-12: four empty fields on every shot).
+  const summary = [
+    state?.storyDay ? `Day ${state.storyDay}` : '',
+    state?.carries?.length ? `carries ${listText(state.carries)}` : '',
+    state?.changes?.length ? listText(state.changes) : '',
+    state?.emotion?.trim() ?? '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <fieldset className="grid gap-3 sm:grid-cols-2" data-testid="shot-story-state">
-      <legend className="type-label mb-1">Story state</legend>
-      <div className="space-y-1.5">
-        <label className="block space-y-1.5">
-          <FieldLabel>She carries</FieldLabel>
+    <details
+      className="group"
+      data-testid="shot-story-state"
+      open={open}
+      onToggle={event => setOpen((event.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary
+        className="type-label cursor-pointer select-none"
+        data-testid="shot-story-state-toggle"
+      >
+        Story state
+        <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
+          {summary || 'what she carries, what has changed, how she feels, the story day'}
+        </span>
+      </summary>
+      <fieldset className="mt-2 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className="block space-y-1.5">
+            <FieldLabel>She carries</FieldLabel>
+            <TextInput
+              data-testid="shot-state-carries"
+              placeholder="the red umbrella, a paper bag"
+              value={drafts.carries ?? listText(state?.carries)}
+              onChange={event =>
+                setDrafts(previous => ({ ...previous, carries: event.target.value }))
+              }
+              onBlur={() => commitList('carries')}
+            />
+          </label>
+          {carryChips('carries')}
+        </div>
+        <div className="space-y-1.5">
+          <label className="block space-y-1.5">
+            <FieldLabel>What has changed</FieldLabel>
+            <TextInput
+              data-testid="shot-state-changes"
+              placeholder="left hand bandaged, wet hair"
+              value={drafts.changes ?? listText(state?.changes)}
+              onChange={event =>
+                setDrafts(previous => ({ ...previous, changes: event.target.value }))
+              }
+              onBlur={() => commitList('changes')}
+            />
+          </label>
+          {carryChips('changes')}
+        </div>
+        <label className="space-y-1.5">
+          <FieldLabel>How she feels</FieldLabel>
           <TextInput
-            data-testid="shot-state-carries"
-            placeholder="the red umbrella, a paper bag"
-            value={drafts.carries ?? listText(state?.carries)}
+            data-testid="shot-state-emotion"
+            placeholder="anxious, relieved…"
+            maxLength={STORY_STATE_EMOTION_MAX}
+            value={drafts.emotion ?? state?.emotion ?? ''}
             onChange={event =>
-              setDrafts(previous => ({ ...previous, carries: event.target.value }))
+              setDrafts(previous => ({ ...previous, emotion: event.target.value }))
             }
-            onBlur={() => commitList('carries')}
+            onBlur={() => {
+              if (drafts.emotion === undefined) return;
+              save({ emotion: drafts.emotion });
+              setDrafts(({ emotion: _dropped, ...rest }) => rest);
+            }}
           />
         </label>
-        {carryChips('carries')}
-      </div>
-      <div className="space-y-1.5">
-        <label className="block space-y-1.5">
-          <FieldLabel>What has changed</FieldLabel>
+        <label className="space-y-1.5">
+          <FieldLabel>Story day</FieldLabel>
           <TextInput
-            data-testid="shot-state-changes"
-            placeholder="left hand bandaged, wet hair"
-            value={drafts.changes ?? listText(state?.changes)}
-            onChange={event =>
-              setDrafts(previous => ({ ...previous, changes: event.target.value }))
-            }
-            onBlur={() => commitList('changes')}
+            type="number"
+            min={1}
+            max={STORY_DAY_MAX}
+            inputMode="numeric"
+            data-testid="shot-state-day"
+            title="Which day of the story this shot is — story order, not where it sits in the edit"
+            value={state?.storyDay ?? ''}
+            onChange={event => {
+              const day = Number.parseInt(event.target.value, 10);
+              save({ storyDay: Number.isFinite(day) ? day : undefined });
+            }}
           />
         </label>
-        {carryChips('changes')}
-      </div>
-      <label className="space-y-1.5">
-        <FieldLabel>How she feels</FieldLabel>
-        <TextInput
-          data-testid="shot-state-emotion"
-          placeholder="anxious, relieved…"
-          maxLength={STORY_STATE_EMOTION_MAX}
-          value={drafts.emotion ?? state?.emotion ?? ''}
-          onChange={event => setDrafts(previous => ({ ...previous, emotion: event.target.value }))}
-          onBlur={() => {
-            if (drafts.emotion === undefined) return;
-            save({ emotion: drafts.emotion });
-            setDrafts(({ emotion: _dropped, ...rest }) => rest);
-          }}
-        />
-      </label>
-      <label className="space-y-1.5">
-        <FieldLabel>Story day</FieldLabel>
-        <TextInput
-          type="number"
-          min={1}
-          max={STORY_DAY_MAX}
-          inputMode="numeric"
-          data-testid="shot-state-day"
-          title="Which day of the story this shot is — story order, not where it sits in the edit"
-          value={state?.storyDay ?? ''}
-          onChange={event => {
-            const day = Number.parseInt(event.target.value, 10);
-            save({ storyDay: Number.isFinite(day) ? day : undefined });
-          }}
-        />
-      </label>
-    </fieldset>
+      </fieldset>
+    </details>
   );
 }

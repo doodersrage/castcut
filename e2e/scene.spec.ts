@@ -805,6 +805,8 @@ test('a shot\'s story state is kept after a reload and shown on its Cut card', a
   await page.getByTestId('scene-take-keep-0').click();
 
   const fields = page.getByTestId('shot-story-state');
+  // Folded while empty (2026-11-12); open once it holds something.
+  await page.getByTestId('shot-story-state-toggle').click();
   await fields.getByTestId('shot-state-carries').fill('the red umbrella, a paper bag');
   await fields.getByTestId('shot-state-changes').fill('left hand bandaged');
   await fields.getByTestId('shot-state-changes').blur();

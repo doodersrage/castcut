@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * A film's phases inside one page (Day: Stills → Animate → Cut film → Save film; Story: the same
- * less Save), named for what they belong to ("This Day") so their numbers aren't read as Film's
- * own steps (1. Cast · 2. Day · 3. Cut film). One chip style with Film's step strip: the current
- * phase tinted, done ones green.
+ * A film's phases inside one page (Short: Stills → Animate → Cut film → Save film; Story: the same
+ * less Save), named for what they belong to ("This short"). Unnumbered, with arrows: numbered,
+ * they read as a second set of Film's own steps (1. Cast · 2. Short · 3. Cut film) — two "3. Cut
+ * film" on one page (UI audit 2026-11-12). The current phase tinted, done ones green.
  */
 export default function PhaseStrip({
   scope,
@@ -39,7 +39,12 @@ export default function PhaseStrip({
           const active = index === activeIndex;
           const detail = details[phase.id];
           return (
-            <li key={phase.id} className="shrink-0">
+            <li key={phase.id} className="flex shrink-0 items-center gap-2">
+              {index > 0 ? (
+                <span aria-hidden className="type-caption text-[var(--text-muted)]">
+                  →
+                </span>
+              ) : null}
               <span
                 className={`rounded-[var(--radius-md)] border px-2.5 py-1 type-caption ${
                   active
@@ -54,7 +59,7 @@ export default function PhaseStrip({
                 aria-current={active ? 'step' : undefined}
                 title={phase.description}
               >
-                {index + 1}. {phase.label}
+                {phase.label}
                 {detail ? ` · ${detail}` : ''}
               </span>
             </li>

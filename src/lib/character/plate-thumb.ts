@@ -155,3 +155,34 @@ export function castLookPortraitTile(
     ...(tile.hasPlate ? {} : { placeholder: options?.placeholder ?? 'Add plate' }),
   };
 }
+
+/**
+ * The Cast's newest dressed plate (day-dress-plate: her plate with an outfit on), or '' — for the
+ * roster card and the Film page, where the identity plate (her base, in underwear) read as the
+ * film's lead (UI audit 2026-11-12). Matched by the plate file in the entry's key
+ * (`dress|<plate>|<clothing>|<shoes>`); the identity plate stays in the card's details.
+ */
+export function castDressedThumbUrl(
+  character: CharacterRecord | null | undefined,
+  entries: ReadonlyArray<{
+    key: string;
+    filename: string;
+    imageUrl?: string;
+    at: number;
+    updatedAt?: number;
+  }>
+): string {
+  const plate = resolveFittingPlateFromCharacter(character);
+  const files = [plate?.filename, plate?.originalFilename]
+    .map(file => file?.trim())
+    .filter((file): file is string => Boolean(file));
+  if (!files.length) return '';
+  const newest = entries
+    .filter(entry => files.some(file => entry.key.startsWith(`dress|${file}|`)))
+    .sort((a, b) => (b.updatedAt ?? b.at) - (a.updatedAt ?? a.at))[0];
+  if (!newest) return '';
+  return (
+    newest.imageUrl?.trim() ||
+    `/api/comfyui/view?${new URLSearchParams({ filename: newest.filename, subfolder: '', type: 'input' }).toString()}`
+  );
+}

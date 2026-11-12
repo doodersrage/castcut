@@ -1,7 +1,7 @@
 'use client';
 
 import ActionMenu from '@/components/ui/ActionMenu';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,8 @@ import { DEFAULT_SCENE_TOOL_CACHE } from '@/lib/play/settings';
 import { loadToolSettings } from '@/lib/settings/cache';
 import { normalizeSceneRun, scriptRunProgress } from '@/lib/day/scene-run';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
+import { sceneScriptPartners, sceneScriptRooms } from '@/lib/day/scenes';
+import { shortReadiness, type ShortReadinessItem } from '@/lib/day/short-readiness';
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayToolCache } from '@/lib/play/settings';
 import { DAY_LENGTH_MAX, type DaySlot, type DaySlotStill } from '@/lib/day/planner';
@@ -222,8 +224,85 @@ export function DayShortBarActions({ short, busy }: { short: DayShortView; busy?
 }
 
 /** Its short, under the cards: in step or not, its run, its links — or the question to answer. */
-export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boolean }) {
+const READINESS_MARK: Record<ShortReadinessItem['state'], string> = {
+  ready: '✓',
+  'at-start': '◌',
+  missing: '⚠',
+};
+const READINESS_TONE: Record<ShortReadinessItem['state'], string> = {
+  ready: 'text-[var(--tint-success-text)]',
+  'at-start': 'text-[var(--text-muted)]',
+  missing: 'text-[var(--tint-warning-text)]',
+};
+
+/**
+ * Before Render the short (UI audit 2026-11-12): her plate, the outfit, a face for each other
+ * person on screen, a room for each scene — ✓ ready, ◌ made when the run starts, ⚠ missing.
+ */
+function ShortReadinessLine({ items }: { items: readonly ShortReadinessItem[] }) {
+  if (!items.length) return null;
+  return (
+    <ul
+      className="type-caption flex flex-wrap gap-x-3 gap-y-0.5"
+      aria-label="What the run needs"
+      data-testid="day-short-readiness"
+    >
+      {items.map(item => (
+        <li
+          key={item.id}
+          className={READINESS_TONE[item.state]}
+          title={item.detail}
+          data-state={item.state}
+          data-testid={`day-short-readiness-${item.id}`}
+        >
+          <span aria-hidden>{READINESS_MARK[item.state]} </span>
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function DayShortPanel({
+  short,
+  busy,
+  leadName,
+  hasPlate,
+  outfit,
+}: {
+  short: DayShortView;
+  busy?: boolean;
+  leadName?: string;
+  hasPlate?: boolean;
+  /** The short's outfit (a kit or photo set for every moment), or unset. */
+  outfit?: { set: boolean; summary: string };
+}) {
   const { linked, sync, progress, choice, error } = short;
+  const scriptId = short.link?.scriptId ?? '';
+  const outfitSet = outfit?.set === true;
+  const outfitSummary = outfit?.summary ?? '';
+  const readiness = useMemo(() => {
+    if (!short.castId || hasPlate === undefined || typeof window === 'undefined') return [];
+    void sync.scriptName;
+    const script = scriptId
+      ? (loadSceneScriptStore().scripts.find(entry => entry.id === scriptId) ?? null)
+      : null;
+    const sceneTool = loadToolSettings('scene', DEFAULT_SCENE_TOOL_CACHE) as {
+      scriptPartners?: unknown;
+      scriptRooms?: unknown;
+    };
+    return shortReadiness({
+      leadName: leadName ?? '',
+      hasPlate,
+      outfit: { set: outfitSet, summary: outfitSummary },
+      script: script
+        ? { id: script.id, source: script.source, castMap: script.castMap ?? {} }
+        : null,
+      castId: short.castId,
+      scriptPartners: sceneScriptPartners(sceneTool.scriptPartners),
+      scriptRooms: sceneScriptRooms(sceneTool.scriptRooms),
+    });
+  }, [hasPlate, leadName, outfitSet, outfitSummary, scriptId, short.castId, sync.scriptName]);
   if (!short.castId) return null;
   return (
     <div
@@ -242,7 +321,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
             title="Copy these moments into a script on Script — a Scene each, any still its kept take — without rendering"
             onClick={() => short.go(false)}
           >
-            This Day as a script →
+            These moments as a script →
           </Button>
         ) : null}
         {!linked ? (
@@ -252,6 +331,7 @@ export function DayShortPanel({ short, busy }: { short: DayShortView; busy?: boo
           </span>
         ) : null}
       </div>
+      <ShortReadinessLine items={readiness} />
       {linked ? (
         <p className="type-caption" data-testid="day-short-sync">
           <span className="font-medium">Its short: “{sync.scriptName}”</span>

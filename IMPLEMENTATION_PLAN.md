@@ -4207,3 +4207,14 @@ profile at the machine, seated at an angle, a bar shot with bokeh) and held her 
 10 of 10, the pose bench's lineup again, at 1/5 the time. Pose about even (pours coffee missed on
 both). Verdict: Edit 2511 stays the engine for film; 2.1 for previews.
 
+**Film UI pass 2 (2026-11-12):** the Cast card and Film's Cast / Outfit steps show her newest
+dressed plate, not the identity plate in underwear (`castDressedThumbUrl`, matched by the plate
+file in the dress plate's key; a broken one falls back). The page's phase strips are unnumbered
+with arrows ("Stills · 2/2 → Animate → Cut film → Save film"): numbered, they were a second set
+of Film's steps, with two "3. Cut film" on the Short. Before Render the short, what the run needs
+(`shortReadiness`): ✓ her plate, the outfit, a face for each other person the script puts on
+screen, rooms n of m — ◌ for what the run makes at the start, ⚠ for a missing plate. "This Day as
+a script" reads "These moments as a script". A shot's Story state is folded until it holds
+something. E2E: "a shot's story state is kept after a reload" is flaky before this change too
+(the Scene page sat on "Loading scene" after the reload, 1 run in 2 on a cold dev server).
+
