@@ -865,6 +865,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
           busy={busy}
           dayLength={dayLength}
           onDayLengthChange={setDayLength}
+          fromScript={shortMoments.moments.length > 0}
           shortTime={shortTimeOf(slots)}
           onShortTimeChange={part => updateToolSettings({ slots: slotsAtTime(slots, part) })}
           dayMood={dayMood}

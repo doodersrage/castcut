@@ -63,6 +63,12 @@ export type DayPlanBarProps = {
   showLength?: boolean;
   /** The bar's test id (Scene: its own). */
   testId?: string;
+  /**
+   * The short is played from its script (2026-11-12): its moments are the script's scenes (no
+   * preset counts that would cut it short; − / + still add or take one), and on clothed
+   * ratings the script says who is in each shot (People has no effect there).
+   */
+  fromScript?: boolean;
 };
 
 const isHeatMood = (id: DayMoodSetting) => id === 'suggestive' || isDayAdultMood(id);
@@ -138,6 +144,7 @@ export default function DayPlanBar({
   className = '',
   showLength = true,
   testId = 'day-plan-bar',
+  fromScript = false,
 }: DayPlanBarProps) {
   // Intimate · Playful (the 'raunchy' flavor) is Intimate in the picker with Playful on.
   const picked = dayPickerMood(normalizeDayMood(dayMood));
@@ -150,10 +157,38 @@ export default function DayPlanBar({
     ...DAY_MOOD_OPTIONS.filter(option => !isHeatMood(option.id)),
     ...DAY_THEME_OPTIONS,
   ];
-  const heatOptions = DAY_MOOD_OPTIONS.filter(
-    option => isHeatMood(option.id) && (intimateEnabled || !isDayAdultMood(option.id))
-  );
   const adultPeople = isDayAdultMood(mood);
+  // Rating (2026-11-12): what was the Mood's "Heat" half, on its own — General keeps the
+  // wardrobe (the "Kind of day" half: Everyday, Sport, Vacation, a theme).
+  const rating: 'general' | 'suggestive' | 'adult' = isDayAdultMood(mood)
+    ? 'adult'
+    : mood === 'suggestive'
+      ? 'suggestive'
+      : 'general';
+  const ratingOptions: Array<{
+    id: 'general' | 'suggestive' | 'adult';
+    label: string;
+    hint: string;
+    mood: DayMoodSetting;
+  }> = [
+    { id: 'general', label: 'General', hint: 'Everyday clothes and moments', mood: 'everyday' },
+    {
+      id: 'suggestive',
+      label: 'Suggestive',
+      hint: DAY_MOOD_OPTIONS.find(option => option.id === 'suggestive')?.hint ?? '',
+      mood: 'suggestive',
+    },
+    ...(intimateEnabled
+      ? [
+          {
+            id: 'adult' as const,
+            label: 'Adult',
+            hint: DAY_MOOD_OPTIONS.find(option => option.id === 'intimate')?.hint ?? '',
+            mood: 'intimate' as DayMoodSetting,
+          },
+        ]
+      : []),
+  ];
   const leadPronoun = leadNoun === 'man' ? 'him' : 'her';
   const peopleOptions: Array<{ id: DayIntimateMix; label: string; hint: string }> = [
     {
@@ -183,28 +218,30 @@ export default function DayPlanBar({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-2">
         {showLength ? (
           <div className={group} role="group" aria-label="Day length" data-testid="day-length">
-            <span className={groupLabel}>Stills</span>
-            <div className="ui-segmented">
-              {DAY_LENGTHS.map(length => (
-                <button
-                  key={length}
-                  type="button"
-                  className="ui-segmented-item"
-                  aria-pressed={dayLength === length}
-                  data-active={dayLength === length ? 'true' : 'false'}
-                  disabled={busy}
-                  data-testid={`day-length-${length}`}
-                  title={
-                    length > 4
-                      ? `${length} stills — adds late-morning / late-night moments`
-                      : `${length} stills`
-                  }
-                  onClick={() => onDayLengthChange(length)}
-                >
-                  {length}
-                </button>
-              ))}
-            </div>
+            <span className={groupLabel}>{fromScript ? 'Moments' : 'Stills'}</span>
+            {fromScript ? null : (
+              <div className="ui-segmented">
+                {DAY_LENGTHS.map(length => (
+                  <button
+                    key={length}
+                    type="button"
+                    className="ui-segmented-item"
+                    aria-pressed={dayLength === length}
+                    data-active={dayLength === length ? 'true' : 'false'}
+                    disabled={busy}
+                    data-testid={`day-length-${length}`}
+                    title={
+                      length > 4
+                        ? `${length} stills — adds late-morning / late-night moments`
+                        : `${length} stills`
+                    }
+                    onClick={() => onDayLengthChange(length)}
+                  >
+                    {length}
+                  </button>
+                ))}
+              </div>
+            )}
             {/* Any count in between and past them (2–12): a moment less, a moment more. */}
             <Button
               size="sm"
@@ -216,8 +253,12 @@ export default function DayPlanBar({
             >
               −
             </Button>
-            {(DAY_LENGTHS as readonly number[]).includes(current) ? null : (
-              <span className="type-caption font-medium" data-testid="day-length-count">
+            {!fromScript && (DAY_LENGTHS as readonly number[]).includes(current) ? null : (
+              <span
+                className="type-caption font-medium"
+                data-testid="day-length-count"
+                title={fromScript ? 'The script’s scenes — + adds one to the script' : undefined}
+              >
                 {current}
               </span>
             )}
@@ -261,22 +302,41 @@ export default function DayPlanBar({
             </SelectInput>
           </label>
         ) : null}
-        <label className={group}>
-          <span className={groupLabel}>Mood</span>
-          <SelectInput
-            value={activeMood}
-            disabled={busy}
-            aria-label="Short mood"
-            data-testid="day-mood"
-            title={
-              intimateEnabled
-                ? undefined
-                : 'Intimate is off on this install — an admin turns it on in the server’s settings.'
-            }
-            className="!w-auto"
-            onChange={event => onDayMoodChange(event.target.value as DayMoodSetting)}
-          >
-            <optgroup label="Kind of day">
+        <div className={group} role="group" aria-label="Rating" data-testid="day-rating">
+          <span className={groupLabel}>Rating</span>
+          <div className="ui-segmented">
+            {ratingOptions.map(option => (
+              <button
+                key={option.id}
+                type="button"
+                className="ui-segmented-item"
+                aria-pressed={rating === option.id}
+                data-active={rating === option.id ? 'true' : 'false'}
+                disabled={busy}
+                data-testid={`day-rating-${option.id}`}
+                title={option.hint}
+                onClick={() => {
+                  if (option.id === rating) return;
+                  onDayMoodChange(option.mood);
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {rating === 'general' ? (
+          <label className={group}>
+            <span className={groupLabel}>Wardrobe</span>
+            <SelectInput
+              value={activeMood}
+              disabled={busy}
+              aria-label="Wardrobe style"
+              data-testid="day-mood"
+              title="What she wears when no outfit is set — and, with no script, the kind of moments it suggests"
+              className="!w-auto"
+              onChange={event => onDayMoodChange(event.target.value as DayMoodSetting)}
+            >
               {kindOptions.map(option => (
                 <option
                   key={option.id}
@@ -287,47 +347,46 @@ export default function DayPlanBar({
                   {option.label}
                 </option>
               ))}
-            </optgroup>
-            <optgroup label="Heat">
-              {heatOptions.map(option => (
-                <option
+            </SelectInput>
+          </label>
+        ) : null}
+        {fromScript && !adultPeople ? (
+          <div
+            className={group}
+            data-testid="day-intimate-mix-script"
+            title="Each shot has whom its script scene shows — a line someone says on screen puts them in it"
+          >
+            <span className={groupLabel}>People</span>
+            <span className="type-caption">From the script</span>
+          </div>
+        ) : (
+          <div
+            className={group}
+            role="radiogroup"
+            aria-label="People in each still"
+            data-testid="day-intimate-mix"
+          >
+            <span className={groupLabel}>People</span>
+            <div className="ui-segmented">
+              {peopleOptions.map(option => (
+                <button
                   key={option.id}
-                  value={option.id}
+                  type="button"
+                  role="radio"
+                  className="ui-segmented-item"
+                  aria-checked={people === option.id}
+                  data-active={people === option.id ? 'true' : 'false'}
+                  disabled={busy}
+                  data-testid={`day-intimate-mix-${option.id}`}
                   title={option.hint}
-                  data-testid={`day-mood-${option.id}`}
+                  onClick={() => onPeopleChange(option.id)}
                 >
                   {option.label}
-                </option>
+                </button>
               ))}
-            </optgroup>
-          </SelectInput>
-        </label>
-        <div
-          className={group}
-          role="radiogroup"
-          aria-label="People in each still"
-          data-testid="day-intimate-mix"
-        >
-          <span className={groupLabel}>People</span>
-          <div className="ui-segmented">
-            {peopleOptions.map(option => (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                className="ui-segmented-item"
-                aria-checked={people === option.id}
-                data-active={people === option.id ? 'true' : 'false'}
-                disabled={busy}
-                data-testid={`day-intimate-mix-${option.id}`}
-                title={option.hint}
-                onClick={() => onPeopleChange(option.id)}
-              >
-                {option.label}
-              </button>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
         {showPlayful ? (
           <div className={group} data-testid="day-intimate-playful-group">
             <div className="ui-segmented">

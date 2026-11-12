@@ -4182,4 +4182,11 @@ no take yet / not made); a finished run says how many failed ("1 of 2 Scenes, 1 
 - **E2E (isolated, :47971):** 5 of 6 touched tests pass; "This Day as a script" fails at
   `day-progress-scene-evening` on the session's base commit too (pre-existing). "An episode run
   keeps a take" now expects the one dress plate auto kits render first (22c3dddd).
+- **The plan bar (2026-11-12):** Mood is split into **Rating** (General / Suggestive / Adult — the
+  old "Heat" half; Adult only with the NSFW flag) and **Wardrobe** (Everyday, Sport, Vacation,
+  themes — the "Kind of day" half, at General). One stored field (`dayMood`), no migration. With a
+  script, Stills reads **Moments** (no preset counts that would cut the script short; − / + stay)
+  and People reads "From the script" on clothed ratings — the headcount there comes from the
+  script's companions (`resolveDayPoseHeadcount`), never the People pick. Time stays: the board
+  writes it into the script. E2E: the 5 tests that drive these controls pass.
 

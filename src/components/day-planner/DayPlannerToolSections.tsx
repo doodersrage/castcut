@@ -989,6 +989,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
             busy={busy}
             dayLength={dayLength}
             onDayLengthChange={setDayLength}
+            fromScript={shortMoments.moments.length > 0}
             shortTime={shortTimeOf(slots)}
             onShortTimeChange={part => updateToolSettings({ slots: slotsAtTime(slots, part) })}
             dayMood={dayMood}

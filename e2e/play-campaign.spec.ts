@@ -5194,10 +5194,11 @@ test('day Intimate · Playful: a Raunchy Day opens as Intimate with Playful on, 
   await gotoStable(page, '/day');
   await dismissBlockingOverlays(page);
 
-  const mood = page.getByTestId('day-mood');
-  await expect(mood).toHaveValue('intimate', { timeout: 30_000 });
-  // One adult mood in the list: no Raunchy entry.
-  await expect(page.getByTestId('day-mood-intimate')).toHaveCount(1);
+  // Rating (2026-11-12, once the Mood list): Adult is the one adult choice, no Raunchy entry.
+  await expect(page.getByTestId('day-rating-adult')).toHaveAttribute('aria-pressed', 'true', {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId('day-rating-adult')).toHaveCount(1);
   await expect(page.getByTestId('day-mood-raunchy')).toHaveCount(0);
   const playful = page.getByTestId('day-intimate-playful');
   await expect(playful).toHaveAttribute('aria-pressed', 'true');
@@ -5236,9 +5237,9 @@ test('day Intimate · Playful: a Raunchy Day opens as Intimate with Playful on, 
   await page.getByTestId('day-intimate-playful').click();
   await expect(page.getByTestId('day-intimate-playful')).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(storedDay, { timeout: 15_000 }).toEqual({ dayMood: 'intimate', intimatePlayful: true });
-  await page.getByTestId('day-mood').selectOption('everyday');
+  await page.getByTestId('day-rating-general').click();
   await expect(page.getByTestId('day-intimate-playful')).toHaveCount(0);
-  await page.getByTestId('day-mood').selectOption('intimate');
+  await page.getByTestId('day-rating-adult').click();
   await expect(page.getByTestId('day-intimate-playful')).toHaveAttribute('aria-pressed', 'true');
 
   // Phone: the same toggle beside People.
