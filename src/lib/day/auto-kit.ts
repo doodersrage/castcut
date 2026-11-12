@@ -128,16 +128,19 @@ export function dayOutfitArcKit(
 
 /**
  * The outfit a script's Scene wears to match its script (Part 19 follow-up): the auto kit an
- * earlier-made Scene of the same script already wears in the same part of the day — the day's
- * outfit or the evening's, as Day keeps them. A Scene renders alone, so on its own it picked by
- * its time of day and the 2026-11-06 episode changed her clothes four ways across 24 scenes.
+ * earlier-made Scene of the same script already wears — first one of the same script scene (its
+ * other shots), else one in the same part of the day (the day's outfit or the evening's, as Day
+ * keeps them). A Scene renders alone, so on its own it picked by its time of day and the
+ * 2026-11-06 episode changed her clothes four ways across 24 scenes. The scene comes first
+ * (2026-11-12, s11): a shot on the board moment's Scene keeps the board's time ("night") while
+ * the script says DAY, so 2B matched no one and wore a sweater dress between 2A and 2C in magenta.
  * Undefined: not a script's, nothing to match yet, or Vacation (an outfit per stop).
  */
 export function scriptSceneOutfitKit(
   scenes: ReadonlyArray<{
     id: string;
     createdAt: number;
-    fromScript?: { scriptId: string };
+    fromScript?: { scriptId: string; sceneId?: string };
     slot: { id: string; wardrobeId?: string | null };
   }>,
   sceneId: string | null | undefined,
@@ -148,15 +151,20 @@ export function scriptSceneOutfitKit(
   const scriptId = scene?.fromScript?.scriptId;
   const block = scene ? dayOutfitBlock(scene.slot.id, dayMood) : null;
   if (!scene || !scriptId || !block) return undefined;
-  return [...scenes]
+  const wearing = scenes
     .filter(
       entry =>
         entry.id !== scene.id &&
         entry.fromScript?.scriptId === scriptId &&
-        dayOutfitBlock(entry.slot.id, dayMood) === block &&
         Boolean(entry.slot.wardrobeId?.trim()) &&
         fits(entry.slot.wardrobeId!.trim())
     )
-    .sort((a, b) => a.createdAt - b.createdAt)[0]
-    ?.slot.wardrobeId?.trim();
+    .sort((a, b) => a.createdAt - b.createdAt);
+  const scriptScene = scene.fromScript?.sceneId;
+  const sameScene = scriptScene
+    ? wearing.find(entry => entry.fromScript?.sceneId === scriptScene)
+    : undefined;
+  return (
+    sameScene ?? wearing.find(entry => dayOutfitBlock(entry.slot.id, dayMood) === block)
+  )?.slot.wardrobeId?.trim();
 }

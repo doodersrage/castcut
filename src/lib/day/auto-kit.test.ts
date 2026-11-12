@@ -85,4 +85,24 @@ describe('a script’s Scenes keep one outfit for the day and one for the evenin
     );
     assert.equal(scriptSceneOutfitKit(scenes, 'd', 'vacation'), undefined);
   });
+
+  it('wears what the same script scene wears first, whatever its time (s11, 2026-11-12)', () => {
+    // 2B sits on the board's "night" moment while the script says DAY: it matched no one and
+    // wore a sweater dress between 2A and 2C in magenta.
+    const shot = (id: string, at: number, part: string, sceneId: string, kit?: string) => ({
+      id,
+      createdAt: at,
+      fromScript: { scriptId: 's1', sceneId },
+      slot: { id: part, ...(kit ? { wardrobeId: kit } : {}) },
+    });
+    const shots = [
+      shot('1a', 1, 'afternoon', 'shop', 'magenta-wrap'),
+      shot('2a', 2, 'afternoon', 'corner', 'magenta-wrap'),
+      shot('2b', 3, 'night', 'corner'),
+      shot('n2', 0, 'night', 'elsewhere', 'stone-sweater'),
+    ];
+    assert.equal(scriptSceneOutfitKit(shots, '2b', 'everyday'), 'magenta-wrap');
+    // Nothing worn in its scene yet: the time of day, as before.
+    assert.equal(scriptSceneOutfitKit([...shots.slice(0, 1), shots[2]!, shots[3]!], '2b', 'everyday'), 'stone-sweater');
+  });
 });

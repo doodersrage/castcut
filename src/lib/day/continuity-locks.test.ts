@@ -25,7 +25,7 @@ describe('day continuity locks', () => {
       ]
     );
     assert.equal(locks[0]!.label, 'Face · plate + face finish');
-    assert.equal(locks[1]!.label, 'Clothes · Sage slip dress (1 slot differ)');
+    assert.equal(locks[1]!.label, 'Clothes · Sage slip dress (1 moment differs)');
     assert.match(locks[2]!.label, /^Place · .+ home \(2\)$/);
     assert.equal(locks[3]!.label, 'Weather · rain');
   });
@@ -41,6 +41,18 @@ describe('day continuity locks', () => {
     });
     assert.ok(locks.every(lock => !lock.held));
     assert.equal(locks[2]!.label, 'Place · each setting its own');
+    // From a script: one outfit a scene, held (scriptSceneOutfitKit, 2026-11-12).
+    const scripted = dayContinuityLocks({
+      ...base,
+      clothing: { summary: 'No kit', set: false },
+      slots: [{ location: 'park' }],
+      weather: '',
+      fromScript: true,
+    });
+    assert.deepEqual(
+      [scripted[1]!.held, scripted[1]!.label],
+      [true, 'Clothes · one outfit a scene']
+    );
     const off = dayContinuityLocks({
       ...base,
       cast: { id: 'nora-1', places: { home: { off: true } } },

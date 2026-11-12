@@ -910,6 +910,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
             differingSlots: differingSlotIds.length,
             slots,
             weather: dayWeather,
+            fromScript: shortMoments.moments.length > 0,
           })}
         />
         <DayOutfitRow

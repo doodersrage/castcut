@@ -1035,6 +1035,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                 differingSlots: differingSlotIds.length,
                 slots,
                 weather: dayWeather,
+                fromScript: shortMoments.moments.length > 0,
               })}
             />
             <DayOutfitRow

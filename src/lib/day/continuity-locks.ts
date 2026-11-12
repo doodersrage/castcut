@@ -29,6 +29,11 @@ export function dayContinuityLocks(input: {
   eventPlace?: string;
   /** Weather on every setting ('' = whatever each setting says). */
   weather: string;
+  /**
+   * The short is played from a script: with no outfit set, every shot of a scene wears the
+   * outfit its scene's first shot picked (scriptSceneOutfitKit), so clothes hold per scene.
+   */
+  fromScript?: boolean;
 }): ContinuityLock[] {
   const name = input.cast?.name?.trim() || 'the Cast';
   const locks: ContinuityLock[] = [];
@@ -58,17 +63,25 @@ export function dayContinuityLocks(input: {
           held: true,
           label: `Clothes · ${input.clothing.summary}${
             input.differingSlots > 0
-              ? ` (${input.differingSlots} slot${input.differingSlots === 1 ? '' : 's'} differ)`
+              ? ` (${input.differingSlots} moment${input.differingSlots === 1 ? ' differs' : 's differ'})`
               : ''
           }`,
           detail: 'The short’s clothing is worn in every moment that does not pick its own.',
         }
-      : {
-          id: 'clothes',
-          held: false,
-          label: 'Clothes · per moment',
-          detail: 'No outfit for the short — each moment picks clothes that fit its beat.',
-        }
+      : input.fromScript
+        ? {
+            id: 'clothes',
+            held: true,
+            label: 'Clothes · one outfit a scene',
+            detail:
+              'No outfit for the short — each scene picks one for its beat, and every shot of that scene wears it.',
+          }
+        : {
+            id: 'clothes',
+            held: false,
+            label: 'Clothes · per moment',
+            detail: 'No outfit for the short — each moment picks clothes that fit its beat.',
+          }
   );
 
   const eventPlace = input.eventPlace?.trim();
