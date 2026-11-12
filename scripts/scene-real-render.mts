@@ -812,8 +812,27 @@ const V3_PAIRS: Record<
 };
 
 function v3Name(castId: string) {
+  // An imported Cast (char-…) is named by SCENE_CAST_NAME: its id read as "Char-rp-cast-…".
+  if (!castId.startsWith('cast-') && process.env.SCENE_CAST_NAME)
+    return process.env.SCENE_CAST_NAME;
   const name = castId.replace(/^cast-/, '');
   return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/**
+ * A Scene's "Engine for this shot", picked in its own editor as a player would ('' = the
+ * short's). Writing it into IndexedDB under the page lost it to the app's synced settings:
+ * castcut-s12 pinned 2511 and rendered 2.1, 25 of 25.
+ */
+async function pinSceneEngine(page: Page, castId: string, sceneId: string, engine: string) {
+  await go(page, `/scene?character=${castId}&scene=${sceneId}`);
+  const select = page.getByTestId('day-slot-engine').locator('select');
+  await select.waitFor({ timeout: 60_000 });
+  await attempt(page, `${sceneId}: engine ${engine || "the short's"}`, async () => {
+    await select.selectOption(engine);
+    await page.waitForTimeout(1500);
+    if ((await select.inputValue()) !== engine) throw new Error(await select.inputValue());
+  });
 }
 
 function v3ScriptText(castId: string) {
@@ -2834,15 +2853,8 @@ const phases: Record<string, Phase> = {
       const included = made.filter(entry =>
         onlyPairs ? entry.role !== 'eval' : entry.role === 'eval' || pairs
       );
-      await patchSceneSlots(
-        page,
-        Object.fromEntries(
-          included.map(({ scene }) => [
-            scene.id,
-            { engine: engine === 'default' ? undefined : engine },
-          ])
-        )
-      );
+      for (const { scene } of included)
+        await pinSceneEngine(page, castId, scene.id, engine === 'default' ? '' : engine);
       const script = (await v3Script(page, castId))!;
       await go(page, `/script?character=${castId}&script=${script.id}`);
       await page.getByTestId('script-prepare-run').click({ timeout: 60_000 });
