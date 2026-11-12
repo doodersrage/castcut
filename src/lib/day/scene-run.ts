@@ -652,6 +652,8 @@ export type FlaggedShot = {
   why: string;
   /** The kept take's picture (its framed cut when it has one). */
   thumb?: string;
+  /** No take landed: the run failed it (listed so a missing shot is never missed). */
+  failed?: boolean;
 };
 
 /**
@@ -660,10 +662,25 @@ export type FlaggedShot = {
  * pictures showed at once). Scenes no longer there are listed under their id.
  */
 export function flaggedByScene(
-  run: Pick<SceneRun, 'items' | 'flagged'>,
+  run: Pick<SceneRun, 'items' | 'flagged'> & Partial<Pick<SceneRun, 'outcomes' | 'log'>>,
   scenes: readonly Pick<SavedScene, 'id' | 'name' | 'takes' | 'keptTakeId'>[]
 ): Array<{ group: string; shots: FlaggedShot[] }> {
-  const flagged = run.flagged ?? {};
+  // A failed shot is listed too, first among its scene's (2026-11-12: s11's first shot failed and
+  // the review list, flagged takes only, never said so), with why from the run's log.
+  const failedIds = new Set(
+    Object.entries(run.outcomes ?? {})
+      .filter(([, outcome]) => outcome === 'failed')
+      .map(([sceneId]) => sceneId)
+  );
+  const failedWhy = (sceneId: string) =>
+    [...(run.log ?? [])]
+      .reverse()
+      .find(entry => entry.sceneId === sceneId && entry.event === 'failed')
+      ?.detail?.trim() || 'no take landed';
+  const flagged: Record<string, string> = {
+    ...(run.flagged ?? {}),
+    ...Object.fromEntries([...failedIds].map(id => [id, `Failed — ${failedWhy(id)}`])),
+  };
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   const order = [
     ...run.items.map(item => item.sceneId).filter(id => id in flagged),
@@ -677,11 +694,13 @@ export function flaggedByScene(
     const group = match ? `${match[1]} ${match[2]}` : 'Other shots';
     const kept = scene?.takes.find(take => take.id === scene.keptTakeId);
     const thumb = kept?.framedUrl || kept?.imageUrl;
+    const failed = failedIds.has(sceneId);
     const shot: FlaggedShot = {
       sceneId,
       name,
       why: flagged[sceneId]!,
-      ...(thumb ? { thumb } : {}),
+      ...(thumb && !failed ? { thumb } : {}),
+      ...(failed ? { failed: true } : {}),
     };
     const last = groups.find(entry => entry.group === group);
     if (last) last.shots.push(shot);

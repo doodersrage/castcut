@@ -166,7 +166,7 @@ export function dayAsShort(input: {
   const title =
     input.title?.trim() ||
     (input.day.dayEvent?.text?.trim() ?? '') ||
-    `${input.leadName.trim() || 'Her'}’s day`;
+    `${input.leadName.trim() || 'Her'}’s short`;
   const prior0 = input.existing?.script.castId === castId ? input.existing : undefined;
   const leadSpeaker0 = speakerKey(input.leadName);
   // Every moment the short has (Step 5b-ii): the board writes only what its card owns (heading,

@@ -91,7 +91,7 @@ export function useShortDialogue(input: {
       const script0 = loadSceneScriptStore().scripts.find(entry => entry.id === link.scriptId);
       const { outline, slotIds } = momentDialogueOutline({
         day,
-        title: script0?.name ?? `${leadName}’s day`,
+        title: script0?.name ?? `${leadName}’s short`,
         logline: premise,
         peopleOf,
       });

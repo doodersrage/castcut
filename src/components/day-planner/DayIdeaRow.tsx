@@ -268,8 +268,8 @@ export default function DayIdeaRow({
         <p className="type-caption text-[var(--text-muted)]" data-testid="day-idea-hint">
           {writeDay
             ? dialogue
-              ? 'Write it: a beat and a place on each moment here, and (With dialogue) each moment’s scene with its lines. Write it as a script: any number of scenes, on Script.'
-              : 'Write it: a beat and a place on each moment here. Write it as a script: scenes with lines, any length, on Script.'
+              ? 'Write it fills each moment here, lines and all. Write it as a script takes any number of scenes to Script.'
+              : 'Write it fills each moment here. Write it as a script takes any number of scenes, with lines, to Script.'
             : 'Write it as a script: scenes with lines, any length, on Scene — rendered and cut from there.'}
         </p>
       ) : null}

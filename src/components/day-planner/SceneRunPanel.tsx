@@ -50,6 +50,17 @@ export default function SceneRunPanel({
   const queuedIds = new Set(plan.queued.map(entry => entry.sceneId));
   const leftIds = new Set(plan.left.map(entry => entry.sceneId));
   const set = (patch: Partial<SceneRun>) => onChange({ ...run, ...patch, updatedAt: Date.now() });
+  // Dailies: the takes to check and the shots that failed, by scene (2026-11-12).
+  const reviewGroups = useMemo(() => flaggedByScene(run, scenes), [run, scenes]);
+  const reviewShots = reviewGroups.flatMap(entry => entry.shots);
+  const failedCount = reviewShots.filter(shot => shot.failed).length;
+  const checkCount = reviewShots.length - failedCount;
+  const reviewSummary = [
+    failedCount ? `${failedCount} failed — no take` : '',
+    checkCount ? `${checkCount} to check — kept without passing its checks` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <ToolSection title={`Run · ${run.label}`} data-testid="scene-run">
@@ -237,30 +248,36 @@ export default function SceneRunPanel({
             </select>
           </label>
         </fieldset>
-        {run.flagged && Object.keys(run.flagged).length ? (
+        {reviewGroups.length ? (
           <div className="space-y-1" data-testid="scene-run-flagged">
-            <p className="type-caption font-medium">
-              To check — kept without passing its checks ({Object.keys(run.flagged).length})
-            </p>
-            {flaggedByScene(run, scenes).map(({ group, shots }) => (
+            <p className="type-caption font-medium">{reviewSummary}</p>
+            {reviewGroups.map(({ group, shots }) => (
               <div key={group} className="space-y-0.5">
                 <p className="type-caption text-[var(--text-muted)]">{group}</p>
                 <ul className="space-y-1">
                   {shots.map(shot => (
-                    <li key={shot.sceneId} className="flex items-center gap-2 text-sm">
+                    <li
+                      key={shot.sceneId}
+                      className="flex items-center gap-3 text-sm"
+                      data-failed={shot.failed ? 'true' : undefined}
+                    >
                       {shot.thumb ? (
                         // eslint-disable-next-line @next/next/no-img-element -- a ComfyUI take
                         <img
                           src={shot.thumb}
                           alt=""
-                          className="h-10 w-14 shrink-0 rounded-[var(--radius-sm)] object-cover"
+                          className="aspect-video w-32 shrink-0 rounded-[var(--radius-sm)] object-cover"
                         />
                       ) : (
-                        <span className="h-10 w-14 shrink-0 rounded-[var(--radius-sm)] bg-[var(--bg-muted)]" />
+                        <span className="type-caption flex aspect-video w-32 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-dashed border-[var(--border-subtle)] text-[var(--text-muted)]">
+                          {shot.failed ? 'No take' : ''}
+                        </span>
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{shot.name}</span>
-                        <span className="type-caption block text-[var(--text-muted)]">
+                        <span
+                          className={`type-caption block ${shot.failed ? 'text-[var(--tint-danger-text)]' : 'text-[var(--text-muted)]'}`}
+                        >
                           {shot.why}
                         </span>
                       </span>
@@ -275,18 +292,20 @@ export default function SceneRunPanel({
                           Open
                         </Button>
                       ) : null}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        data-testid={`scene-run-flagged-fine-${shot.sceneId}`}
-                        title="You looked: it's fine — off the list"
-                        onClick={() => {
-                          const { [shot.sceneId]: _gone, ...rest } = run.flagged ?? {};
-                          set({ flagged: rest });
-                        }}
-                      >
-                        Looks fine
-                      </Button>
+                      {shot.failed ? null : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          data-testid={`scene-run-flagged-fine-${shot.sceneId}`}
+                          title="You looked: it's fine — off the list"
+                          onClick={() => {
+                            const { [shot.sceneId]: _gone, ...rest } = run.flagged ?? {};
+                            set({ flagged: rest });
+                          }}
+                        >
+                          Looks fine
+                        </Button>
+                      )}
                     </li>
                   ))}
                 </ul>

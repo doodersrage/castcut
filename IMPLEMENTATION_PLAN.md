@@ -4174,4 +4174,12 @@ not by guessing from the flags (user: "do some test rendering for just those"):
 product is "the short" (Outfit's "Continue to Short", the palette's "Queue the short"); a Short
 with a script gets a **Shot list** view (slate, scene, size, who, line, takes, kept / to check /
 no take yet / not made); a finished run says how many failed ("1 of 2 Scenes, 1 failed").
+- **The moment cards, fixed (2026-11-12):** a script Scene now wears what its own script scene's
+  other shots wear first (`scriptSceneOutfitKit`), else the part of the day as before — every shot
+  of a scene, one outfit, whichever renders first. The Clothes chip says it ("one outfit a scene").
+- **Dailies:** the run's review lists failed shots too (no take, why from the log) above the takes
+  to check, with 16:9 thumbnails; the shot list is grouped by scene with its coverage line.
+- **E2E (isolated, :47971):** 5 of 6 touched tests pass; "This Day as a script" fails at
+  `day-progress-scene-evening` on the session's base commit too (pre-existing). "An episode run
+  keeps a take" now expects the one dress plate auto kits render first (22c3dddd).
 

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import type { SavedScene, SceneTake } from './scenes';
 import type { PlannedShot } from './script-shots';
 import type { ShortMoment } from './short-moments';
-import { shortShotRows, shortShotSummary } from './short-shot-list';
+import { shortShotGroups, shortShotRows, shortShotSummary } from './short-shot-list';
 
 const shot = (id: string, extra: Partial<PlannedShot> = {}): PlannedShot => ({
   id,
@@ -70,5 +70,16 @@ describe('a Short’s shot list (2026-11-12)', () => {
       '4 shots · 1 kept · 1 to check · 1 no take yet · 1 not made · about 2 min'
     );
     assert.equal(shortShotSummary([]), '0 shots');
+  });
+
+  it('groups by script scene with its coverage', () => {
+    const groups = shortShotGroups(shortShotRows(moments, { sc: 'x' }));
+    assert.deepEqual(
+      groups.map(group => [group.sceneNumber, group.heading, group.rows.map(row => row.label), group.coverage]),
+      [
+        [1, 'INT. NARROW BOOKSHOP ENTRANCE - DAY', ['1A', '1B'], '2 shots · Wide, Close-up · 1 of 2 with a take'],
+        [2, 'INT. CRAMPED CORNER - DAY', ['2A', '2B'], '2 shots · Wide, Medium · 1 of 2 with a take'],
+      ]
+    );
   });
 });

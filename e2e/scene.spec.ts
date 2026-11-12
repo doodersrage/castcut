@@ -2013,7 +2013,11 @@ test('an episode run keeps a take on each Scene by itself', async ({
     timeout: 120_000,
   });
   await expect(page.getByTestId('scene-run-state')).toContainText('2 of 2 done');
-  expect(queued).toHaveLength(2);
+  // A take each, never a second — plus the one dress plate their auto outfit is rendered on first
+  // (Edit 2511 auto kits get a dressed plate, 2026-11-11; reused, not one per take).
+  const plates = queued.filter(body => String(JSON.parse(body).prompt).includes('outfit try-on'));
+  expect(plates.length).toBeLessThanOrEqual(1);
+  expect(queued.length - plates.length).toBe(2);
 
   // Each Scene got its take, and it was kept. Every check is stubbed out here, so nothing was
   // checked — and a run says so (2026-11-11): both are listed to check, "not checked".
@@ -2813,7 +2817,7 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
     scripts?: Array<{ id: string; name: string; shots?: unknown[]; castMap?: Record<string, string> }>;
     scenes?: Array<{ fromScript?: { scriptId: string }; fromDaySlot?: string; keptTakeId?: string; takes: unknown[] }>;
   };
-  const script = tool.scripts?.find(entry => entry.name === 'Scene Cast’s day');
+  const script = tool.scripts?.find(entry => entry.name === 'Scene Cast’s short');
   expect(script, JSON.stringify(tool.scripts?.map(entry => entry.name))).toBeTruthy();
   // Three moments (the empty afternoon is left out), a shot and a Scene each.
   expect(script!.shots).toHaveLength(3);
@@ -2835,13 +2839,13 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   await page.getByTestId('day-as-short').first().click();
   await expect(page).toHaveURL(new RegExp(`script=${script!.id}`), { timeout: 60_000 });
   const again = JSON.parse((await storedSceneTool(page)) || '{}') as typeof tool;
-  expect(again.scripts?.filter(entry => entry.name === 'Scene Cast’s day')).toHaveLength(1);
+  expect(again.scripts?.filter(entry => entry.name === 'Scene Cast’s short')).toHaveLength(1);
   expect((again.scenes ?? []).filter(scene => scene.fromScript?.scriptId === script!.id)).toHaveLength(3);
 
   // Cut on its Scenes only: the short's kept one (the evening), not the Cast's others.
   await gotoStable(page, `/cut?from=scenes&character=${CAST}&script=${script!.id}`);
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('cut-scenes-script')).toContainText('Scene Cast’s day', { timeout: 60_000 });
+  await expect(page.getByTestId('cut-scenes-script')).toContainText('Scene Cast’s short', { timeout: 60_000 });
   await expect(page.getByTestId('cut-source-scenes')).toContainText('1 shot');
   await page.getByTestId('cut-scenes-script-all').click();
   await expect(page.getByTestId('cut-scenes-script')).toHaveCount(0);

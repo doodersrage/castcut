@@ -63,7 +63,7 @@ describe('a Day as a short', () => {
   it('makes the script, a shot per moment and its Scene, the still as the kept take', () => {
     const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1000 });
     assert.ok(short);
-    assert.equal(short.script.name, 'Mara’s day');
+    assert.equal(short.script.name, 'Mara’s short');
     assert.equal(short.scenes.length, 3);
     assert.equal(short.shots.length, 3);
     const [first, second] = short.scenes;

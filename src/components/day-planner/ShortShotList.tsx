@@ -2,6 +2,7 @@
 
 import { scenePagePath } from '@/lib/day/scene-links';
 import {
+  shortShotGroups,
   shortShotSummary,
   type ShortShotRow,
   type ShortShotStatus,
@@ -56,7 +57,6 @@ export default function ShortShotList({
             <tr>
               <th scope="col">Shot</th>
               <th scope="col">Take</th>
-              <th scope="col">Scene</th>
               <th scope="col">Size</th>
               <th scope="col">Who</th>
               <th scope="col">Line or action</th>
@@ -64,56 +64,69 @@ export default function ShortShotList({
               <th scope="col">Status</th>
             </tr>
           </thead>
-          <tbody>
-            {rows.map(row => (
-              <tr
-                key={row.shotId}
-                data-status={row.status}
-                data-testid={`short-shot-row-${row.label}`}
-              >
+          {shortShotGroups(rows).map(group => (
+            <tbody key={group.sceneKey} data-testid={`short-shot-scene-${group.sceneNumber}`}>
+              <tr>
                 <th
-                  scope="row"
-                  className="whitespace-nowrap font-medium text-[var(--text-primary)]"
+                  scope="rowgroup"
+                  colSpan={7}
+                  className="bg-[var(--bg-muted)] text-left font-medium text-[var(--text-primary)]"
                 >
-                  {row.sceneId ? (
-                    <a
-                      href={sceneHref(row.sceneId)}
-                      className="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
-                      aria-label={`Shot ${row.label} — open on Scene`}
-                    >
-                      {row.label}
-                    </a>
-                  ) : (
-                    row.label
-                  )}
-                </th>
-                <td>
-                  <span className="flex h-9 w-16 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-[var(--bg-muted)]">
-                    {row.thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- a ComfyUI take, not a static asset
-                      <img src={row.thumb} alt="" className="h-full w-full object-cover" />
-                    ) : null}
+                  {group.sceneNumber} · {group.heading}
+                  <span className="ml-2 font-normal text-[var(--text-muted)]">
+                    {group.coverage}
                   </span>
-                </td>
-                <td className="whitespace-nowrap">{row.heading}</td>
-                <td className="whitespace-nowrap" title={`${row.sizeTitle} · ${row.purpose}`}>
-                  {row.size}
-                  <span className="block text-[var(--text-muted)]">{row.purpose}</span>
-                </td>
-                <td>{row.who}</td>
-                <td className="min-w-[16rem]">{row.text}</td>
-                <td className="tabular-nums">{row.takes}</td>
-                <td className={`whitespace-nowrap ${STATUS_TONE[row.status]}`}>
-                  {STATUS_WORDS[row.status]}
-                  {row.why ? (
-                    <span className="block max-w-[14rem] whitespace-normal text-[var(--text-muted)]">
-                      {row.why}
-                    </span>
-                  ) : null}
-                </td>
+                </th>
               </tr>
-            ))}
-          </tbody>
+              {group.rows.map(row => (
+                <tr
+                  key={row.shotId}
+                  data-status={row.status}
+                  data-testid={`short-shot-row-${row.label}`}
+                >
+                  <th
+                    scope="row"
+                    className="whitespace-nowrap font-medium text-[var(--text-primary)]"
+                  >
+                    {row.sceneId ? (
+                      <a
+                        href={sceneHref(row.sceneId)}
+                        className="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+                        aria-label={`Shot ${row.label} — open on Scene`}
+                      >
+                        {row.label}
+                      </a>
+                    ) : (
+                      row.label
+                    )}
+                  </th>
+                  <td>
+                    <span className="flex h-9 w-16 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-[var(--bg-muted)]">
+                      {row.thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- a ComfyUI take, not a static asset
+                        <img src={row.thumb} alt="" className="h-full w-full object-cover" />
+                      ) : null}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap" title={`${row.sizeTitle} · ${row.purpose}`}>
+                    {row.size}
+                    <span className="block text-[var(--text-muted)]">{row.purpose}</span>
+                  </td>
+                  <td>{row.who}</td>
+                  <td className="min-w-[16rem]">{row.text}</td>
+                  <td className="tabular-nums">{row.takes}</td>
+                  <td className={`whitespace-nowrap ${STATUS_TONE[row.status]}`}>
+                    {STATUS_WORDS[row.status]}
+                    {row.why ? (
+                      <span className="block max-w-[14rem] whitespace-normal text-[var(--text-muted)]">
+                        {row.why}
+                      </span>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>

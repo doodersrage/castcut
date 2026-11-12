@@ -451,4 +451,29 @@ describe('a run’s takes to check, grouped by scene (2026-11-11)', () => {
     );
     assert.equal(groups[0]!.shots[0]!.thumb, '/a.png');
   });
+
+  it('lists a failed shot too, with why, and no picture (2026-11-12)', () => {
+    const scene = (id: string, name: string, kept: string) => ({
+      id,
+      name,
+      keptTakeId: 't',
+      takes: [{ id: 't', promptId: 't', imageUrl: kept, at: 1 }],
+    });
+    const groups = flaggedByScene(
+      {
+        items: ['a', 'b'].map(sceneId => ({ sceneId, include: true })),
+        flagged: { b: 'the pose missed' },
+        outcomes: { a: 'failed', b: 'landed' },
+        log: [{ at: 1, sceneId: 'a', event: 'failed', detail: 'its take wasn’t queued: ComfyUI is busy' }],
+      },
+      [scene('a', '1A KITCHEN · Establishing', '/a.png'), scene('b', '1B KITCHEN · Dialogue', '/b.png')]
+    );
+    assert.deepEqual(
+      groups[0]!.shots.map(shot => [shot.sceneId, shot.why, shot.failed ?? false, shot.thumb]),
+      [
+        ['a', 'Failed — its take wasn’t queued: ComfyUI is busy', true, undefined],
+        ['b', 'the pose missed', false, '/b.png'],
+      ]
+    );
+  });
 });

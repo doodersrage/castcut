@@ -12,6 +12,9 @@ export type ShortShotStatus = 'kept' | 'to-check' | 'no-take' | 'not-made';
 
 export type ShortShotRow = {
   shotId: string;
+  /** The script scene it covers (script/parse.ts id), and its place in the script (1, 2…). */
+  sceneKey: string;
+  sceneNumber: number;
   /** The slate: the scene's number and the shot's letter ("2C"). */
   label: string;
   /** The script scene's heading ("INT. CRAMPED CORNER - DAY"). */
@@ -73,6 +76,8 @@ export function shortShotRows(
         : (shot.action?.trim() ?? '');
       rows.push({
         shotId: shot.id,
+        sceneKey: moment.sceneId,
+        sceneNumber: momentIndex + 1,
         label: slateOf(moment, momentIndex, shotIndex),
         heading: moment.heading || moment.place,
         size: SIZE_SHORT[shot.framing] ?? shot.framing,
@@ -108,4 +113,43 @@ export function shortShotSummary(rows: readonly ShortShotRow[]): string {
   if (seconds)
     parts.push(`about ${seconds < 90 ? `${seconds} s` : `${Math.round(seconds / 60)} min`}`);
   return parts.join(' · ');
+}
+
+export type ShortShotGroup = {
+  sceneKey: string;
+  sceneNumber: number;
+  heading: string;
+  rows: ShortShotRow[];
+  /** Its coverage: the sizes it has, widest first ("Wide · Medium · Close-up"), and kept takes. */
+  coverage: string;
+};
+
+const SIZE_ORDER = ['Wide', 'Medium wide', 'Medium', 'Close-up'];
+
+/** The shot list by script scene, in order, each with its coverage line (2026-11-12). */
+export function shortShotGroups(rows: readonly ShortShotRow[]): ShortShotGroup[] {
+  const groups: ShortShotGroup[] = [];
+  for (const row of rows) {
+    const last = groups[groups.length - 1];
+    if (last && last.sceneKey === row.sceneKey) last.rows.push(row);
+    else
+      groups.push({
+        sceneKey: row.sceneKey,
+        sceneNumber: row.sceneNumber,
+        heading: row.heading,
+        rows: [row],
+        coverage: '',
+      });
+  }
+  for (const group of groups) {
+    const sizes = [...new Set(group.rows.map(row => row.size))].sort(
+      (a, b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b)
+    );
+    const kept = group.rows.filter(
+      row => row.status === 'kept' || row.status === 'to-check'
+    ).length;
+    const count = group.rows.length;
+    group.coverage = `${count} shot${count === 1 ? '' : 's'} · ${sizes.join(', ')} · ${kept} of ${count} with a take`;
+  }
+  return groups;
 }
