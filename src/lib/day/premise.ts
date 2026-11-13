@@ -17,11 +17,19 @@ export const DAY_PREMISE_MAX_LENGTH = 240;
 const BEAT_MAX = 200;
 const SETTING_MAX = 120;
 
-/** Moods the premise writer serves: clothed, everyday stills. Adult and Sport beats are tuned by hand. */
+/**
+ * Moods the premise writer serves: clothed stills — Everyday, Vacation and Suggestive (its own
+ * words, dayPremiseSuggestive; 2026-11-13: Write it vanished on Suggestive, so it looked broken).
+ * Adult and Sport beats are tuned by hand.
+ */
 export function dayPremiseAvailable(mood: string | null | undefined): boolean {
   const normalized = normalizeDayMood(mood);
-  return normalized === 'everyday' || normalized === 'vacation';
+  return normalized === 'everyday' || normalized === 'vacation' || normalized === 'suggestive';
 }
+
+/** Suggestive's beats: flirty and glamorous, never undressed. */
+const dayPremiseSuggestive = (mood: string | null | undefined) =>
+  normalizeDayMood(mood) === 'suggestive';
 
 /**
  * Words a clothed Day's beat can't have. "strip" only as undressing: `strip\w*` took "striped
@@ -30,6 +38,12 @@ export function dayPremiseAvailable(mood: string | null | undefined): boolean {
 const ADULT_RE =
   /\b(nude|naked|topless|sex|sexual|orgasm|masturbat\w*|lingerie|underwear|bra|panties|breasts?|nipples?|genital\w*|erotic|strip(?:per|pers|ping|tease|s?\s*club)|stripped|undress\w*)\b/i;
 /** The stance words the prompt asks the beat to open with (dayEverydayPoseClass reads them). */
+/**
+ * Suggestive's check: clothed heat, so lingerie, a bra, a slip are its own — nudity, sex and
+ * undressing are not (the adult moods are elsewhere).
+ */
+const SUGGESTIVE_BARE_RE =
+  /\b(nude|naked|topless|bottomless|sex|sexual|orgasm|masturbat\w*|breasts?|nipples?|genital\w*|erotic|strip(?:per|pers|ping|tease|s?\s*club)|stripped|undress\w*)\b/i;
 const STANCE_LEAD_RE =
   /^(?:she\s+(?:is\s+)?)?(?:sitting|sits|seated|perched|curled|standing|stands|walking|walks|strolling|leaning|leans|lying|lies|reclining|kneeling|kneels|crouching|crouches|squatting|dancing|dances|twirling|climbing|climbs)\b/i;
 /** In the water: a clothed Day can't render it (nude, or dressed in the tub). */
@@ -56,6 +70,8 @@ export function buildDayPremiseMessages(input: {
   companions: boolean;
   /** Tomorrow: yesterday's beats ("morning: …"), so today follows on from them. */
   previousBeats?: string[];
+  /** The Day's mood: Suggestive is written in its own words; any other, everyday. */
+  mood?: string;
 }): ChatMessage[] {
   const premise = input.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
   const yesterday = (input.previousBeats ?? [])
@@ -82,7 +98,9 @@ export function buildDayPremiseMessages(input: {
         'sitting, standing, walking, leaning, lying, kneeling, crouching, dancing, or climbing the stairs —',
         'then what she is doing with her hands and where she is looking. One moment only, no sequence.',
         'Give each beat a short room / place (under 12 words) with its light.',
-        'Fully clothed in every beat, everyday, non-sexual; never in a bath, shower or hot tub.',
+        dayPremiseSuggestive(input.mood)
+          ? 'Flirty, playful and glamorous: charged looks and poses, a little teasing. She is always clothed — a slinky dress, a slip, lingerie at most — never nude, topless or undressing, nothing sexual; never in a bath, shower or hot tub.'
+          : 'Fully clothed in every beat, everyday, non-sexual; never in a bath, shower or hot tub.',
         'Follow the premise in story order.',
         people,
         'Answer with JSON only: [{"slot":"<slot id>","title":"...","time":"morning|afternoon|evening|night","beat":"...","setting":"..."}], one entry per slot.',
@@ -124,8 +142,9 @@ function cleanLine(value: unknown, max: number): string {
 export function parseDayPremiseBeats(
   reply: string,
   slotIds: string[],
-  options: { companions: boolean }
+  options: { companions: boolean; mood?: string }
 ): DayPremiseBeat[] {
+  const bare = dayPremiseSuggestive(options.mood) ? SUGGESTIVE_BARE_RE : ADULT_RE;
   const match = reply.match(/\[[\s\S]*\]/);
   if (!match) return [];
   let rows: unknown;
@@ -148,7 +167,7 @@ export function parseDayPremiseBeats(
     const beat = cleanLine(record.beat, BEAT_MAX);
     const setting = cleanLine(record.setting, SETTING_MAX);
     if (!beat || !setting) return;
-    if (ADULT_RE.test(beat) || ADULT_RE.test(setting)) return;
+    if (bare.test(beat) || bare.test(setting)) return;
     if (IN_WATER_RE.test(beat)) return;
     if (!options.companions && SECOND_PERSON_RE.test(beat)) return;
     // A scene line with no stance ("the gallery is full of paintings") → the recipe would guess
@@ -197,6 +216,8 @@ export async function requestDayPremiseBeats(input: {
   slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
+  /** The Day's mood (Suggestive has its own words). */
+  mood?: string;
   llmBody?: Record<string, unknown>;
 }): Promise<DayPremiseBeat[]> {
   const response = await fetch('/api/day-premise', {
@@ -209,6 +230,7 @@ export async function requestDayPremiseBeats(input: {
       ...(input.slotTimes ? { slotTimes: input.slotTimes } : {}),
       companions: input.companions,
       previousBeats: input.previousBeats,
+      ...(input.mood ? { mood: input.mood } : {}),
       ...input.llmBody,
     }),
   });

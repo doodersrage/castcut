@@ -3773,6 +3773,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           slots.flatMap(slot => (slot.timeOfDay ? [[slot.id, slot.timeOfDay]] : []))
         ),
         companions: toolSettings.allowCompanions === true,
+        mood: normalizeDayMood(toolSettings.dayMood),
         llmBody: sharedLlmRequestBody(shared),
       });
       // A whole day from an idea leaves an event (the toggle alone left it on underneath).
@@ -3793,6 +3794,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       slots,
       toolSettings.allowCompanions,
       toolSettings.dayEvent,
+      toolSettings.dayMood,
       toolSettings.dayThread,
       updateToolSettings,
     ]

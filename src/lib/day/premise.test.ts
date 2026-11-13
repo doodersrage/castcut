@@ -17,6 +17,36 @@ describe('Day from an idea', () => {
     assert.equal(dayPremiseAvailable('date-night'), true);
     assert.equal(dayPremiseAvailable('intimate'), false);
     assert.equal(dayPremiseAvailable('sport'), false);
+    // Suggestive is clothed too (2026-11-13: Write it vanished on it, so it looked broken).
+    assert.equal(dayPremiseAvailable('suggestive'), true);
+  });
+
+  it('writes Suggestive beats flirty and glamorous, still clothed — lingerie yes, nudity no', () => {
+    const asked = buildDayPremiseMessages({
+      premise: 'a date night',
+      slotIds: ['evening', 'night'],
+      companions: true,
+      mood: 'suggestive',
+    });
+    const system = asked[0]!.content as string;
+    assert.match(system, /flirty/i);
+    assert.match(system, /always clothed/i);
+    assert.doesNotMatch(system, /non-sexual/);
+    // Everyday keeps its own words.
+    const everyday = buildDayPremiseMessages({ premise: 'x', slotIds: ['evening'], companions: false });
+    assert.match(everyday[0]!.content as string, /everyday, non-sexual/);
+    const reply = JSON.stringify([
+      { slot: 'evening', beat: 'leaning on the bar in a black lace slip dress, smiling at her partner', setting: 'dim cocktail bar' },
+      { slot: 'night', beat: 'standing topless at the window', setting: 'hotel room' },
+    ]);
+    const kept = parseDayPremiseBeats(reply, ['evening', 'night'], { companions: true, mood: 'suggestive' });
+    assert.deepEqual(kept.map(beat => beat.slotId), ['evening']);
+    const lingerie = JSON.stringify([
+      { slot: 'night', beat: 'sitting on the bed in silk lingerie, looking over her shoulder', setting: 'hotel suite' },
+    ]);
+    assert.equal(parseDayPremiseBeats(lingerie, ['night'], { companions: false, mood: 'suggestive' }).length, 1);
+    // On Everyday, lingerie is still dropped.
+    assert.equal(parseDayPremiseBeats(lingerie, ['night'], { companions: false }).length, 0);
   });
 
   it('asks for a short — every moment, close together in time, titled — solo or with people', () => {

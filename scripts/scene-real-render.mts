@@ -4135,6 +4135,18 @@ const phases: Record<string, Phase> = {
     let blocks: string[] = [];
     let link = (await dayOf()).shortLink;
     if (!resume) {
+      // SHORT_RATING=suggestive|adult|general: the Short's Rating before it is written.
+      const rating = process.env.SHORT_RATING?.trim();
+      if (rating) {
+        const chip = page.getByTestId(`day-rating-${rating}`).first();
+        for (let i = 0; i < 10 && (await chip.getAttribute('aria-pressed')) !== 'true'; i += 1) {
+          await chip.click().catch(() => undefined);
+          await page.waitForTimeout(1000);
+        }
+        log('rating:', rating, (await chip.getAttribute('aria-pressed')) === 'true' ? 'on' : 'NOT ON');
+        if ((await chip.getAttribute('aria-pressed')) !== 'true')
+          problems.push(`shortscene: the ${rating} rating did not take`);
+      }
       for (let i = 0; i < 40; i += 1) {
         const n = (await dayOf()).slots?.length ?? 0;
         if (n === want) break;

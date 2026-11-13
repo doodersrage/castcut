@@ -1,7 +1,7 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { writeDayPremiseBeats } from '@/lib/day/premise-server';
 import { parseLlmRequestOptions } from '@/lib/llm/request-options';
-import { DAY_LENGTH_MAX } from '@/lib/day/planner';
+import { DAY_LENGTH_MAX, normalizeDayMood } from '@/lib/day/planner';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       slotTimes?: unknown;
       companions?: boolean;
       previousBeats?: unknown;
+      mood?: unknown;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
             .map(beat => beat.slice(0, 260))
             .slice(0, 8)
         : undefined,
+      // Only a known mood (Suggestive writes in its own words); anything else is everyday.
+      ...(typeof body.mood === 'string' ? { mood: normalizeDayMood(body.mood) } : {}),
       llm: parseLlmRequestOptions(body),
     });
     return apiJson({ beats });

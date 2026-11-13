@@ -19,6 +19,8 @@ export async function writeDayPremiseBeats(options: {
   slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
+  /** The Day's mood: Suggestive is written and checked in its own words. */
+  mood?: string;
   llm?: LlmRequestOptions;
 }): Promise<DayPremiseBeat[]> {
   const premise = options.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
@@ -37,6 +39,7 @@ export async function writeDayPremiseBeats(options: {
           ...(options.slotTimes ? { slotTimes: options.slotTimes } : {}),
           companions: options.companions,
           previousBeats,
+          ...(options.mood ? { mood: options.mood } : {}),
         }),
         maxTokens: 120 + 90 * slotIds.length,
         temperature: 0.7,
@@ -45,7 +48,7 @@ export async function writeDayPremiseBeats(options: {
         usageContext: { route: 'day-premise' },
       }),
       slotIds,
-      { companions: options.companions }
+      { companions: options.companions, ...(options.mood ? { mood: options.mood } : {}) }
     );
   const beats = await ask(options.slotIds);
   // A beat the checks drop leaves its moment empty — on a long board, several (5 of 9 written,

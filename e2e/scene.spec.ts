@@ -4224,6 +4224,58 @@ test('a Short with moments gets its short when opened, once; its edits keep that
   await expect.poll(() => storedScripts(page), { timeout: 30_000 }).toMatch(new RegExp(`^1\\|${CAST}\\|`));
 });
 
+// Suggestive is a clothed mood: Write it is there (it vanished on Suggestive, so it looked broken
+// — user, 2026-11-13) and writes the moments in Suggestive's own words.
+test('Write it on a Suggestive Short writes its moments in the mood', async ({ page }) => {
+  const asked: Array<Record<string, unknown>> = [];
+  await page.route('**/api/day-premise', route => {
+    asked.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({
+      json: {
+        beats: [
+          { slotId: 'evening', beat: 'leaning on the bar in a black slip dress, smiling', setting: 'dim cocktail bar' },
+          { slotId: 'night', beat: 'sitting on the hotel bed, looking over her shoulder', setting: 'hotel suite' },
+        ],
+      },
+    });
+  });
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'suggestive',
+          slots: [
+            { id: 'evening', label: 'Evening', location: 'bar', sceneHints: 'having a drink' },
+            { id: 'night', label: 'Night', location: 'hotel', sceneHints: 'getting ready' },
+          ],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const input = page.getByTestId('day-idea-input').first();
+  await expect(input).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-idea-write').first()).toBeVisible();
+  await expect(async () => {
+    await input.fill('a date night in the city');
+    await page.getByTestId('day-idea-write').first().click({ timeout: 2000 });
+    // Two written of the board's moments ("2 of 4 moments follow the idea").
+    await expect(page.getByTestId('day-idea-note').first()).toContainText(/follows? the idea/, {
+      timeout: 5000,
+    });
+  }).toPass({ timeout: 60_000 });
+  expect(asked.at(-1)?.mood).toBe('suggestive');
+  await expect(page.getByTestId('day-progress-scene-evening').first()).toContainText('slip dress', {
+    timeout: 30_000,
+  });
+});
+
 // Next short (was Tomorrow): the next day is a short of its own, not written over this one.
 // Write it with dialogue (Step 5c, 2026-11-09): each moment's scene written with its lines — her
 // partner answers where the beat has him — and the card shows the scene: lines by speaker.

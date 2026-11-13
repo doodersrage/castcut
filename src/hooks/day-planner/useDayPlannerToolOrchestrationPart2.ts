@@ -91,6 +91,7 @@ import {
   type DaySlot,
   type DaySlotId,
   isDayAdultMood,
+  normalizeDayMood,
 } from '@/lib/day/planner';
 import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day/clip-direction';
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
@@ -1530,6 +1531,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           slotIds: slots.map(slot => slot.id),
           companions: toolSettings.allowCompanions === true,
           previousBeats: yesterday,
+          mood: normalizeDayMood(toolSettings.dayMood),
           llmBody: sharedLlmRequestBody(shared),
         });
       } catch {
