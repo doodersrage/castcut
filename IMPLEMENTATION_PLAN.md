@@ -3842,8 +3842,12 @@ A Short with no short (parked, never edited) keeps its `slots` as today until it
       slimDayBoard), else whole. So any writer, partial or not, leaves a whole copy or an
       in-step slim one. Raw `loadSettingsCache().tools.day` readers use stills/plates only (3a).
       Scene → Delete of a Scene holding a card: the card is saved whole after (`keepShortCardOf`),
-      else it would read empty. Left: a Scene deleted on another device (tombstone merge) empties
-      its slim card. The board's stills pull also writes the page's stills when the stored ones
+      else it would read empty. A Scene deleted on another device (tombstone merge): the Short
+      page's pull rebuilds the card from the script (6df6cd37, place/beat/line only); since
+      2026-11-13 the browser's merge writes the card whole from the Scene's last copy as it drops
+      it (`lib/day/day-board-merge.ts`, registered with `registerToolRecordRemovalHook`). Left:
+      the server's push merge can't load Play, so a device that pushes a slim board before
+      pulling the delete leaves the card empty on the server until its next pull. The board's stills pull also writes the page's stills when the stored ones
       lag its short's kept takes (the page reads them in as it loads, so it had nothing to pull
       and the stored copy kept the old stills — caught by the in-step e2e spec). Rollback:
       3.15.2 (3.13+ read slim).

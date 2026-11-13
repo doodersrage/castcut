@@ -23,6 +23,8 @@ import {
 } from './scenes';
 import { storedDayBoard, wholeDayBoard } from './day-board-store';
 import { shortCardsForScriptScenes } from './short-cards';
+import { withMergedToolRecords } from '../storage/tool-record-merge';
+import { keepCardsOfRemovedScenes } from './day-board-merge';
 
 const day = {
   stillsCharacterId: 'mara',
@@ -129,6 +131,62 @@ describe('a card’s Scene deleted on another device (2026-11-10)', () => {
     assert.ok(!pulled.slots.find(slot => slot.id === 'evening')?.location);
     assert.deepEqual(pulled.scenes.map(scene => scene.fromDaySlot), ['morning']);
     assert.deepEqual(read.stills, linked.stills);
+  });
+});
+
+describe('a card’s Scene deleted on another device, met in the sync’s merge (Step 5f)', () => {
+  const gone = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+  const deletedAt = (gone.updatedAt ?? 0) + 60_000;
+  // This side: the board stored slim, every Scene. The other: the morning Scene deleted there.
+  const here = () => ({
+    day: stored(storedDayBoard(linked, short.scenes)),
+    scene: { scenes: stored(short.scenes) },
+  });
+  const there = {
+    scene: {
+      scenes: stored(short.scenes.filter(scene => scene.id !== gone.id)),
+      removedSceneAt: { [gone.id]: deletedAt },
+    },
+  };
+
+  it('writes the card whole from the Scene’s last copy as the merge drops it', () => {
+    const mine = here();
+    assert.deepEqual(by(mine.day, 'morning'), { id: 'morning' });
+    const merged = withMergedToolRecords(mine, there) as typeof mine;
+    const scenes = normalizeSavedScenes(merged.scene.scenes);
+    assert.ok(!scenes.some(scene => scene.id === gone.id), 'the delete stands');
+    const morning = by(merged.day, 'morning');
+    assert.equal(morning.sceneHints, 'pours coffee by the window');
+    assert.equal(morning.line, 'Coffee first.');
+    assert.equal(morning.location, 'kitchen');
+    // The rest stay slim (their Scenes hold them), and the board reads whole as before.
+    assert.deepEqual(by(merged.day, 'night'), { id: 'night' });
+    sameMoments(wholeDayBoard(stored(merged.day), scenes));
+    // Without it the card read empty until the Short page rebuilt it from the script.
+    assert.equal(by(wholeDayBoard(here().day, scenes), 'morning').sceneHints, undefined);
+  });
+
+  it('the same whichever side’s copy is the newer', () => {
+    // The deleting side's copy is the primary: it already holds the card whole (Scene → Delete).
+    const theirs = { day: stored(linked), ...there };
+    const merged = withMergedToolRecords(theirs, here()) as typeof theirs;
+    assert.equal(by(merged.day, 'morning').sceneHints, 'pours coffee by the window');
+    // This side newer, its Scenes already merged with the delete: filled the same.
+    const mine = here();
+    const pushed = withMergedToolRecords({ ...mine, scene: there.scene }, mine) as typeof mine;
+    assert.equal(by(pushed.day, 'morning').sceneHints, 'pours coffee by the window');
+  });
+
+  it('leaves the board alone when nothing it holds slim went', () => {
+    const mine = here();
+    const other = short.scenes.find(scene => scene.fromDaySlot === 'night')!;
+    const removed = [{ tool: 'scene', field: 'scenes', records: [stored(other)] }];
+    // The night card's Scene is still here (a copy on this side): nothing to fill.
+    assert.equal(keepCardsOfRemovedScenes(mine, removed), mine);
+    // Another short's board, or no link: as it is.
+    const unlinked = { ...mine, day: { ...mine.day, shortLink: undefined } };
+    assert.equal(keepCardsOfRemovedScenes(unlinked, [{ tool: 'scene', field: 'scenes', records: [stored(gone)] }]), unlinked);
+    assert.equal(keepCardsOfRemovedScenes(mine, []), mine);
   });
 });
 

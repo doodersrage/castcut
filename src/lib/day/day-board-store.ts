@@ -21,18 +21,8 @@ import {
   type DaySlotStill,
 } from './planner';
 import { normalizeSavedScenes, takeAsStill, type SavedScene } from './scenes';
-
-/** What a slim moment keeps: the rest is its Scene's. */
-const SLIM_KEYS = new Set(['id', 'eventMove', 'sceneHintsDay']);
-
-function isSlimSlot(slot: unknown): slot is Pick<DaySlot, 'id' | 'eventMove' | 'sceneHintsDay'> {
-  return (
-    Boolean(slot) &&
-    typeof slot === 'object' &&
-    typeof (slot as { id?: unknown }).id === 'string' &&
-    Object.keys(slot as object).every(key => SLIM_KEYS.has(key))
-  );
-}
+// Also registers the sync merge's keeper of a card whose Scene was deleted on another device.
+import { isSlimSlot } from './day-board-merge';
 
 /** Each card's Scene in the board's short (by the card it is tied to). */
 function tiedScenes(

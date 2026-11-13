@@ -69,6 +69,30 @@ export const TOOL_EDIT_LINEAGES: readonly ToolEditLineageSpec[] = [
   },
 ];
 
+/** Records a merge took out of a list because the other side deleted them: their last copies. */
+export type RemovedToolRecords = {
+  tool: string;
+  field: string;
+  records: Record<string, unknown>[];
+};
+
+/**
+ * Feature code that keeps what a merged delete would leave empty (Step 5f: a Short's card stored
+ * slim, which only its deleted Scene described). Registered, as storage never imports a feature:
+ * given the merged tools and the records the merge removed, it returns the tools to keep. Pure.
+ * Runs where it was registered: Play registers in the browser, so the server's push merge runs none.
+ */
+export type ToolRecordRemovalHook = (
+  tools: Record<string, unknown>,
+  removed: readonly RemovedToolRecords[]
+) => Record<string, unknown>;
+
+const removalHooks: ToolRecordRemovalHook[] = [];
+
+export function registerToolRecordRemovalHook(hook: ToolRecordRemovalHook): void {
+  if (!removalHooks.includes(hook)) removalHooks.push(hook);
+}
+
 /** Deletions kept per list, and removed child ids kept per record. */
 const MAX_REMOVED = 500;
 const MAX_REMOVED_CHILDREN = 200;
@@ -218,6 +242,7 @@ export function withMergedToolRecords<T extends object | undefined | null>(
     next ??= { ...primary };
     next[spec.tool] = merged;
   }
+  const removed: RemovedToolRecords[] = [];
   for (const spec of TOOL_RECORD_LISTS) {
     const mine = (next ?? primary)[spec.tool];
     const theirs = other[spec.tool];
@@ -226,6 +251,8 @@ export function withMergedToolRecords<T extends object | undefined | null>(
     if (!Array.isArray(theirs[spec.field]) && !isRec(theirs[spec.removedField])) continue;
     const removedAt = mergeRemovedTimes(base[spec.removedField], theirs[spec.removedField]);
     const list = mergeList(base[spec.field], theirs[spec.field], removedAt, spec);
+    const records = removedByMerge(base[spec.field], theirs[spec.field], list, removedAt, spec);
+    if (records.length) removed.push({ tool: spec.tool, field: spec.field, records });
     next ??= { ...primary };
     next[spec.tool] = {
       ...base,
@@ -233,7 +260,33 @@ export function withMergedToolRecords<T extends object | undefined | null>(
       ...(Object.keys(removedAt).length ? { [spec.removedField]: removedAt } : {}),
     };
   }
+  if (next && removed.length) {
+    for (const hook of removalHooks) next = hook(next, removed);
+  }
   return (next ?? primary) as T;
+}
+
+/** The records either side had that the merged list dropped for a delete: each its newest copy. */
+function removedByMerge(
+  primary: unknown,
+  other: unknown,
+  merged: readonly Rec[],
+  removedAt: Record<string, number>,
+  spec: ToolRecordListSpec
+): Rec[] {
+  const kept = new Set(merged.map(idOf));
+  const out = new Map<string, Rec>();
+  for (const list of [primary, other]) {
+    if (!Array.isArray(list)) continue;
+    for (const entry of list) {
+      const id = idOf(entry);
+      if (!id || kept.has(id) || removedAt[id] === undefined) continue;
+      const have = out.get(id);
+      if (!have || timeOf(entry as Rec, spec.timeField) > timeOf(have, spec.timeField))
+        out.set(id, entry as Rec);
+    }
+  }
+  return [...out.values()];
 }
 
 /**

@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { mergeSettingsCache, mergeStartupServerSettings } from './merge';
-import { withMergedSettingsRecords, withMergedToolRecords } from './tool-record-merge';
+import {
+  registerToolRecordRemovalHook,
+  withMergedSettingsRecords,
+  withMergedToolRecords,
+  type RemovedToolRecords,
+} from './tool-record-merge';
 
 const take = (id: string, at = 1) => ({ id, promptId: id, imageUrl: `/api/gallery/media/${id}`, at });
 const scene = (id: string, updatedAt: number, takes: ReturnType<typeof take>[] = [], extra = {}) => ({
@@ -117,5 +122,29 @@ describe('record lists inside tool settings (R6)', () => {
     assert.deepEqual(ids(saved.tools), ['desk-new', 'phone-new']);
     assert.deepEqual(saved.shared, { x: 1 });
     assert.equal(withMergedSettingsRecords(push, null), push, 'nothing stored yet');
+  });
+});
+
+describe('a merge tells its removal hooks what a delete took out', () => {
+  it('passes each dropped record’s newest copy, and nothing when nothing was dropped', () => {
+    const seen: RemovedToolRecords[][] = [];
+    registerToolRecordRemovalHook((tools, removed) => {
+      seen.push(removed.map(entry => ({ ...entry })));
+      return { ...tools, marked: true };
+    });
+    const here = { scene: { scenes: [scene('a', 5), scene('b', 5)] } };
+    const there = { scene: { scenes: [scene('a', 5)], removedSceneAt: { b: 9 } } };
+    const merged = withMergedToolRecords(here, there) as Record<string, unknown>;
+    assert.equal(merged.marked, true);
+    assert.deepEqual(
+      seen.at(-1)!.map(entry => [entry.tool, entry.field, entry.records.map(record => record.id)]),
+      [['scene', 'scenes', ['b']]]
+    );
+    // A record saved after the delete stays, and isn't reported.
+    const count = seen.length;
+    const later = { scene: { scenes: [scene('a', 5), scene('b', 12)] } };
+    const kept = withMergedToolRecords(later, there) as Record<string, unknown>;
+    assert.equal(kept.marked, undefined);
+    assert.equal(seen.length, count);
   });
 });
