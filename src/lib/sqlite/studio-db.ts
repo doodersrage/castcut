@@ -184,6 +184,18 @@ export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
       renewed_at INTEGER NOT NULL,
       PRIMARY KEY (scope, run_id)
     );`),
+  // 3 (2026-11-13, Phase 3 step 1b): each Scene run's record as its renderer last saved it
+  // (sqlite/scene-runs.ts) — what the server's job watcher and runner read.
+  db =>
+    db.exec(`CREATE TABLE IF NOT EXISTS scene_runs (
+      scope TEXT NOT NULL,
+      id TEXT NOT NULL,
+      cast_id TEXT NOT NULL,
+      json TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (scope, id)
+    );
+    CREATE INDEX IF NOT EXISTS scene_runs_recent ON scene_runs (scope, updated_at);`),
 ];
 export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
 

@@ -61,7 +61,7 @@ describe('a Scene run’s lease on the server (Phase 3)', () => {
     old.exec('PRAGMA user_version = 1');
     old.close();
     const db = getStudioDb();
-    assert.equal(studioDbVersion(db), 2);
+    assert.ok(studioDbVersion(db) >= 2);
     assert.equal(claimRunLease('global', 'run-1', 'tab-a', 1)?.held, true);
   });
 

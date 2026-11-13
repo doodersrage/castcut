@@ -20,6 +20,7 @@ import { isAuthEnabled } from '@/lib/auth/store';
 import { resolveStorageUser } from '@/lib/storage/storage-user';
 import { kvScopeForUser } from '@/lib/sqlite/kv';
 import { moveSettingsScriptsToTable } from '@/lib/sqlite/scene-scripts';
+import { recordSettingsRun } from '@/lib/sqlite/scene-runs';
 
 export const runtime = 'nodejs';
 
@@ -123,6 +124,9 @@ export async function POST(request: Request) {
                 readScopedStorage(body.namespace, userId)
               )
             : body.data;
+      // Its Scene run kept as a record of its own (Phase 3: the server's job watcher reads it).
+      if (body.namespace === 'settings-cache')
+        recordSettingsRun(kvScopeForUser(isAuthEnabled() ? userId : null), body.data);
       const userScoped = writeScopedStorage(body.namespace, data, userId);
       return apiJson({
         ok: true,
