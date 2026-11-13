@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { ensureAuthenticated } from './helpers/auth';
@@ -5317,3 +5319,126 @@ test('a short’s scene starts an episode’s cut that has no shots yet', async 
     .toEqual(['cut-shot-scenes:sh-kitchen']);
   await expect(page.getByTestId('cut-added-scene')).toContainText('Her morning');
 });
+
+// FINISHING_PLAN Phase 3, step 4: the take builder (queueSlot) is split into a plan and an execute
+// step, one path at a time. What each kind of take sends to ComfyUI is frozen here first, and every
+// increment of the split must send exactly the same. A local refactoring tool, not a CI test (the
+// words follow .env.local's adult setting): GOLDEN_TAKES=1 compares, UPDATE_GOLDEN=1 writes.
+const GOLDEN_MODE = process.env.UPDATE_GOLDEN === '1' ? 'write' : process.env.GOLDEN_TAKES === '1' ? 'compare' : null;
+const PARTNER = 'e2e-scene-partner';
+const goldenCast = {
+  ...cast,
+  characters: [
+    ...cast.characters,
+    {
+      id: PARTNER,
+      name: 'Theo',
+      version: 1,
+      updatedAt: Date.now(),
+      descriptor: 'a man in his thirties with a short beard',
+      traits: { sex: 'man' },
+      ipAdapter: { imageFilename: 'e2e-partner.png', imageUrl: '/icon.svg?partner' },
+    },
+  ],
+};
+const goldenVariants: Array<{ name: string; scene: (base: ReturnType<typeof sceneWithTakes>) => ReturnType<typeof sceneWithTakes> }> = [
+  { name: 'lead-alone', scene: base => base },
+  {
+    name: 'suggestive',
+    scene: base => ({
+      ...base,
+      dayMood: 'suggestive',
+      scenes: base.scenes.map(entry => ({ ...entry, dayMood: 'suggestive' })),
+    }),
+  },
+  {
+    name: 'with-partner',
+    scene: base => {
+      const slot = {
+        id: 'evening',
+        label: 'Evening',
+        location: 'small kitchen',
+        sceneHints: 'Scene Cast and Theo, the two of them together, cooking risotto at the stove',
+      };
+      return {
+        ...base,
+        partnerCharacterId: PARTNER,
+        allowCompanions: true,
+        slots: [slot],
+        scenes: base.scenes.map(entry => ({ ...entry, slot, partnerCharacterId: PARTNER })),
+      } as ReturnType<typeof sceneWithTakes>;
+    },
+  },
+  {
+    name: 'place-no-beat',
+    scene: base => {
+      const slot = { id: 'evening', label: 'Evening', location: 'rooftop bar' };
+      return { ...base, slots: [slot], scenes: base.scenes.map(entry => ({ ...entry, slot })) };
+    },
+  },
+];
+
+/** A take's requests with what changes run to run (seeds, upload names) made stable. */
+function normalizedTakeRequests(raw: readonly string[]): unknown[] {
+  const uploads = new Map<string, string>();
+  return raw.map(text => {
+    const named = text.replace(/e2e-upload-\d+\.png/g, name => {
+      if (!uploads.has(name)) uploads.set(name, `upload-${uploads.size + 1}.png`);
+      return uploads.get(name)!;
+    });
+    const walk = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(walk);
+      if (value && typeof value === 'object')
+        return Object.fromEntries(
+          Object.entries(value).map(([key, entry]) => [
+            key,
+            /^(noise_)?seed$/i.test(key) ? 'SEED' : key === 'clientId' ? 'CLIENT' : walk(entry),
+          ])
+        );
+      return value;
+    };
+    return walk(JSON.parse(named));
+  });
+}
+
+for (const variant of goldenVariants) {
+  test(`golden take requests: ${variant.name}`, async ({ page }) => {
+    test.skip(!GOLDEN_MODE, 'GOLDEN_TAKES=1 or UPDATE_GOLDEN=1 (a local refactoring tool)');
+    // The app's random picks (a blank beat filled, a pose chosen) the same every run.
+    await page.addInitScript(() => {
+      let state = 0x2f6b1e35;
+      Math.random = () => {
+        state = (state + 0x6d2b79f5) | 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    });
+    // An empty server each time: what one take records (an outfit worn) chose the next one's.
+    await isolateServerStorage(page);
+    const queued = await stubComfyQueue(page);
+    await seedSettingsCacheOnNextLoad(
+      page,
+      { shared: { activeCharacterId: CAST }, characters: goldenCast, tools: { scene: variant.scene(sceneWithTakes()) } },
+      { once: true }
+    );
+    await gotoStable(page, `/scene?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    await page.getByTestId('scene-queue-take').click({ timeout: 60_000 });
+    await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+    // Everything one take sends (a dress plate first, say): settled once nothing new comes.
+    let count = -1;
+    while (count !== queued.length) {
+      count = queued.length;
+      await page.waitForTimeout(4000);
+    }
+    const file = path.join(__dirname, 'golden', 'take-requests', `${variant.name}.json`);
+    const got = normalizedTakeRequests(queued);
+    if (GOLDEN_MODE === 'write') {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, `${JSON.stringify(got, null, 1)}\n`);
+      return;
+    }
+    expect(got).toEqual(JSON.parse(fs.readFileSync(file, 'utf8')));
+  });
+}

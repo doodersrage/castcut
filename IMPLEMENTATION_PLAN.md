@@ -4274,3 +4274,25 @@ smoke test, the V5 walkthrough. CI: green since 24b5ee7f.
 - E2E: a short made on Short (These moments as a script), packaged from Cut, restored on an empty
   machine (no Cast, script, Scenes or board; the files gone): Cut plays it from this machine's
   copy, Script shows it, and Short is the lead's board linked to that script.
+
+**Phase 3 — a server-side runner** (user's choices 2026-11-13: Render-the-short/episode stills
+first, single-person paths first, Animate last; takes reach Scenes through a patch queue the
+browser applies; pose guides on the server through `@napi-rs/canvas`). Order: run record and
+lease → job watcher → freeze the run's inputs at Start → split `queueSlot` (plan / execute, one
+path at a time; the riskiest) → server image steps → server queue steps → server checks and
+keep-best → the runner loop.
+- **Runs pause no more on a slow open** (54cc64d8): a run asked a Scene to open once; the page
+  refuses while a take lands on the card, so s15 paused at 11 of 24. It asks every 3 s for 2 min.
+  s16 (Suggestive, 19 shots) ran without a pause.
+- **Step 1a, the lease** (92e71ae7): SQLite migration 2 `scene_run_leases`, compare-and-set,
+  free 30 s after its last renewal. A page on another device leaves a running run alone; Resume
+  there says so and writes nothing; a lease taken over stops the old page's loop.
+- **Step 1b, the run record** (57d4a3cf): migration 3 `scene_runs`, recorded from every settings
+  push (the one place each run change passes); newest copy wins; `GET /api/scene-runs`.
+- **Step 3, the job watcher** (70fa56dc): once a minute, each handed-off run's takes in ComfyUI.
+  Finished: kept (migration 4 `run_watch_jobs`) so it lands after a restart wipes ComfyUI's
+  history. Lost: queued again from its recorded graph once, claimed before sending; only a job
+  the watch saw first, never one cancelled in Castcut. `/api/comfyui/status` follows it, so the
+  browser is unchanged. Not yet tried against a real ComfyUI restart.
+- Short package (Phase 2) on a server without a data folder: the takes' pictures can't be kept
+  in Scenes; the import says how many (29c48069).
