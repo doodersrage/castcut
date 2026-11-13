@@ -57,7 +57,7 @@ export function descriptionForWorkspace(mode: WorkspaceMode, full: string, simpl
 /** Hub page descriptions — full vs Simple workspace. */
 export const HUB_PAGE_DESCRIPTIONS = {
   gallery: {
-    full: 'Browse outputs, review and compare variants, run experiments, and queue follow-up work from one place.',
+    full: 'Every still, clip and film you’ve made — review them, compare takes, and send the best on.',
     simple: 'Everything you’ve made.',
   },
   queue: {

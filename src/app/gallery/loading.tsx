@@ -9,7 +9,7 @@ export default function GalleryLoading() {
         accent="neutral"
         width="full"
         title="Gallery"
-        description="Browse outputs, review and compare variants, run experiments, and queue follow-up work from one place."
+        description="Every still, clip and film you’ve made — review them, compare takes, and send the best on."
       >
         <GalleryPanelSkeleton showFilters />
       </ToolLayout>
