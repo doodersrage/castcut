@@ -35,6 +35,13 @@ function loadEnvLocal(): void {
 loadEnvLocal();
 
 const baseURL = process.env.PROMPT_API_URL ?? 'http://127.0.0.1:47832';
+// E2E_PROD=1: a local run against a production build, as CI runs. `next dev` compiles each route
+// on its first visit and Fast Refresh reloads pages under a test: "Loading scene" and lost
+// navigations that a build never shows. Its port is the run's own (PROMPT_API_URL), never the
+// `start` script's 47832. Webpack, as `npm run dev` is: Turbopack won't build a worktree whose
+// node_modules is a link to the main checkout's.
+const productionServer = Boolean(process.env.CI || process.env.E2E_PROD);
+const localStart = `npx next build --webpack && npx next start -p ${new URL(baseURL).port || '47832'}`;
 const authStorage = resolve(__dirname, 'e2e/.auth/user.json');
 
 export default defineConfig({
@@ -52,10 +59,14 @@ export default defineConfig({
   },
   webServer: {
     // Production server avoids Fast Refresh aborting in-flight navigations under CI.
-    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
+    command: process.env.CI
+      ? 'npm run build && npm run start'
+      : productionServer
+        ? localStart
+        : 'npm run dev',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: process.env.CI ? 300_000 : 120_000,
+    timeout: process.env.CI ? 300_000 : productionServer ? 600_000 : 120_000,
     env: {
       ...process.env,
       NEXT_PUBLIC_PLAYWRIGHT: '1',

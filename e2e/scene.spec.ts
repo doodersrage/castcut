@@ -2635,7 +2635,14 @@ test('a missing model: the error names it and links to Models', async ({ page })
   await dismissBlockingOverlays(page);
   await page.getByTestId('scene-queue-take').click({ timeout: 60_000 });
   const message = page.getByText(/missing-model\.safetensors/).first();
-  await expect(message).toBeVisible({ timeout: 30_000 });
+  // The tray shows one notice, newest first: one that lands after the error (no LLM answering, as
+  // on CI) hides it behind "+1". Open the rest when it isn't on top.
+  await expect(async () => {
+    if (await message.isVisible()) return;
+    const more = page.getByRole('button', { name: /^Show \d+ more notices?$/ });
+    if (await more.isVisible()) await more.click();
+    await expect(message).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   const models = page.getByRole('link', { name: 'Models' });
   await expect(models.first()).toHaveAttribute('href', /settings\?tab=comfyui&section=model-assets/);
   await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible();
@@ -2829,6 +2836,8 @@ test('Open as Scene from a Day slot copies its shot and take', async ({ page }) 
 // The script-driven Short: a Day's moments copied into a script with a Scene each, the still its
 // kept take — the Day left as it is — and opened on the Scene page.
 test('This Day as a script: a scene per moment, its still kept, the Day unchanged', async ({ page }) => {
+  // Three page loads and four routes (Short, Script, Short, Cut): over a minute on a cold dev server.
+  test.setTimeout(180_000);
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },
     characters: cast,
@@ -2876,8 +2885,8 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
     'href',
     new RegExp(`^/cut\\?from=scenes&character=${CAST}&script=${script!.id}$`)
   );
-  await page.getByTestId('day-as-short').first().click();
-  await expect(page).toHaveURL(new RegExp(`script=${script!.id}`), { timeout: 60_000 });
+  // After a page load: a click before hydration is lost, so click until it opens.
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), new RegExp(`script=${script!.id}`));
   const again = JSON.parse((await storedSceneTool(page)) || '{}') as typeof tool;
   expect(again.scripts?.filter(entry => entry.name === 'Scene Cast’s short')).toHaveLength(1);
   expect((again.scenes ?? []).filter(scene => scene.fromScript?.scriptId === script!.id)).toHaveLength(3);
