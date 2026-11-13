@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { COMMAND_PALETTE_OPEN_EVENT } from '@/lib/app/command-palette-events';
 import { markOnboardingDiscoverPalette } from '@/lib/app/onboarding-hooks';
 import { scheduleAfterCommit } from '@/lib/batch/schedule-after-commit';
 import type { CommandItem } from '@/components/command-palette/types';
@@ -41,8 +42,17 @@ export function useCommandPaletteGlobalShortcut(
         setOpen(false);
       }
     };
+    const onOpen = () => {
+      setOpen(true);
+      setQuery('');
+      markOnboardingDiscoverPalette();
+    };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener(COMMAND_PALETTE_OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener(COMMAND_PALETTE_OPEN_EVENT, onOpen);
+    };
   }, [setOpen, setQuery]);
 }
 

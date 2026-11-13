@@ -1,5 +1,6 @@
 'use client';
 
+import { commandPaletteShortcutLabel, openCommandPalette } from '@/lib/app/command-palette-events';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import BrandMark from '@/components/BrandMark';
@@ -40,6 +41,9 @@ export function AppNavSidebarGroups({
   handleToggleGroup,
   onNavigate,
 }: Props) {
+  const shortcut = commandPaletteShortcutLabel(
+    typeof navigator === 'undefined' ? undefined : navigator.platform
+  );
   return (
     <>
       <div className="px-2">
@@ -54,11 +58,36 @@ export function AppNavSidebarGroups({
             wordmarkClassName="type-brand type-title tracking-tight"
           />
         </Link>
-        <p className="type-caption mt-1.5 px-3 text-[var(--text-tertiary)]">
-          {APP_HAS_PLAY ? 'Cast · Short · film' : 'Prompt · queue · gallery'}
-          <span className="mx-1.5 text-[var(--border-strong)]">·</span>
-          <kbd className="ui-kbd">⌘K</kbd>
-        </p>
+        {/*
+          Search, as editing tools have it (UI audit 2026-11-12): the line under the logo said
+          "Cast · Short · film ⌘K" — the nav again, and a shortcut you couldn't click.
+        */}
+        <Button
+          variant="plain"
+          type="button"
+          onClick={openCommandPalette}
+          className="mt-2 flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-3 py-1.5 text-left text-[var(--text-muted)] transition hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-ring)]"
+          data-testid="nav-search"
+          aria-label={APP_HAS_PLAY ? 'Search or jump to a page' : 'Search tools and pages'}
+        >
+          <svg
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            aria-hidden
+            className="shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          >
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="M10.5 10.5 14 14" strokeLinecap="round" />
+          </svg>
+          <span className="type-caption flex-1">Search or jump to…</span>
+          <kbd className="ui-kbd" suppressHydrationWarning>
+            {shortcut}
+          </kbd>
+        </Button>
       </div>
 
       <div className="sidebar-scroll ui-scroll-region flex-1 space-y-4 overflow-y-auto px-2 pb-2">
