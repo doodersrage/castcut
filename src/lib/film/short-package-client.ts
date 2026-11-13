@@ -18,6 +18,7 @@ import {
 import { newSceneId, normalizeSavedScenes } from '../day/scenes';
 import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '../play/settings';
 import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
+import { flushBrowserStorageNow } from '../storage/browser-storage';
 import {
   placeShortPackage,
   shortCastIds,
@@ -133,6 +134,12 @@ export async function restoreShortPackage(short: ShortPackage): Promise<ShortRes
     scenes: normalizeSavedScenes([...scenesHere, ...placed.scenes]),
   });
   const board = placed.board ? restoreBoard(placed.board, placed.script.castId) : 'none';
+  // Written through before it says it's done: a reload straight after found no script (the
+  // browser stores debounce their writes; CI, 2026-11-13).
+  await Promise.race([
+    flushBrowserStorageNow(),
+    new Promise<void>(resolve => window.setTimeout(resolve, 4000)),
+  ]);
   return {
     board,
     scriptId: placed.script.id,
