@@ -811,6 +811,11 @@ test('a shot\'s story state is kept after a reload and shown on its Cut card', a
   await fields.getByTestId('shot-state-changes').fill('left hand bandaged');
   await fields.getByTestId('shot-state-changes').blur();
   await fields.getByTestId('shot-state-day').fill('2');
+  // Stored before the reload: the browser's stores write a moment later, and a reload straight
+  // after the last keystroke lost the day 1 run in 3 on CI.
+  await expect
+    .poll(async () => (await storedSceneTool(page)).includes('"storyDay":2'), { timeout: 15_000 })
+    .toBe(true);
 
   await page.reload();
   await dismissBlockingOverlays(page);
