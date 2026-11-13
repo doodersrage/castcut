@@ -4265,7 +4265,12 @@ smoke test, the V5 walkthrough. CI: green since 24b5ee7f.
   and given a new one when not, every reference rewritten (`remapPackageIds`: whole strings, and
   ids of 10+ characters as tokens — Cut's `scenes:<id>~n` keys); refused before anything changes
   when its lead keeps 12 scripts already. Cut opens on it when its lead is the Cast. A format 1
-  release refuses a 2 (never half-read). Not yet: the board is carried but not restored as that
-  Cast's Short (a parked board keeps no short link). E2E: packaged on one machine, restored on an
-  empty one (no Cast, script or Scenes; the files gone) — Cut plays its two shots from this
-  machine's copies, Script shows it.
+  release refuses a 2 (never half-read).
+- **A parked Short keeps its link** (`cast-park.ts`): a Cast switch parked the board without its
+  short link (and not at all without stills), so switching back gave an unlinked board whose next
+  edit made a second short. `shortLink` is parked with it now (older releases ignore it). The
+  import uses it: the board goes live when its lead is the Short's Cast and the board is empty,
+  else parked under the lead; a board the lead has here is never replaced (said).
+- E2E: a short made on Short (These moments as a script), packaged from Cut, restored on an empty
+  machine (no Cast, script, Scenes or board; the files gone): Cut plays it from this machine's
+  copy, Script shows it, and Short is the lead's board linked to that script.

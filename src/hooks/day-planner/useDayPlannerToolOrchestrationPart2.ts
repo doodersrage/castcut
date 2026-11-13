@@ -207,7 +207,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       // Scene: the open scene is saved and the Cast's newest scene opens (day/scenes.ts).
       const swapped = sceneMode
         ? swapSceneForCast(toolSettings as SceneToolCache, nextId)
-        : // A Short parked as its short has it (a parked Day keeps no link; step 4c).
+        : // A Short parked as its short has it, with its link (cast-park.ts, 2026-11-13).
           swapDayForCast(shortBoardOf(toolSettings), owner, nextId);
       stillsRef.current = swapped.stills ?? [];
       updateToolSettings({

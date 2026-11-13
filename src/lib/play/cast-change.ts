@@ -25,7 +25,7 @@ export function scrubPlayToolCachesOnCastChange(
       day: {
         ...next.day,
         // The Day is parked under the Cast it belongs to and the next Cast's comes back — a
-        // Short parked as its short has it (a parked Day keeps no link; step 4c).
+        // Short parked as its short has it, with its link (cast-park.ts, 2026-11-13).
         ...swapDayForCast(
           dayBoardFromShort(next.day, normalizeSavedScenes(next.scene?.scenes)),
           previousCast,

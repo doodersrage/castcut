@@ -20,6 +20,11 @@ export type ParkedDay = Pick<
   | 'allowCompanions'
   | 'dayThread'
   | 'dayEvent'
+  /**
+   * Its short (2026-11-13): before, a parked Short came back unlinked, and its next edit made a
+   * second short of the same moments. Older releases ignore it (it comes back unlinked there).
+   */
+  | 'shortLink'
 > & { at: number };
 
 /** At most this many Casts keep a parked Day (oldest dropped). */
@@ -37,6 +42,7 @@ const PARKED_FIELDS = [
   'allowCompanions',
   'dayThread',
   'dayEvent',
+  'shortLink',
 ] as const;
 
 /**
@@ -52,11 +58,15 @@ export function swapDayForCast(
 ): Partial<DayToolCache> {
   const parked: Record<string, ParkedDay> = { ...(day.parkedDays ?? {}) };
   const owner = day.stillsCharacterId?.trim() || previousCast.trim();
-  if (owner && (day.stills?.length ?? 0) > 0) {
+  // A Day with stills, or a Short (its link: its moments are its short's, stills or not).
+  const linked = Boolean(owner && day.shortLink?.castId === owner);
+  if (owner && ((day.stills?.length ?? 0) > 0 || linked)) {
     const entry = { at: now } as ParkedDay;
     for (const field of PARKED_FIELDS) {
       if (day[field] !== undefined) (entry as Record<string, unknown>)[field] = day[field];
     }
+    // Another Cast's link isn't this Day's.
+    if (!linked) delete entry.shortLink;
     parked[owner] = entry;
   }
   const next = nextCast.trim();

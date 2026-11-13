@@ -16,13 +16,14 @@ import {
   SCRIPTS_PER_CAST,
 } from '../day/scene-scripts';
 import { newSceneId, normalizeSavedScenes } from '../day/scenes';
-import { DEFAULT_SCENE_TOOL_CACHE } from '../play/settings';
-import { loadToolSettings, saveToolSettings } from '../settings/cache';
+import { DEFAULT_DAY_TOOL_CACHE, DEFAULT_SCENE_TOOL_CACHE } from '../play/settings';
+import { loadSettingsCache, loadToolSettings, saveToolSettings } from '../settings/cache';
 import {
   placeShortPackage,
   shortCastIds,
   shortPackageContent,
   type ShortPackage,
+  type ShortPackageBoard,
 } from './short-package';
 
 /**
@@ -67,6 +68,12 @@ export type ShortRestore = {
   /** Cast added here (a Cast already here — the same id and name — is used as it is). */
   castAdded: string[];
   castReused: string[];
+  /**
+   * Its Short board: `live` — its lead is the Short's Cast and the board was empty; `parked` —
+   * under its lead, back when the lead is picked on Short; `kept-yours` — the lead has a board
+   * here already, left as it is (the short is on Script, Scene and Cut all the same).
+   */
+  board: 'live' | 'parked' | 'kept-yours' | 'none';
   /** The ids changed because they were taken here: package id → id here (for its cut). */
   ids: Map<string, string>;
   pictureErrors: string[];
@@ -125,7 +132,9 @@ export async function restoreShortPackage(short: ShortPackage): Promise<ShortRes
     ...sceneTool,
     scenes: normalizeSavedScenes([...scenesHere, ...placed.scenes]),
   });
+  const board = placed.board ? restoreBoard(placed.board, placed.script.castId) : 'none';
   return {
+    board,
     scriptId: placed.script.id,
     scriptName: placed.script.name,
     leadId: placed.script.castId,
@@ -136,4 +145,29 @@ export async function restoreShortPackage(short: ShortPackage): Promise<ShortRes
     ids: placed.ids,
     pictureErrors,
   };
+}
+
+const boardHasMoments = (day: Partial<ShortPackageBoard>) =>
+  Boolean(day.shortLink) ||
+  (day.stills?.length ?? 0) > 0 ||
+  (day.slots ?? []).some(slot => Boolean(slot.location || slot.sceneHints || slot.line));
+
+/** The short's board placed for its lead, never over a board that is there (see ShortRestore). */
+function restoreBoard(board: ShortPackageBoard, leadId: string): ShortRestore['board'] {
+  const day = loadToolSettings('day', DEFAULT_DAY_TOOL_CACHE);
+  const owner =
+    day.stillsCharacterId?.trim() || loadSettingsCache().shared.activeCharacterId?.trim() || '';
+  const restored = { ...board, stillsCharacterId: leadId };
+  if (owner === leadId) {
+    if (boardHasMoments(day)) return 'kept-yours';
+    saveToolSettings('day', { ...day, ...restored });
+    return 'live';
+  }
+  if (day.parkedDays?.[leadId]) return 'kept-yours';
+  const { stillsCharacterId: _owner, ...parked } = restored;
+  saveToolSettings('day', {
+    ...day,
+    parkedDays: { ...(day.parkedDays ?? {}), [leadId]: { ...parked, at: Date.now() } },
+  });
+  return 'parked';
 }

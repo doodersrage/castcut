@@ -2128,6 +2128,13 @@ export function useCutRoom() {
                   restored.castAdded.length ? `; Cast added: ${restored.castAdded.join(', ')}` : ''
                 })${showShort ? '' : ` — pick ${restored.leadName || 'its lead'} as the Cast to see it`}, and its cut as a version — open it under Versions.`
               : `Imported “${manifest.name}” as a version${added.length ? ` (with ${added.length} of its own)` : ''} — open it under Versions.`,
+            restored?.board === 'parked'
+              ? `Its Short board is ${restored.leadName || 'its lead'}’s: it opens when ${restored.leadName || 'the lead'} is picked on Short.`
+              : restored?.board === 'live'
+                ? 'Its Short board is on Short.'
+                : restored?.board === 'kept-yours'
+                  ? `${restored.leadName || 'Its lead'} has a Short board here already — kept; the short is on Script, Scene and Cut.`
+                  : '',
             restored?.pictureErrors.length
               ? `Cast pictures not set up: ${restored.pictureErrors.join('; ')}`
               : '',

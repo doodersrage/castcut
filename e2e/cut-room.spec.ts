@@ -977,64 +977,57 @@ test('a packaged cut restores elsewhere: its media stored there, opened as a ver
 });
 
 // FINISHING_PLAN Phase 2 (format 2): a short packaged from Cut carries its script, Scenes with
-// their takes and its Cast; on an empty machine it is restored beside what's there and plays.
-test('a short packaged with its media restores on an empty machine: script, Scenes, Cast, cut', async ({
+// their takes, its Short board and its Cast; on an empty machine it is restored beside what's
+// there — Cut plays it, Script has it, and its board is the lead's Short.
+test('a short packaged with its media restores on an empty machine: script, Scenes, board, Cast', async ({
   page,
   browser,
 }) => {
-  test.setTimeout(180_000);
-  const SCRIPT = 'script-pkg-e2e-00000001';
-  const sceneOf = (n: number, place: string) => ({
-    id: `scene-pkg-e2e-0000000${n}`,
-    castId: CAST,
-    name: `${n}A ${place.toUpperCase()}`,
-    slot: { id: 'night', label: 'Night', location: place, sceneHints: `stands in the ${place}` },
-    takes: [{ id: `pkg-take-${n}`, promptId: `pkg-take-${n}`, imageUrl: `${thumb}?shot=${n}`, at: 1 }],
-    keptTakeId: `pkg-take-${n}`,
-    fromScript: { scriptId: SCRIPT, sceneId: `int-${place}-night`, shotId: `int-${place}-night~1` },
-    createdAt: n,
-    updatedAt: n,
-  });
-  await seedSettingsCacheOnNextLoad(page, {
-    shared: { activeCharacterId: CAST },
-    characters: {
-      version: 1,
-      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
-      removedIds: [],
-    },
-    tools: {
-      scene: {
-        scenes: [sceneOf(1, 'kitchen'), sceneOf(2, 'rooftop')],
-        scripts: [
-          {
-            id: SCRIPT,
-            castId: CAST,
-            name: 'Rae’s night',
-            source: 'INT. KITCHEN - NIGHT\n\nRae stands in the kitchen.\n\nINT. ROOFTOP - NIGHT\n\nRae stands on the roof.\n',
-            createdAt: 1,
-            updatedAt: 1,
-          },
-        ],
+  test.setTimeout(240_000);
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: {
+        version: 1,
+        characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+        removedIds: [],
       },
-      cut: { sources: ['scenes'], scenesScriptId: SCRIPT },
+      tools: {
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [
+            { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee', line: 'Coffee first.' },
+            { id: 'evening', label: 'Evening', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+          ],
+          stills: [{ slotId: 'evening', promptId: 'day-evening', imageUrl: thumb, status: 'completed' }],
+        },
+      },
     },
-  });
-  // Opened on Script first: seeded in the settings as an older release kept scripts, it moves
-  // into the scripts store there (useSceneScripts), where Cut reads it.
-  await gotoStable(page, `/script?character=${CAST}&script=${SCRIPT}`);
+    { once: true }
+  );
+  // The short made as a user makes it: Short → These moments as a script.
+  await gotoStable(page, `/day?character=${CAST}`);
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('script-reading')).toContainText('ROOFTOP', { timeout: 60_000 });
+  await expect(async () => {
+    if (/\/script\?.*script=/.test(page.url())) return;
+    await page.getByTestId('day-as-short').first().click({ timeout: 10_000 });
+    await expect(page).toHaveURL(/\/script\?.*script=/, { timeout: 10_000 });
+  }).toPass({ timeout: 90_000 });
+  const SCRIPT = new URL(page.url()).searchParams.get('script')!;
+  await expect(page.getByTestId('script-reading')).toContainText('ROOFTOP BAR', { timeout: 60_000 });
   await gotoStable(page, `/cut?from=scenes&character=${CAST}&script=${SCRIPT}`);
   await dismissBlockingOverlays(page);
-  await expect(page.getByTestId('cut-scenes-script')).toContainText('Rae’s night', { timeout: 60_000 });
-  await expect(page.getByTestId('cut-source-scenes')).toContainText('2 shots');
+  await expect(page.getByTestId('cut-scenes-script')).toContainText('Rae’s short', { timeout: 60_000 });
+  await expect(page.getByTestId('cut-source-scenes')).toContainText('1 shot');
   const download = page.waitForEvent('download');
   await page.getByTestId('cut-tab-package').click();
   await page.getByTestId('cut-package-full').click();
   const zipPath = (await (await download).path())!;
-  await expect(page.getByTestId('cut-status')).toContainText('and its short, “Rae’s night” (2 Scenes, 1 Cast)');
+  await expect(page.getByTestId('cut-status')).toContainText('and its short, “Rae’s short” (2 Scenes, 1 Cast)');
 
-  // Another machine: no Cast, no script, no Scenes, and the original files aren't there.
+  // Another machine: no Cast, no script, no Scenes, no board, and the original files aren't there.
   const other = await browser.newContext();
   const elsewhere = await other.newPage();
   await isolateServerStorage(elsewhere);
@@ -1050,25 +1043,37 @@ test('a short packaged with its media restores on an empty machine: script, Scen
   await elsewhere.getByTestId('cut-tab-package').click();
   await elsewhere.getByTestId('cut-package-import').setInputFiles(zipPath);
   const status = elsewhere.getByTestId('cut-status');
-  await expect(status).toContainText('Imported the short “Rae’s night” (2 Scenes; Cast added: Rae)', {
+  await expect(status).toContainText('Imported the short “Rae’s short” (2 Scenes; Cast added: Rae)', {
     timeout: 60_000,
   });
   await expect(status).toContainText(/stored here|already here|kept in the cut itself/);
+  await expect(status).toContainText('opens when Rae is picked on Short');
 
-  // Its lead picked: Cut plays the short's own Scenes, from this machine's copies of the takes.
+  // Its lead picked: Cut plays the short's kept shot from this machine's copy of the take.
   await gotoStable(elsewhere, `/cut?from=scenes&character=${CAST}&script=${SCRIPT}`);
   await dismissBlockingOverlays(elsewhere);
-  await expect(elsewhere.getByTestId('cut-scenes-script')).toContainText('Rae’s night', { timeout: 60_000 });
-  await expect(elsewhere.getByTestId('cut-source-scenes')).toContainText('2 shots');
-  for (const n of [1, 2]) {
-    await expect(
-      elsewhere.locator(`[data-testid="cut-shot-pick-scenes:scene-pkg-e2e-0000000${n}"] img`)
-    ).toHaveAttribute('src', /\/api\/gallery\/media\/pkg-[0-9a-f]+|^data:image\//, { timeout: 30_000 });
-  }
-  // And Script has the script, with its scenes.
+  await expect(elsewhere.getByTestId('cut-scenes-script')).toContainText('Rae’s short', { timeout: 60_000 });
+  await expect(elsewhere.getByTestId('cut-source-scenes')).toContainText('1 shot');
+  await expect(elsewhere.locator('[data-testid^="cut-shot-pick-scenes:"] img').first()).toHaveAttribute(
+    'src',
+    /\/api\/gallery\/media\/pkg-[0-9a-f]+|^data:image\//,
+    { timeout: 30_000 }
+  );
+  // Script has the script.
   await gotoStable(elsewhere, `/script?character=${CAST}&script=${SCRIPT}`);
   await dismissBlockingOverlays(elsewhere);
-  await expect(elsewhere.getByTestId('script-reading')).toContainText('ROOFTOP', { timeout: 60_000 });
+  await expect(elsewhere.getByTestId('script-reading')).toContainText('ROOFTOP BAR', { timeout: 60_000 });
+  // And Short is her board, linked to it: its script, not a second one.
+  await gotoStable(elsewhere, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(elsewhere);
+  await expect(elsewhere.getByTestId('day-progress-scene-evening').first()).toContainText('laughing', {
+    timeout: 60_000,
+  });
+  await expect(elsewhere.getByTestId('day-as-short').first()).toHaveText('Its script →');
+  await expect(elsewhere.getByTestId('day-cut-short').first()).toHaveAttribute(
+    'href',
+    new RegExp(`script=${SCRIPT}$`)
+  );
   await other.close();
 });
 
