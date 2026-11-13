@@ -1919,7 +1919,8 @@ test('a run renders Scene by Scene, keeps nothing, and resumes without a second 
     timeout: 120_000,
   });
   await expect(page.getByTestId('scene-run-state')).toContainText('2 of 2 done');
-  expect(queued).toHaveLength(2);
+  // A take each — the dress plate their auto outfit is rendered on first isn't one.
+  expect(queuedTakes(queued)).toHaveLength(2);
 
   // Each Scene got its take; none was kept for you.
   await expect
@@ -2355,6 +2356,17 @@ test('Pause stops the run after the take rendering now', async ({ page }) => {
 });
 
 /** A Scene page with two empty Scenes and a run over them (M5 W4 / W5), the engine stubbed. */
+/** A dress-plate render (Edit 2511 auto kits dress her first, 2026-11-12), not a take. */
+const isDressPlateJob = (body: string) =>
+  String((JSON.parse(body || '{}') as { prompt?: string }).prompt ?? '').includes('outfit try-on');
+
+/** The prompt ids stubComfyQueue gave the takes (dress plates left out), in queue order. */
+const takeJobIds = (queued: string[]) =>
+  queued.flatMap((body, index) => (isDressPlateJob(body) ? [] : [`e2e-scene-${index + 1}`]));
+
+/** Queued takes only: a run may render one dress plate before them. */
+const queuedTakes = (queued: string[]) => queued.filter(body => !isDressPlateJob(body));
+
 async function seedRunPage(
   page: Page,
   run: Record<string, unknown>,
@@ -2364,7 +2376,19 @@ async function seedRunPage(
   })
 ) {
   const queued = await stubComfyQueue(page);
-  await page.route('**/api/comfyui/jobs**', route => route.fulfill({ json: { status: jobs() } }));
+  await page.route('**/api/comfyui/jobs**', route => {
+    // A dress plate is done at once: the takes wait on it, and these tests are about the takes.
+    const promptId = new URL(route.request().url()).searchParams.get('promptId') ?? '';
+    const index = Number(promptId.replace(/^e2e-scene-/, '')) - 1;
+    const plate = index >= 0 && isDressPlateJob(queued[index] ?? '');
+    return route.fulfill({
+      json: {
+        status: plate
+          ? { status: 'completed', images: [{ filename: 'e2e-plate.png', subfolder: '', type: 'output' }] }
+          : jobs(),
+      },
+    });
+  });
   for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
     await page.route(`**/api/${check}**`, route =>
       route.fulfill({ json: { ok: true, skipped: true } })
@@ -2431,7 +2455,8 @@ test('Queue all hands every take to ComfyUI, and they land on their Scenes later
     timeout: 120_000,
   });
   await expect(page.getByTestId('scene-run-handed-note')).toBeVisible();
-  expect(queued).toHaveLength(2);
+  expect(queuedTakes(queued)).toHaveLength(2);
+  const [takeA, takeB] = takeJobIds(queued);
 
   finish = true;
   await page.reload();
@@ -2453,10 +2478,10 @@ test('Queue all hands every take to ComfyUI, and they land on their Scenes later
       },
       { timeout: 60_000 }
     )
-    .toBe('e2e-scene-1|e2e-scene-2|landed|landed');
+    .toBe(`${takeA}|${takeB}|landed|landed`);
   // Nothing handed was queued again (B's card may redo a pose miss on its own: a new take).
   const handed = JSON.parse((await storedSceneTool(page)) || '{}').run?.handOff?.handed;
-  expect(handed).toEqual({ 'run-a': 'e2e-scene-1', 'run-b': 'e2e-scene-2' });
+  expect(handed).toEqual({ 'run-a': takeA, 'run-b': takeB });
 });
 
 // Part 14 A: Cancel after the hand-off takes the jobs ComfyUI hasn't started out of its queue.
@@ -2471,11 +2496,11 @@ test('Cancel after Queue all removes the takes not started yet', async ({ page }
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'handed', {
     timeout: 120_000,
   });
-  expect(queued).toHaveLength(2);
+  expect(queuedTakes(queued)).toHaveLength(2);
   await page.getByTestId('scene-run-cancel').click();
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'cancelled');
   await expect.poll(() => [...cancelled].sort().join(','), { timeout: 30_000 }).toBe(
-    'e2e-scene-1,e2e-scene-2'
+    takeJobIds(queued).sort().join(',')
   );
   await expect
     .poll(async () => {
@@ -4175,9 +4200,9 @@ test('Write it with dialogue writes each moment’s scene; the card shows its li
   await expect
     .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').scripts?.[0]?.source ?? '', { timeout: 30_000 })
     .toContain('Is one mine?');
-  // The card shows its scene: his line and hers.
+  // The card shows its scene: his line and hers, cues read as names ("Theo", not "THEO").
   const scene = page.getByTestId('short-moment-scene-morning').first();
-  await expect(scene).toContainText('THEO', { timeout: 30_000 });
+  await expect(scene).toContainText('Theo: Is one mine?', { timeout: 30_000 });
   await expect(scene).toContainText('If you ask nicely.');
 
   // Render the short (Step 5d): every shot of every moment, animated — the written scenes' new

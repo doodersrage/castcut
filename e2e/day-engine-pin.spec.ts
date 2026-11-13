@@ -49,6 +49,19 @@ async function stubComfy(page: Page) {
       await route.fulfill({ status: 200, contentType: 'image/png', body: png });
       return;
     }
+    if (path.startsWith('/api/comfyui/jobs')) {
+      // Every job is done at once: a moment on an auto kit is dressed first (a dress plate,
+      // Edit 2511 auto kits since 2026-11-12) and its still queues once that plate is back.
+      await route.fulfill({
+        json: {
+          status: {
+            status: 'completed',
+            images: [{ filename: 'e2e-pin.png', subfolder: '', type: 'output' }],
+          },
+        },
+      });
+      return;
+    }
     if (path === '/api/comfyui/preview') {
       // A plain graph: the request's model is what this test reads.
       await route.fulfill({
@@ -135,6 +148,11 @@ async function seedPinnedDay(page: Page, engine: string | undefined) {
 }
 
 const modelOf = (body: string) => String((JSON.parse(body) as { model?: string }).model ?? '');
+/** The moment's still — not the dress plate rendered for it first (an outfit try-on). */
+const stillModels = (queued: string[]) =>
+  queued
+    .filter(body => !/outfit try-on/i.test(String((JSON.parse(body) as { prompt?: string }).prompt)))
+    .map(modelOf);
 
 test('a moment pinned to Edit 2511 renders on Edit 2511, not the default engine', async ({
   page,
@@ -145,9 +163,8 @@ test('a moment pinned to Edit 2511 renders on Edit 2511, not the default engine'
   await dismissBlockingOverlays(page);
   await openDaySlotSheet(page, 'morning');
   await page.getByTestId('day-slot-queue').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  const stills = queued.map(modelOf).filter(model => !/dress|try-on/i.test(model));
-  expect(stills.at(-1)).toMatch(/^qwen-image-edit-2511/);
+  await expect.poll(() => stillModels(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(stillModels(queued).at(-1)).toMatch(/^qwen-image-edit-2511/);
 });
 
 test('a moment pinned to Qwen-Image 2.1 renders on 2.1 (the pin is honoured, not the default)', async ({
@@ -159,7 +176,7 @@ test('a moment pinned to Qwen-Image 2.1 renders on 2.1 (the pin is honoured, not
   await dismissBlockingOverlays(page);
   await openDaySlotSheet(page, 'morning');
   await page.getByTestId('day-slot-queue').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect.poll(() => stillModels(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
   // 2.1 queues on the Rapid AIO edit graph and is converted at runtime (resolveModelForQueueTool).
-  expect(modelOf(queued.at(-1)!)).toMatch(/^qwen-image-2\.1|^qwen-rapid-aio-edit/);
+  expect(stillModels(queued).at(-1)).toMatch(/^qwen-image-2\.1|^qwen-rapid-aio-edit/);
 });
