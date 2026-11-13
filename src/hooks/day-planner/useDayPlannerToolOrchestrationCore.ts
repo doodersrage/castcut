@@ -191,13 +191,8 @@ import {
   checkStillReferences,
   referenceViewUrl,
 } from '@/lib/checks/reference-check-client';
-import {
-  dayMoodWantsAutoKit,
-  pickDayAutoKit,
-  dayOutfitArcKit,
-  scriptSceneOutfitKit,
-  dayOutfitBlock,
-} from '@/lib/day/auto-kit';
+import { dayOutfitBlock } from '@/lib/day/auto-kit';
+import { planTakeOutfit } from '@/lib/day/take-plan';
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
@@ -1665,12 +1660,6 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           outfit,
         } = slotLook;
         await loadWardrobeGarmentThumbManifest();
-        let wardrobeId = queueTarget.wardrobeId?.trim() || outfit.lockedWardrobeId?.trim();
-        // No kit, no clothing photo and the undressed Cast plate as Image 1: nothing dressed her,
-        // so everyday / vacation stills came out in the plate's underwear. Pick a real kit.
-        // The catalog list is filtered to the lead's gender, and the kit picker only offers what
-        // is in it — a slot kit missing from it was left by another lead (a man in cocktail
-        // dresses, live 2026-09-30). Treat it as unset.
         // The catalog as this page has it — or, queued before the page's own load came back,
         // fetched here (the same cached request): a take sent in the first seconds went with no
         // kit picked, in the plate's underwear (found by the take golden test, 2026-11-13).
@@ -1679,75 +1668,44 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           : await fetchClothingSelectOptions('wardrobeCatalog', clothingGender).catch(
               () => wardrobeOptions
             );
-        const catalogLoaded = catalog.some(option => option.value);
-        const fitsLead = (id: string | undefined) =>
-          !id?.trim() || !catalogLoaded || catalog.some(option => option.value === id);
-        if (queueTarget.wardrobeId && !fitsLead(queueTarget.wardrobeId)) {
-          queueTarget = { ...queueTarget, wardrobeId: undefined, wardrobeAuto: undefined };
-          wardrobeId = outfit.lockedWardrobeId?.trim() || undefined;
-        }
-        // An auto-picked kit (not one the player chose) follows the outfit arc too.
-        const autoKit = !queueTarget.wardrobeId?.trim() || queueTarget.wardrobeAuto === true;
-        if (
-          autoKit &&
-          !outfit.lockedWardrobeId?.trim() &&
-          lookHasPlate &&
-          lookPlate?.source !== 'keeper' &&
-          !outfit.customGarmentImageUrl?.trim() &&
-          !outfit.customGarmentImageFilename?.trim() &&
-          dayMoodWantsAutoKit(toolSettings.dayMood)
-        ) {
-          // Outfit arc: morning and afternoon share one outfit, evening and night another.
-          // A kit an earlier slot picked in this same Queue day is only in the latest slots.
-          const arcSlots = workingSlots.map(entry =>
-            entry.wardrobeId?.trim()
-              ? entry
-              : (latestSlotsRef.current.find(latest => latest.id === entry.id) ?? entry)
+        // The outfit, decided in the take's plan (take-plan.ts — the server makes it the same way).
+        const outfitPlan = planTakeOutfit({
+          target: queueTarget,
+          lockedWardrobeId: outfit.lockedWardrobeId,
+          catalog,
+          lookHasPlate,
+          plateSource: lookPlate?.source,
+          customGarment: Boolean(
+            outfit.customGarmentImageUrl?.trim() || outfit.customGarmentImageFilename?.trim()
+          ),
+          dayMood: toolSettings.dayMood,
+          scene: sceneMode
+            ? {
+                scenes: sceneCacheRef.current.scenes ?? [],
+                activeSceneId: sceneCacheRef.current.activeSceneId,
+              }
+            : undefined,
+          workingSlots,
+          latestSlots: latestSlotsRef.current,
+          salt: lookCharacter?.id,
+          hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
+        });
+        const wardrobeId = outfitPlan.wardrobeId;
+        queueTarget = outfitPlan.target;
+        const { picked } = outfitPlan;
+        if (picked) {
+          workingSlots = workingSlots.map(entry =>
+            entry.id === queueTarget.id
+              ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
+              : entry
           );
-          // A script's Scene: the outfit its script's other Scenes already wear at this time of
-          // day (each Scene renders alone, so Day's arc can't see them).
-          const scriptKit = sceneMode
-            ? scriptSceneOutfitKit(
-                sceneCacheRef.current.scenes ?? [],
-                sceneCacheRef.current.activeSceneId,
-                toolSettings.dayMood,
-                id => fitsLead(id)
-              )
-            : undefined;
-          const arcKit =
-            scriptKit ??
-            dayOutfitArcKit(
-              arcSlots.filter(entry => fitsLead(entry.wardrobeId)),
-              queueTarget.id,
-              toolSettings.dayMood
-            );
-          const picked =
-            arcKit ??
-            (wardrobeId ||
-              pickDayAutoKit({
-                options: catalog,
-                dayMood: toolSettings.dayMood,
-                slotId: queueTarget.id,
-                salt: lookCharacter?.id,
-                hasPackshot: id => Boolean(resolveWardrobeGarmentThumbQueueUrl(id)),
-                exclude: workingSlots.map(entry => entry.wardrobeId),
-              }));
-          if (picked && (picked !== queueTarget.wardrobeId || !queueTarget.wardrobeAuto)) {
-            wardrobeId = picked;
-            queueTarget = { ...queueTarget, wardrobeId: picked, wardrobeAuto: true };
-            workingSlots = workingSlots.map(entry =>
+          saveSlots(
+            latestSlotsRef.current.map(entry =>
               entry.id === queueTarget.id
                 ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
                 : entry
-            );
-            saveSlots(
-              latestSlotsRef.current.map(entry =>
-                entry.id === queueTarget.id
-                  ? { ...entry, wardrobeId: picked, wardrobeAuto: true }
-                  : entry
-              )
-            );
-          }
+            )
+          );
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
         const { omitGarment, stillModel, poseEngineSwap, pinNote } =
