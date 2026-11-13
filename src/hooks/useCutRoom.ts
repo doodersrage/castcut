@@ -2027,7 +2027,15 @@ export function useCutRoom() {
       try {
         const options = pinEveryShot();
         const { buildCutPackage } = await import('@/lib/film/cut-package-client');
+        // Cut on one short's Scenes, with its media: the short travels too (format 2) — its
+        // script, Scenes and takes, board and Cast — so it opens on another install as it is.
+        const scriptId = scenesScript?.id;
+        const packed =
+          full && scriptId
+            ? await (await import('@/lib/film/short-package-client')).packShort(scriptId)
+            : null;
         const built = await buildCutPackage({
+          ...(packed ? { short: packed.short } : {}),
           cut: {
             ...(cut.toolSettings.sources ? { sources: cut.toolSettings.sources } : {}),
             extras: stateRef.current.extras,
@@ -2041,13 +2049,21 @@ export function useCutRoom() {
         const safe = name.replace(/[^\w.-]+/g, '-').replace(/^-|-$/g, '') || 'cut';
         downloadFilmBlob(built.blob, `${safe}.castcut.zip`);
         setStatus(
-          full
-            ? `Packaged the cut with ${built.packed} media file${built.packed === 1 ? '' : 's'}${
-                built.unreadable.length
-                  ? ` — ${built.unreadable.length} couldn’t be read and travel as addresses only`
-                  : ''
-              }.`
-            : `Packaged the cut (light: ${built.media} media address${built.media === 1 ? '' : 'es'}, no files).`
+          [
+            full
+              ? `Packaged the cut${packed ? ` and its short, “${packed.short.script.name}” (${packed.short.scenes.length} Scene${packed.short.scenes.length === 1 ? '' : 's'}, ${packed.short.cast.length} Cast)` : ''} with ${built.packed} media file${built.packed === 1 ? '' : 's'}${
+                  built.unreadable.length
+                    ? ` — ${built.unreadable.length} couldn’t be read and travel as addresses only`
+                    : ''
+                }.`
+              : `Packaged the cut (light: ${built.media} media address${built.media === 1 ? '' : 'es'}, no files).`,
+            packed?.castMissing.length
+              ? `${packed.castMissing.length} of its Cast isn’t on this device and stays out.`
+              : '',
+            packed?.pictureMissing ? 'A Cast picture couldn’t be read.' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')
         );
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'Could not package the cut.');
@@ -2055,7 +2071,7 @@ export function useCutRoom() {
         setPackaging(false);
       }
     },
-    [cut.toolSettings.sources, cut.toolSettings.versions, pinEveryShot]
+    [scenesScript?.id, cut.toolSettings.sources, cut.toolSettings.versions, pinEveryShot]
   );
   /** Import a package as versions of this Cut — the live edit, and yours, are left alone. */
   const importPackage = useCallback(
@@ -2069,23 +2085,52 @@ export function useCutRoom() {
           setError(imported.error);
           return;
         }
-        const { manifest, cut: packaged, kept, reused, stored, inlined, missing } = imported.result;
+        const { manifest, kept, reused, stored, inlined, missing } = imported.result;
+        let packaged = imported.result.cut;
         const now = Date.now();
-        const main = packageAsVersion(manifest, packaged, now);
-        // Saving keeps 12 versions: an import never pushes yours out.
-        const yours = cut.toolSettings.versions?.length ?? 0;
-        const theirs = packageVersions(manifest, packaged.versions, now);
-        if (yours >= CUT_VERSIONS_LIMIT) {
+        if ((cut.toolSettings.versions?.length ?? 0) >= CUT_VERSIONS_LIMIT) {
           setError(
             `Versions are full (${CUT_VERSIONS_LIMIT}) — delete one to import “${manifest.name}”.`
           );
           return;
         }
+        // The short it carries (format 2), added beside what's here first; the cut then points
+        // at its Scenes by the ids they have here.
+        let restored: import('@/lib/film/short-package-client').ShortRestore | null = null;
+        if (imported.result.short) {
+          const { restoreShortPackage } = await import('@/lib/film/short-package-client');
+          const { remapPackageIds } = await import('@/lib/film/short-package');
+          restored = await restoreShortPackage(imported.result.short);
+          packaged = remapPackageIds(packaged, restored.ids);
+        }
+        const main = packageAsVersion(manifest, packaged, now);
+        // Saving keeps 12 versions: an import never pushes yours out.
+        const yours = cut.toolSettings.versions?.length ?? 0;
+        const theirs = packageVersions(manifest, packaged.versions, now);
         const added = theirs.slice(0, CUT_VERSIONS_LIMIT - yours - 1);
-        updateCut(saveCutVersionsPatch(cut.toolSettings, [...added].reverse().concat(main)));
+        // Its short's Scenes on Cut when its lead is the Cast here; else the status says whose.
+        const showShort = restored && restored.leadId === sceneCastId;
+        // As setScenesScript: added scenes from before entries said which cut keep the old one.
+        const tagged = showShort
+          ? cutAddedScenesTagged(scenesAddedAll, scenesScriptId || undefined)
+          : scenesAddedAll;
+        updateCut({
+          ...saveCutVersionsPatch(cut.toolSettings, [...added].reverse().concat(main)),
+          ...(showShort ? { scenesScriptId: restored!.scriptId } : {}),
+          ...(JSON.stringify(tagged) !== JSON.stringify(scenesAddedAll)
+            ? { scenesAdded: tagged }
+            : {}),
+        });
         setStatus(
           [
-            `Imported “${manifest.name}” as a version${added.length ? ` (with ${added.length} of its own)` : ''} — open it under Versions.`,
+            restored
+              ? `Imported the short “${restored.scriptName}” (${restored.scenes} Scene${restored.scenes === 1 ? '' : 's'}${
+                  restored.castAdded.length ? `; Cast added: ${restored.castAdded.join(', ')}` : ''
+                })${showShort ? '' : ` — pick ${restored.leadName || 'its lead'} as the Cast to see it`}, and its cut as a version — open it under Versions.`
+              : `Imported “${manifest.name}” as a version${added.length ? ` (with ${added.length} of its own)` : ''} — open it under Versions.`,
+            restored?.pictureErrors.length
+              ? `Cast pictures not set up: ${restored.pictureErrors.join('; ')}`
+              : '',
             [
               stored ? `${stored} file${stored === 1 ? '' : 's'} stored here` : '',
               reused ? `${reused} already here` : '',
@@ -2110,7 +2155,7 @@ export function useCutRoom() {
         setPackaging(false);
       }
     },
-    [cut.toolSettings, updateCut]
+    [cut.toolSettings, scenesAddedAll, scenesScriptId, sceneCastId, updateCut]
   );
   /** "Back to the earlier take": the take and trim the shot had before Use it here. */
   const backToEarlierTake = useCallback(

@@ -155,7 +155,7 @@ export function scriptNameOf(parsed: ParsedScript, fallback = 'Script'): string 
   return (title || parsed.scenes[0]?.heading || fallback).slice(0, 80);
 }
 
-function newScriptId(now: number): string {
+export function newScriptId(now: number): string {
   const random =
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID().slice(0, 8)

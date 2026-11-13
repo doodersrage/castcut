@@ -4238,3 +4238,34 @@ from it: `SavedDataWait` on Scene, Script and the phone Film / Scene pages — i
 your scene", apart from the route's "Loading scene" code skeleton) and, after 8 s, what it waits for
 and a Reload button.
 
+
+## Part 21 — finishing (FINISHING_PLAN.md, user, 2026-11-13: feature freeze, six phases)
+
+The plan is on branch `docs/finishing-plan`. Phases 1–2 started 2026-11-13.
+
+**Phase 1 — open gates.** Local e2e on a production build: `E2E_PROD=1` (webpack `next build` +
+`next start` on the run's own port). "This Day as a script" failed under `next dev` only (cold
+compiles past 60 s, a click lost before hydration); "a missing model" flaked on the tray's one
+notice (an LLM-down notice landing after the error hid it behind "+1"). Both fixed in the specs
+(02d2556a); scene.spec 85/85 on a build. Left to the user: the real Docker upgrade, the `.deb`
+smoke test, the V5 walkthrough. CI: green since 24b5ee7f.
+
+**Phase 2 — one record, one road.**
+- Step 5f's tombstone gap: the browser's merge writes a slim card whole from its Scene's last
+  copy as a delete from another device drops it (a56dc7f3; 5f note above).
+- Stored state versioned in place (user's choice: no data moves; 0ce133da). `settings/tool-schema.ts`:
+  `schemaVersion` + ordered migrations, run as the settings load; Play's scene, cut, day and
+  roleplay at 1 (the 3.17 shape); each script carries its version; SQLite `PRAGMA user_version`
+  with ordered steps. Unstamped = 0; a newer release's copy is never stepped down.
+- **A short as a package** (user's choice: one short / script). Cut package format 2
+  (`film/short-package.ts`): with Cut on one short's Scenes, Package with media also carries its
+  script, Scenes with their takes, its board (whole) and its Cast (Cast files without their own
+  Scenes, Story or plan). Import adds it beside what is there: the Cast first (one here with the
+  same id and name is used as it is), then the script and Scenes, each keeping its id when free
+  and given a new one when not, every reference rewritten (`remapPackageIds`: whole strings, and
+  ids of 10+ characters as tokens — Cut's `scenes:<id>~n` keys); refused before anything changes
+  when its lead keeps 12 scripts already. Cut opens on it when its lead is the Cast. A format 1
+  release refuses a 2 (never half-read). Not yet: the board is carried but not restored as that
+  Cast's Short (a parked board keeps no short link). E2E: packaged on one machine, restored on an
+  empty one (no Cast, script or Scenes; the files gone) — Cut plays its two shots from this
+  machine's copies, Script shows it.

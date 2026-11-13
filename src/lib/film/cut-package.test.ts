@@ -3,7 +3,13 @@ import { describe, it } from 'node:test';
 import { buildZipBlob } from '../gallery/zip-core';
 import type { MediaUrlStatus } from './cut-missing';
 import { buildCutPackage, importCutPackage } from './cut-package-client';
-import { cutMediaUrls, packageAsVersion, parseCutPackageManifest, rewriteCutMedia } from './cut-package';
+import {
+  CUT_PACKAGE_VERSION,
+  cutMediaUrls,
+  packageAsVersion,
+  parseCutPackageManifest,
+  rewriteCutMedia,
+} from './cut-package';
 
 const cut = {
   sources: ['scenes' as const],
@@ -100,7 +106,7 @@ describe('a portable Cut package (M4 F7)', () => {
 
   it('refuses a newer format and anything that isn’t a package', async () => {
     assert.match(
-      (parseCutPackageManifest({ format: 'castcut-cut-package', version: 2, cut: {} }) as { error: string }).error,
+      (parseCutPackageManifest({ format: 'castcut-cut-package', version: CUT_PACKAGE_VERSION + 1, cut: {} }) as { error: string }).error,
       /newer Castcut/
     );
     const notOurs = await importCutPackage(buildZipBlob([{ filename: 'a.txt', data: new Uint8Array([1]) }]));

@@ -21,6 +21,7 @@ import {
   type CutPackageMedia,
 } from './cut-package';
 import type { MediaUrlStatus } from './cut-missing';
+import type { ShortPackage } from './short-package';
 
 const EXT_BY_TYPE: Record<string, string> = {
   'image/png': 'png',
@@ -51,6 +52,8 @@ function extensionOf(url: string, contentType: string): string {
 
 export async function buildCutPackage(input: {
   cut: CutPackageManifest['cut'];
+  /** The short the cut is of (format 2): its script, Scenes, board and Cast travel with it. */
+  short?: ShortPackage;
   name: string;
   castName?: string;
   full: boolean;
@@ -58,7 +61,8 @@ export async function buildCutPackage(input: {
   now?: number;
 }): Promise<{ blob: Blob; media: number; packed: number; unreadable: string[] }> {
   const fetcher = input.fetcher ?? fetch;
-  const urls = cutMediaUrls(input.cut);
+  // The cut's media and the short's: its takes, stills and the Cast's pictures by address.
+  const urls = cutMediaUrls({ cut: input.cut, short: input.short });
   const files: ZipFileEntry[] = [];
   const media: CutPackageMedia[] = [];
   const unreadable: string[] = [];
@@ -100,6 +104,7 @@ export async function buildCutPackage(input: {
     kind: input.full ? 'full' : 'light',
     cut: input.cut,
     media,
+    ...(input.short ? { short: input.short } : {}),
   };
   const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2));
   const readme = new TextEncoder().encode(
@@ -107,6 +112,11 @@ export async function buildCutPackage(input: {
       `${manifest.name} — a Castcut cut package (format ${CUT_PACKAGE_VERSION}, ${manifest.kind}).`,
       '',
       'Import it in Castcut: Cut → Versions → Import a package. It comes in as a version.',
+      ...(input.short
+        ? [
+            `It carries its short, “${input.short.script.name}”: the script, ${input.short.scenes.length} Scene${input.short.scenes.length === 1 ? '' : 's'} with their takes, and its Cast — added beside what is there.`,
+          ]
+        : []),
       input.full
         ? 'The media are in media/ by their SHA-256; a file already there is reused.'
         : 'A light package has no media: the cut points at the same addresses, so import it where those files are.',
@@ -143,6 +153,8 @@ function dataUrlOf(bytes: Uint8Array, type: string): string {
 export type CutPackageImport = {
   manifest: CutPackageManifest;
   cut: CutPackageManifest['cut'];
+  /** The short it carries (format 2), its media relinked as the cut's are. */
+  short?: ShortPackage;
   /** URLs that still answer here, kept as they are. */
   kept: number;
   /** Packaged files already stored here (by hash), relinked without storing again. */
@@ -231,6 +243,7 @@ export async function importCutPackage(
     result: {
       manifest,
       cut: rewriteCutMedia(manifest.cut, map),
+      ...(manifest.short ? { short: rewriteCutMedia(manifest.short, map) } : {}),
       kept,
       reused,
       stored,

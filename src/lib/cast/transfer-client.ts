@@ -313,6 +313,11 @@ export async function importCastFile(file: File): Promise<CastImportResult> {
     parsed = null;
   }
   if (!parsed) throw new Error('That file is not a Castcut Cast file.');
+  return importCastData(parsed);
+}
+
+/** A Cast file already read (a short package carries its Cast so): added here, as above. */
+export async function importCastData(parsed: CastFile): Promise<CastImportResult> {
   const existing = loadCharacters();
   const placed = placeImportedCast(parsed, {
     idTaken: id => existing.some(entry => entry.id === id),

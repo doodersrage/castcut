@@ -6,9 +6,15 @@
  * The format is versioned: a newer major version is refused, never half-read. Pure.
  */
 import type { CutToolCache, CutVersion } from './cut-room';
+import { parseCastFile } from '../cast/transfer';
+import { parseShortPackage, type ShortPackage } from './short-package';
 
 export const CUT_PACKAGE_FORMAT = 'castcut-cut-package';
-export const CUT_PACKAGE_VERSION = 1;
+/**
+ * 1: the cut and its media. 2 (2026-11-13): and, optionally, the short it is cut from — its
+ * script, Scenes with takes, board and Cast (short-package.ts). A 2 without a short reads as 1.
+ */
+export const CUT_PACKAGE_VERSION = 2;
 export const CUT_PACKAGE_MANIFEST = 'castcut-cut.json';
 
 export type CutPackageMedia = {
@@ -30,6 +36,8 @@ export type CutPackageManifest = {
   kind: 'light' | 'full';
   cut: Pick<CutToolCache, 'sources' | 'extras' | 'options' | 'versions'>;
   media: CutPackageMedia[];
+  /** The short the cut is of (format 2), restored beside what's there on import. */
+  short?: ShortPackage;
 };
 
 const MEDIA_KEY = /(?:^|[a-z])(?:url|Url|URL)$/;
@@ -94,6 +102,10 @@ export function parseCutPackageManifest(
   if (!value.cut || typeof value.cut !== 'object') {
     return { ok: false, error: 'The package has no cut in it.' };
   }
+  const short = value.short === undefined ? null : parseShortPackage(value.short, parseCastFile);
+  if (value.short !== undefined && !short) {
+    return { ok: false, error: 'The package’s short can’t be read (no script in it).' };
+  }
   const media = (Array.isArray(value.media) ? value.media : []).filter(
     (entry): entry is CutPackageMedia =>
       Boolean(entry) &&
@@ -116,6 +128,7 @@ export function parseCutPackageManifest(
       kind: value.kind === 'full' ? 'full' : 'light',
       cut: value.cut,
       media,
+      ...(short ? { short } : {}),
     },
   };
 }
