@@ -109,3 +109,11 @@ describe('character plates', () => {
     assert.equal(fitting.referenceIsolated, true);
   });
 });
+
+describe('Script on a phone lands on the phone Scene’s scripts (2026-11-12)', () => {
+  it('keeps the query, adds the scripts anchor unless one is given', () => {
+    assert.equal(toMobileStudioHref('/script?character=a&script=s1'), '/m/scene?character=a&script=s1#scene-scripts');
+    assert.equal(toMobileStudioHref('/script#other'), '/m/scene#other');
+    assert.equal(toMobileStudioHref('/scene?character=a'), '/m/scene?character=a');
+  });
+});

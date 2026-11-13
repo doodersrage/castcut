@@ -105,6 +105,9 @@ export function mobileStudioTabFromPath(pathname: string | null | undefined): Mo
 }
 
 /** Remap desk film-loop paths onto Mobile Studio when handoff stays on phone. */
+/** The phone Scene's scripts section (SceneScripts' ToolSection id). */
+export const PHONE_SCRIPTS_ANCHOR = 'scene-scripts';
+
 export function toMobileStudioHref(href: string): string {
   const raw = href.trim();
   if (!raw) {
@@ -147,6 +150,8 @@ export function toMobileStudioHref(href: string): string {
   if (!next) {
     return raw;
   }
+  // Script lands on the phone Scene's scripts, not the top of the page (2026-11-12).
+  if (path === '/script') return `${next}${query}${hash || `#${PHONE_SCRIPTS_ANCHOR}`}`;
   return `${next}${query}${hash}`;
 }
 

@@ -1110,7 +1110,7 @@ export default function SceneScripts({
   };
 
   return (
-    <ToolSection data-testid="scene-scripts" title="Script">
+    <ToolSection id="scene-scripts" data-testid="scene-scripts" title="Script">
       <p className="type-caption mb-2 text-[var(--text-muted)]">
         A screenplay for {castName ?? 'this Cast'} — Fountain or plain text. See how it reads, scene
         by scene, then plan each scene&apos;s shots and make them Scenes.

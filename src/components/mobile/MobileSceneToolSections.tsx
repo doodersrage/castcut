@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { PHONE_SCRIPTS_ANCHOR } from '@/lib/app/mobile-studio';
 import { useLocations } from '@/components/location/useLocations';
 import TaskRequirementsCard from '@/components/TaskRequirementsCardLazy';
 import DayAdvancedDrawer, {
@@ -125,6 +126,15 @@ function SummaryRow({
 export default function MobileSceneToolSections({ vm, page, runner }: Props) {
   const views = useSceneToolViews(vm, page);
   const actionBarRef = useActionBarHeightRef();
+  // Opened as Script (/script → #scene-scripts): the browser's own jump ran before this page
+  // rendered, so go to the scripts once it has.
+  useEffect(() => {
+    if (window.location.hash !== `#${PHONE_SCRIPTS_ANCHOR}`) return;
+    const frame = window.requestAnimationFrame(() =>
+      document.getElementById(PHONE_SCRIPTS_ANCHOR)?.scrollIntoView({ block: 'start' })
+    );
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   const {
     shared,
     toolSettings,
@@ -272,7 +282,7 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
         {!active ? (
           <p className="type-caption text-[var(--text-muted)]" data-testid="scene-empty">
             {character
-              ? `No scene open for ${character.name}. New starts one — or open a Day slot as a scene (its sheet → Open as Scene).`
+              ? `No scene open for ${character.name}. New starts one — or open a moment of a short as a scene (its sheet → Open as Scene).`
               : 'Pick a Cast lead (Setup) — scenes are kept per Cast.'}
           </p>
         ) : null}
@@ -733,7 +743,7 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
         open={sheet === 'send'}
         onClose={() => setSheet(null)}
         title="Send to Short"
-        description="The shot goes on that Day slot; its kept take becomes the slot's still (the old one stays as the previous take)."
+        description="The shot goes on that moment of the short; its kept take becomes the moment's still (the old one stays as the previous take)."
         testId="scene-send-day-sheet"
       >
         {daySlots.length ? (
