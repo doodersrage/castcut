@@ -2050,6 +2050,18 @@ test('an episode run keeps a take on each Scene by itself', async ({
 // is the shot's: it stays through every take. A Scene of no script still starts afresh.
 test('a script Scene keeps its line through a new take; a hand-made one clears it', async ({ page }) => {
   const queued = await stubComfyQueue(page);
+  // Every job done at once: an auto outfit is dressed first (a dress plate) and the take queues
+  // only once that plate is back — on CI, with no ComfyUI, it never was (2026-11-12).
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-line.png', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
   const base = sceneWithTakes();
   const line = 'You didn’t bring the recipe.';
   const withLine = (fromScript: boolean) => ({
@@ -2073,9 +2085,10 @@ test('a script Scene keeps its line through a new take; a hand-made one clears i
     );
     await gotoStable(page, `/scene?character=${CAST}`);
     await dismissBlockingOverlays(page);
-    const before = queued.length;
+    // The take itself, not a dress plate rendered for it first.
+    const before = queuedTakes(queued).length;
     await page.getByTestId('scene-queue-take').click({ timeout: 60_000 });
-    await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(before);
+    await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBeGreaterThan(before);
     await expect
       .poll(
         async () => {
