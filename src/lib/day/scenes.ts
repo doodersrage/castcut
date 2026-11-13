@@ -1347,10 +1347,41 @@ export function scriptScenesInOrder(
     id: string;
     /** Its text: each Scene goes where its scene is in it. */
     source?: string;
-    shots?: ReadonlyArray<{ madeSceneId?: string; sceneId?: string }>;
+    shots?: ReadonlyArray<{ id?: string; madeSceneId?: string; sceneId?: string }>;
   }
 ): SavedScene[] {
-  const mine = (scenes ?? []).filter(scene => scene.fromScript?.scriptId === script.id);
+  // An earlier version's shots (2026-11-13): a Short written anew on the same board keeps its
+  // script, plans the moments' shots again and moves the old shots' Scenes to the new headings
+  // (dayAsShort) — still naming shots the script no longer has. Cut listed them with the new
+  // short's. They stay Scenes (never deleted), just not this script's cut. A card's own Scene
+  // (loose until a shot takes it) and one that names no shot are kept, as before.
+  const shotIds = new Set((script.shots ?? []).flatMap(shot => (shot.id ? [shot.id] : [])));
+  const madeIds = new Set(
+    (script.shots ?? []).flatMap(shot => (shot.madeSceneId ? [shot.madeSceneId] : []))
+  );
+  const shotGone = (scene: SavedScene) => {
+    const shotId = scene.fromScript?.shotId;
+    return (
+      shotIds.size > 0 &&
+      Boolean(shotId) &&
+      !shotIds.has(shotId!) &&
+      !madeIds.has(scene.id) &&
+      !scene.fromDaySlot
+    );
+  };
+  const own = (scenes ?? []).filter(
+    scene => scene.fromScript?.scriptId === script.id && !shotGone(scene)
+  );
+  // A card's Scene that renders no shot (cards don't render, 2026-11-13) shows its moment only
+  // until a shot of that scene has a kept take — then the shot plays, not the card beside it.
+  const shotKept = new Set(
+    own
+      .filter(scene => madeIds.has(scene.id) && scene.keptTakeId)
+      .map(scene => scene.fromScript?.sceneId)
+  );
+  const mine = own.filter(
+    scene => !scene.fromDaySlot || madeIds.has(scene.id) || !shotKept.has(scene.fromScript?.sceneId)
+  );
   const shotRank = new Map<string, number>();
   const shotScene = new Map<string, string>();
   (script.shots ?? []).forEach((shot, index) => {

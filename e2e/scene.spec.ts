@@ -2891,6 +2891,77 @@ test('This Day as a script: a scene per moment, its still kept, the Day unchange
   await expect(page.getByTestId('cut-scenes-script')).toHaveCount(0);
 });
 
+// A finished short's run opens Cut with router.push and autocut (SceneScriptAndRun), not a page
+// load: Cut must still take ?script= and show that short's Scenes only, not the Cast's earlier
+// shorts' (checked 2026-11-13 while tracing "Cut mixes in earlier shorts").
+test('a short sent to Cut by the router shows its own Scenes only', async ({ page }) => {
+  test.setTimeout(240_000);
+  const older = sceneWithTakes().scenes[0]!;
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          scenes: [
+            {
+              ...older,
+              id: 'scene-older-short',
+              name: 'An earlier short',
+              keptTakeId: 'take-2',
+              fromScript: { scriptId: 'script-older', sceneId: 'int-kitchen', shotId: 'int-kitchen~1' },
+            },
+          ],
+        },
+        day: {
+          stillsCharacterId: CAST,
+          dayMood: 'everyday',
+          slots: [
+            { id: 'morning', label: 'Morning', location: 'small kitchen', sceneHints: 'making coffee' },
+            { id: 'evening', label: 'Evening', location: 'rooftop bar', sceneHints: 'laughing at the rail' },
+          ],
+          stills: [{ slotId: 'evening', promptId: 'day-evening', imageUrl: '/icon.svg', status: 'completed' }],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await clickUntilAt(page, page.getByTestId('day-as-short').first(), /\/script\?.*script=/);
+  await expect(page.getByTestId('script-reading')).toBeVisible({ timeout: 60_000 });
+  const tool = JSON.parse((await storedSceneTool(page)) || '{}') as {
+    scripts?: Array<{ id: string; name: string }>;
+  };
+  const script = tool.scripts?.find(entry => entry.name === 'Scene Cast’s short');
+  expect(script, JSON.stringify(tool.scripts?.map(entry => entry.name))).toBeTruthy();
+
+  // Back on Short, then to Cut the way the run goes there: the router, not a page load.
+  await gotoStable(page, `/day?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  const to = `/cut?from=scenes&character=${CAST}&script=${script!.id}&autocut=1`;
+  // Next's own router (window.next in a build, window.nd under next dev): what router.push uses.
+  await page.waitForFunction(() => {
+    const w = window as unknown as { next?: { router?: unknown }; nd?: { router?: unknown } };
+    return Boolean(w.next?.router ?? w.nd?.router);
+  });
+  // Once, on a settled page: a second push while /cut still compiles cancels the first.
+  await expect(page.getByTestId('day-as-short').first()).toBeVisible({ timeout: 60_000 });
+  await page.waitForTimeout(3000);
+  await page.evaluate(url => {
+    type Router = { push: (href: string) => void };
+    const w = window as unknown as { next?: { router?: Router }; nd?: { router?: Router } };
+    (w.next?.router ?? w.nd?.router)!.push(url);
+  }, to);
+  await expect(page).toHaveURL(new RegExp(`/cut\\?.*script=${script!.id}`), { timeout: 150_000 });
+  await expect(page.getByTestId('cut-scenes-script')).toContainText('Scene Cast’s short', {
+    timeout: 60_000,
+  });
+  // The short's one kept Scene (the evening), not the earlier short's too.
+  await expect(page.getByTestId('cut-source-scenes')).toContainText('1 shot');
+});
+
 // The board on the script road: a Day with a short and the short stay one — the short's kept
 // takes come back as the board's stills, and the board's edits go into the short's Scenes.
 test('Short and its short stay in step: kept takes back, beats out', async ({ page }) => {

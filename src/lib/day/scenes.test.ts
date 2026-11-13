@@ -1152,9 +1152,10 @@ describe('one script’s Scenes for Cut', () => {
     const scenes = [
       at('k1', 'int-kitchen-morning', 1),
       at('p1', 'ext-park-evening', 2),
-      at('c1', 'int-cafe-day', 3),
-      at('cafe-card', 'int-cafe-day', 9),
-      at('k-card', 'int-kitchen-morning', 8),
+      // The cafe's shot isn't rendered yet: its card shows the moment till then.
+      { ...at('c1', 'int-cafe-day', 3), keptTakeId: undefined } as SavedScene,
+      { ...at('cafe-card', 'int-cafe-day', 9), fromDaySlot: 'afternoon' } as SavedScene,
+      { ...at('k-card', 'int-kitchen-morning', 8), fromDaySlot: 'morning' } as SavedScene,
     ];
     const script = {
       id: 'x',
@@ -1165,15 +1166,54 @@ describe('one script’s Scenes for Cut', () => {
         { madeSceneId: 'c1', sceneId: 'int-cafe-day' },
       ],
     };
+    // The kitchen's shot has a kept take: it plays, not the card beside it (cards don't render).
     assert.deepEqual(
       scriptScenesInOrder(scenes, script).map(entry => entry.id),
-      ['k1', 'k-card', 'c1', 'cafe-card', 'p1']
+      ['k1', 'c1', 'cafe-card', 'p1']
     );
     // A one-shot short (no planned shots): by the script's scenes, not when each was made.
     assert.deepEqual(
       scriptScenesInOrder(scenes, { id: 'x', source }).map(entry => entry.id),
       ['k1', 'k-card', 'c1', 'cafe-card', 'p1']
     );
+  });
+
+  it('leaves out an earlier short’s shots: Scenes of shots the script no longer has', () => {
+    // A Short written anew on the same board keeps its script: the moment's shots are planned
+    // again and the old shots' Scenes are moved to the new heading (dayAsShort's "alongside"),
+    // still naming their dropped shots. Cut listed them with the new short's (user, 2026-11-13).
+    const source = 'INT. BOOKSHOP - DAY\n\nShe reads.\n';
+    const at = (id: string, shotId: string, createdAt: number) =>
+      ({
+        ...scene(id, 'x', createdAt),
+        fromScript: { scriptId: 'x', sceneId: 'int-bookshop-day', shotId },
+      }) as SavedScene;
+    const scenes = [
+      at('old-1', 'int-kitchen-morning~1', 1),
+      at('old-2', 'int-kitchen-morning~2', 2),
+      // The card's own Scene, loose: the moment's shots are rendered, so they play instead.
+      { ...at('card', 'int-kitchen-morning~3', 3), fromDaySlot: 'morning' } as SavedScene,
+      at('new-1', 'int-bookshop-day~1', 10),
+      at('new-2', 'int-bookshop-day~2', 11),
+      // Made for a shot whose madeSceneId names another Scene (a second Scene of it): still its.
+      at('new-2b', 'int-bookshop-day~2', 12),
+      // Made before Scenes named their shot: kept, as before.
+      { ...scene('legacy', 'x', 5), fromScript: { scriptId: 'x', sceneId: 'int-bookshop-day' } } as SavedScene,
+    ];
+    const script = {
+      id: 'x',
+      source,
+      shots: [
+        { id: 'int-bookshop-day~1', madeSceneId: 'new-1', sceneId: 'int-bookshop-day' },
+        { id: 'int-bookshop-day~2', madeSceneId: 'new-2', sceneId: 'int-bookshop-day' },
+      ],
+    };
+    assert.deepEqual(
+      scriptScenesInOrder(scenes, script).map(entry => entry.id),
+      ['new-1', 'new-2', 'legacy', 'new-2b']
+    );
+    // No planned shots (a one-shot short): nothing to tell them apart by — every Scene, as before.
+    assert.equal(scriptScenesInOrder(scenes, { id: 'x', source }).length, scenes.length);
   });
 });
 
