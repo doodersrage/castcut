@@ -1671,9 +1671,17 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         // The catalog list is filtered to the lead's gender, and the kit picker only offers what
         // is in it — a slot kit missing from it was left by another lead (a man in cocktail
         // dresses, live 2026-09-30). Treat it as unset.
-        const catalogLoaded = wardrobeOptions.some(option => option.value);
+        // The catalog as this page has it — or, queued before the page's own load came back,
+        // fetched here (the same cached request): a take sent in the first seconds went with no
+        // kit picked, in the plate's underwear (found by the take golden test, 2026-11-13).
+        const catalog = wardrobeOptions.some(option => option.value)
+          ? wardrobeOptions
+          : await fetchClothingSelectOptions('wardrobeCatalog', clothingGender).catch(
+              () => wardrobeOptions
+            );
+        const catalogLoaded = catalog.some(option => option.value);
         const fitsLead = (id: string | undefined) =>
-          !id?.trim() || !catalogLoaded || wardrobeOptions.some(option => option.value === id);
+          !id?.trim() || !catalogLoaded || catalog.some(option => option.value === id);
         if (queueTarget.wardrobeId && !fitsLead(queueTarget.wardrobeId)) {
           queueTarget = { ...queueTarget, wardrobeId: undefined, wardrobeAuto: undefined };
           wardrobeId = outfit.lockedWardrobeId?.trim() || undefined;
@@ -1717,7 +1725,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
             arcKit ??
             (wardrobeId ||
               pickDayAutoKit({
-                options: wardrobeOptions,
+                options: catalog,
                 dayMood: toolSettings.dayMood,
                 slotId: queueTarget.id,
                 salt: lookCharacter?.id,
@@ -3726,6 +3734,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       updateToolSettings,
       wardrobeLabelFor,
       wardrobeOptions,
+      clothingGender,
     ]
   );
   const suggestDayScenes = useCallback(() => {
