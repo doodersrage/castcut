@@ -1048,17 +1048,33 @@ test('a short packaged with its media restores on an empty machine: script, Scen
   });
   await expect(status).toContainText(/stored here|already here|kept in the cut itself/);
   await expect(status).toContainText('opens when Rae is picked on Short');
-
-  // Its lead picked: Cut plays the short's kept shot from this machine's copy of the take.
-  await gotoStable(elsewhere, `/cut?from=scenes&character=${CAST}&script=${SCRIPT}`);
-  await dismissBlockingOverlays(elsewhere);
-  await expect(elsewhere.getByTestId('cut-scenes-script')).toContainText('Rae’s short', { timeout: 60_000 });
-  await expect(elsewhere.getByTestId('cut-source-scenes')).toContainText('1 shot');
-  await expect(elsewhere.locator('[data-testid^="cut-shot-pick-scenes:"] img').first()).toHaveAttribute(
-    'src',
-    /\/api\/gallery\/media\/pkg-[0-9a-f]+|^data:image\//,
-    { timeout: 30_000 }
-  );
+  // A server with file storage keeps the takes' pictures; one without (CI: no data folder) keeps
+  // them in the imported cut version only — Scenes don't hold inline pictures — and says so.
+  const stored = !/couldn’t be stored on this server/.test((await status.textContent()) ?? '');
+  if (stored) {
+    // Its lead picked: Cut plays the short's kept shot from this machine's copy of the take.
+    await gotoStable(elsewhere, `/cut?from=scenes&character=${CAST}&script=${SCRIPT}`);
+    await dismissBlockingOverlays(elsewhere);
+    await expect(elsewhere.getByTestId('cut-scenes-script')).toContainText('Rae’s short', {
+      timeout: 60_000,
+    });
+    await expect(elsewhere.getByTestId('cut-source-scenes')).toContainText('1 shot');
+    await expect(
+      elsewhere.locator('[data-testid^="cut-shot-pick-scenes:"] img').first()
+    ).toHaveAttribute('src', /\/api\/gallery\/media\/pkg-[0-9a-f]+/, { timeout: 30_000 });
+  } else {
+    await expect(status).toContainText('1 take couldn’t be stored on this server');
+    // The imported version plays the take from the package.
+    await gotoStable(elsewhere, `/cut?from=scenes&character=${CAST}`);
+    await dismissBlockingOverlays(elsewhere);
+    await elsewhere.getByTestId('cut-tab-versions').click();
+    const version = elsewhere.locator('[data-testid^="cut-version-open-Imported"]');
+    await expect(version).toBeVisible({ timeout: 30_000 });
+    await version.click();
+    await expect(
+      elsewhere.locator('[data-testid^="cut-shot-pick-scenes:"] img').first()
+    ).toHaveAttribute('src', /^data:image\//, { timeout: 30_000 });
+  }
   // Script has the script.
   await gotoStable(elsewhere, `/script?character=${CAST}&script=${SCRIPT}`);
   await dismissBlockingOverlays(elsewhere);

@@ -2128,6 +2128,9 @@ export function useCutRoom() {
                   restored.castAdded.length ? `; Cast added: ${restored.castAdded.join(', ')}` : ''
                 })${showShort ? '' : ` — pick ${restored.leadName || 'its lead'} as the Cast to see it`}, and its cut as a version — open it under Versions.`
               : `Imported “${manifest.name}” as a version${added.length ? ` (with ${added.length} of its own)` : ''} — open it under Versions.`,
+            restored?.takesNotStored
+              ? `${restored.takesNotStored} take${restored.takesNotStored === 1 ? '' : 's'} couldn’t be stored on this server (no data folder: set PROMPT_DATA_DIR) — the Scenes come without ${restored.takesNotStored === 1 ? 'it' : 'them'}; the imported version plays them.`
+              : '',
             restored?.board === 'parked'
               ? `Its Short board is ${restored.leadName || 'its lead'}’s: it opens when ${restored.leadName || 'the lead'} is picked on Short.`
               : restored?.board === 'live'

@@ -75,6 +75,11 @@ export type ShortRestore = {
    * here already, left as it is (the short is on Script, Scene and Cut all the same).
    */
   board: 'live' | 'parked' | 'kept-yours' | 'none';
+  /**
+   * Takes whose picture couldn't be stored here (no file storage on this server: the package's
+   * files are kept inline, which Scenes don't hold) — their Scenes come without them.
+   */
+  takesNotStored: number;
   /** The ids changed because they were taken here: package id → id here (for its cut). */
   ids: Map<string, string>;
   pictureErrors: string[];
@@ -134,6 +139,10 @@ export async function restoreShortPackage(short: ShortPackage): Promise<ShortRes
     scenes: normalizeSavedScenes([...scenesHere, ...placed.scenes]),
   });
   const board = placed.board ? restoreBoard(placed.board, placed.script.castId) : 'none';
+  const inline = (url: string | undefined) => Boolean(url && /^(data|blob):/.test(url));
+  const takesNotStored = placed.scenes
+    .flatMap(scene => scene.takes)
+    .filter(take => inline(take.imageUrl)).length;
   // Written through before it says it's done: a reload straight after found no script (the
   // browser stores debounce their writes; CI, 2026-11-13).
   await Promise.race([
@@ -142,6 +151,7 @@ export async function restoreShortPackage(short: ShortPackage): Promise<ShortRes
   ]);
   return {
     board,
+    takesNotStored,
     scriptId: placed.script.id,
     scriptName: placed.script.name,
     leadId: placed.script.castId,
