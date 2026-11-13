@@ -197,6 +197,11 @@ export default function CutRoom() {
   // Solo (M4 F4): hear one track in the monitor — not saved, not encoded.
   const [solo, setSolo] = useState<CutTrack | null>(null);
   const [pickedPanel, setPanel] = useState<CutPanel | null>(null);
+  // On a phone one part at a time under the monitor: the shots and their panels, the timeline,
+  // or the films (UI audit 2026-11-12: all three stacked made Cut a long scroll). Desktop shows all.
+  const [phoneView, setPhoneView] = useState<'edit' | 'timeline' | 'films'>('edit');
+  const phoneHidden = (view: 'edit' | 'timeline' | 'films') =>
+    phoneView === view ? '' : 'max-sm:hidden';
   const [keepShown, setKeep] = useState<CutKeep>('films');
   // A link to the continuity list (Production's next step) opens its panel.
   const hash = useSyncExternalStore(subscribeHash, readHash, () => '');
@@ -961,7 +966,22 @@ export default function CutRoom() {
                   />
                 </ToolSection>
               </div>
-              <aside className="relative min-w-0" data-testid="cut-inspector">
+              <div className="sm:hidden" data-testid="cut-phone-view">
+                <SegmentedControl
+                  aria-label="Shots, timeline or films"
+                  value={phoneView}
+                  onChange={setPhoneView}
+                  options={[
+                    { value: 'edit', label: 'Shots', testId: 'cut-phone-view-edit' },
+                    { value: 'timeline', label: 'Timeline', testId: 'cut-phone-view-timeline' },
+                    { value: 'films', label: 'Films', testId: 'cut-phone-view-films' },
+                  ]}
+                />
+              </div>
+              <aside
+                className={`relative min-w-0 ${phoneHidden('edit')}`}
+                data-testid="cut-inspector"
+              >
                 {/* As tall as the monitor beside it (it scrolls inside), so the timeline follows. */}
                 <ToolSection className="sidebar-scroll xl:absolute xl:inset-0 xl:overflow-y-auto">
                   <div className="mb-3">
@@ -1770,7 +1790,11 @@ export default function CutRoom() {
                 void dropFiles([...event.dataTransfer.files]);
               }}
             >
-              <ToolSection data-testid="cut-timeline-section" title="Timeline">
+              <ToolSection
+                data-testid="cut-timeline-section"
+                title="Timeline"
+                className={phoneHidden('timeline')}
+              >
                 <CutTimeline
                   loaded={preview.loaded}
                   order={order}
@@ -2006,7 +2030,11 @@ export default function CutRoom() {
           </div>
         ) : null}
 
-        <ToolSection data-testid="cut-keep" title="Films and versions">
+        <ToolSection
+          data-testid="cut-keep"
+          title="Films and versions"
+          className={phoneHidden('films')}
+        >
           <div className="mb-3">
             <SegmentedControl
               aria-label="Your films, versions and package"
