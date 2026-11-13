@@ -4143,7 +4143,11 @@ const phases: Record<string, Phase> = {
           await chip.click().catch(() => undefined);
           await page.waitForTimeout(1000);
         }
-        log('rating:', rating, (await chip.getAttribute('aria-pressed')) === 'true' ? 'on' : 'NOT ON');
+        log(
+          'rating:',
+          rating,
+          (await chip.getAttribute('aria-pressed')) === 'true' ? 'on' : 'NOT ON'
+        );
         if ((await chip.getAttribute('aria-pressed')) !== 'true')
           problems.push(`shortscene: the ${rating} rating did not take`);
       }
@@ -4249,11 +4253,29 @@ const phases: Record<string, Phase> = {
       if (run.id && run.id !== runBefore.id) break;
     }
     const runStarted = Date.now();
+    let pauses = 0;
+    let resumedAt = 0;
     const run = await waitForRun(
       page,
-      entry => entry.state === 'done' || entry.state === 'cancelled',
+      entry => {
+        // A pause (a Scene that didn't open, a take not queued) is resumed once a minute, as a
+        // person would with Resume; counted, so the review says it happened.
+        if (entry.state === 'paused' && Date.now() - resumedAt > 60_000) {
+          resumedAt = Date.now();
+          pauses += 1;
+          log('run paused:', entry.stopReason ?? '', '— resuming');
+          // Short's run panel ("Resume"), as the run renders on Short.
+          void page
+            .getByTestId('scene-run-start')
+            .first()
+            .click({ timeout: 5_000 })
+            .catch(() => undefined);
+        }
+        return entry.state === 'done' || entry.state === 'cancelled';
+      },
       Number(process.env.SHORT_RUN_MIN ?? 240)
     );
+    if (pauses) problems.push(`the run paused ${pauses} time${pauses === 1 ? '' : 's'} (resumed)`);
     log(
       'run',
       run.state,
