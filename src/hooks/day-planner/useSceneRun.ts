@@ -6,6 +6,11 @@ import {
   runIsHeldElsewhere,
   RUN_LOCK_RENEW_MS,
 } from '@/lib/day/run-lock';
+import {
+  claimServerRunLease,
+  releaseServerRunLease,
+  serverRunHeldElsewhere,
+} from '@/lib/day/run-lease-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 import { notifyDesktop } from '@/lib/app/desktop-notify';
@@ -111,11 +116,17 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     if (page.run.state !== 'running') return;
     // Rendering in another tab (Scene beside Short): it is running — not this page's to pause.
     if (runIsHeldElsewhere(page.run.id, me)) return;
-    save(pausedAfterReload(page.run));
-    // Not cleared with the effect: it runs once (Strict Mode's second pass returns above).
-    if (page.run.resumeOnReload) {
-      window.setTimeout(() => setResumeAfterReload(true), RESUME_AFTER_RELOAD_MS);
-    }
+    const run = page.run;
+    // Or on another device (its lease on the server, fresh): left to it, not paused here.
+    void serverRunHeldElsewhere(run.id, me).then(elsewhere => {
+      if (elsewhere || loopingRef.current || runRef.current?.id !== run.id) return;
+      if (runRef.current.state !== 'running') return;
+      save(pausedAfterReload(runRef.current));
+      // Not cleared with the effect: it runs once (Strict Mode's second pass returns above).
+      if (run.resumeOnReload) {
+        window.setTimeout(() => setResumeAfterReload(true), RESUME_AFTER_RELOAD_MS);
+      }
+    });
   }, [me, page.run, save]);
 
   // Takes handed to ComfyUI: their polls (re)started once, then settled as the Gallery hears.
@@ -294,15 +305,40 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     const lockedRun = runRef.current?.id ?? '';
     if (lockedRun && !claimRunLock(lockedRun, me)) return;
     loopingRef.current = true;
+    // The server's lease too (Phase 3): another device rendering it keeps it.
+    if (lockedRun && (await claimServerRunLease(lockedRun, me)) === 'elsewhere') {
+      releaseRunLock(lockedRun, me);
+      loopingRef.current = false;
+      pushSystemTrayMessage({
+        text: `“${runRef.current?.label ?? 'This run'}” is rendering on another device — it goes on there.`,
+        tone: 'warning',
+      });
+      return;
+    }
     setLooping(true);
-    // Renewed while it renders; a tab that dies lets it go stale (RUN_LOCK_FRESH_MS).
+    // Renewed while it renders; a tab that dies lets it go stale (RUN_LOCK_FRESH_MS, and the
+    // server's lease RUN_LEASE_FRESH_MS). A lease taken over meanwhile (this one stalled past it)
+    // stops this loop: the other renderer has the run.
+    let leaseLost = false;
     const renew = lockedRun
-      ? window.setInterval(() => claimRunLock(lockedRun, me), RUN_LOCK_RENEW_MS)
+      ? window.setInterval(() => {
+          claimRunLock(lockedRun, me);
+          void claimServerRunLease(lockedRun, me).then(lease => {
+            if (lease === 'elsewhere') leaseLost = true;
+          });
+        }, RUN_LOCK_RENEW_MS)
       : 0;
     try {
       for (;;) {
         const run = runRef.current;
         if (!run || run.state !== 'running') return;
+        if (leaseLost) {
+          pushSystemTrayMessage({
+            text: `“${run.label}” went on on another device — this page stopped rendering it.`,
+            tone: 'warning',
+          });
+          return;
+        }
         if (stopRef.current) {
           const cancel = stopRef.current === 'cancel';
           stopRef.current = null;
@@ -499,7 +535,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       if (run) save(pausedAfterError(run, error instanceof Error ? error.message : String(error)));
     } finally {
       if (renew) window.clearInterval(renew);
-      if (lockedRun) releaseRunLock(lockedRun, me);
+      if (lockedRun) {
+        releaseRunLock(lockedRun, me);
+        if (!leaseLost) releaseServerRunLease(lockedRun, me);
+      }
       loopingRef.current = false;
       setLooping(false);
       setStopping(null);
@@ -518,15 +557,25 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       return;
     }
     stopRef.current = null;
-    const now = Date.now();
-    const { stopReason: _reason, ...rest } = run;
-    save(
-      withRunLog(
-        { ...rest, state: 'running', startedAt: run.startedAt ?? now },
-        { at: now, event: 'resumed', detail: run.state === 'prepared' ? 'started' : 'resumed' }
-      )
-    );
-    void loop();
+    void (async () => {
+      // Another device rendering it (the server's lease): left to it, nothing written here.
+      if (await serverRunHeldElsewhere(run.id, me)) {
+        pushSystemTrayMessage({
+          text: `“${run.label}” is rendering on another device — it goes on there.`,
+          tone: 'warning',
+        });
+        return;
+      }
+      const now = Date.now();
+      const { stopReason: _reason, ...rest } = runRef.current ?? run;
+      save(
+        withRunLog(
+          { ...rest, state: 'running', startedAt: run.startedAt ?? now },
+          { at: now, event: 'resumed', detail: run.state === 'prepared' ? 'started' : 'resumed' }
+        )
+      );
+      void loop();
+    })();
   }, [loop, me, save]);
 
   // Said when it ends or stops by itself (not a pause you clicked): a note in Castcut, and a

@@ -174,6 +174,16 @@ function applyPragmas(db: DatabaseSync): void {
  */
 export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
   db => db.exec(SCHEMA_SQL),
+  // 2 (2026-11-13, FINISHING_PLAN Phase 3): who renders a Scene run — a lease one renderer
+  // (a tab, another device, later the server) holds and renews (sqlite/scene-run-leases.ts).
+  db =>
+    db.exec(`CREATE TABLE IF NOT EXISTS scene_run_leases (
+      scope TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      holder TEXT NOT NULL,
+      renewed_at INTEGER NOT NULL,
+      PRIMARY KEY (scope, run_id)
+    );`),
 ];
 export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
 

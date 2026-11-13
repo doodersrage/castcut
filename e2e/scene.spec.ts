@@ -4482,6 +4482,102 @@ test('a run rendering in another tab is left to it', async ({ page }) => {
   expect(queued).toHaveLength(0);
 });
 
+// Phase 3 (2026-11-13): the server's lease says who renders a run, across devices. A run another
+// device renders (its lease fresh) isn't paused by a page opened here, and Resume here leaves it
+// to that device. The lease API is stubbed: CI's server has no storage.
+test('a run another device renders is left to it (the server’s lease)', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const scene = sceneWithTakes();
+  const lease = { runId: 'run-phone', holder: 'phone-1', renewedAt: Date.now() };
+  const claims: string[] = [];
+  await page.route(/\/api\/scene-runs\/lease(?:\?.*)?$/, route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { lease, fresh: true } });
+    const body = route.request().postDataJSON() as { action?: string };
+    claims.push(body.action ?? '');
+    return route.fulfill({ json: body.action === 'claim' ? { held: false, lease } : { released: false } });
+  });
+  const runOf = (state: string) => ({
+    id: 'run-phone',
+    castId: CAST,
+    label: 'On the phone',
+    items: [{ sceneId: scene.scenes[0]!.id, include: true }],
+    maxTakes: 4,
+    maxMinutes: 60,
+    skipKept: false,
+    resumeOnReload: true,
+    state,
+    position: 0,
+    log: [],
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  await seedSettingsCacheOnNextLoad(
+    page,
+    { shared: { activeCharacterId: CAST }, characters: cast, tools: { scene: { ...scene, run: runOf('running') } } },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run')).toBeVisible({ timeout: 60_000 });
+  // Past the resume-after-reload delay: still the phone's — nothing paused or queued here.
+  await page.waitForTimeout(8000);
+  const run = JSON.parse((await storedSceneTool(page)) || '{}').run ?? {};
+  expect(run.state).toBe('running');
+  expect((run.log ?? []).map((entry: { event: string }) => entry.event)).not.toContain('paused');
+  expect(queued).toHaveLength(0);
+});
+
+test('Resume on a run another device renders says so and queues nothing', async ({ page }) => {
+  const queued = await stubComfyQueue(page);
+  const scene = sceneWithTakes();
+  const lease = { runId: 'run-phone-2', holder: 'phone-1', renewedAt: Date.now() };
+  await page.route(/\/api\/scene-runs\/lease(?:\?.*)?$/, route =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { lease, fresh: true } })
+      : route.fulfill({ json: { held: false, lease } })
+  );
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...scene,
+          run: {
+            id: 'run-phone-2',
+            castId: CAST,
+            label: 'On the phone',
+            items: [{ sceneId: scene.scenes[0]!.id, include: true }],
+            maxTakes: 4,
+            maxMinutes: 60,
+            skipKept: false,
+            state: 'paused',
+            position: 0,
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run')).toBeVisible({ timeout: 60_000 });
+  await page.getByTestId('scene-run-start').first().click();
+  await expect(page.getByText('is rendering on another device — it goes on there.').first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await page.waitForTimeout(3000);
+  expect(queued).toHaveLength(0);
+  // Nothing written here: still paused, no "resumed" entry.
+  const run = JSON.parse((await storedSceneTool(page)) || '{}').run ?? {};
+  expect(run.state).toBe('paused');
+  expect(run.log ?? []).toHaveLength(0);
+});
+
 // A moment's time of day, chosen on Short (2026-11-08): its label says it, and it is kept.
 test('a Short moment’s time of day is chosen in its editor', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(
