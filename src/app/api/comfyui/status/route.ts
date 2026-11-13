@@ -1,4 +1,4 @@
-import { getComfyUiPromptStatus } from '@/lib/comfyui/status';
+import { watchedPromptStatus } from '@/lib/server/run-watcher-server';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   });
 
   try {
-    const status = await getComfyUiPromptStatus(promptId, runtime);
+    // As the server's run watch has it: a job queued again answers as the job it is now.
+    const status = await watchedPromptStatus(promptId, runtime);
     return apiJson(status);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'ComfyUI status check failed.';

@@ -196,6 +196,21 @@ export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
       PRIMARY KEY (scope, id)
     );
     CREATE INDEX IF NOT EXISTS scene_runs_recent ON scene_runs (scope, updated_at);`),
+  // 4 (2026-11-13, Phase 3 step 3): the server's watch over handed-off runs' jobs
+  // (sqlite/run-watch-jobs.ts) — seen in ComfyUI, landed, queued again, cancelled.
+  db =>
+    db.exec(`CREATE TABLE IF NOT EXISTS run_watch_jobs (
+      prompt_id TEXT PRIMARY KEY,
+      run_id TEXT,
+      scene_id TEXT,
+      comfy_url TEXT,
+      seen_at INTEGER,
+      landed_at INTEGER,
+      landed_json TEXT,
+      requeued_at INTEGER,
+      requeued_as TEXT,
+      cancelled_at INTEGER
+    );`),
 ];
 export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
 

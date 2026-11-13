@@ -52,6 +52,25 @@ export async function registerNode(
   }, 60_000);
   inputStoreTimer.unref?.();
 
+  // The server's watch over Queue-all runs (FINISHING_PLAN Phase 3): their finished takes kept,
+  // lost ones queued again — the page can be closed. Once a minute, with server storage.
+  if (process.env.PROMPT_DATA_DIR?.trim() && process.env.CASTCUT_RUN_WATCH !== 'off') {
+    let watching = false;
+    const runWatchTimer = setInterval(() => {
+      if (watching) return;
+      watching = true;
+      void (async () => {
+        const { tickRunWatcher } = await import('@/lib/server/run-watcher-server');
+        await tickRunWatcher();
+      })()
+        .catch(error => console.warn('[run-watch] tick failed', error))
+        .finally(() => {
+          watching = false;
+        });
+    }, 60_000);
+    runWatchTimer.unref?.();
+  }
+
   // The built-in LLM's hooks (llm-local.ts): LLM calls find it, start it on demand.
   await import('@/lib/llm/local-server');
 
