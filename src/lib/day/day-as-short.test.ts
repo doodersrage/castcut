@@ -216,6 +216,48 @@ describe('a Day as a short', () => {
     );
     assert.equal(dayStillsFromShort({ ...day, stillsCharacterId: 'rob' } as DayToolCache, scenes, link), null);
   });
+
+  it('shows a card that renders no shot as its moment’s shot — her line first, not an empty place', () => {
+    // Cards don't render (2026-11-13): the morning card's Scene was let go of its shot
+    // (shortShotScenes); the moment's shot Scenes are what Render the short renders.
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1 })!;
+    const link = { castId: 'mara', scriptId: short.script.id };
+    const card = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+    const sceneId = card.fromScript!.sceneId;
+    const loose = {
+      ...card,
+      fromScript: { ...card.fromScript!, shotId: `${sceneId}-card` },
+      takes: [{ id: 'card', promptId: 'card', imageUrl: '/card.png', at: 2 }],
+      keptTakeId: 'card',
+    } as SavedScene;
+    const shot = (id: string, createdAt: number, slot: Partial<SavedScene['slot']>, kept = true) =>
+      ({
+        id,
+        castId: 'mara',
+        name: id,
+        slot: { id: 'morning', ...slot },
+        takes: [{ id: `${id}-t`, promptId: `${id}-t`, imageUrl: `/${id}.png`, at: createdAt }],
+        ...(kept ? { keptTakeId: `${id}-t` } : {}),
+        fromScript: { scriptId: short.script.id, sceneId, shotId: `${sceneId}~${createdAt}` },
+        createdAt,
+        updatedAt: createdAt,
+      }) as SavedScene;
+    const others = short.scenes.filter(scene => scene.id !== card.id);
+    const morning = (scenes: SavedScene[]) =>
+      dayStillsFromShort(day, scenes, link)?.find(still => still.slotId === 'morning')?.promptId;
+    // No shot kept yet: the card's own still.
+    assert.equal(morning([...others, loose, shot('place', 10, { placeOnly: true }, false)]), 'card');
+    const shots = [
+      shot('place', 10, { placeOnly: true }),
+      shot('wide', 11, { sceneHints: 'Mara and Theo, the two of them together.' }),
+      shot('line', 12, { line: 'If you ask nicely.' }),
+    ];
+    assert.equal(morning([...others, loose, ...shots]), 'line-t');
+    // No line of hers: the first that shows someone, not the empty kitchen.
+    assert.equal(morning([...others, loose, ...shots.slice(0, 2)]), 'wide-t');
+    // A card that still renders its shot (a one-shot moment's, `<scene>-moment`) keeps its own.
+    assert.equal(morning([...others, { ...loose, fromScript: card.fromScript }, ...shots]), 'card');
+  });
 });
 
 describe('a moment written anew', () => {

@@ -26,6 +26,7 @@ import {
   takeAsStill,
   upsertScene,
   type SavedScene,
+  type SceneTake,
   type SceneToolCache,
 } from './scenes';
 import { createScript, type SavedScript } from './scene-scripts';
@@ -324,8 +325,11 @@ export function dayAsShort(input: {
             : undefined
         )
       : undefined;
+    // A card let go of its shot (cards don't render, shortShotScenes) stays let go: `<scene>-card`.
+    const untied = Boolean(own && before?.fromScript?.shotId?.endsWith('-card'));
     const shotId =
-      planned?.find(shot => before && shot.madeSceneId === before.id)?.id ?? `${sceneId}-moment`;
+      planned?.find(shot => before && shot.madeSceneId === before.id)?.id ??
+      (untied ? `${sceneId}-card` : `${sceneId}-moment`);
     const byPosition = `scene-${script.id}-${index + 1}`;
     const id = before?.id ?? (taken.has(byPosition) ? `scene-${script.id}-${slot.id}` : byPosition);
     taken.add(id);
@@ -391,8 +395,9 @@ export function dayAsShort(input: {
       shots.push(...planned);
       const anchor = scenes[scenes.length - 1]!;
       // The card's own Scene lost its shot (its line went): it takes the first shot with no
-      // Scene yet; with none, it stays — loose, never deleted.
-      if (!planned.some(shot => shot.madeSceneId === anchor.id)) {
+      // Scene yet; with none, it stays — loose, never deleted. One let go of its shot doesn't
+      // take another (Render the short makes that shot its own Scene).
+      if (!untied && !planned.some(shot => shot.madeSceneId === anchor.id)) {
         const free = planned.find(shot => !shot.madeSceneId);
         if (free) {
           free.madeSceneId = anchor.id;
@@ -588,6 +593,30 @@ export function momentRewritten(
 }
 
 /**
+ * A card's picture once its Scene renders no shot (cards don't render, 2026-11-13 — let go of it
+ * by shortShotScenes, its shot id `<scene>-card`): the kept take of its moment's shot Scenes —
+ * her own line's first, else the first that shows someone (not an empty place). Undefined while
+ * none is kept, or for a card that renders a shot itself (its own kept take is the picture).
+ */
+function cardShotTakeOf(card: SavedScene, scenes: readonly SavedScene[]): SceneTake | undefined {
+  const link = card.fromScript;
+  if (!link?.shotId?.endsWith('-card')) return undefined;
+  const shots = scenes
+    .filter(
+      scene =>
+        !scene.fromDaySlot &&
+        scene.castId === card.castId &&
+        scene.fromScript?.scriptId === link.scriptId &&
+        scene.fromScript.sceneId === link.sceneId &&
+        !scene.slot.placeOnly &&
+        keptTakeOf(scene)
+    )
+    .sort((a, b) => a.createdAt - b.createdAt);
+  const pick = shots.find(scene => scene.slot.line?.trim()) ?? shots[0];
+  return keptTakeOf(pick);
+}
+
+/**
  * Short ← its short (the board on the script road, 2026-11-06): each moment's kept take on its
  * Scene as the moment's still on the Day — Make the short's renders show on the board, its reel
  * and Cut's Short source. Null when nothing changes. A still rendering on the Day now is left
@@ -607,7 +636,7 @@ export function dayStillsFromShort(
     if (scene.fromScript?.scriptId !== link.scriptId || scene.castId !== link.castId) continue;
     const slotId = scene.fromDaySlot;
     if (!slotId || !slots.some(slot => slot.id === slotId)) continue;
-    const kept = keptTakeOf(scene);
+    const kept = cardShotTakeOf(scene, scenes) ?? keptTakeOf(scene);
     if (!kept) continue;
     const before = stills.find(still => still.slotId === slotId);
     if (before && before.status !== 'completed' && before.status !== 'error' && before.promptId)

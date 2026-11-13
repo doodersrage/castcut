@@ -259,9 +259,14 @@ export function saveDayAsShort(input: {
       })),
       locations: loadLocations(),
     });
-    if (made.created.length) {
+    // A card's Scene that stood in for a shot is let go of it (cards don't render, 2026-11-13).
+    if (made.created.length || made.untied.length) {
       script = made.script;
-      scenes = normalizeSavedScenes([...scenes, ...made.created]);
+      const untied = new Map(made.untied.map(scene => [scene.id, scene]));
+      scenes = normalizeSavedScenes([
+        ...scenes.map(scene => untied.get(scene.id) ?? scene),
+        ...made.created,
+      ]);
       applySceneScriptsPatch(addScriptPatch(scriptsCacheOf(loadSceneScriptStore()), script));
     }
   }
