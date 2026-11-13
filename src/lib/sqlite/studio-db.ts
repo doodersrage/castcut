@@ -4,8 +4,6 @@ import { DatabaseSync } from 'node:sqlite';
 import { resolvePromptDataDir } from '@/lib/prompt/data-paths';
 import { importLegacyJsonFiles } from './json-import';
 
-const SCHEMA_VERSION = '1';
-
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS schema_meta (
   key TEXT PRIMARY KEY,
@@ -167,11 +165,44 @@ function applyPragmas(db: DatabaseSync): void {
   db.exec('PRAGMA busy_timeout = 5000;');
 }
 
-function migrateSchema(db: DatabaseSync): void {
+/**
+ * The database's schema, versioned (FINISHING_PLAN Phase 2, 2026-11-13): `PRAGMA user_version`
+ * says which of these ran. `STUDIO_DB_MIGRATIONS[n]` takes a database at version n to n + 1, in
+ * its own transaction. Version 1 is the tables as 3.17 has them: a database made before versions
+ * (user_version 0, with `schema_meta.schema_version` '1') already has them, and gets the stamp.
+ * A change to a table adds a step here (ALTER, a copy, a backfill), with a test on the old one.
+ */
+export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
+  db => db.exec(SCHEMA_SQL),
+];
+export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
+
+export function studioDbVersion(db: DatabaseSync): number {
+  const row = db.prepare('PRAGMA user_version').get() as { user_version?: unknown } | undefined;
+  const at = Number(row?.user_version);
+  return Number.isInteger(at) && at > 0 ? at : 0;
+}
+
+export function migrateSchema(db: DatabaseSync): void {
+  // Every table this release uses exists, whatever the version (as before versions).
   db.exec(SCHEMA_SQL);
+  const from = studioDbVersion(db);
+  // A newer release's database (then rolled back): left as it is, never stepped down.
+  if (from >= STUDIO_DB_VERSION) return;
+  for (let at = from; at < STUDIO_DB_VERSION; at += 1) {
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      STUDIO_DB_MIGRATIONS[at]!(db);
+      db.exec(`PRAGMA user_version = ${at + 1}`);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
+  }
   db.prepare('INSERT OR REPLACE INTO schema_meta (key, value) VALUES (?, ?)').run(
     'schema_version',
-    SCHEMA_VERSION
+    String(STUDIO_DB_VERSION)
   );
 }
 

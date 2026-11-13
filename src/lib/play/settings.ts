@@ -5,6 +5,7 @@
  */
 
 import type { CutToolCache } from '../film/cut-room';
+import { registerToolSchema, type StoredMigration } from '../settings/tool-schema';
 
 export type RoleplayToolCache = {
   personaId?: string;
@@ -346,6 +347,15 @@ export const DEFAULT_MOODBOARD_TOOL_CACHE: MoodboardToolCache = {
   templateId: 'scene-blend',
   instruction: '',
 };
+
+/**
+ * Play's stored tool shapes, versioned (tool-schema.ts, 2026-11-13). Version 1 is the shape as
+ * 3.17 stores it: a copy without a stamp is read as it always was (the normalisers) and stamped.
+ * A change to a stored shape adds a migration here, with a test loading the old shape.
+ */
+const AS_STORED_IN_3_17: StoredMigration = tool => tool;
+for (const tool of ['roleplay', 'day', 'scene', 'cut'] as const)
+  registerToolSchema(tool, { migrations: [AS_STORED_IN_3_17] });
 
 declare module '../settings/cache' {
   interface FeatureToolSettings {

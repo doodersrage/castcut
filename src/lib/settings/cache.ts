@@ -1,4 +1,5 @@
 import { isSettingsSyncedWithServer, markSettingsPushPending } from './push-flush';
+import { migrateToolSchemas } from './tool-schema';
 import { DEFAULT_COMFY_MODEL, type ComfyImageModel } from '../comfy-models/client';
 import {
   DEFAULT_MODEL_SAMPLER_PRESET_TIER,
@@ -1725,7 +1726,10 @@ export function loadSettingsCache(): SettingsCache {
     }
 
     const rawTools = sidecars.tools ?? parsed.tools ?? {};
-    const migrated = migrateLegacyToolSettings(rawTools);
+    const legacy = migrateLegacyToolSettings(rawTools);
+    // Each registered tool's stored shape up to its current version (tool-schema.ts).
+    const versioned = migrateToolSchemas(legacy.tools);
+    const migrated = { tools: versioned.tools, changed: legacy.changed || versioned.changed };
     const installedPlugins = Array.isArray(sidecars.installedPlugins)
       ? sidecars.installedPlugins
       : Array.isArray(parsed.installedPlugins)

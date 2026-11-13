@@ -8,7 +8,9 @@ import {
   scriptArchiveText,
   addScriptPatch,
   createScript,
+  normalizeSavedScript,
   normalizeSavedScripts,
+  SCRIPT_SCHEMA_VERSION,
   removeScriptPatch,
   renameScriptPatch,
   SCRIPT_SOURCE_MAX,
@@ -101,5 +103,19 @@ describe('a script archived and brought back', () => {
     assert.equal(readScriptArchive(text, 'rob', 1000)?.castId, 'rob');
     assert.equal(readScriptArchive('INT. KITCHEN - DAY', 'mara'), null);
     assert.equal(readScriptArchive('{"kind":"other"}', 'mara'), null);
+  });
+});
+
+describe('a script’s stored version', () => {
+  const as317 = { id: 's1', castId: 'mara', name: 'Her day', source: 'INT. KITCHEN - DAY\n\nMara pours.', createdAt: 1, updatedAt: 2 };
+
+  it('reads a script as 3.17 stored it (no version) unchanged, stamped', () => {
+    assert.deepEqual(normalizeSavedScript(as317), { ...as317, schemaVersion: SCRIPT_SCHEMA_VERSION });
+  });
+
+  it('keeps the stamp of a script a newer release wrote, and stamps a malformed one', () => {
+    assert.equal(normalizeSavedScript({ ...as317, schemaVersion: 9 })!.schemaVersion, 9);
+    assert.equal(normalizeSavedScript({ ...as317, schemaVersion: 'x' })!.schemaVersion, SCRIPT_SCHEMA_VERSION);
+    assert.equal(normalizeSavedScript(['not', 'a', 'script']), null);
   });
 });

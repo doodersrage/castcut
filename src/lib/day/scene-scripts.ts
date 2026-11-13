@@ -16,6 +16,7 @@ import {
   type ScriptPlaceMap,
 } from './script-cast';
 import { normalizePlannedShots, type PlannedShot } from './script-shots';
+import { migrateVersioned, type StoredSchema } from '../settings/tool-schema';
 
 export type SavedScript = {
   id: string;
@@ -44,7 +45,17 @@ export type SavedScript = {
   follows?: string;
   createdAt: number;
   updatedAt: number;
+  /** Its stored shape's version (SCRIPT_SCHEMA): stamped as it is read. */
+  schemaVersion?: number;
 };
+
+/**
+ * A script's stored shape, versioned (settings/tool-schema.ts, 2026-11-13): each script is a row
+ * of its own on the server (`scene_scripts`) and in exports, so the version is on the script.
+ * Version 1 is the shape as 3.17 stores it. A change adds a migration, tested on the old shape.
+ */
+export const SCRIPT_SCHEMA: StoredSchema = { migrations: [script => script] };
+export const SCRIPT_SCHEMA_VERSION = SCRIPT_SCHEMA.migrations.length;
 
 /** The longest script kept (about a 100-page feature in Fountain). */
 export const SCRIPT_SOURCE_MAX = 200_000;
@@ -56,8 +67,11 @@ const time = (value: unknown, fallback: number) =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
 
 export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScript | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const script = raw as Partial<SavedScript>;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const script = migrateVersioned(
+    raw as Record<string, unknown>,
+    SCRIPT_SCHEMA
+  ) as Partial<SavedScript>;
   const id = text(script.id, 80);
   const castId = text(script.castId, 120);
   const source = typeof script.source === 'string' ? script.source.slice(0, SCRIPT_SOURCE_MAX) : '';
@@ -82,6 +96,8 @@ export function normalizeSavedScript(raw: unknown, now = Date.now()): SavedScrip
     ...(follows ? { follows } : {}),
     createdAt,
     updatedAt: time(script.updatedAt, createdAt),
+    // A copy a newer release wrote keeps its stamp (its fields are read as far as they can be).
+    schemaVersion: Math.max(script.schemaVersion ?? 0, SCRIPT_SCHEMA_VERSION),
   };
 }
 
