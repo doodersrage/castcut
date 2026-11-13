@@ -9,6 +9,39 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v3.17.0] - 2026-11-13
+
+- e2e: the script-line test waits for the take, not the dress plate
+- e2e: run tests count takes, not the dress plate rendered first
+- tool-page-chrome test: the Gallery subtitle's new wording
+- Gallery's subtitle says what's there, plainly
+- Phone Gallery: a tile that won't load says Unavailable
+- A still that won't load says so instead of a broken image
+- The sidebar has a Search field that opens the palette, with the right shortcut
+- Phone Cut: Shots, Timeline or Films under the monitor, one at a time
+- Script on a phone opens the phone Scene at its scripts
+- A page waiting on saved data says so after a few seconds, with Reload
+- Phone Cut: only the picked shot shows its settings; Foley lists three first
+- Cast shows her dressed; one numbered strip; the run says what it needs first
+- One film sidebar on every film page; one offline banner; scripts say what they hold
+- Live runs: pin a Scene's engine through its own editor, and name an imported Cast
+- e2e: a Scene run renders each Scene on the engine it is pinned to
+- A shot pinned to an engine keeps it, and says so when it can't
+- Live runs: format the consistency set's engine pin
+- Live runs: the consistency set imports on Script, and can run on the install's own engine
+- A picked lean names something to lean on
+- The plan bar speaks film: Rating and Wardrobe, not Mood; a script's Moments and People
+- Dailies list failed shots; the shot list groups by scene with its coverage
+- Every shot of a scene wears one outfit; the Clothes chip says so
+- The Short reads as a film: moments not slots, a shot list, and "done" says what failed
+- A film-frame still keeps one of her: the plate is scaled, not padded, on a wide canvas
+- A shot that wasn't queued is tried again on Resume; a script action keeps its own subject
+- Her outfit holds on auto kits; every take checked; Mr Harris keeps his name; WebP clips play in Cut
+- The partner is sent, a stranger has their own face, she is never twinned or kept undressed
+- A Short's checks hold for every take; one partner, voices off screen, lines never drawn
+- From stills to film: framing, one partner, each line's moment, honest checks, run review
+- The writer opens no line on a name, and names someone once a scene at most
+
 ## [v3.16.0] - 2026-11-11
 
 - A short goes to Cut in order; Cast's ⋯ opens; a card's Scene gone elsewhere comes back
