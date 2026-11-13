@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { DaySlot } from './planner';
 import { categoryLabel } from '@/lib/wardrobe/clothing-catalog-fields';
-import { planTakeOutfit } from './take-plan';
+import { planTakeModel, planTakeOutfit, takeModelNeedsInventory } from './take-plan';
 
 const outfits = categoryLabel('outfit');
 const catalog = [
@@ -68,5 +68,48 @@ describe('a take’s plan: its outfit (Phase 3, step 4)', () => {
     ];
     const plan = planTakeOutfit({ ...base, target: slot(), scene: { scenes, activeSceneId: 'b' } });
     assert.equal(plan.picked, 'kit-jeans');
+  });
+});
+
+describe('a take’s plan: its engine (Phase 3, step 4)', () => {
+  const input = {
+    slot: slot({ sceneHints: 'stirring a pot at the stove' }),
+    pickedModel: 'qwen-image-edit-2511' as const,
+    dayMood: 'everyday',
+    intimateEnabled: false,
+    intimateMix: undefined,
+    allowCompanions: false,
+    bestEnginePerPose: false,
+    hasPlate: true,
+    inventory: null,
+    weakLayouts: () => {
+      throw new Error('read only with best engine per pose');
+    },
+    poseReport: () => {
+      throw new Error('read only with best engine per pose');
+    },
+  };
+
+  it('a plain still renders on the short’s engine, the play-metrics never read', () => {
+    const plan = planTakeModel(input);
+    assert.equal(plan.stillModel, 'qwen-image-edit-2511');
+    assert.equal(plan.omitGarment, false);
+    assert.equal(plan.poseEngineSwap, null);
+    assert.equal(plan.pinNote, undefined);
+  });
+
+  it('a card’s own engine that isn’t installed stays on the short’s, and says so', () => {
+    const plan = planTakeModel({ ...input, slot: slot({ engine: 'rapid-aio' } as Partial<DaySlot>) });
+    assert.equal(plan.stillModel, 'qwen-image-edit-2511');
+    assert.ok(plan.pinNote);
+    assert.equal(takeModelNeedsInventory({ ...input, slot: slot({ engine: 'rapid-aio' } as Partial<DaySlot>) }), true);
+  });
+
+  it('asks ComfyUI what is installed only when something could hand the still off', () => {
+    assert.equal(takeModelNeedsInventory({ ...input, pickedModel: 'qwen-image-edit-2511' }), Boolean(
+      // Edit 2511 has its adult hand-off (pose-model-profile).
+      true
+    ));
+    assert.equal(takeModelNeedsInventory({ ...input, pickedModel: 'sdxl' as never, hasPlate: false }), false);
   });
 });

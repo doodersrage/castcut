@@ -52,15 +52,12 @@ import {
   stillPromptIssuesLine,
 } from '@/lib/still/prompt-audit';
 import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
-import { installedComfyModels } from '@/lib/model/picker';
 import {
   fetchComfyObjectInfoModelsCached,
   fetchComfyObjectInfoNodeTypesCached,
   readCachedComfyObjectInfoModels,
 } from '@/lib/comfyui/object-info-cache';
-import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '@/lib/comfy-models/client';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import { customPoseOffPlate } from '@/lib/pose/custom-pose-engine';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCachedSettings } from '@/hooks/useCachedSettings';
@@ -118,18 +115,13 @@ import {
   loadComfyGallery,
   type ComfyGalleryEntry,
 } from '@/lib/gallery/comfyui-gallery';
-import {
-  clothedOnlyHandOffNote,
-  resolveAdultNudePlateQueueModel,
-  resolveDayStillModel,
-} from '@/lib/queue/tool-model';
+import { clothedOnlyHandOffNote, resolveAdultNudePlateQueueModel } from '@/lib/queue/tool-model';
 import { useNsfwGeneratorEnabled } from '@/hooks/useNsfwGeneratorEnabled';
 import {
   STORY_INTIMATE_POSE_IDENTITY_LOCK_CAP,
   resolveRoleplaySetting,
 } from '@/lib/story/roleplay';
 import {
-  dayBeatOmitsGarmentPackshot,
   dayMoodReplacesKeepOutfit,
   dayQueueBlockReason,
   dayStillsCachePatch,
@@ -192,14 +184,14 @@ import {
   referenceViewUrl,
 } from '@/lib/checks/reference-check-client';
 import { dayOutfitBlock } from '@/lib/day/auto-kit';
-import { planTakeOutfit } from '@/lib/day/take-plan';
+import { planTakeModel, planTakeOutfit, takeModelNeedsInventory } from '@/lib/day/take-plan';
 import {
   resolveDayVacationFaceBreakPlate,
   resolveDayVacationIdentityVlPlate,
   uploadDayIdentityLatentPlate,
 } from '@/lib/day/vacation-face-crop';
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
-import { buildDayPoseGuide, isPenetrationLayout, photoPoseForStill } from '@/lib/day/pose-guide';
+import { buildDayPoseGuide } from '@/lib/day/pose-guide';
 import { customPoseWords } from '@/lib/pose/describe';
 import { GROUND_SIT_REDO_MARK } from '@/lib/pose/ground-sit-words';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
@@ -214,7 +206,6 @@ import {
   plannedDaySlotPoseKey,
 } from '@/lib/day/slot-pose';
 import { notePoseTakeQueued, takeKeptSeed } from '@/lib/pose/outcome-stats';
-import { pickPoseEngine, resolvePinnedEngine } from '@/lib/pose/pose-engine-report';
 import { blendedPoseEngineReport } from '@/lib/pose/pose-engine-report-blended';
 import {
   DEFAULT_FILM_CUT_OPTIONS,
@@ -1087,139 +1078,31 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   // pose off its plate → Noct-Q / Turbo, 2.1 sex-pose duo → Rapid), and the model it is queued as — Queue all groups stills by it (model-aware queue).
   const resolveSlotStillModel = useCallback(
     async (queueTarget: DaySlot) => {
-      const omitGarment = dayBeatOmitsGarmentPackshot({
-        blurb: queueTarget.sceneHints,
-        prompt: [queueTarget.location, queueTarget.sceneHints].filter(Boolean).join(' · '),
-        // The mood the still plays as: an adult mood with Intimate off is Everyday, as the
-        // prompt builder already treats it — on the raw mood these stills started from a
-        // face crop under an Everyday prompt.
-        dayMood:
-          isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-            ? 'everyday'
-            : toolSettings.dayMood,
-        intimateMix: normalizeDayIntimateMix(toolSettings.intimateMix),
+      // The engine, decided in the take's plan (take-plan.ts — the server makes it the same way).
+      const input = {
+        slot: queueTarget,
+        pickedModel: shared.model,
+        modelCheckpointMap: shared.modelCheckpointMap,
+        dayMood: toolSettings.dayMood,
+        intimateEnabled,
+        intimateMix: toolSettings.intimateMix,
+        allowCompanions: toolSettings.allowCompanions === true,
+        bestEnginePerPose: toolSettings.bestEnginePerPose === true,
+        hasPlate: resolveSlotLook(queueTarget).hasPlate,
+      };
+      // What is installed, for the per-still hand-offs. The list is only in memory once something
+      // has asked ComfyUI for it; in a fresh session it was missing and the hand-off silently did
+      // not happen, so ask for it here when the picked engine has one.
+      const inventory = takeModelNeedsInventory(input)
+        ? (readCachedComfyObjectInfoModels() ??
+          (await fetchComfyObjectInfoModelsCached().catch(() => null)))
+        : null;
+      return planTakeModel({
+        ...input,
+        inventory,
+        weakLayouts: weakPoseLayouts,
+        poseReport: blendedPoseEngineReport,
       });
-      // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked
-      // engine stays picked (pose-model-profile: adultEngine).
-      const adultNudeStill = isDayAdultMood(toolSettings.dayMood) && intimateEnabled && omitGarment;
-      // What is installed, for the per-still hand-offs. The list is only in memory once
-      // something has asked ComfyUI for it; in a fresh session it was missing and the hand-off
-      // silently did not happen, so ask for it here when the picked engine has one.
-      const handOffProfile = poseProfileForModel(shared.model);
-      const bestEnginePerPose =
-        toolSettings.bestEnginePerPose === true && resolveSlotLook(queueTarget).hasPlate;
-      const handOffInventory =
-        handOffProfile.adultEngine ||
-        handOffProfile.clothedDuoEngine ||
-        handOffProfile.penetrationEngine ||
-        handOffProfile.customPoseEngines?.length ||
-        bestEnginePerPose ||
-        queueTarget.engine
-          ? (readCachedComfyObjectInfoModels() ??
-            (await fetchComfyObjectInfoModelsCached().catch(() => null)))
-          : null;
-      const installed = (modelId: string) =>
-        installedComfyModels(COMFY_IMAGE_MODELS, handOffInventory, shared.modelCheckpointMap)?.has(
-          modelId
-        ) === true;
-      const playedMood = normalizeDayMood(
-        isDayAdultMood(toolSettings.dayMood) && !intimateEnabled ? 'everyday' : toolSettings.dayMood
-      );
-      // Qwen-Image 2.1 hands nude two-person sex layouts to Rapid NSFW (pose-model-profile:
-      // penetrationEngine) — only when the picked engine has that hand-off.
-      const penetrationDuo =
-        adultNudeStill &&
-        Boolean(handOffProfile.penetrationEngine) &&
-        (() => {
-          const { layout, headcount } = daySlotPoseLayout({
-            slot: queueTarget,
-            dayMood: playedMood,
-            intimateMix: toolSettings.intimateMix,
-            allowCompanions: toolSettings.allowCompanions === true,
-            model: shared.model,
-          });
-          return headcount >= 2 && isPenetrationLayout(layout);
-        })();
-      // The hand-offs below (2511 adult nude, 2.1 sex-pose duos and clothed duos → Rapid) only run
-      // with "Pick the best engine per pose" on; off, every still renders on the picked engine.
-      const handOffs = toolSettings.bestEnginePerPose === true;
-      // A one-person custom pose Edit 2511 redraws from its standing plate (lying, a plank, a back
-      // view): Noct-Q, else Turbo, draws it (pose-model-profile: customPoseEngines).
-      const customPoseOffPlateStill =
-        handOffs &&
-        Boolean(handOffProfile.customPoseEngines?.length) &&
-        Boolean(queueTarget.posePhoto?.people.length) &&
-        resolveSlotLook(queueTarget).hasPlate &&
-        planDaySlotPose({
-          slot: queueTarget,
-          dayMood: playedMood,
-          intimateMix: toolSettings.intimateMix,
-          allowCompanions: toolSettings.allowCompanions === true,
-          model: shared.model,
-        }).headcount === 1 &&
-        customPoseOffPlate(photoPoseForStill(queueTarget.posePhoto, 1)) !== null;
-      const routedStillModel = resolveDayStillModel(shared.model, {
-        adultNude: adultNudeStill,
-        penetrationDuo,
-        handOffs,
-        customPoseOffPlate: customPoseOffPlateStill,
-        // Qwen-Image 2.1 hands clothed two-person stills to Rapid (it fuses the pair).
-        clothedDuo:
-          !adultNudeStill &&
-          // Not on the adult moods: their two-person beats that keep clothes on (a flash, a
-          // wardrobe slip) belong on the adult engine, not plain Rapid.
-          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
-          planDaySlotPose({
-            slot: queueTarget,
-            dayMood: playedMood,
-            intimateMix: toolSettings.intimateMix,
-            allowCompanions: toolSettings.allowCompanions === true,
-            model: shared.model,
-          }).headcount >= 2,
-        installed,
-      });
-      // "Pick the best engine per pose" (opt-in): a one-person clothed still whose pose the
-      // routed engine keeps missing on the pose report card renders on an installed engine that
-      // holds it — this still only, like the hand-offs above (pose-engine-report.ts).
-      let poseEngineSwap: ReturnType<typeof pickPoseEngine> = null;
-      if (bestEnginePerPose) {
-        const { layout, headcount } = daySlotPoseLayout({
-          slot: queueTarget,
-          dayMood: playedMood,
-          intimateMix: toolSettings.intimateMix,
-          allowCompanions: toolSettings.allowCompanions === true,
-          model: routedStillModel,
-          weakLayouts: weakPoseLayouts(),
-        });
-        poseEngineSwap = pickPoseEngine({
-          enabled: true,
-          model: routedStillModel,
-          layout,
-          mood: playedMood,
-          headcount,
-          adult: adultNudeStill || (isDayAdultMood(toolSettings.dayMood) && intimateEnabled),
-          installed,
-          // The sweep's card, with this player's own keeps and redos folded in.
-          report: blendedPoseEngineReport(),
-        });
-      }
-      // The card's own engine (its sheet's "Engine for this shot") wins over every hand-off: the
-      // engine picked for the short when it is that family, else the family's installed variant;
-      // none installed, the still stays on the short's engine and the card says so.
-      const pinned = resolvePinnedEngine({
-        pin: queueTarget.engine,
-        picked: shared.model,
-        installed,
-      });
-      const pinnedEngine = pinned.model as ComfyImageModel | null;
-      const stillModel = pinnedEngine ?? poseEngineSwap?.model ?? routedStillModel;
-      // As queueSlot sends it: with a plate, the Edit-capable (and adult nude: NSFW) variant.
-      const queueModel = resolveSlotLook(queueTarget).hasPlate
-        ? resolveAdultNudePlateQueueModel(stillModel, {
-            adultNude: isDayAdultMood(normalizeDayMood(toolSettings.dayMood)) && omitGarment,
-          })
-        : stillModel;
-      return { omitGarment, stillModel, queueModel, poseEngineSwap, pinNote: pinned.note };
     },
     [
       intimateEnabled,
