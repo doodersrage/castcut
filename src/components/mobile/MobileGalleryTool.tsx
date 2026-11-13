@@ -1,5 +1,6 @@
 'use client';
 
+import StillImage from '@/components/ui/StillImage';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -267,10 +268,9 @@ export default function MobileGalleryTool() {
                   ].join(' ')}
                 >
                   {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <StillImage
                       src={thumb}
-                      alt=""
+                      compact
                       className={
                         filmMode
                           ? 'aspect-video w-full object-cover'
