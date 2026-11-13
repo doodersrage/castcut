@@ -1,5 +1,6 @@
 'use client';
 
+import StillImage from '@/components/ui/StillImage';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import MotionMedia from '@/components/ui/MotionMedia';
@@ -166,8 +167,7 @@ export default function FilmWatchPlayer({
             controls={false}
           />
         ) : shot ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={shot.url} alt={shot.title} className="h-full w-full object-contain" />
+          <StillImage src={shot.url} alt={shot.title} className="h-full w-full object-contain" />
         ) : null}
         {onOpenShot && shot && !htmlVideo ? (
           <Button

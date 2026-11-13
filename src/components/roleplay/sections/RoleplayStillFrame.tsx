@@ -1,5 +1,6 @@
 'use client';
 
+import StillImage from '@/components/ui/StillImage';
 import { clipUrlIsVideo } from '@/lib/clip/media-kind';
 import { type MouseEvent } from 'react';
 import { Button, Spinner } from '@/components/ui/Button';
@@ -118,8 +119,7 @@ export function RoleplayStillFrame({
           poster={completedUrl ?? displayUrl ?? undefined}
         />
       ) : frameUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <StillImage
           src={frameUrl}
           alt={beat.title}
           className={`h-full w-full object-cover ${completedUrl && !ghost ? '' : 'opacity-80'}`}

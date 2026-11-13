@@ -21,6 +21,7 @@ import {
 } from '@/lib/story/roleplay';
 import { RoleplayStoryBeatCard } from '@/components/roleplay/sections/RoleplayStoryBeatCard';
 import { beatMotionUrl, beatPreviewUrl } from '@/components/roleplay/roleplay-story-helpers';
+import StillImage from '@/components/ui/StillImage';
 import { EmptyState } from '@/components/ui/ViewState';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ToolActionRow } from '@/components/ui/ToolPageShell';
@@ -440,10 +441,9 @@ export default function RoleplayStoryReel({
                           onClick={() => setStagePick({ id: entry.id, newest: newestBeatId })}
                         >
                           {stillThumb && !looksLikeMotionUrl(stillThumb) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <StillImage
                               src={stillThumb}
-                              alt=""
+                              compact
                               className="h-24 w-full rounded object-cover"
                             />
                           ) : clipThumb ? (
