@@ -35,7 +35,7 @@ describe('tool-page-chrome', () => {
   });
 
   it('exposes hub page descriptions', () => {
-    assert.match(HUB_PAGE_DESCRIPTIONS.gallery.full, /experiments/);
+    assert.match(HUB_PAGE_DESCRIPTIONS.gallery.full, /compare takes/);
     assert.match(HUB_PAGE_DESCRIPTIONS.gallery.simple, /made/);
     assert.match(HUB_PAGE_DESCRIPTIONS.settings.simple, /backups/);
     assert.match(HUB_PAGE_DESCRIPTIONS.profile.simple, /account/);
