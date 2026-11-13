@@ -19,7 +19,10 @@ import {
   normalizeDayMood,
   type DaySlot,
 } from './planner';
-import { daySlotPoseLayout, planDaySlotPose } from './slot-pose';
+import { dayClothedGuideContradictsBeat, daySlotPoseLayout, planDaySlotPose } from './slot-pose';
+import { kleinSpoonRecipeApplies } from '../play/klein-duo-recipe';
+import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '../play/rapid-duo-recipe';
+import { GROUND_SIT_REDO_MARK } from '../pose/ground-sit-words';
 import {
   dayPartnerApplies,
   dayPartnerChoiceFor,
@@ -450,4 +453,97 @@ export function planTakePartner(input: {
   if (partnerCharacter)
     return { kind: 'cast', partnerCharacter, candidate, character: partnerCharacter };
   return { kind: 'none', partnerCharacter };
+}
+
+export type TakePoseGuidePlan = {
+  /** No drawn pose guide (Image 3) with this take: the pose goes out in words. */
+  skip: boolean;
+  /** FLUX.2 Klein's clothed spoon: its compact recipe goes out alone (no guide, no face crop). */
+  kleinSpoonRecipe: boolean;
+  /** Why there is no guide, as the card says it (with `skip`). */
+  skipReason?: string;
+};
+
+/**
+ * Whether a take sends its drawn pose guide: not on a words-only redo, the Lightning identity path
+ * (decided with the identity route: `skippedForIdentity`), Klein's spoon recipe, a clothed drawing
+ * that contradicts the beat, Rapid's spoon / face-down / against-a-wall poses, or a walk in step
+ * on Edit 2511 — in that order.
+ */
+export function planTakePoseGuide(input: {
+  slot: DaySlot;
+  stillModel: string;
+  dayMood: Parameters<typeof dayMoodWantsAutoKit>[0];
+  intimateEnabled: boolean;
+  intimateMix: unknown;
+  allowCompanions: boolean;
+  skippedForIdentity: boolean;
+  /** A ground-sit redo (pose-describe): words only, judged against the guide it missed. */
+  wordsOnlyRedo: boolean;
+  partnerNoun?: DayPartnerNoun | null;
+  leadNoun: DayPartnerNoun | null | undefined;
+}): TakePoseGuidePlan {
+  const { slot } = input;
+  const adultIntimate = isDayAdultMood(input.dayMood) && input.intimateEnabled;
+  let skip = input.skippedForIdentity || input.wordsOnlyRedo;
+  // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
+  const kleinSpoonRecipe = kleinSpoonRecipeApplies({
+    model: input.stillModel,
+    adultMood: adultIntimate,
+    beat: slot.sceneHints,
+  });
+  if (kleinSpoonRecipe) skip = true;
+  // Vacation / Suggestive draw clothed stills upright; when that drawing contradicts the beat (a
+  // lie or a kneel drawn as a seated or standing pair) the words carry the pose.
+  if (
+    !skip &&
+    dayClothedGuideContradictsBeat({
+      slot,
+      dayMood: normalizeDayMood(
+        isDayAdultMood(input.dayMood) && !input.intimateEnabled ? 'everyday' : input.dayMood
+      ),
+      intimateMix: input.intimateMix as never,
+      allowCompanions: input.allowCompanions,
+      model: input.stillModel,
+    })
+  )
+    skip = true;
+  let spoonNoGuide = false;
+  if (
+    !skip &&
+    rapidAdultSkipsPoseGuide({
+      model: input.stillModel,
+      adultMood: adultIntimate,
+      beat: slot.sceneHints,
+      pairing:
+        input.partnerNoun && input.partnerNoun === input.leadNoun
+          ? input.leadNoun === 'man'
+            ? 'two-men'
+            : 'two-women'
+          : null,
+    })
+  ) {
+    skip = true;
+    spoonNoGuide = true;
+  }
+  // Walking hand in hand on Edit 2511: the standing hold-hands map froze the walk.
+  let walkingDuoNoGuide = false;
+  if (!skip && !adultIntimate && dayWalkingDuoSkipsPoseGuide(input.stillModel, slot.sceneHints)) {
+    skip = true;
+    walkingDuoNoGuide = true;
+  }
+  if (!skip) return { skip, kleinSpoonRecipe };
+  return {
+    skip,
+    kleinSpoonRecipe,
+    skipReason: input.wordsOnlyRedo
+      ? `${GROUND_SIT_REDO_MARK} (pose from text)`
+      : kleinSpoonRecipe
+        ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
+        : spoonNoGuide
+          ? 'Spooning, face-down or against a wall: the drawing fought the words (pose from text)'
+          : walkingDuoNoGuide
+            ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
+            : 'Lightning identity path keeps Image 1 whole (stance from text)',
+  };
 }

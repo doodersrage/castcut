@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { DaySlot } from './planner';
 import { categoryLabel } from '@/lib/wardrobe/clothing-catalog-fields';
-import { planTakeModel, planTakeOutfit, planTakePartner, takeModelNeedsInventory } from './take-plan';
+import {
+  planTakeModel,
+  planTakeOutfit,
+  planTakePartner,
+  planTakePoseGuide,
+  takeModelNeedsInventory,
+} from './take-plan';
 
 const outfits = categoryLabel('outfit');
 const catalog = [
@@ -180,5 +186,42 @@ describe('a take’s plan: its partner (Phase 3, step 4)', () => {
     });
     assert.equal(plan.kind, 'none');
     assert.match(String(plan.kind === 'none' && plan.note), /Tom is family/);
+  });
+});
+
+describe('a take’s plan: its drawn pose guide (Phase 3, step 4)', () => {
+  const input = {
+    slot: slot({ sceneHints: 'stirring a pot at the stove' }),
+    stillModel: 'qwen-image-edit-2511',
+    dayMood: 'everyday',
+    intimateEnabled: false,
+    intimateMix: undefined,
+    allowCompanions: true,
+    skippedForIdentity: false,
+    wordsOnlyRedo: false,
+    partnerNoun: null,
+    leadNoun: 'woman' as const,
+  };
+
+  it('a plain still sends its guide', () => {
+    assert.deepEqual(planTakePoseGuide(input), { skip: false, kleinSpoonRecipe: false });
+  });
+
+  it('a words-only redo and the Lightning identity path go without one, and say why', () => {
+    assert.match(String(planTakePoseGuide({ ...input, wordsOnlyRedo: true }).skipReason), /pose from text/);
+    assert.equal(
+      planTakePoseGuide({ ...input, skippedForIdentity: true }).skipReason,
+      'Lightning identity path keeps Image 1 whole (stance from text)'
+    );
+  });
+
+  it('a walk in step on Edit 2511 goes without the standing drawing', () => {
+    const plan = planTakePoseGuide({
+      ...input,
+      partnerNoun: 'man',
+      slot: slot({ sceneHints: 'Mara and Theo walking hand in hand along the river' }),
+    });
+    assert.equal(plan.skip, true);
+    assert.match(String(plan.skipReason), /walk in step/);
   });
 });

@@ -79,7 +79,6 @@ import { SAME_SHOT_MAX_DIFF } from '@/lib/search/image-similarity';
 import { pictureGreyDifference } from '@/lib/search/image-similarity-client';
 import { buildDayEndPoseEditPrompt, DAY_END_POSE_EDIT_NEGATIVE } from '@/lib/day/end-pose';
 import { resolveCastPlatePrepareModel } from '@/lib/cast/plate-prepare';
-import { dayWalkingDuoSkipsPoseGuide, rapidAdultSkipsPoseGuide } from '@/lib/play/rapid-duo-recipe';
 import { normalizeDayThread } from '@/lib/day/thread';
 import { useWorkspaceMode } from '@/hooks/useWorkspaceMode';
 import { isLeanWorkspaceMode } from '@/lib/app/workspace-mode';
@@ -187,6 +186,7 @@ import {
   planTakeModel,
   planTakeOutfit,
   planTakePartner,
+  planTakePoseGuide,
   takeModelNeedsInventory,
 } from '@/lib/day/take-plan';
 import {
@@ -197,12 +197,10 @@ import {
 import { dayVacationPoseNeedsBodyUnlock, clothedHeatUnlockPoseClass } from '@/lib/day/vacation';
 import { buildDayPoseGuide } from '@/lib/day/pose-guide';
 import { customPoseWords } from '@/lib/pose/describe';
-import { GROUND_SIT_REDO_MARK } from '@/lib/pose/ground-sit-words';
 import { bestOfTwoAsOneJob, setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
 import { dayTwoTakesApplies } from '@/lib/day/two-takes';
 import { castcutBestOfTwoAvailable, castcutGuideJson } from '@/lib/castcut/nodes';
 import {
-  dayClothedGuideContradictsBeat,
   daySlotPoseLayout,
   daySlotPoseOverride,
   pickedStillCamera,
@@ -240,7 +238,6 @@ import type { PoseLeadPosition } from '@/lib/pose/guide-openpose';
 import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
 import { loadPoseGuideStylePreference } from '@/lib/engine/render-realism-settings';
 import { readsPoseGuideImage } from '@/lib/model/denoise-defaults';
-import { kleinSpoonRecipeApplies } from '@/lib/play/klein-duo-recipe';
 import { shouldAppendKleinFaceReference } from '@/lib/engine/klein-face-reference';
 import {
   poseGuideFailureReason,
@@ -2157,61 +2154,23 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           customPose = wordsOnlyRedo.words;
           poseExpectation = { ...wordsOnlyRedo.expectation, wordsOnly: wordsOnlyRedo.words };
         }
-        // Klein clothed spoon: the compact recipe goes out alone — no guide, no face crop.
-        const kleinSpoonRecipe = kleinSpoonRecipeApplies({
-          model: stillModel,
-          adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
-          beat: queueTarget.sceneHints,
+        // Whether the drawn guide goes with this take, decided in the take's plan (take-plan.ts):
+        // Klein's spoon recipe, a clothed drawing against the beat, Rapid's spoon poses, a walk
+        // in step — the pose then goes out in words.
+        const poseGuidePlan = planTakePoseGuide({
+          slot: queueTarget,
+          stillModel,
+          dayMood: toolSettings.dayMood,
+          intimateEnabled,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+          skippedForIdentity: skipPoseGuideImage,
+          wordsOnlyRedo: Boolean(wordsOnlyRedo),
+          partnerNoun: slotPartner?.noun,
+          leadNoun,
         });
-        if (kleinSpoonRecipe) {
-          skipPoseGuideImage = true;
-        }
-        // Vacation / Suggestive draw clothed stills upright; when that drawing contradicts the
-        // beat (a lie or a kneel drawn as a seated or standing pair) the words carry the pose.
-        if (
-          !skipPoseGuideImage &&
-          dayClothedGuideContradictsBeat({
-            slot: queueTarget,
-            dayMood: normalizeDayMood(
-              isDayAdultMood(toolSettings.dayMood) && !intimateEnabled
-                ? 'everyday'
-                : toolSettings.dayMood
-            ),
-            intimateMix: toolSettings.intimateMix,
-            allowCompanions: toolSettings.allowCompanions === true,
-            model: stillModel,
-          })
-        ) {
-          skipPoseGuideImage = true;
-        }
-        let walkingDuoNoGuide = false;
-        let spoonNoGuide = false;
-        if (
-          !skipPoseGuideImage &&
-          rapidAdultSkipsPoseGuide({
-            model: stillModel,
-            adultMood: isDayAdultMood(toolSettings.dayMood) && intimateEnabled,
-            beat: queueTarget.sceneHints,
-            pairing:
-              slotPartner && slotPartner.noun === leadNoun
-                ? leadNoun === 'man'
-                  ? 'two-men'
-                  : 'two-women'
-                : null,
-          })
-        ) {
-          skipPoseGuideImage = true;
-          spoonNoGuide = true;
-        }
-        // Walking hand in hand on Edit 2511: the standing hold-hands map froze the walk.
-        if (
-          !skipPoseGuideImage &&
-          !(isDayAdultMood(toolSettings.dayMood) && intimateEnabled) &&
-          dayWalkingDuoSkipsPoseGuide(stillModel, queueTarget.sceneHints)
-        ) {
-          skipPoseGuideImage = true;
-          walkingDuoNoGuide = true;
-        }
+        skipPoseGuideImage = poseGuidePlan.skip;
+        const { kleinSpoonRecipe } = poseGuidePlan;
         // Clothing options for this still's brief / recipe (the pose map's are added below).
         const slotPromptOptions = {
           faceOnlyIdentity,
@@ -2352,18 +2311,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               : !lookHasPlate
                 ? { state: 'skipped' as const, reason: 'no plate' }
                 : skipPoseGuideImage
-                  ? {
-                      state: 'skipped' as const,
-                      reason: wordsOnlyRedo
-                        ? `${GROUND_SIT_REDO_MARK} (pose from text)`
-                        : kleinSpoonRecipe
-                          ? 'FLUX.2 Klein spoon reads the overlapping guide as a third person (stance from text)'
-                          : spoonNoGuide
-                            ? 'Spooning, face-down or against a wall: the drawing fought the words (pose from text)'
-                            : walkingDuoNoGuide
-                              ? 'A walk in step: the standing hold-hands drawing froze it (stride from text)'
-                              : 'Lightning identity path keeps Image 1 whole (stance from text)',
-                    }
+                  ? { state: 'skipped' as const, reason: poseGuidePlan.skipReason ?? '' }
                   : {
                       state: 'failed' as const,
                       reason: poseGuideFailure ?? 'ComfyUI did not accept the guide upload',
