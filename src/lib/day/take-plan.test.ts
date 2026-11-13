@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import type { DaySlot } from './planner';
 import { categoryLabel } from '@/lib/wardrobe/clothing-catalog-fields';
-import { planTakeModel, planTakeOutfit, takeModelNeedsInventory } from './take-plan';
+import { planTakeModel, planTakeOutfit, planTakePartner, takeModelNeedsInventory } from './take-plan';
 
 const outfits = categoryLabel('outfit');
 const catalog = [
@@ -111,5 +111,74 @@ describe('a take’s plan: its engine (Phase 3, step 4)', () => {
       true
     ));
     assert.equal(takeModelNeedsInventory({ ...input, pickedModel: 'sdxl' as never, hasPlate: false }), false);
+  });
+});
+
+describe('a take’s plan: its partner (Phase 3, step 4)', () => {
+  const lead = { id: 'mara', name: 'Mara', relationships: [{ castId: 'tom', kind: 'sibling' }] } as never;
+  const people: Record<string, unknown> = {
+    theo: { id: 'theo', name: 'Theo', descriptor: 'a man in his thirties', traits: { sex: 'man' } },
+    tom: { id: 'tom', name: 'Tom', descriptor: 'a man in his thirties', traits: { sex: 'man' } },
+  };
+  const input = {
+    slot: slot({ sceneHints: 'Mara and Theo, the two of them together, cooking at the stove' }),
+    partnerCharacterId: 'theo',
+    scriptShot: false,
+    leadNoun: 'woman' as const,
+    lead,
+    getCharacter: (id: string) => people[id] as never,
+    lookHasPlate: true,
+    dayMood: 'everyday',
+    intimateEnabled: false,
+    intimateMix: undefined,
+    allowCompanions: true,
+    stillModel: 'qwen-image-edit-2511',
+  };
+
+  it('a Cast partner in a two-person still: their face to load and check', () => {
+    const plan = planTakePartner(input);
+    assert.equal(plan.kind, 'cast');
+    assert.equal(plan.kind === 'cast' && plan.character.id, 'theo');
+    assert.equal(plan.partnerCharacter?.id, 'theo');
+  });
+
+  it('nobody without a plate, or in a one-person still', () => {
+    assert.equal(planTakePartner({ ...input, lookHasPlate: false }).kind, 'none');
+    assert.equal(
+      planTakePartner({ ...input, slot: slot({ sceneHints: 'reading alone by the window' }) }).kind,
+      'none'
+    );
+  });
+
+  it('an invented partner: a stand-in face, kept per film', () => {
+    const plan = planTakePartner({ ...input, partnerCharacterId: 'new:man', filmScriptId: 'script-1' });
+    assert.equal(plan.kind, 'stand-in');
+    if (plan.kind !== 'stand-in') return;
+    assert.equal(plan.candidate.noun, 'man');
+    assert.equal(plan.filmKey, 'script-1');
+    assert.equal(plan.stranger, null);
+  });
+
+  it('a stranger the script’s shot names gets a face of their own, never the partner’s', () => {
+    const plan = planTakePartner({
+      ...input,
+      scriptShot: true,
+      filmScriptId: 'script-1',
+      slot: slot({ sceneHints: 'Mara and Elderly man, the two of them together. He hands her a book.' }),
+    });
+    assert.equal(plan.kind, 'stand-in');
+    if (plan.kind !== 'stand-in') return;
+    assert.deepEqual([plan.candidate.noun, plan.stranger?.elderly, plan.filmKey], ['man', true, 'script-1|elderly man']);
+  });
+
+  it('family never plays the partner in a romantic mood — left out, and said', () => {
+    const plan = planTakePartner({
+      ...input,
+      partnerCharacterId: 'tom',
+      dayMood: 'suggestive',
+      slot: slot({ sceneHints: 'Mara and Tom, the two of them together, dancing close' }),
+    });
+    assert.equal(plan.kind, 'none');
+    assert.match(String(plan.kind === 'none' && plan.note), /Tom is family/);
   });
 });

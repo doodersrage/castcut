@@ -20,6 +20,18 @@ import {
   type DaySlot,
 } from './planner';
 import { daySlotPoseLayout, planDaySlotPose } from './slot-pose';
+import {
+  dayPartnerApplies,
+  dayPartnerChoiceFor,
+  inventedDayPartner,
+  toDayPartner,
+  type DayPartner,
+  type DayPartnerNoun,
+} from './partner';
+import { filmStandInKey, scriptShotOther, type ScriptShotOther } from './script-shot-other';
+import { dayThemeOf } from './themes';
+import { castRelationOf, relationAllowsRomance } from '../cast/relationships';
+import type { CharacterRecord } from '../character/os';
 import { isPenetrationLayout, photoPoseForStill } from './pose-guide';
 import { COMFY_IMAGE_MODELS, type ComfyImageModel } from '../comfy-models/client';
 import type { ComfyUiModelLists } from '../comfyui/object-info';
@@ -311,4 +323,131 @@ export function planTakeModel(
     poseEngineSwap,
     ...(pinned.note ? { pinNote: pinned.note } : {}),
   };
+}
+
+export type TakePartnerPlan = {
+  /** The partner Cast member picked for the short (their face, their outfit in words). */
+  partnerCharacter: CharacterRecord | null;
+} & (
+  | {
+      /** No second person in this still (none picked, no plate, the shot has one person…). */
+      kind: 'none';
+      /** Why the picked partner is left out, for the card (family in a romantic mood). */
+      note?: string;
+    }
+  | {
+      /**
+       * An invented partner, or a stranger the script's shot names: a stand-in face, one per film
+       * (kept under `filmKey` — '' outside a script) and per page for the partner, its own for a
+       * stranger; rendered when there is none to reuse.
+       */
+      kind: 'stand-in';
+      candidate: DayPartner & { noun: 'man' | 'woman' };
+      stranger: ScriptShotOther | null;
+      filmKey: string;
+    }
+  | {
+      /** A Cast member plays the partner: their face crop, checked, as Image 2. */
+      kind: 'cast';
+      candidate: DayPartner;
+      character: CharacterRecord;
+    }
+);
+
+/**
+ * Who the second person in a take is: the picked partner Cast member, an invented man or woman
+ * ("new:…"), or a stranger the script's shot names (never the partner's face) — when the still has
+ * room for two and the mood allows them (family never plays a romantic partner).
+ */
+export function planTakePartner(input: {
+  slot: DaySlot;
+  /** The partner picked for the short (Cast id, or "new:man"…). */
+  partnerCharacterId?: string | null;
+  /** A script's Scene with its line (the script decides who is in the shot). */
+  scriptShot: boolean;
+  leadNoun: DayPartnerNoun | null | undefined;
+  /** The take's look's Cast (the lead), for their relationships. */
+  lead: CharacterRecord | null | undefined;
+  getCharacter: (id: string) => CharacterRecord | null | undefined;
+  lookHasPlate: boolean;
+  dayMood: Parameters<typeof dayMoodWantsAutoKit>[0];
+  intimateEnabled: boolean;
+  intimateMix: unknown;
+  allowCompanions: boolean;
+  stillModel: string;
+  /** The script the open Scene was made from (its film's stand-ins). */
+  filmScriptId?: string;
+}): TakePartnerPlan {
+  const { slot } = input;
+  const partnerId = dayPartnerChoiceFor(input.partnerCharacterId, {
+    scriptShot: input.scriptShot,
+    lead: input.leadNoun,
+  });
+  const partnerCharacter =
+    (partnerId && partnerId !== input.lead?.id ? input.getCharacter(partnerId) : null) ?? null;
+  const castPartner = toDayPartner(partnerCharacter);
+  // A script's two-shot with someone other than the partner (the bookstore's elderly man): a
+  // stranger with a face of their own, never the partner's face (live 2026-11-11).
+  const shotOther = input.scriptShot ? scriptShotOther(slot.sceneHints) : null;
+  const firstName = (name: string | undefined) =>
+    (name ?? '').trim().toLowerCase().split(/\s+/)[0] ?? '';
+  const strangerInShot =
+    shotOther?.who &&
+    !(partnerCharacter && firstName(shotOther.who) === firstName(partnerCharacter.name))
+      ? shotOther
+      : null;
+  const candidate: DayPartner | null = strangerInShot
+    ? {
+        name: '',
+        noun:
+          strangerInShot.noun ??
+          inventedDayPartner(partnerId)?.noun ??
+          (input.leadNoun === 'man' ? 'woman' : 'man'),
+        invented: true,
+      }
+    : (inventedDayPartner(partnerId) ??
+      (castPartner
+        ? { ...castPartner, relation: castRelationOf(input.lead, partnerCharacter?.id) }
+        : null));
+  if (!candidate || !input.lookHasPlate) return { kind: 'none', partnerCharacter };
+  const partnerMood = normalizeDayMood(
+    isDayAdultMood(input.dayMood) && !input.intimateEnabled ? 'everyday' : input.dayMood
+  );
+  const { headcount } = planDaySlotPose({
+    slot,
+    dayMood: partnerMood,
+    intimateMix: input.intimateMix as never,
+    allowCompanions: input.allowCompanions,
+    model: input.stillModel,
+  });
+  const applies = dayPartnerApplies({
+    partner: candidate,
+    headcount,
+    adultMood: isDayAdultMood(partnerMood),
+    lead: input.leadNoun ?? undefined,
+    sameSexLayouts: poseProfileForModel(input.stillModel).sameSexLayouts,
+    romanticMood: partnerMood === 'suggestive' || dayThemeOf(input.dayMood)?.id === 'date-night',
+  });
+  if (!applies) {
+    // Family never plays the partner in a romantic or adult mood (cast-relationships.ts).
+    return headcount === 2 && candidate.relation && !relationAllowsRomance(candidate.relation)
+      ? {
+          kind: 'none',
+          partnerCharacter,
+          note: `${candidate.name} is family — left out of this still (pick another partner for this mood).`,
+        }
+      : { kind: 'none', partnerCharacter };
+  }
+  if (candidate.invented && candidate.noun !== 'person')
+    return {
+      kind: 'stand-in',
+      partnerCharacter,
+      candidate: { ...candidate, noun: candidate.noun },
+      stranger: strangerInShot,
+      // The partner's face is the film's and the page's; a stranger's only their own.
+      filmKey: input.filmScriptId ? filmStandInKey(input.filmScriptId, strangerInShot) : '',
+    };
+  if (partnerCharacter)
+    return { kind: 'cast', partnerCharacter, candidate, character: partnerCharacter };
+  return { kind: 'none', partnerCharacter };
 }
