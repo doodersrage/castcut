@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import MobileSceneToolSections from '@/components/mobile/MobileSceneToolSections';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import SavedDataWait from '@/components/ui/SavedDataWait';
 import { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -22,6 +22,6 @@ export default function MobileSceneTool() {
       delete root.dataset.phoneTargets;
     };
   }, []);
-  if (!vm.mounted) return <ToolPageSkeleton label="Loading scene" />;
+  if (!vm.mounted) return <SavedDataWait label="Opening your scene" />;
   return <MobileSceneToolSections vm={vm} page={page} runner={runner} />;
 }

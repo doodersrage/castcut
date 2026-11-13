@@ -7,7 +7,7 @@ import { SceneScriptPart } from '@/components/day-planner/SceneScriptAndRun';
 import { SCENE_ACCENT, useSceneToolViews } from '@/components/day-planner/useSceneToolViews';
 import { ButtonLink } from '@/components/ui/Button';
 import { ToolLayout, ToolSection } from '@/components/ui/ToolPageShell';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import SavedDataWait from '@/components/ui/SavedDataWait';
 import { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 
@@ -22,7 +22,7 @@ export default function ScriptTool() {
   const page = useScenePage(vm);
   const views = useSceneToolViews(vm, page);
   const router = useRouter();
-  if (!vm.mounted) return <ToolPageSkeleton label="Loading script" />;
+  if (!vm.mounted) return <SavedDataWait label="Opening your scripts" />;
   const { character, hasPlate } = vm;
   const sceneHref = (query: string) =>
     `/scene?${character ? `character=${encodeURIComponent(character.id)}&` : ''}${query}`;

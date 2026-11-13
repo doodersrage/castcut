@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SceneToolSections from '@/components/day-planner/SceneToolSections';
-import { ToolPageSkeleton } from '@/components/ui/ViewState';
+import SavedDataWait from '@/components/ui/SavedDataWait';
 import { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { useSceneRun } from '@/hooks/day-planner/useSceneRun';
 import { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
@@ -26,6 +26,6 @@ export default function SceneTool() {
   const vm = useDayPlannerToolOrchestration('scene');
   const page = useScenePage(vm);
   const runner = useSceneRun(vm, page);
-  if (!vm.mounted) return <ToolPageSkeleton label="Loading scene" />;
+  if (!vm.mounted) return <SavedDataWait label="Opening your scene" />;
   return <SceneToolSections vm={vm} page={page} runner={runner} />;
 }

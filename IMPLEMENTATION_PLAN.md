@@ -4224,3 +4224,13 @@ only the picked shot shows its settings and its state / pin lines (the rest a co
 "Shot settings", which picks it); Foley lists 3 suggestions, then "Show all N" (everywhere). Now
 ~4,900 px. Desktop shot cards unchanged (e2e drives their controls directly).
 
+**The "Loading scene" flake, found (2026-11-12):** the Scene page waits for the browser database
+before it renders (it can't render early: settings written before they load would overwrite them).
+On the e2e dev server, after the reload, 4 runs in 8 never got past it: the database opened
+(instrumented to its last stage), but a lazily loaded chunk failed to parse ("Invalid or unexpected
+token" — the dev server handed it over mid-rewrite), so the hook's ready callback never ran. The
+same test on a production build of the same code: 8 of 8, no page errors. Dev-server only. Kept
+from it: `SavedDataWait` on Scene, Script and the phone Film / Scene pages — its own label ("Opening
+your scene", apart from the route's "Loading scene" code skeleton) and, after 8 s, what it waits for
+and a Reload button.
+
