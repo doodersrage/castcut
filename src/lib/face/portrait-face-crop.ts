@@ -125,6 +125,68 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * Decoding and drawing off the page (FINISHING_PLAN Phase 3, step 5): the server crops and
+ * composites with @napi-rs/canvas (Skia, as Chrome's canvas), registered by
+ * portrait-face-crop-server.ts — never imported by the browser. The same drawing calls run on it.
+ */
+export type FaceImageCanvas = {
+  decode: (
+    blob: Blob
+  ) => Promise<{ width: number; height: number; source: CanvasImageSource; close: () => void }>;
+  canvas: (
+    width: number,
+    height: number
+  ) => { ctx: CanvasRenderingContext2D; toPng: () => Promise<Uint8Array> };
+};
+
+let offPageImages: FaceImageCanvas | null = null;
+
+export function setFaceImageCanvas(provider: FaceImageCanvas | null): void {
+  offPageImages = provider;
+}
+
+/** The page's canvas, else the one registered for the server. */
+function imageCanvas(what: string): FaceImageCanvas {
+  if (typeof document !== 'undefined' && typeof createImageBitmap === 'function') {
+    return {
+      decode: async blob => {
+        const bitmap = await createImageBitmap(blob);
+        return {
+          width: bitmap.width,
+          height: bitmap.height,
+          source: bitmap,
+          close: () => bitmap.close(),
+        };
+      },
+      canvas: (width, height) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error(`Could not ${what}.`);
+        return {
+          ctx,
+          toPng: () =>
+            new Promise<Uint8Array>((resolve, reject) => {
+              canvas.toBlob(out => {
+                if (!out) {
+                  reject(new Error(`Could not encode the ${what} result.`));
+                  return;
+                }
+                void out.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)), reject);
+              }, 'image/png');
+            }),
+        };
+      },
+    };
+  }
+  if (offPageImages) return offPageImages;
+  throw new Error(
+    `${what[0]!.toUpperCase()}${what.slice(1)} needs createImageBitmap in this browser.`
+  );
+}
+
 /** Browser: crop a blob to the geometric face window and return a PNG File. */
 export async function cropPortraitFaceRegionFromBlob(
   blob: Blob,
@@ -160,10 +222,8 @@ async function cropBlobRegion(
   pickRect: (width: number, height: number) => PortraitFaceCropRect,
   minPixelsOption: number | undefined
 ): Promise<File> {
-  if (typeof createImageBitmap !== 'function') {
-    throw new Error('Face crop needs createImageBitmap in this browser.');
-  }
-  const bitmap = await createImageBitmap(blob);
+  const images = imageCanvas('crop face region');
+  const bitmap = await images.decode(blob);
   try {
     if (bitmap.width < 32 || bitmap.height < 32) {
       throw new Error('Source image is too small to crop a face region.');
@@ -172,17 +232,11 @@ async function cropBlobRegion(
     const minPixels =
       minPixelsOption === undefined ? PORTRAIT_FACE_CROP_MIN_PIXELS : minPixelsOption;
     const outSize = computeMinPixelUpscaleSize(rect.width, rect.height, minPixels);
-    const canvas = document.createElement('canvas');
-    canvas.width = outSize.width;
-    canvas.height = outSize.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Could not crop face region.');
-    }
+    const { ctx, toPng } = images.canvas(outSize.width, outSize.height);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(
-      bitmap,
+      bitmap.source,
       rect.x,
       rect.y,
       rect.width,
@@ -192,18 +246,10 @@ async function cropBlobRegion(
       outSize.width,
       outSize.height
     );
-    const cropped = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(out => {
-        if (!out) {
-          reject(new Error('Could not encode face crop.'));
-          return;
-        }
-        resolve(out);
-      }, 'image/png');
-    });
+    const cropped = await toPng();
     const safeName = filename.trim() || 'cast-face-crop.png';
     const withExt = /\.png$/i.test(safeName) ? safeName : `${safeName}.png`;
-    return new File([cropped], withExt, { type: 'image/png' });
+    return new File([cropped as BlobPart], withExt, { type: 'image/png' });
   } finally {
     bitmap.close();
   }
@@ -224,22 +270,14 @@ export async function compositePortraitOnNeutralBackdrop(
   filename = 'day-face-neutral.png',
   options?: { fill?: string; coverRatio?: number }
 ): Promise<File> {
-  if (typeof createImageBitmap !== 'function') {
-    throw new Error('Neutral backdrop needs createImageBitmap in this browser.');
-  }
-  const bitmap = await createImageBitmap(blob);
+  const images = imageCanvas('composite face on neutral backdrop');
+  const bitmap = await images.decode(blob);
   try {
     const fill = options?.fill?.trim() || DAY_FACE_BREAK_NEUTRAL_BACKDROP;
     const coverRatio = clamp(options?.coverRatio ?? 0.92, 0.6, 1);
     const outW = Math.max(512, bitmap.width);
     const outH = Math.max(512, bitmap.height);
-    const canvas = document.createElement('canvas');
-    canvas.width = outW;
-    canvas.height = outH;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Could not composite face on neutral backdrop.');
-    }
+    const { ctx, toPng } = images.canvas(outW, outH);
     ctx.fillStyle = fill;
     ctx.fillRect(0, 0, outW, outH);
     const scale = Math.min((outW * coverRatio) / bitmap.width, (outH * coverRatio) / bitmap.height);
@@ -249,19 +287,11 @@ export async function compositePortraitOnNeutralBackdrop(
     const dy = Math.round((outH - dh) / 2);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bitmap, dx, dy, dw, dh);
-    const out = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(result => {
-        if (!result) {
-          reject(new Error('Could not encode neutral face plate.'));
-          return;
-        }
-        resolve(result);
-      }, 'image/png');
-    });
+    ctx.drawImage(bitmap.source, dx, dy, dw, dh);
+    const out = await toPng();
     const safeName = filename.trim() || 'day-face-neutral.png';
     const withExt = /\.png$/i.test(safeName) ? safeName : `${safeName}.png`;
-    return new File([out], withExt, { type: 'image/png' });
+    return new File([out as BlobPart], withExt, { type: 'image/png' });
   } finally {
     bitmap.close();
   }
