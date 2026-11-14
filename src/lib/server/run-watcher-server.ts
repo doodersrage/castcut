@@ -67,6 +67,29 @@ function jobOf(status: ComfyPromptStatus): WatchedJob | null {
   return null;
 }
 
+/**
+ * A job ComfyUI lost (a restart, a cleared queue) queued again from the graph it was sent — once
+ * per job (claimJobRequeue). Its new id is recorded, so watchedPromptStatus follows it: a take
+ * waited for by its first id lands where it was waited for. The new id, or null.
+ */
+export async function requeueLostJob(
+  promptId: string,
+  owner: { runId: string; sceneId: string },
+  deps: Pick<RunWatchDeps, 'submit' | 'now'> = {}
+): Promise<string | null> {
+  const now = deps.now?.() ?? Date.now();
+  const graph = readSubmittedGraph(promptId);
+  if (!graph || !claimJobRequeue(promptId, now)) return null;
+  const comfyUrl = graph.comfyUrl || getComfyUiBaseUrl();
+  const next = await (deps.submit ?? submitGraph)(graph.graph, comfyUrl).catch(() => null);
+  if (!next) return null;
+  markJobRequeuedAs(promptId, next);
+  recordSubmittedGraph({ promptId: next, comfyUrl, model: graph.model, graph: graph.graph, now });
+  markJobSeen(next, { runId: owner.runId, sceneId: owner.sceneId, comfyUrl }, now);
+  console.info(`[run-watch] ${owner.runId}: ${promptId} was lost — queued again as ${next}`);
+  return next;
+}
+
 export type RunWatchTick = { watched: number; landed: number; requeued: number };
 
 export async function tickRunWatcher(deps: RunWatchDeps = {}): Promise<RunWatchTick> {
@@ -124,24 +147,8 @@ export async function tickRunWatcher(deps: RunWatchDeps = {}): Promise<RunWatchT
       markJobLanded(action.promptId, statuses.get(action.promptId), now);
       tick.landed += 1;
     } else if (action.kind === 'requeue') {
-      const graph = readSubmittedGraph(action.promptId);
-      if (!graph || !claimJobRequeue(action.promptId, now)) continue;
-      const comfyUrl = graph.comfyUrl || getComfyUiBaseUrl();
-      const next = await submit(graph.graph, comfyUrl).catch(() => null);
-      if (!next) continue;
-      markJobRequeuedAs(action.promptId, next);
-      recordSubmittedGraph({
-        promptId: next,
-        comfyUrl,
-        model: graph.model,
-        graph: graph.graph,
-        now,
-      });
-      markJobSeen(next, { runId: action.runId, sceneId: action.sceneId, comfyUrl }, now);
-      tick.requeued += 1;
-      console.info(
-        `[run-watch] ${action.runId}: ${action.promptId} was lost — queued again as ${next}`
-      );
+      const next = await requeueLostJob(action.promptId, action, { submit, now: () => now });
+      if (next) tick.requeued += 1;
     }
   }
   return tick;

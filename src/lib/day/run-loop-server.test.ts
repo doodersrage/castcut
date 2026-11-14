@@ -286,4 +286,73 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       globalThis.fetch = original;
     }
   });
+
+  it('ComfyUI restarted under a take: the lost job queued again once, waited for, no second take', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness();
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { COMFY_PROMPT_LOST_MESSAGE } = await import('../comfyui/status');
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      const lost = new Set<string>();
+      const requeued: string[] = [];
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        // The first still is lost once (ComfyUI restarted); asked again, it has landed.
+        jobStatus: async (promptId: string) => {
+          if (promptId === 'job-1' && !lost.has(promptId)) {
+            lost.add(promptId);
+            return { promptId, status: 'error' as const, statusMessage: COMFY_PROMPT_LOST_MESSAGE, comfyUrl: COMFY };
+          }
+          return {
+            promptId,
+            status: 'completed' as const,
+            comfyUrl: COMFY,
+            images: [{ filename: `${promptId}.png`, subfolder: '', type: 'output' }],
+          };
+        },
+        requeueLost: async (promptId: string) => {
+          requeued.push(promptId);
+          return `${promptId}-again`;
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(requeued, ['job-1']);
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.equal(queued.length, 2, 'two takes, one a Scene — the lost one sent again by the watcher');
+      assert.ok(run?.log.some(entry => entry.event === 'resumed' && /lost job-1/.test(entry.detail ?? '')));
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('a take that could not be queued (ComfyUI restarting) is tried again, not left paused', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness();
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      let refused = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        notQueuedRetryMs: 0,
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        queue: async (body: unknown, prompt: string) => {
+          if (refused === 0) {
+            refused += 1;
+            return { ok: false, error: 'connect ECONNREFUSED' } as never;
+          }
+          return deps.queue(body, prompt);
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.equal(queued.length, 2);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
 });

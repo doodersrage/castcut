@@ -8,7 +8,7 @@
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { fetchComfyObjectInfoPayload } from '@/lib/comfyui/object-info';
 import { serverPictureIo } from '@/lib/media/picture-io-server';
-import { watchedPromptStatus } from '@/lib/server/run-watcher-server';
+import { requeueLostJob, watchedPromptStatus } from '@/lib/server/run-watcher-server';
 import { getStudioDb } from '@/lib/sqlite/studio-db';
 import { claimRunLease, releaseRunLease } from '@/lib/sqlite/scene-run-leases';
 import { readRunBundle } from '@/lib/sqlite/scene-run-bundles';
@@ -143,6 +143,7 @@ async function renderOnServer(
         save: plate => void plates.set(plate.key, plate),
       },
       jobStatus: promptId => watchedPromptStatus(promptId, { apiUrl: comfyUrl }),
+      requeueLost: (promptId, sceneId) => requeueLostJob(promptId, { runId, sceneId }),
       checkTake: async ({ imageUrl, report }) =>
         report
           ? checkServerTake({
