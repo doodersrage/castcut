@@ -6568,13 +6568,36 @@ export function poseFramingForShot(shot: CameraShot | null | undefined): PoseFra
           : null;
 }
 
+/**
+ * A 2D canvas off the page (FINISHING_PLAN Phase 3, step 5): the server draws the same guides
+ * through @napi-rs/canvas (Skia, as Chrome's canvas), registered by pose-guide-server.ts — never
+ * imported by the browser. Its context takes the same drawing calls.
+ */
+export type PoseGuideCanvasFactory = (
+  width: number,
+  height: number
+) => { ctx: CanvasRenderingContext2D; toPng: () => Promise<Uint8Array> };
+
+let offPageCanvas: PoseGuideCanvasFactory | null = null;
+
+export function setPoseGuideCanvasFactory(factory: PoseGuideCanvasFactory | null): void {
+  offPageCanvas = factory;
+}
+
 async function canvasToPoseGuideFile(
   draw: (ctx: CanvasRenderingContext2D) => string,
   filenamePrefix: string,
   size: { width: number; height: number } = { width: WIDTH, height: HEIGHT }
 ): Promise<File> {
   if (typeof document === 'undefined') {
-    throw new Error('Pose guide needs a browser canvas.');
+    if (!offPageCanvas) throw new Error('Pose guide needs a browser canvas.');
+    const { ctx, toPng } = offPageCanvas(size.width, size.height);
+    const tag = draw(ctx);
+    const png = await toPng();
+    return new File([png as BlobPart], `${filenamePrefix}-${tag}-${Date.now()}.png`, {
+      type: 'image/png',
+      lastModified: Date.now(),
+    });
   }
   const canvas = document.createElement('canvas');
   canvas.width = size.width;

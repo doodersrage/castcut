@@ -123,7 +123,13 @@ const baseConfig = {
     proxyClientMaxBodySize: '80mb',
     optimizeCss: true,
   },
-  serverExternalPackages: ['onnxruntime-web', 'onnxruntime-node', '@huggingface/transformers'],
+  serverExternalPackages: [
+    'onnxruntime-web',
+    'onnxruntime-node',
+    '@huggingface/transformers',
+    // Pose guides drawn on the server (lib/day/pose-guide-server.ts): a native module.
+    '@napi-rs/canvas',
+  ],
 
   async redirects() {
     return [
