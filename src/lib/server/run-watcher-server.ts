@@ -19,6 +19,7 @@ import {
   landedJobStatus,
   markJobLanded,
   markJobRequeuedAs,
+  releaseJobRequeue,
   markJobSeen,
   readRunWatchState,
   requeuedJobOf,
@@ -82,7 +83,10 @@ export async function requeueLostJob(
   if (!graph || !claimJobRequeue(promptId, now)) return null;
   const comfyUrl = graph.comfyUrl || getComfyUiBaseUrl();
   const next = await (deps.submit ?? submitGraph)(graph.graph, comfyUrl).catch(() => null);
-  if (!next) return null;
+  if (!next) {
+    releaseJobRequeue(promptId);
+    return null;
+  }
   markJobRequeuedAs(promptId, next);
   recordSubmittedGraph({ promptId: next, comfyUrl, model: graph.model, graph: graph.graph, now });
   markJobSeen(next, { runId: owner.runId, sceneId: owner.sceneId, comfyUrl }, now);

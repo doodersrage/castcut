@@ -76,6 +76,15 @@ export function claimJobRequeue(promptId: string, now = Date.now()): boolean {
   });
 }
 
+/** A re-queue that didn't go through (ComfyUI still starting): let a later try claim it. */
+export function releaseJobRequeue(promptId: string): void {
+  getStudioDb()
+    .prepare(
+      'UPDATE run_watch_jobs SET requeued_at = NULL WHERE prompt_id = ? AND requeued_as IS NULL'
+    )
+    .run(promptId);
+}
+
 export function markJobRequeuedAs(promptId: string, next: string): void {
   getStudioDb()
     .prepare('UPDATE run_watch_jobs SET requeued_as = ? WHERE prompt_id = ?')

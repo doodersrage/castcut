@@ -93,9 +93,18 @@ export type ServerRunDeps = ServerTakeDeps & {
    * on the first id (the watcher's status follows it).
    */
   requeueLost?: (promptId: string, sceneId: string) => Promise<string | null>;
+  /** A take's job queued, and landed: kept for the job watcher (it follows and re-queues it). */
+  onJob?: (
+    event: 'queued' | 'landed',
+    promptId: string,
+    sceneId: string,
+    status?: ComfyPromptStatus
+  ) => void;
   /** Stop asked (Pause on the page, the lease lost): the run stops before its next step. */
   shouldStop?: () => string | null;
   now?: () => number;
+  /** How long between tries to queue a lost take again (ComfyUI still starting). */
+  lostRetryMs?: number;
   /** How long before a take that wasn't queued is tried again (ComfyUI restarting). */
   notQueuedRetryMs?: number;
   /** How long a take may render, and how often it is asked about. */
@@ -104,6 +113,8 @@ export type ServerRunDeps = ServerTakeDeps & {
 };
 
 const RENDER_TIMEOUT_MS = 20 * 60_000;
+/** Tries to queue a lost take again before it is called failed. */
+const LOST_REQUEUE_TRIES = 6;
 
 /** The stop reason that ends the run (Cancel) rather than pausing it. */
 export const SERVER_RUN_CANCELLED = 'Cancelled';
@@ -234,6 +245,7 @@ export async function runSceneRunOnServer(
         continue;
       }
       promptId = queued;
+      deps.onJob?.('queued', promptId, sceneId);
       setRun(
         withRunLog(
           { ...runOf()!, current: { sceneId, promptId, at: now() } },
@@ -283,6 +295,7 @@ export async function runSceneRunOnServer(
     }
 
     // Landed: on the card, filed on its Scene, checked.
+    deps.onJob?.('landed', promptId, sceneId, landed);
     markStill(state, promptId, { status: 'completed', imageUrl });
     const filed = scenesWithWorking(state.sceneTool, now());
     if (filed) state.sceneTool = { ...state.sceneTool, scenes: filed };
@@ -399,17 +412,24 @@ async function waitForJob(
   const deadline = now() + (deps.renderTimeoutMs ?? RENDER_TIMEOUT_MS);
   let last: ComfyPromptStatus = { promptId, status: 'pending', comfyUrl: deps.comfyUrl };
   let requeued = false;
+  let tries = 0;
   for (;;) {
     last = await deps.jobStatus(promptId).catch(() => last);
     if (last.status === 'completed') return last;
     if (last.status === 'error') {
-      // Lost, not failed: queued again once, and waited for under the same id.
+      // Lost, not failed: queued again once, and waited for under the same id. ComfyUI may still
+      // be starting: a few tries before the take is called failed.
       if (!requeued && last.statusMessage === COMFY_PROMPT_LOST_MESSAGE && deps.requeueLost) {
-        requeued = true;
         const next = await deps.requeueLost(promptId, sceneId).catch(() => null);
         if (next) {
+          requeued = true;
           onRequeued(next);
           await sleep(deps.pollMs ?? 3_000);
+          continue;
+        }
+        tries += 1;
+        if (tries < LOST_REQUEUE_TRIES && now() < deadline) {
+          await sleep(deps.lostRetryMs ?? 10_000);
           continue;
         }
       }

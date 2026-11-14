@@ -13,6 +13,7 @@ import { getStudioDb } from '@/lib/sqlite/studio-db';
 import { claimRunLease, releaseRunLease } from '@/lib/sqlite/scene-run-leases';
 import { readRunBundle } from '@/lib/sqlite/scene-run-bundles';
 import { appendRunPatch, readRunState, writeRunState } from '@/lib/sqlite/scene-run-patches';
+import { markJobLanded, markJobSeen } from '@/lib/sqlite/run-watch-jobs';
 import { writeSceneRun } from '@/lib/sqlite/scene-runs';
 import { getClothingSelectOptions } from '@/lib/wardrobe/clothing-catalog';
 import { getClothingCatalogFieldCategories } from '@/lib/wardrobe/clothing-catalog-fields';
@@ -144,6 +145,12 @@ async function renderOnServer(
       },
       jobStatus: promptId => watchedPromptStatus(promptId, { apiUrl: comfyUrl }),
       requeueLost: (promptId, sceneId) => requeueLostJob(promptId, { runId, sceneId }),
+      // Kept for the job watcher: what it re-queues needs the job on its list; a landed job's
+      // status answers for it once ComfyUI forgets it.
+      onJob: (event, promptId, sceneId, status) =>
+        event === 'queued'
+          ? markJobSeen(promptId, { runId, sceneId, comfyUrl })
+          : markJobLanded(promptId, status),
       checkTake: async ({ imageUrl, report }) =>
         report
           ? checkServerTake({

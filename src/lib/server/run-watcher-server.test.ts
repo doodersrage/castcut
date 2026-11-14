@@ -4,11 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { COMFY_PROMPT_LOST_MESSAGE, type ComfyPromptStatus } from '@/lib/comfyui/status';
-import { markJobCancelled } from '@/lib/sqlite/run-watch-jobs';
+import { markJobCancelled, markJobSeen } from '@/lib/sqlite/run-watch-jobs';
 import { writeSceneRun } from '@/lib/sqlite/scene-runs';
 import { closeStudioDb } from '@/lib/sqlite/studio-db';
 import { recordSubmittedGraph, readSubmittedGraph } from '@/lib/sqlite/submitted-graphs';
-import { tickRunWatcher, watchedPromptStatus } from './run-watcher-server';
+import { requeueLostJob, tickRunWatcher, watchedPromptStatus } from './run-watcher-server';
 
 const COMFY = 'http://comfy.test:8188';
 
@@ -130,5 +130,28 @@ describe('the server’s run watch (Phase 3, step 3): close the page, kill Comfy
       landed: 0,
       requeued: 0,
     });
+  });
+
+  it('a server run’s lost take: sent again once its job is on the list; a failed send can be tried again', async () => {
+    recordSubmittedGraph({ promptId: 'srv-1', comfyUrl: COMFY, graph: { '1': { class_type: 'Take', inputs: {} } } });
+    // Not on the watch list: nothing to claim.
+    assert.equal(await requeueLostJob('srv-1', { runId: 'run-s', sceneId: 's1' }), null);
+    markJobSeen('srv-1', { runId: 'run-s', sceneId: 's1', comfyUrl: COMFY });
+    // ComfyUI still starting: the send fails, the claim is let go.
+    assert.equal(
+      await requeueLostJob('srv-1', { runId: 'run-s', sceneId: 's1' }, { submit: async () => null }),
+      null
+    );
+    const comfy = fakeComfy();
+    const next = await requeueLostJob('srv-1', { runId: 'run-s', sceneId: 's1' }, { submit: comfy.submit });
+    assert.equal(next, 'q1');
+    assert.equal(comfy.submitted.length, 1);
+    // Once only.
+    assert.equal(await requeueLostJob('srv-1', { runId: 'run-s', sceneId: 's1' }, { submit: comfy.submit }), null);
+    // Its status follows the new job.
+    comfy.jobs.set('q1', 'completed');
+    const status = await watchedPromptStatus('srv-1', undefined, comfy.status);
+    assert.equal(status.status, 'completed');
+    assert.equal(status.promptId, 'srv-1');
   });
 });
