@@ -102,8 +102,8 @@ describe('continuity findings, one shape (M2 C1)', () => {
     );
     const byRule = Object.fromEntries(findings.map(f => [f.rule, f]));
     assert.equal(byRule['pose-miss']!.evidence, 'Pose match 31% · the cup is not at her mouth');
-    assert.match(byRule['outfit-miss']!.evidence, /she is in black top and jeans/);
-    assert.match(byRule['place-miss']!.evidence, /she is in a living room/);
+    assert.match(byRule['outfit-miss']!.evidence, /the still shows black top and jeans/);
+    assert.match(byRule['place-miss']!.evidence, /the still shows a living room/);
     assert.ok(findings.every(f => f.severity === 'warns'));
     // A gesture word alone, with the pose passing, says nothing.
     assert.deepEqual(

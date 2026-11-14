@@ -52,7 +52,7 @@ export default function FittingKeeperStandInNote({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={status.imageUrl}
-          alt="Her standing picture for Day and Story"
+          alt="The standing picture for Day and Story"
           className={`${place === 'day' ? 'h-8 w-6' : 'h-12 w-8'} shrink-0 rounded object-cover`}
           data-testid={`${testId}-picture`}
         />

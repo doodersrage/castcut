@@ -163,7 +163,7 @@ export function findingsForGalleryEntry(
       'outfit-miss',
       'warns',
       'Auto-review',
-      `Not the planned outfit — she is in ${checks.outfitMiss.trim()}`,
+      `Not the planned outfit — the still shows ${checks.outfitMiss.trim()}`,
       'Redo it, or say the outfit changes here.'
     );
   }
@@ -172,7 +172,7 @@ export function findingsForGalleryEntry(
       'place-miss',
       'warns',
       'Auto-review',
-      `Not the planned place — she is in ${checks.placeMiss.trim()}`,
+      `Not the planned place — the still shows ${checks.placeMiss.trim()}`,
       'Redo it, or change where the shot is set.'
     );
   }

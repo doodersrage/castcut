@@ -333,7 +333,7 @@ export function checkDirection(direction: Direction): DirectionCheck {
     if (beat.kind === 'move') {
       const move = DIRECTOR_MOVES[beat.move];
       if (move.fromSitting && !seated) {
-        warnings.push(`Beat ${index + 1}: ${move.label} works after she sits down.`);
+        warnings.push(`Beat ${index + 1}: ${move.label} works after sitting down.`);
       }
       if (move.sits) seated = true;
       if (move.fromSitting) seated = false;

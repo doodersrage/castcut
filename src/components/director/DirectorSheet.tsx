@@ -994,7 +994,7 @@ function DirectorSheetOpen({
                   size="sm"
                   variant="secondary"
                   disabled={Boolean(videoNote)}
-                  title="Her moves from your own video: a person moving, whole in the frame, up to 10 s"
+                  title="Moves from your own video: a person moving, whole in the frame, up to 10 s"
                   data-testid={`${p}-add-video`}
                   onClick={() => videoInput.current?.click()}
                 >
@@ -1131,7 +1131,7 @@ function DirectorSheetOpen({
               <TextInput
                 id={`${p}-place-input`}
                 value={direction.place ?? ''}
-                placeholder="e.g. a sunny kitchen with a wooden chair behind her"
+                placeholder="e.g. a sunny kitchen with a wooden chair at the back"
                 onChange={event =>
                   update({ ...direction, place: event.target.value.slice(0, 300) })
                 }

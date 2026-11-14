@@ -322,7 +322,7 @@ export default function FittingWardrobeKitSection({
   return (
     <ToolSection
       title="Clothing"
-      description="What she tries on — a catalog outfit kit or your own clothing photo, and the shoes."
+      description="What the Cast tries on — a catalog outfit kit or your own clothing photo, and the shoes."
       data-testid="fitting-kit-strip"
     >
       {row}

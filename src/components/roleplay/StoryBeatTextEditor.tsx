@@ -79,7 +79,7 @@ export default function StoryBeatTextEditor({
         </Button>
       </div>
       <p className="type-caption text-[var(--text-muted)]">
-        Say what she does and where. The still is written again from this text; the one you have
+        Say what happens and where. The still is written again from this text; the one you have
         stays as a take.
       </p>
     </form>

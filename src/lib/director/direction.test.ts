@@ -55,7 +55,7 @@ describe('director: beats', () => {
   });
 
   it('warns when Stand up does not follow a sit', () => {
-    assert.match(checkDirection(direction([start(), moveBeat('stand')])).warnings[0]!, /after she sits/);
+    assert.match(checkDirection(direction([start(), moveBeat('stand')])).warnings[0]!, /after sitting/);
     assert.deepEqual(checkDirection(direction([start(), moveBeat('sit'), moveBeat('stand')])).warnings, []);
   });
 

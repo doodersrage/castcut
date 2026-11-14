@@ -20,7 +20,7 @@ const ImageLightbox = dynamic(() => import('@/components/ui/ImageLightbox'), { s
 
 /**
  * The dress-plate step for a tool page: "Dressing … first" while the plate renders, then the
- * plate itself (click to view it large) with "Dress her again". Renders nothing until a plate
+ * plate itself (click to view it large) with "Dress the plate again". Renders nothing until a plate
  * exists or one is being made.
  */
 export default function DressPlateNotice({
@@ -106,12 +106,12 @@ export default function DressPlateNotice({
               onClick={() => {
                 removeDressPlate(newest.key);
                 setDressPlateActivity({
-                  text: 'The next still dresses her again first.',
+                  text: 'The next still dresses the plate again first.',
                   busy: false,
                 });
               }}
             >
-              Dress her again
+              Dress the plate again
             </button>
           </div>
         </div>

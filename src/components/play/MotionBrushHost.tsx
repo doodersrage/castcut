@@ -223,7 +223,7 @@ export default function MotionBrushHost() {
         type="text"
         value={prompt}
         maxLength={300}
-        placeholder="What happens (optional): she raises the cup to her lips"
+        placeholder="What happens (optional): the cup is raised to the lips"
         aria-label="What happens"
         className="ui-input"
         onChange={event => setPrompt(event.target.value)}

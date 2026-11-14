@@ -73,7 +73,7 @@ describe('play slot quality', () => {
       place: { match: false, seen: 'bedroom, on the bed' },
     });
     assert.equal(wrong.action, 'reroll');
-    assert.match(wrong.reasons.join(' '), /not the planned place — she is in: bedroom, on the bed/);
+    assert.match(wrong.reasons.join(' '), /not the planned place — the still shows: bedroom, on the bed/);
     const right = decideSlotQuality(CLEAN, 0, undefined, { place: { match: true, seen: 'kitchen' } });
     assert.equal(right.action, 'keep');
     assert.equal(decideSlotQuality(CLEAN, 0, undefined, { place: null }).action, 'keep');
@@ -377,7 +377,7 @@ describe('outfit second look', () => {
     assert.deepEqual(kept.flags, ['wrong-outfit']);
     assert.equal(kept.outfitSeen, 'white floral nightie');
     assert.ok(
-      decideSlotQuality(kept, 0).reasons.includes('outfit does not match — she is in white floral nightie')
+      decideSlotQuality(kept, 0).reasons.includes('outfit does not match — the still shows white floral nightie')
     );
     // An unreadable answer changes nothing.
     assert.equal(withOutfitSecondLook(flaggedReport, { seen: 'x', answer: 'maybe' }), flaggedReport);

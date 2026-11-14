@@ -50,7 +50,7 @@ export default function StoryOwnScene({
           maxLength={300}
           aria-label={ending ? 'Your own ending' : 'Your own scene'}
           data-testid="story-own-scene-text"
-          placeholder="e.g. she misses the last ferry and talks her way onto a fishing boat"
+          placeholder="e.g. misses the last ferry and talks a way onto a fishing boat"
           onChange={event => setText(event.target.value)}
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -68,7 +68,7 @@ export default function StoryOwnScene({
             {ending ? 'End the story this way' : 'Play this scene'}
           </Button>
           <span className="type-caption text-[var(--text-muted)]">
-            One sentence is enough — say what she does and where.
+            One sentence is enough — say what happens and where.
           </span>
         </div>
       </div>

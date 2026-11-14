@@ -116,8 +116,8 @@ function decisionsSnapshot(): FindingDecision[] {
 }
 
 const PLACE_LABELS: Record<'home' | 'work' | 'elsewhere', string> = {
-  home: 'Her home',
-  work: 'Her workplace',
+  home: 'At home',
+  work: 'At work',
   elsewhere: 'Somewhere else (as written)',
 };
 

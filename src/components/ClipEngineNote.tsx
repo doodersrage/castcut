@@ -167,7 +167,7 @@ export default function ClipEngineNote({
       )}
       <label
         className="type-caption mt-1 flex items-center gap-2 text-[var(--text-muted)]"
-        title="Uses LTX-2.5 instead of WAN — faster, and it kept her face closer"
+        title="Uses LTX-2.5 instead of WAN — faster, and it kept the face closer"
       >
         <input
           type="checkbox"

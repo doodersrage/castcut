@@ -1658,7 +1658,7 @@ export default function CutRoom() {
                           size="sm"
                           variant="ghost"
                           data-testid="cut-continuity-report"
-                          title="Every shot's outfit, place, time, what she carries and how she has changed, the open findings and a prop list — to print or save as PDF"
+                          title="Every shot's outfit, place, time, what they carry and how they have changed, the open findings and a prop list — to print or save as PDF"
                           onClick={() => {
                             const shots = ordered
                               .filter(

@@ -171,7 +171,7 @@ export default function CastWardrobeSection({
                   type="button"
                   className="ui-text-link type-caption"
                   data-testid={`cast-wardrobe-${item.key}-turn`}
-                  title="Drag to turn her around — every angle is a frame of the runway clip"
+                  title="Drag to turn them around — every angle is a frame of the runway clip"
                   onClick={() => setTurn({ clipUrl: item.runwayUrl!, title: item.label })}
                 >
                   Turn around

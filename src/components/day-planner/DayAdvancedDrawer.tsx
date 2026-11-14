@@ -258,7 +258,7 @@ export default function DayAdvancedDrawer({
             checked={faceFinish}
             disabled={busy}
             data-testid="day-face-finish"
-            title="After each still lands, re-render just her face against the Cast face crop (on a two-person still only the lead's face, kept only when it comes out closer) — sharper eyes and a closer likeness on small full-body faces. Works on any engine's stills (uses Qwen Edit 2511 or Klein 9B Distilled); adds a few seconds per still."
+            title="After each still lands, re-render just the lead's face against the Cast face crop (on a two-person still only the lead's face, kept only when it comes out closer) — sharper eyes and a closer likeness on small full-body faces. Works on any engine's stills (uses Qwen Edit 2511 or Klein 9B Distilled); adds a few seconds per still."
             onChange={onFaceFinishChange}
           >
             Face finish

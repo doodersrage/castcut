@@ -141,7 +141,7 @@ export default function ClipExtendSheet({
             rows={2}
             value={direction}
             maxLength={300}
-            placeholder="She finishes her coffee, grabs her keys and heads for the door."
+            placeholder="Finishes the coffee, grabs the keys and heads for the door."
             onChange={event => setDirection(event.target.value)}
             data-testid={`${testId}-direction`}
           />

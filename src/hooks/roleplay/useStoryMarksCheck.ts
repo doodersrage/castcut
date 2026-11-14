@@ -104,7 +104,7 @@ export function useStoryMarksCheck(options: UseRoleplayBeatQueueOptions): {
           }
           return marksCheckVerdict(result.reading, expected, marks).issues;
         };
-        setStatus(`Checking her marks on ${title}…`);
+        setStatus(`Checking the marks on ${title}…`);
         let issues = await judge(checkUrl);
         if (!issues) {
           skipRef.current.add(shownUrl);

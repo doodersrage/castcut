@@ -301,7 +301,7 @@ export default function FilmCutShotList({
                         <select
                           disabled={disabled || !included}
                           aria-label={`Framing for ${shot.title}`}
-                          title="A closer shot is a crop of the still around her face"
+                          title="A closer shot is a crop of the still around the face"
                           className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-base)] px-1 py-0.5 text-[var(--text-primary)]"
                           value={edit?.framing ?? shot.framing ?? 'full'}
                           data-testid={`${testIdPrefix}-shot-framing-${shot.key}`}

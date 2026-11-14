@@ -189,7 +189,7 @@ export default function DayPlanBar({
         ]
       : []),
   ];
-  const leadPronoun = leadNoun === 'man' ? 'him' : 'her';
+  const leadPronoun = leadNoun === 'man' ? 'him' : leadNoun === 'woman' ? 'her' : 'them';
   const peopleOptions: Array<{ id: DayIntimateMix; label: string; hint: string }> = [
     {
       id: 'solo',
@@ -333,7 +333,7 @@ export default function DayPlanBar({
               disabled={busy}
               aria-label="Wardrobe style"
               data-testid="day-mood"
-              title="What she wears when no outfit is set — and, with no script, the kind of moments it suggests"
+              title="What the lead wears when no outfit is set — and, with no script, the kind of moments it suggests"
               className="!w-auto"
               onChange={event => onDayMoodChange(event.target.value as DayMoodSetting)}
             >

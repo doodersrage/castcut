@@ -122,7 +122,7 @@ export default function DirectorPreview({
           <img
             src={stillUrl}
             alt="The still"
-            title="The still: she should fill the frame the same way"
+            title="The still: the person should fill the frame the same way"
             className="pointer-events-none absolute bottom-2 right-2 w-[24%] rounded border border-[var(--border-subtle)] bg-[var(--bg-base)] object-contain opacity-90 shadow"
             style={{ aspectRatio: String(aspect) }}
             data-testid={`${testId}-still`}

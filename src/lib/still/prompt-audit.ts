@@ -149,7 +149,7 @@ export function auditStillPrompt(
   if (duoDeclared) {
     const alone = firstUnnegated(text, /\bone (?:wo)?man alone\b/i);
     if (alone) {
-      add('duo-says-alone', 'A two-person still also says she is alone.', alone);
+      add('duo-says-alone', 'A two-person still also says the lead is alone.', alone);
     }
   }
 

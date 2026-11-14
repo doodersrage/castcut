@@ -68,7 +68,7 @@ export default function RoleplayWardrobeSection({
     kitLabel,
     hasPhoto: hasCustomGarment,
     footwear: toolSettings.footwear,
-    emptyLabel: 'No kit or photo yet — the bible’s look dresses her',
+    emptyLabel: 'No kit or photo yet — the bible’s look dresses them',
   });
   const thumbs = clothingSummaryThumbs({
     kitLabel,

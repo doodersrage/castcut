@@ -105,13 +105,13 @@ export default function ShotStoryStateFields({
       >
         Story state
         <span className="type-caption ml-2 font-normal text-[var(--text-muted)]">
-          {summary || 'what she carries, what has changed, how she feels, the story day'}
+          {summary || 'what they carry, what has changed, how they feel, the story day'}
         </span>
       </summary>
       <fieldset className="mt-2 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className="block space-y-1.5">
-            <FieldLabel>She carries</FieldLabel>
+            <FieldLabel>Carries</FieldLabel>
             <TextInput
               data-testid="shot-state-carries"
               placeholder="the red umbrella, a paper bag"
@@ -140,7 +140,7 @@ export default function ShotStoryStateFields({
           {carryChips('changes')}
         </div>
         <label className="space-y-1.5">
-          <FieldLabel>How she feels</FieldLabel>
+          <FieldLabel>How they feel</FieldLabel>
           <TextInput
             data-testid="shot-state-emotion"
             placeholder="anxious, relieved…"

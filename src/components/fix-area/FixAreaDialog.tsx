@@ -381,7 +381,7 @@ export default function FixAreaDialog({
               className="ui-input min-h-[3.5rem] w-full resize-y"
               value={text}
               maxLength={FIX_AREA_TEXT_MAX}
-              placeholder={`e.g. her left hand resting on the table — empty: ${FIX_AREA_DEFAULT_TEXT}`}
+              placeholder={`e.g. the left hand resting on the table — empty: ${FIX_AREA_DEFAULT_TEXT}`}
               onChange={event => setText(event.target.value)}
               data-testid="fix-area-text"
             />

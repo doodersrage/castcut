@@ -424,14 +424,14 @@ export function decideSlotQuality(
     if (policy.hardFlags.includes(flag)) {
       reasons.push(
         flag === 'wrong-outfit' && report.outfitSeen
-          ? `outfit does not match — she is in ${report.outfitSeen}`
+          ? `outfit does not match — the still shows ${report.outfitSeen}`
           : slotReviewFlagLabel(flag)
       );
     }
   }
   // Somewhere else than planned: a re-roll, like a hard flag (0 of 30 right places called wrong).
   if (extras?.place && !extras.place.match) {
-    reasons.push(`not the planned place — she is in: ${extras.place.seen}`);
+    reasons.push(`not the planned place — the still shows: ${extras.place.seen}`);
   }
   const scores: Array<[string, number]> = [
     ['face', report.faceIntegrity],

@@ -113,7 +113,7 @@ export default function DayStatusStrip({
                 data-testid="day-dress-plate-redo"
                 onClick={onRedoDressPlate}
               >
-                Dress her again
+                Dress the plate again
               </button>
             ) : null}
           </div>

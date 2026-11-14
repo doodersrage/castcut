@@ -73,7 +73,7 @@ export default function OutfitTurnButton({
         size="sm"
         variant="secondary"
         disabled={disabled || busy}
-        title="See this outfit from every side — drag to turn her around (a short clip on MiniMax-H3 when ComfyUI has it, a few minutes the first time)"
+        title="See this outfit from every side — drag to turn them around (a short clip on MiniMax-H3 when ComfyUI has it, a few minutes the first time)"
         data-testid="fitting-turn-try-on"
         onClick={() => void open()}
       >
