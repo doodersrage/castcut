@@ -308,6 +308,11 @@ export function dayAsShort(input: {
       .filter(entry => entry.fromScript?.scriptId === script.id)
       .map(entry => entry.id)
   );
+  // A card with two takes still waiting for the player's pick: its own take's id.
+  const pendingPick = (slotId: string) => {
+    const still = (input.day.stills ?? []).find(entry => entry.slotId === slotId);
+    return still?.twoTakes && still.promptId ? still.promptId : undefined;
+  };
   moments.forEach((slot, index) => {
     const sceneId = sceneOfSlot.get(slot.id)!.id;
     const before = prior?.scenes.find(
@@ -372,8 +377,13 @@ export function dayAsShort(input: {
       // old-town day written over it, and the run skipped seven of its twelve moments.)
       const rewritten = momentRewritten(syncedSlotOf(before)!, scene.slot);
       // Else its kept take, or a still the Day made since (not one the Scene had: that could be
-      // the take just unkept).
-      const kept = rewritten ? undefined : (before.keptTakeId ?? fromDay[fromDay.length - 1]?.id);
+      // the take just unkept) — the card's shown take while two takes wait for the pick.
+      const kept = rewritten
+        ? undefined
+        : (before.keptTakeId ??
+          (pendingPick(slot.id) && fromDay.some(take => take.id === pendingPick(slot.id))
+            ? pendingPick(slot.id)
+            : fromDay[fromDay.length - 1]?.id));
       const { keptTakeId: _old, shortSynced: _synced, allowCompanions: _company, ...rest } = before;
       scenes.push({
         ...rest,
@@ -387,8 +397,14 @@ export function dayAsShort(input: {
         updatedAt: now + index,
       });
     } else {
-      // The Day's still is the one its cut uses: kept here too.
-      const kept = scene.takes[scene.takes.length - 1]?.id;
+      // The Day's still is the one its cut uses: kept here too. Two takes waiting for the pick:
+      // the card's own take — the second isn't chosen until the player picks it (a full e2e
+      // run linked the board mid-pick, and the Short's choice of take 2 wiped the pick).
+      const pick = pendingPick(slot.id);
+      const kept =
+        pick && scene.takes.some(take => take.id === pick)
+          ? pick
+          : scene.takes[scene.takes.length - 1]?.id;
       scenes.push({ ...scene, ...(kept ? { keptTakeId: kept } : {}), fromScript });
     }
     if (own && planned) {
@@ -642,6 +658,15 @@ export function dayStillsFromShort(
     if (before && before.status !== 'completed' && before.status !== 'error' && before.promptId)
       continue;
     const next = takeAsStill(slotId, kept);
+    // Two takes waiting for the pick, and the Scene keeps one of them: the pick stays the
+    // player's (replacing the still dropped the pair).
+    if (
+      before?.status === 'completed' &&
+      before.twoTakes &&
+      next.promptId &&
+      (before.promptId === next.promptId || before.twoTakes.promptId === next.promptId)
+    )
+      continue;
     // Already the Day's still: the same take (by its prompt — the Day may have reframed or
     // finished its picture since), else the same picture.
     if (

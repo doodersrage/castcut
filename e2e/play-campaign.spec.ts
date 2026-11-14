@@ -981,9 +981,11 @@ test("day end pose: pick another still as the clip's last frame, warn on framing
   await dismissBlockingOverlays(page);
   // Day opens on the first slot still to render; End pose belongs to a finished one.
   await page.getByTestId('day-slot-select-morning').first().click();
-  // Selecting a finished slot can open its still full size.
+  // Selecting a finished slot can open its still full size — on a slow run a moment later
+  // (checked at once, it opened after the check and covered the End pose controls).
   const lightbox = page.getByTestId('image-lightbox');
-  if (await lightbox.isVisible().catch(() => false)) await page.keyboard.press('Escape');
+  if (await lightbox.waitFor({ state: 'visible', timeout: 3_000 }).then(() => true, () => false))
+    await page.keyboard.press('Escape');
   await expect(lightbox).toHaveCount(0);
   // End pose lives in the slot sheet.
   await openDaySlotSheet(page, 'morning');

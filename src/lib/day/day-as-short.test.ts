@@ -187,6 +187,37 @@ describe('a Day as a short', () => {
     assert.deepEqual(again.shots.map(shot => shot.madeSceneId), again.scenes.map(scene => scene.id));
   });
 
+  it('a card with two takes waiting for the pick keeps the pick when the board becomes a short', () => {
+    // A full e2e run linked the board mid-pick: the Short kept take 2, and bringing it back
+    // replaced the card — the pair, and the player's pick, gone.
+    const pair = {
+      ...day,
+      stills: [
+        {
+          slotId: 'morning',
+          status: 'completed',
+          imageUrl: '/t1.png',
+          promptId: 't1',
+          twoTakes: { promptId: 't2', status: 'completed', imageUrl: '/t2.png', likelier: 'second' },
+        },
+      ],
+    } as unknown as DayToolCache;
+    const short = dayAsShort({ day: pair, castId: 'mara', leadName: 'Mara', now: 1 })!;
+    const morning = short.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+    assert.deepEqual(
+      morning.takes.map(take => take.id),
+      ['t1', 't2']
+    );
+    assert.equal(morning.keptTakeId, 't1', 'the card’s own take, not one the player didn’t pick');
+    const link = { castId: 'mara', scriptId: short.script.id };
+    assert.equal(dayStillsFromShort(pair, short.scenes, link), null);
+    // Kept as take 2 elsewhere (Scene): the pair still waits for the player.
+    const second = short.scenes.map(scene =>
+      scene.fromDaySlot === 'morning' ? { ...scene, keptTakeId: 't2' } : scene
+    );
+    assert.equal(dayStillsFromShort(pair, second, link), null);
+  });
+
   it('brings the short’s kept takes back to the board, once, and leaves a rendering still alone', () => {
     const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1 })!;
     const link = { castId: 'mara', scriptId: short.script.id };
