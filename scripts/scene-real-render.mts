@@ -3782,13 +3782,18 @@ const phases: Record<string, Phase> = {
     if (process.env.EPISODE_ENGINE !== '-') {
       await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
     }
-    const script = await v2Script(page);
-    if (!script) throw new Error('no script');
-    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
+    // The script: SRV_SCRIPT_ID, else the Short on the board (shortscene's), else the Cast's first.
+    const shortLink = (
+      (await toolSettings(page)) as { day?: { shortLink?: { scriptId?: string } } }
+    ).day?.shortLink?.scriptId;
+    const scriptId = process.env.SRV_SCRIPT_ID || shortLink || (await v2Script(page))?.id;
+    if (!scriptId) throw new Error('no script');
+    log('script', scriptId);
+    await go(page, `/script?character=${V2_CAST}&script=${scriptId}`);
     await page.getByTestId('script-prepare-run').click({ timeout: 120_000 });
     await toRunOnScene(page);
     await page.getByTestId('scene-run-auto-keep').check();
-    await page.getByTestId('scene-run-auto-redo').selectOption('0');
+    await page.getByTestId('scene-run-auto-redo').selectOption(process.env.SRV_REDO ?? '0');
     await page.getByTestId('scene-run-skip-kept').uncheck();
     await page.getByTestId('scene-run-max-takes').fill(String(takes));
     // Scenes with a kept take were left out when the run was prepared: the first ones put back.
@@ -3819,6 +3824,7 @@ const phases: Record<string, Phase> = {
         : [];
     };
     let rebooted = process.env.SRV_REBOOT === '0';
+    const seenQueued = new Map<string, string>();
     let last = '';
     let latest: V2Run | undefined;
     const until = Date.now() + Number(process.env.SRV_MINUTES ?? 90) * 60_000;
@@ -3826,13 +3832,22 @@ const phases: Record<string, Phase> = {
       if (Date.now() > until) throw new Error(`server run not done in time (${last})`);
       const rows = await patches();
       latest = rows.at(-1)?.patch.run ?? latest;
+      // Every queued event seen (the run's own log keeps only the latest entries).
+      for (const row of rows)
+        for (const entry of row.patch.run?.log ?? [])
+          if (entry.event === 'queued' && entry.sceneId)
+            seenQueued.set(`${(entry as { at?: number }).at}|${entry.detail}`, entry.sceneId);
       const done = Object.keys(latest?.outcomes ?? {}).length;
       const now = `${latest?.state} ${done} done`;
       if (now !== last) {
         log(new Date().toISOString().slice(11, 19), 'server run:', now);
         last = now;
       }
-      if (!rebooted && done >= 1 && latest?.state === 'running') {
+      if (
+        !rebooted &&
+        done >= Number(process.env.SRV_REBOOT_AFTER ?? 1) &&
+        latest?.state === 'running'
+      ) {
         // A take in flight now? The reboot lands on it; else on the next one queued.
         const response = await fetch(`${comfy}/v2/manager/reboot`, { method: 'POST' }).catch(
           () => null
@@ -3843,14 +3858,14 @@ const phases: Record<string, Phase> = {
       if (latest && ['done', 'cancelled', 'paused'].includes(latest.state ?? '')) break;
       await page.waitForTimeout(10_000);
     }
-    const events = (latest as { log?: Array<{ event: string; sceneId?: string }> })?.log ?? [];
     const queuedPerScene: Record<string, number> = {};
-    for (const entry of events) {
-      if (entry.event === 'queued' && entry.sceneId) {
-        queuedPerScene[entry.sceneId] = (queuedPerScene[entry.sceneId] ?? 0) + 1;
-      }
+    for (const sceneId of seenQueued.values()) {
+      queuedPerScene[sceneId] = (queuedPerScene[sceneId] ?? 0) + 1;
     }
-    const duplicates = Object.entries(queuedPerScene).filter(([, n]) => n > 1);
+    // More jobs than the run's own tries (a redo is a try): a duplicate.
+    const duplicates = Object.entries(queuedPerScene).filter(
+      ([sceneId, n]) => n > Math.max(1, latest?.attempts?.[sceneId] ?? 1)
+    );
     log(
       'server run',
       latest?.state,
@@ -4341,6 +4356,11 @@ const phases: Record<string, Phase> = {
         log(block.trim().slice(0, 900).replace(/\n+/g, ' | '));
     }
     if (!link) throw new Error('the board has no short');
+    // SHORT_WRITE_ONLY=1: written, not rendered here (srvrun renders it on the server).
+    if (process.env.SHORT_WRITE_ONLY === '1') {
+      log('written only — the short is', link.scriptId);
+      return;
+    }
     // Render: every shot planned and animated (the default), on Short.
     const animate = process.env.SHORT_ANIMATE ?? 'all';
     if (!resume) await page.getByTestId('day-make-short-animate').first().selectOption(animate);
