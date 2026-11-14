@@ -21,6 +21,9 @@ import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe/garment-thumbs'
 import type { DayDressPlateEntry } from './dress-plate-cache';
 import { normalizeRunBundle, type RunBundle } from './run-bundle';
 import { checkServerTake } from './run-checks-server';
+import { decideAdultGate } from '@/lib/adult/adult-appearance-gate';
+import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
+import { parseLlmRequestOptions, sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
   runSceneRunOnServer,
   serverRunState,
@@ -151,6 +154,23 @@ async function renderOnServer(
         event === 'queued'
           ? markJobSeen(promptId, { runId, sceneId, comfyUrl })
           : markJobLanded(promptId, status),
+      // The adult-appearance gate on adult-mood takes, as the page asks it (useDayAdultGate).
+      adultGate: async ({ imageUrl, clothed, strongTake, coveredTake }) => {
+        const blob = await io.loadBlob([imageUrl]);
+        const bytes = Buffer.from(await blob.arrayBuffer());
+        const vision = await askAdultAppearanceVision({
+          imageDataUrl: `data:${blob.type || 'image/png'};base64,${bytes.toString('base64')}`,
+          llm: parseLlmRequestOptions(sharedLlmRequestBody(bundle.queue!.shared)),
+          clothed,
+        });
+        return decideAdultGate({
+          visionAvailable: vision.available,
+          reply: vision.reply,
+          strongTake,
+          clothed,
+          coveredTake,
+        });
+      },
       checkTake: async ({ imageUrl, report }) =>
         report
           ? checkServerTake({

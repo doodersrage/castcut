@@ -271,6 +271,89 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('the adult check on a Suggestive take: withheld, off its Scene, redone once with the coverage line', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued, patches } = await harness(tool => {
+      for (const entry of tool.scenes) (entry as { dayMood: string }).dayMood = 'suggestive';
+      tool.dayMood = 'suggestive';
+      Object.assign(tool.run, { items: [{ sceneId: 's1', include: true }] });
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      const asked: Array<{ clothed: boolean; coveredTake: boolean }> = [];
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => ({ face: 0.8 }),
+        // The first take shows bare skin; the covered one passes.
+        adultGate: async (input: { clothed: boolean; coveredTake: boolean }) => {
+          asked.push({ clothed: input.clothed, coveredTake: input.coveredTake });
+          return asked.length === 1
+            ? { verdict: 'requeue', reason: 'bare chest', cause: 'bare' }
+            : { verdict: 'pass', reason: 'clearly adult (95%)' };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(asked, [
+        { clothed: true, coveredTake: false },
+        { clothed: true, coveredTake: true },
+      ]);
+      const stills = queued.filter(prompt => !/outfit try-on/i.test(prompt));
+      assert.equal(stills.length, 2, 'rendered again once');
+      assert.match(stills[1]!, /cover/i, 'the redo says the coverage line');
+      const kitchen = state.sceneTool.scenes!.find(entry => entry.id === 's1')!;
+      assert.equal(kitchen.takes.length, 1, 'the withheld take is off the Scene');
+      assert.equal(kitchen.keptTakeId, kitchen.takes[0]!.id);
+      const takes = patches.flatMap(
+        patch => (patch as { takes?: { adultCheck?: { state: string; covered?: boolean } }[] }).takes ?? []
+      );
+      assert.deepEqual(
+        takes.map(take => [take.adultCheck?.state, take.adultCheck?.covered ?? false]),
+        [
+          ['withheld', false],
+          ['passed', true],
+        ]
+      );
+      assert.equal(state.gateRedo?.s1, undefined);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('the adult check withholds the redo too: the Scene fails, nothing kept; Everyday is never asked', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps } = await harness(tool => {
+      // The second Scene (not the open one: the page's working copy is the open Scene's mood).
+      (tool.scenes[1] as { dayMood: string }).dayMood = 'suggestive';
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      let asked = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        adultGate: async (input: { strongTake: boolean }) => {
+          asked += 1;
+          return {
+            verdict: input.strongTake ? 'withhold' : 'requeue',
+            reason: 'read as not clearly adult (40%)',
+            cause: 'age',
+          };
+        },
+      } as never);
+      assert.equal(asked, 2, 'the Suggestive Scene twice; the Everyday one never');
+      assert.equal(run?.outcomes?.s1, 'landed');
+      assert.equal(run?.outcomes?.s2, 'failed');
+      const window = state.sceneTool.scenes!.find(entry => entry.id === 's2')!;
+      assert.deepEqual([window.takes.length, window.keptTakeId], [0, undefined]);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('picked up after the server stopped mid-take: it waits for that take, never queues another', async () => {
     const original = globalThis.fetch;
     const { bundle, deps, queued, saved } = await harness();

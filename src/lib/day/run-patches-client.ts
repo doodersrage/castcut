@@ -94,12 +94,15 @@ export async function applyServerRunTakes(
   owner: { characterId?: string }
 ): Promise<void> {
   if (takes?.length) {
-    const { loadComfyGallery, recordGalleryPlayChecks } =
+    const { loadComfyGallery, recordGalleryPlayChecks, setGalleryAdultCheck } =
       await import('@/lib/gallery/comfyui-gallery');
     const { registerComfyGalleryJob } = await import('@/lib/gallery/comfyui-gallery-client');
     const { scheduleComfyGalleryPoll } = await import('@/lib/gallery/comfyui-gallery-poller');
     const known = new Set(loadComfyGallery().map(entry => entry.promptId));
     for (const take of takes) {
+      // The server's adult-appearance gate (run-loop-server.ts): withheld is hidden for good —
+      // set before the entry is polled, so it never shows.
+      const adult = take.adultCheck;
       if (!known.has(take.promptId)) {
         registerComfyGalleryJob({
           promptId: take.promptId,
@@ -110,8 +113,11 @@ export async function applyServerRunTakes(
           comfyUrl: take.comfyUrl ?? 'http://127.0.0.1:8188',
         } as Parameters<typeof registerComfyGalleryJob>[0]);
         known.add(take.promptId);
+        if (adult) setGalleryAdultCheck(take.promptId, adult);
         // Its picture and status, from ComfyUI (the page's own poll).
         void scheduleComfyGalleryPoll(take.promptId, { comfyUrl: take.comfyUrl });
+      } else if (adult) {
+        setGalleryAdultCheck(take.promptId, adult);
       }
       if (take.playChecks) {
         const { at: _at, ...checks } = take.playChecks;

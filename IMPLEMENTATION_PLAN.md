@@ -4441,3 +4441,10 @@ preview are left out (`sceneHeldFromFinals`). Keep-best never keeps a preview. C
 shows a shot's preview until it has a kept take. The run panel's Tier control and budget line
 (takes, minutes, engine). Open: the live gate — a 12-scene short's animatic under 15 minutes,
 finals overnight unattended.
+- **The adult-appearance gate on the server** (gap found in s19's previews, 2026-11-14): a
+  server-rendered adult-mood take (Suggestive / Intimate / Raunchy as played) skipped the page's
+  gate (useDayAdultGate) — Phase 3 runs, previews and finals alike. Now the loop asks it as the
+  page does (`deps.adultGate`: the age read, plus bare skin on a clothed mood): a withheld take
+  is hidden in the Gallery (`RunPatchTake.adultCheck`), taken off its Scene (`removedTakeIds`),
+  and the Scene rendered once more with the stronger age line or the coverage line; withheld
+  again, the Scene fails. Every tier.

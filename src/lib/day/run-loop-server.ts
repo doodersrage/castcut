@@ -47,6 +47,15 @@ import {
 } from './scenes';
 import { runTierEngine } from './run-tier';
 import type { SceneToolCache } from './scenes';
+import {
+  ADULT_GATE_WITHHELD_MESSAGE,
+  CLOTHED_GATE_WITHHELD_MESSAGE,
+  dayMoodNeedsAdultSafeguards,
+  type AdultGateDecision,
+} from '../adult/adult-appearance-gate';
+import type { GalleryAdultCheck } from '../gallery/adult-check';
+import { dayMoodMustStayClothed } from '../wardrobe/clothed-coverage';
+import { dayPlayedMood } from './still-prompt';
 
 /** A take's gallery entry as the page registers it, and its checks. */
 export type RunPatchTake = {
@@ -58,6 +67,8 @@ export type RunPatchTake = {
   model?: string;
   comfyUrl?: string;
   playChecks?: GalleryPlayChecks;
+  /** The adult-appearance gate's verdict on an adult-mood take (withheld: hidden for good). */
+  adultCheck?: Omit<GalleryAdultCheck, 'at'>;
 };
 
 /** What the page applies from a server run (in order): the Scene, the run, the takes. */
@@ -71,7 +82,14 @@ export type RunPatch = {
 };
 
 /** The server's state of a run: its working copy and the checks of its takes. */
-export type ServerRunState = RunTakeState & { checks: Record<string, GalleryPlayChecks> };
+export type ServerRunState = RunTakeState & {
+  checks: Record<string, GalleryPlayChecks>;
+  /**
+   * Scenes being rendered again because the adult-appearance gate withheld their take: what the
+   * one redo is for (the stronger age line, or the coverage line on a clothed-mood still).
+   */
+  gateRedo?: Record<string, 'age' | 'bare'>;
+};
 
 export type ServerRunDeps = ServerTakeDeps & {
   /** A take that landed, checked: face, outfit, marks (run-checks-server.ts). */
@@ -84,6 +102,16 @@ export type ServerRunDeps = ServerTakeDeps & {
     state: ServerRunState;
     bundle: RunBundle;
   }) => Promise<GalleryPlayChecks | undefined>;
+  /**
+   * The adult-appearance gate (adult-appearance-gate.ts) on an adult-mood take, as the page runs
+   * it (useDayAdultGate). Unset: no vision model here — allowed unchecked, as on the page.
+   */
+  adultGate?: (input: {
+    imageUrl: string;
+    clothed: boolean;
+    strongTake: boolean;
+    coveredTake: boolean;
+  }) => Promise<AdultGateDecision>;
   /** Where the run's state and patches are kept (sqlite/scene-run-patches.ts). */
   saveState: (state: ServerRunState) => void;
   appendPatch: (patch: RunPatch) => void;
@@ -119,6 +147,20 @@ const RENDER_TIMEOUT_MS = 20 * 60_000;
 const LOST_REQUEUE_TRIES = 6;
 
 /** The stop reason that ends the run (Cancel) rather than pausing it. */
+/** The Scene without this job's take (the adult check withheld it). */
+function withoutSceneTake(tool: SceneToolCache, sceneId: string, promptId: string): SceneToolCache {
+  const scenes = tool.scenes?.map(scene => {
+    if (scene.id !== sceneId) return scene;
+    const takes = scene.takes.filter(take => (take.promptId ?? take.id) !== promptId);
+    // Removed for good: the card's still (and its earlier take) would file it again otherwise.
+    const removedTakeIds = [...new Set([...(scene.removedTakeIds ?? []), promptId])];
+    const kept = takes.some(take => take.id === scene.keptTakeId);
+    const { keptTakeId: _gone, ...rest } = scene;
+    return kept ? { ...scene, takes, removedTakeIds } : { ...rest, takes, removedTakeIds };
+  });
+  return scenes ? { ...tool, scenes } : tool;
+}
+
 /** The Scene's take of this job marked a preview (run-tier.ts). */
 function markPreviewTake(tool: SceneToolCache, sceneId: string, promptId: string): SceneToolCache {
   const scenes = tool.scenes?.map(scene =>
@@ -144,6 +186,7 @@ export function serverRunState(bundle: RunBundle, saved?: unknown): ServerRunSta
       sceneTool: restored.sceneTool,
       patches: [],
       checks: restored.checks ?? {},
+      ...(restored.gateRedo ? { gateRedo: restored.gateRedo } : {}),
     } as ServerRunState;
   }
   if (!bundle.page) return null;
@@ -238,7 +281,19 @@ export async function runSceneRunOnServer(
       setRun({ ...latest, current: { sceneId, at: now() } });
       save();
       const before = activeStill(state)?.promptId;
-      const result = await runServerTake(bundle, state, sceneId, deps);
+      // A take the adult check withheld is redone once with the line it needs (as on the page).
+      const gateRedo = state.gateRedo?.[sceneId];
+      const result = await runServerTake(
+        bundle,
+        state,
+        sceneId,
+        deps,
+        gateRedo === 'bare'
+          ? { coverageLine: true }
+          : gateRedo === 'age'
+            ? { strongAgeLine: true }
+            : undefined
+      );
       report = result.report;
       const still = activeStill(state);
       const queued =
@@ -316,6 +371,84 @@ export async function runSceneRunOnServer(
     markStill(state, promptId, { status: 'completed', imageUrl });
     const filed = scenesWithWorking(state.sceneTool, now());
     if (filed) state.sceneTool = { ...state.sceneTool, scenes: filed };
+    // The adult-appearance gate, before anything else looks at the take (useDayAdultGate's rule):
+    // an adult-mood take that doesn't read clearly adult — or, on a clothed mood, shows bare
+    // skin — is withheld for good, taken off its Scene, and the Scene rendered once more.
+    // The Scene's own mood: what the page plays it as when it opens it.
+    const mood = dayPlayedMood(
+      sceneOf(sceneId)?.dayMood ?? report?.toolSettings.dayMood,
+      bundle.settings.intimateEnabled === true
+    );
+    let adultCheck: RunPatchTake['adultCheck'];
+    if (dayMoodNeedsAdultSafeguards(mood)) {
+      const redoneFor = state.gateRedo?.[sceneId];
+      const decision: AdultGateDecision = deps.adultGate
+        ? await deps
+            .adultGate({
+              imageUrl,
+              clothed: dayMoodMustStayClothed(mood),
+              strongTake: redoneFor === 'age',
+              coveredTake: redoneFor === 'bare',
+            })
+            .catch(() => ({
+              verdict: redoneFor ? ('withhold' as const) : ('requeue' as const),
+              reason: 'the adult check could not run',
+              cause: 'age' as const,
+            }))
+        : { verdict: 'unchecked', reason: 'no vision model configured' };
+      const marks = {
+        ...(redoneFor === 'age' ? { strong: true } : {}),
+        ...(redoneFor === 'bare' ? { covered: true } : {}),
+      };
+      if (decision.verdict === 'pass' || decision.verdict === 'unchecked') {
+        adultCheck = {
+          state: decision.verdict === 'pass' ? 'passed' : 'unchecked',
+          reason: decision.reason,
+          ...marks,
+        };
+        if (state.gateRedo?.[sceneId]) {
+          const { [sceneId]: _done, ...rest } = state.gateRedo;
+          state.gateRedo = rest;
+        }
+      } else {
+        const cause = decision.cause ?? 'age';
+        state.sceneTool = withoutSceneTake(state.sceneTool, sceneId, promptId);
+        const withheld: RunPatchTake = {
+          promptId,
+          sceneId,
+          status: 'completed',
+          imageUrl,
+          comfyUrl: deps.comfyUrl,
+          adultCheck: { state: 'withheld', reason: decision.reason, cause, ...marks },
+        };
+        if (decision.verdict === 'requeue') {
+          state.gateRedo = { ...(state.gateRedo ?? {}), [sceneId]: cause };
+          setRun(
+            withRunRedo(
+              runOf()!,
+              sceneId,
+              `${scene.name}: withheld by the adult check (${decision.reason}) — rendering it again with ${cause === 'bare' ? 'the coverage line' : 'a stronger age line'}`,
+              now()
+            )
+          );
+        } else {
+          const { [sceneId]: _done, ...rest } = state.gateRedo ?? {};
+          state.gateRedo = rest;
+          setRun(
+            withRunOutcome(
+              runOf()!,
+              sceneId,
+              'failed',
+              `${scene.name}: ${cause === 'bare' ? CLOTHED_GATE_WITHHELD_MESSAGE : ADULT_GATE_WITHHELD_MESSAGE}`,
+              now()
+            )
+          );
+        }
+        emit({ scene: sceneOf(sceneId), takes: [withheld] });
+        continue;
+      }
+    }
+
     const tier = runOf()?.tier;
     // A preview (run-tier.ts): marked on its Scene, and not checked — the animatic's draft.
     if (tier === 'preview') state.sceneTool = markPreviewTake(state.sceneTool, sceneId, promptId);
@@ -344,6 +477,7 @@ export async function runSceneRunOnServer(
         ? { model: runTierEngine(tier) ?? bundle.queue?.shared.model }
         : {}),
       ...(state.checks[promptId] ? { playChecks: state.checks[promptId] } : {}),
+      ...(adultCheck ? { adultCheck } : {}),
     };
 
     const now0 = runOf()!;
