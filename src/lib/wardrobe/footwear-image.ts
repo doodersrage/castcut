@@ -12,6 +12,7 @@ import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isol
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
+import { drawingCanvas } from '@/lib/media/off-page-canvas';
 
 export type FootwearImageRef = { imageUrl?: string | null; imageFilename?: string | null };
 
@@ -84,8 +85,56 @@ function sourceUrls(ref: FootwearImageRef | GarmentImageRef): string[] {
   }).filter(url => url !== IDENTITY_MEDIA_URL);
 }
 
-async function loadBitmap(ref: FootwearImageRef | GarmentImageRef): Promise<ImageBitmap> {
-  return createImageBitmap(await loadImageBlobFromUrls(sourceUrls(ref)));
+async function loadPicture(ref: FootwearImageRef | GarmentImageRef): Promise<Blob> {
+  return loadImageBlobFromUrls(sourceUrls(ref));
+}
+
+/**
+ * The footwear reference drawn: the clothing and the shoes on one white canvas (the clothing on
+ * top, FOOTWEAR_COMBO_CANVAS), else the shoes alone at their size. On the page's canvas, or the
+ * server's (off-page-canvas.ts) — the take's image work runs on either.
+ */
+export async function composeFootwearReference(input: {
+  shoes: Blob;
+  clothes?: Blob | null;
+}): Promise<{ png: Uint8Array; combined: boolean }> {
+  const images = drawingCanvas('draw the footwear reference');
+  const shoes = await images.decode(input.shoes);
+  const clothes = input.clothes ? await images.decode(input.clothes) : null;
+  try {
+    const { width, height } = clothes
+      ? FOOTWEAR_COMBO_CANVAS
+      : { width: Math.max(64, shoes.width), height: Math.max(64, shoes.height) };
+    const { ctx: context, toPng } = images.canvas(width, height);
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    // Said, not left to each canvas's default: the page and the server resample alike.
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    if (clothes) {
+      const layout = footwearComboLayout(clothes, shoes);
+      context.drawImage(
+        clothes.source,
+        layout.garment.x,
+        layout.garment.y,
+        layout.garment.width,
+        layout.garment.height
+      );
+      context.drawImage(
+        shoes.source,
+        layout.shoes.x,
+        layout.shoes.y,
+        layout.shoes.width,
+        layout.shoes.height
+      );
+    } else {
+      context.drawImage(shoes.source, 0, 0, width, height);
+    }
+    return { png: await toPng(), combined: Boolean(clothes) };
+  } finally {
+    clothes?.close();
+    shoes.close();
+  }
 }
 
 /** Uploaded combined images by "clothing|shoes" — one upload per pairing per session. */
@@ -111,49 +160,18 @@ export async function buildFootwearReferenceImage(input: {
   const cached = comboCache.get(key);
   if (cached) return { filename: cached, combined: Boolean(garment) };
 
-  const shoes = await loadBitmap(input.footwear);
-  const clothes = garment ? await loadBitmap(garment) : null;
-  const { width, height } = clothes
-    ? FOOTWEAR_COMBO_CANVAS
-    : { width: Math.max(64, shoes.width), height: Math.max(64, shoes.height) };
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Could not draw the footwear reference.');
-  context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, width, height);
-  if (clothes) {
-    const layout = footwearComboLayout(clothes, shoes);
-    context.drawImage(
-      clothes,
-      layout.garment.x,
-      layout.garment.y,
-      layout.garment.width,
-      layout.garment.height
-    );
-    context.drawImage(
-      shoes,
-      layout.shoes.x,
-      layout.shoes.y,
-      layout.shoes.width,
-      layout.shoes.height
-    );
-  } else {
-    context.drawImage(shoes, 0, 0, width, height);
-  }
-  clothes?.close();
-  shoes.close();
-  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) throw new Error('Could not draw the footwear reference.');
-  const name = `${clothes ? 'outfit-footwear' : 'footwear'}-${Date.now()}.png`;
+  const drawn = await composeFootwearReference({
+    shoes: await loadPicture(input.footwear),
+    clothes: garment ? await loadPicture(garment) : null,
+  });
+  const name = `${drawn.combined ? 'outfit-footwear' : 'footwear'}-${Date.now()}.png`;
   const uploaded = await resolveQueueInputImage({
-    file: new File([blob], name, { type: 'image/png', lastModified: Date.now() }),
+    file: new File([drawn.png as BlobPart], name, { type: 'image/png', lastModified: Date.now() }),
     filename: name,
     model: input.model,
   });
   const filename = uploaded?.filename?.trim();
   if (!filename) throw new Error('Footwear reference upload did not return a filename.');
   comboCache.set(key, filename);
-  return { filename, combined: Boolean(clothes) };
+  return { filename, combined: drawn.combined };
 }

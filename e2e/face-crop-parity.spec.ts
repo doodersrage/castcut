@@ -74,3 +74,59 @@ test('a face crop made on the server is the one the page makes', async ({ page }
     expect(max, `${names[i]}: largest difference`).toBeLessThan(32);
   }
 });
+
+test('a footwear reference drawn on the server is the one the page draws', async ({ page }) => {
+  test.setTimeout(180_000);
+  await import('../src/lib/media/off-page-canvas-server');
+  const { composeFootwearReference } = await import('../src/lib/wardrobe/footwear-image');
+  const root = path.join(__dirname, '..');
+  const clothes = fs.readFileSync(path.join(root, 'public', 'samples', 'day-morning.webp'));
+  const shoes = fs.readFileSync(path.join(root, 'public', 'samples', 'day-night.webp'));
+  const bundled = await build({
+    stdin: {
+      contents: `import { composeFootwearReference } from './src/lib/wardrobe/footwear-image';
+        window.footwear = async (clothes, shoes) => {
+          const blob = bytes => new Blob([new Uint8Array(bytes)], { type: 'image/webp' });
+          const both = await composeFootwearReference({ shoes: blob(shoes), clothes: blob(clothes) });
+          const alone = await composeFootwearReference({ shoes: blob(shoes) });
+          return [Array.from(both.png), Array.from(alone.png)];
+        };`,
+      resolveDir: root,
+      loader: 'ts',
+    },
+    bundle: true,
+    write: false,
+    format: 'iife',
+    platform: 'browser',
+    tsconfig: path.join(root, 'tsconfig.json'),
+    external: ['node:*', 'sharp', '@napi-rs/canvas'],
+    // The footwear module reads the app's settings, which read process.env (Next provides it).
+    banner: { js: 'var process = { env: { NODE_ENV: "production" } };' },
+    logLevel: 'error',
+  });
+  await page.setContent('<html><body></body></html>');
+  await page.addScriptTag({ content: bundled.outputFiles[0]!.text });
+  const fromPage = await page.evaluate(
+    ([c, s]) => (window as unknown as { footwear: (...args: unknown[]) => Promise<number[][]> }).footwear(c, s),
+    [Array.from(clothes), Array.from(shoes)] as const
+  );
+  const webp = (bytes: Buffer) => new Blob([bytes], { type: 'image/webp' });
+  const fromServer = [
+    (await composeFootwearReference({ shoes: webp(shoes), clothes: webp(clothes) })).png,
+    (await composeFootwearReference({ shoes: webp(shoes) })).png,
+  ];
+  for (const [i, name] of ['clothes and shoes', 'shoes alone'].entries()) {
+    const a = await sharp(Buffer.from(fromPage[i]!)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const b = await sharp(Buffer.from(fromServer[i]!)).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect([b.info.width, b.info.height], name).toEqual([a.info.width, a.info.height]);
+    let sum = 0;
+    let max = 0;
+    for (let j = 0; j < a.data.length; j += 1) {
+      const d = Math.abs(a.data[j]! - b.data[j]!);
+      sum += d;
+      if (d > max) max = d;
+    }
+    expect(sum / a.data.length, `${name}: mean difference`).toBeLessThan(1);
+    expect(max, `${name}: largest difference`).toBeLessThan(32);
+  }
+});

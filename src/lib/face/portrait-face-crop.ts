@@ -5,6 +5,8 @@
  */
 
 /** Phr00t Rapid AIO Edit loses outfit-edit adherence below ~1MP source pixels. */
+import { drawingCanvas } from '@/lib/media/off-page-canvas';
+
 export const PORTRAIT_FACE_CROP_MIN_PIXELS = 1_100_000;
 
 export type PortraitFaceCropRect = {
@@ -125,68 +127,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/**
- * Decoding and drawing off the page (FINISHING_PLAN Phase 3, step 5): the server crops and
- * composites with @napi-rs/canvas (Skia, as Chrome's canvas), registered by
- * portrait-face-crop-server.ts — never imported by the browser. The same drawing calls run on it.
- */
-export type FaceImageCanvas = {
-  decode: (
-    blob: Blob
-  ) => Promise<{ width: number; height: number; source: CanvasImageSource; close: () => void }>;
-  canvas: (
-    width: number,
-    height: number
-  ) => { ctx: CanvasRenderingContext2D; toPng: () => Promise<Uint8Array> };
-};
-
-let offPageImages: FaceImageCanvas | null = null;
-
-export function setFaceImageCanvas(provider: FaceImageCanvas | null): void {
-  offPageImages = provider;
-}
-
-/** The page's canvas, else the one registered for the server. */
-function imageCanvas(what: string): FaceImageCanvas {
-  if (typeof document !== 'undefined' && typeof createImageBitmap === 'function') {
-    return {
-      decode: async blob => {
-        const bitmap = await createImageBitmap(blob);
-        return {
-          width: bitmap.width,
-          height: bitmap.height,
-          source: bitmap,
-          close: () => bitmap.close(),
-        };
-      },
-      canvas: (width, height) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error(`Could not ${what}.`);
-        return {
-          ctx,
-          toPng: () =>
-            new Promise<Uint8Array>((resolve, reject) => {
-              canvas.toBlob(out => {
-                if (!out) {
-                  reject(new Error(`Could not encode the ${what} result.`));
-                  return;
-                }
-                void out.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)), reject);
-              }, 'image/png');
-            }),
-        };
-      },
-    };
-  }
-  if (offPageImages) return offPageImages;
-  throw new Error(
-    `${what[0]!.toUpperCase()}${what.slice(1)} needs createImageBitmap in this browser.`
-  );
-}
-
 /** Browser: crop a blob to the geometric face window and return a PNG File. */
 export async function cropPortraitFaceRegionFromBlob(
   blob: Blob,
@@ -222,7 +162,7 @@ async function cropBlobRegion(
   pickRect: (width: number, height: number) => PortraitFaceCropRect,
   minPixelsOption: number | undefined
 ): Promise<File> {
-  const images = imageCanvas('crop face region');
+  const images = drawingCanvas('crop face region');
   const bitmap = await images.decode(blob);
   try {
     if (bitmap.width < 32 || bitmap.height < 32) {
@@ -270,7 +210,7 @@ export async function compositePortraitOnNeutralBackdrop(
   filename = 'day-face-neutral.png',
   options?: { fill?: string; coverRatio?: number }
 ): Promise<File> {
-  const images = imageCanvas('composite face on neutral backdrop');
+  const images = drawingCanvas('composite face on neutral backdrop');
   const bitmap = await images.decode(blob);
   try {
     const fill = options?.fill?.trim() || DAY_FACE_BREAK_NEUTRAL_BACKDROP;

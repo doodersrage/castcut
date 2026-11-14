@@ -9,6 +9,7 @@
  * contact read clearly — still face-free / clothing-free.
  */
 
+import { drawingCanvas, hasOffPageCanvas } from '@/lib/media/off-page-canvas';
 import { leadsOwnText } from '@/lib/pose/gesture';
 import { DANCE_MOVE_LIMBS, danceMoveFor } from '@/lib/pose/dance-move';
 import { normalizePoseLimbs, type PoseLimbsSpec } from '@/lib/pose/limb-presets';
@@ -6568,59 +6569,19 @@ export function poseFramingForShot(shot: CameraShot | null | undefined): PoseFra
           : null;
 }
 
-/**
- * A 2D canvas off the page (FINISHING_PLAN Phase 3, step 5): the server draws the same guides
- * through @napi-rs/canvas (Skia, as Chrome's canvas), registered by pose-guide-server.ts — never
- * imported by the browser. Its context takes the same drawing calls.
- */
-export type PoseGuideCanvasFactory = (
-  width: number,
-  height: number
-) => { ctx: CanvasRenderingContext2D; toPng: () => Promise<Uint8Array> };
-
-let offPageCanvas: PoseGuideCanvasFactory | null = null;
-
-export function setPoseGuideCanvasFactory(factory: PoseGuideCanvasFactory | null): void {
-  offPageCanvas = factory;
-}
-
 async function canvasToPoseGuideFile(
   draw: (ctx: CanvasRenderingContext2D) => string,
   filenamePrefix: string,
   size: { width: number; height: number } = { width: WIDTH, height: HEIGHT }
 ): Promise<File> {
-  if (typeof document === 'undefined') {
-    if (!offPageCanvas) throw new Error('Pose guide needs a browser canvas.');
-    const { ctx, toPng } = offPageCanvas(size.width, size.height);
-    const tag = draw(ctx);
-    const png = await toPng();
-    return new File([png as BlobPart], `${filenamePrefix}-${tag}-${Date.now()}.png`, {
-      type: 'image/png',
-      lastModified: Date.now(),
-    });
+  // The page's canvas, or the server's (off-page-canvas.ts: the same drawing calls).
+  if (typeof document === 'undefined' && !hasOffPageCanvas()) {
+    throw new Error('Pose guide needs a browser canvas.');
   }
-  const canvas = document.createElement('canvas');
-  canvas.width = size.width;
-  canvas.height = size.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('Could not create a 2D canvas for the pose guide.');
-  }
+  const { ctx, toPng } = drawingCanvas('draw the pose guide').canvas(size.width, size.height);
   const tag = draw(ctx);
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      result => {
-        if (result) {
-          resolve(result);
-          return;
-        }
-        reject(new Error('Pose guide PNG encode failed.'));
-      },
-      'image/png',
-      0.92
-    );
-  });
-  return new File([blob], `${filenamePrefix}-${tag}-${Date.now()}.png`, {
+  const png = await toPng();
+  return new File([png as BlobPart], `${filenamePrefix}-${tag}-${Date.now()}.png`, {
     type: 'image/png',
     lastModified: Date.now(),
   });
