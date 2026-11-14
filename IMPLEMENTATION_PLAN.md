@@ -4319,3 +4319,10 @@ keep-best → the runner loop.
   `comfyui/queue-take-server.ts`, the route's single prompt as a function. The page passes none:
   unchanged (golden take requests). `'use client'` doesn't stop the server calling these: no API
   route in the production build has a client reference.
+- **The take's request on the server** (48c8e35d, 18bf80ac): the face-break plate's steps as `ops`
+  (day/face-plate-ops-server.ts: ComfyUI's /view else the kept copy, ComfyUI's face detector, the
+  server matte, the upload route's upload). queue/queue-request-server.ts builds what sendComfyUi
+  posts; the golden take test rebuilds every page call on the server and expects the same
+  requests (all four variants). Still only in the browser, to carry in the run: the pinned queue
+  params and the sampler memory. Note: the two-takes e2e test failed 2 in 6 when module load
+  order moved (a static import in the queue hook) — a latent race in the Day card, not chased.
