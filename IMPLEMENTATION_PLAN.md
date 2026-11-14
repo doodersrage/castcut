@@ -4423,3 +4423,10 @@ keep-best → the runner loop.
   after the misses it redoes for. Opt-in `poseMissRedo` ("Redo a pose miss") restores both
   redos. Garment colour: not measurable on T5 (the vision model's words weren't kept), so no
   check is added before a set that has them.
+- **The bar runs with the unit tests** (`lib/checks/reviewed-sets.ts` + test; covers the plan's
+  "nightly"): V3 and T5 read back through the app's own findings code; each rule's found / right
+  / wrong is pinned, so a check change that moves them fails until the record says so; a rule
+  that rerolls (`RULE_ACTION`) with 10+ decided findings must be 70% right. One recorded
+  exception (user's choice): the outfit check, 9 of 13 (69%) — it caught 12 of 13 outfit
+  rejects, and an undressed take is never kept as passing. Open: rejected takes with no finding
+  are 5 of 27 (19%, bar 10%) — the place check never fired (2 of 2 place rejects missed).
