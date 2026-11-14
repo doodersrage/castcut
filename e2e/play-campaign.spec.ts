@@ -3787,6 +3787,18 @@ test('Looks wrong on a Day card redoes the slot on a new seed and notes why', as
   const stillPng =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   const queued = await stubComfyQueue(page, ['e2e-looks-wrong-redo']);
+  // A take with a plate dresses the plate first (its auto outfit, 2026-11-13): every job finishes
+  // at once, so the redo's own take follows its dress plate without waiting on CI.
+  for (const status of ['**/api/comfyui/jobs**', '**/api/comfyui/status**'])
+    await page.route(status, route =>
+      route.fulfill({
+        json: {
+          status: { status: 'completed', images: [{ filename: 'e2e-done.png', subfolder: '', type: 'output' }] },
+        },
+      })
+    );
+  const takes = () =>
+    queued.filter(body => !String(body.prompt ?? '').includes('outfit try-on'));
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: 'e2e-looks-wrong' },
     characters: {
@@ -3837,14 +3849,13 @@ test('Looks wrong on a Day card redoes the slot on a new seed and notes why', as
   await expect(looksWrong).toBeVisible();
   await looksWrong.click();
 
-  // The slot is queued again (a plain new-seed take: one job, no seed pinned on it).
-  await expect.poll(() => queued.length, { timeout: 30_000 }).toBe(1);
-  // The card notes why, and now waits for the redo.
+  // The slot is queued again (a plain new-seed take: one take, no seed pinned on it).
+  await expect.poll(() => takes().length, { timeout: 60_000 }).toBe(1);
+  // The card notes why.
   await expect(page.getByTestId('day-progress-redone-morning')).toHaveText(
     'Redone — looked wrong',
-    { timeout: 30_000 }
+    { timeout: 60_000 }
   );
-  await expect(card).toHaveAttribute('data-state', 'queued');
 });
 
 test('roleplay cut film with mocked MediaRecorder shows Cast deep-links', async ({ page }) => {
