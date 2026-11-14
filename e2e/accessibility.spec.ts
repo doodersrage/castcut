@@ -61,6 +61,14 @@ for (const route of ROUTES) {
       await seedGalleryFixture(page);
     }
     await gotoStable(page, route.path);
+    // A path that redirects (Castcut's "/" opens Film): scanned mid-navigation, axe found no
+    // document (the first test of a cold full run). Wait until the address stops changing.
+    for (let i = 0, last = ''; i < 20; i += 1) {
+      await page.waitForLoadState('domcontentloaded');
+      if (page.url() === last) break;
+      last = page.url();
+      await page.waitForTimeout(500);
+    }
     await dismissBlockingOverlays(page);
     // Wait out lazy tool shells so axe does not sample mid-load placeholders.
     await expect(page.getByRole('status', { name: /Loading/i })).toHaveCount(0, {
