@@ -1,4 +1,4 @@
-import type { AthleticSport } from '../scene/athletic-sport-profiles';
+import { inferAthleticSport, type AthleticSport } from '../scene/athletic-sport-profiles';
 
 const BASE_NEGATIVE =
   'blurry, low quality, watermark, text, logo, deformed, bad anatomy, extra limbs, plastic skin, waxy skin, airbrushed, doll-like, oversharpened halos, generic stock model face, beauty-filter face, identical default woman, identical default man, same influencer face, symmetrical beauty portrait, poreless skin, default slim fitness body, identical hourglass figure, same male model physique, Barbie proportions, action-figure proportions, nude, topless, bottomless, missing shorts, exposed buttocks, underwear visible, split screen, diptych, collage panels, side by side comparison, multiple unrelated subjects';
@@ -48,3 +48,30 @@ export type NegativePromptResult = {
   mode: 'negative' | 'preserve';
   sport: AthleticSport | null;
 };
+
+/** What /api/negative is asked for: the hints, a sport, and the profile's options. */
+export type NegativeRequest = {
+  hints?: string;
+  sport?: string | null;
+  preserveSubject?: boolean;
+  soloSubject?: boolean;
+  extra?: string;
+};
+
+/** The negative /api/negative answers — the same on the page (through the route) and the server. */
+export function negativePromptForRequest(body: NegativeRequest): {
+  prompt: string;
+  sport: AthleticSport | null;
+} {
+  const hints = body.hints?.trim() ?? '';
+  const sport = inferAthleticSport(body.sport ?? hints) ?? inferAthleticSport(hints) ?? null;
+  return {
+    prompt: buildNegativePrompt({
+      sport,
+      preserveSubject: body.preserveSubject === true,
+      soloSubject: body.soloSubject === true,
+      extra: body.extra,
+    }),
+    sport,
+  };
+}

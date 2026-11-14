@@ -32,6 +32,8 @@ export type ResolveQueueNegativeInput = {
   realismMode?: RenderRealismMode;
   /** When false, skip realism negative merge (caller applies full prompt prep). */
   applyRealism?: boolean;
+  /** ComfyUI settings passed in (the server's synced copy): the negative is built here, not fetched. */
+  comfyUi?: import('../comfyui/settings').ComfyUiSettings;
 };
 
 export async function resolveQueueNegativePromptRaw(
@@ -42,7 +44,7 @@ export async function resolveQueueNegativePromptRaw(
     return explicit;
   }
 
-  const settings = loadComfyUiSettings();
+  const settings = input.comfyUi ?? loadComfyUiSettings();
   if (settings.autoNegativeOnQueue === false) {
     return undefined;
   }
@@ -66,6 +68,7 @@ export async function resolveQueueNegativePromptRaw(
       profile,
       hints: input.hints,
       sport: input.sport,
+      ...(input.comfyUi ? { local: true } : {}),
     })) ?? undefined
   );
 }

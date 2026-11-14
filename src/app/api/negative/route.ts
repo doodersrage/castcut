@@ -1,5 +1,4 @@
-import { buildNegativePrompt } from '@/lib/prompt/negative-prompt-builder';
-import { inferAthleticSport } from '@/lib/scene/athletic-sport-profiles';
+import { negativePromptForRequest } from '@/lib/prompt/negative-prompt-builder';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 
@@ -20,15 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as NegativeRequestBody;
-    const hints = body.hints?.trim() ?? '';
-    const sport = inferAthleticSport(body.sport ?? hints) ?? inferAthleticSport(hints) ?? null;
-
-    const prompt = buildNegativePrompt({
-      sport,
-      preserveSubject: body.preserveSubject === true,
-      soloSubject: body.soloSubject === true,
-      extra: body.extra,
-    });
+    const { prompt, sport } = negativePromptForRequest(body);
 
     return apiJson({
       prompt,

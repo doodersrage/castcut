@@ -159,10 +159,23 @@ export async function fetchNegativeWithProfile(input: {
   profile?: NegativeProfile;
   hints?: string;
   sport?: string | null;
+  /** Build it here instead of asking /api/negative (the server: no page origin to fetch). */
+  local?: boolean;
 }): Promise<string | null> {
   const profile = input.profile;
   if (profile?.staticPrompt?.trim()) {
     return profile.staticPrompt.trim();
+  }
+  if (input.local) {
+    const { negativePromptForRequest } = await import('./negative-prompt-builder');
+    return (
+      negativePromptForRequest({
+        hints: input.hints?.trim() || profile?.hints,
+        sport: input.sport ?? profile?.sport,
+        preserveSubject: profile?.preserveSubject,
+        extra: profile?.extra,
+      }).prompt.trim() || null
+    );
   }
 
   const response = await fetch('/api/negative', {

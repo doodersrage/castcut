@@ -6,6 +6,7 @@ import {
   applyAnatomyGuardForModel,
   applyAnatomyGuardToNegative,
   applyAnatomyGuardToPositive,
+  normalizeAnatomyGuardMode,
   type AnatomyGuardMode,
 } from '../adult/anatomy-guard';
 import { loadAnatomyGuardMode } from '../adult/anatomy-guard-settings';
@@ -13,6 +14,7 @@ import {
   applyRenderRealismForModel,
   applyRenderRealismToNegative,
   applyRenderRealismToPositive,
+  normalizeRenderRealismMode,
   type RenderRealismMode,
 } from '../engine/render-realism';
 import { loadRenderRealismMode } from '../engine/render-realism-settings';
@@ -805,9 +807,16 @@ export function applyQueuePromptSteering(rawInput: {
  * groups, expanded before any other queue-prep step. Gated by the shared
  * `expandWildcards` setting (default on) and reproducible via `wildcardSeed`.
  */
+type QueueWildcardOptions = {
+  expandWildcards?: boolean;
+  wildcardSeed?: string;
+  /** Settings passed in: the lists (and seed) are these, never this browser's. */
+  given?: { lists?: import('../prompt/wildcard-expand').WildcardMap };
+};
+
 function expandWildcardsForQueue(
   text: string | undefined,
-  options?: { expandWildcards?: boolean; wildcardSeed?: string }
+  options?: QueueWildcardOptions
 ): string | undefined {
   if (!text) {
     return text;
@@ -817,8 +826,8 @@ function expandWildcardsForQueue(
     return text;
   }
   return expandWildcardText(text, {
-    seed: options?.wildcardSeed ?? loadWildcardSeed(),
-    wildcards: loadCustomWildcardLists(),
+    seed: options?.given ? options.wildcardSeed : (options?.wildcardSeed ?? loadWildcardSeed()),
+    wildcards: options?.given ? options.given.lists : loadCustomWildcardLists(),
   });
 }
 
@@ -838,11 +847,29 @@ export async function prepareQueuePrompts(input: {
   /** SD/SDXL textual inversion stems; appended as embedding:name. */
   embeddingTokens?: string[];
   turboEditStrength?: TurboEditStrength;
-}): Promise<{ positive: string; negative?: string }> {
-  const wildcardOptions = {
-    expandWildcards: input.expandWildcards,
-    wildcardSeed: input.wildcardSeed,
+  /**
+   * The settings to prepare with, instead of this browser's (FINISHING_PLAN Phase 3, step 6: the
+   * server's synced copies). Realism, anatomy guard, wildcards and the negative come from these.
+   */
+  settings?: {
+    shared: ReturnType<typeof import('../settings/cache').loadSettingsCache>['shared'];
+    comfyUi: import('../comfyui/settings').ComfyUiSettings;
   };
+}): Promise<{ positive: string; negative?: string }> {
+  const given = input.settings;
+  const wildcardOptions: QueueWildcardOptions = given
+    ? {
+        expandWildcards: input.expandWildcards ?? given.shared.expandWildcards !== false,
+        wildcardSeed: input.wildcardSeed ?? (given.shared.wildcardSeed?.trim() || undefined),
+        given: { lists: given.shared.wildcardLists },
+      }
+    : { expandWildcards: input.expandWildcards, wildcardSeed: input.wildcardSeed };
+  const realismMode =
+    input.realismMode ??
+    (given ? normalizeRenderRealismMode(given.shared.renderRealismMode) : undefined);
+  const anatomyMode =
+    input.anatomyMode ??
+    (given ? normalizeAnatomyGuardMode(given.shared.anatomyGuardMode) : undefined);
   let positive = expandWildcardsForQueue(input.positive, wildcardOptions) ?? input.positive;
   if (modelSupportsTextualInversion(input.model) && input.embeddingTokens?.length) {
     positive = appendEmbeddingTokens(positive, input.embeddingTokens);
@@ -868,6 +895,7 @@ export async function prepareQueuePrompts(input: {
       sport: input.sport,
       tool: input.tool,
       explicitNegative,
+      ...(given ? { comfyUi: given.comfyUi } : {}),
     });
   }
 
@@ -901,8 +929,8 @@ export async function prepareQueuePrompts(input: {
     positive,
     negative,
     model: input.model,
-    realismMode: input.realismMode,
-    anatomyMode: input.anatomyMode,
+    realismMode,
+    anatomyMode,
     tool: input.tool,
     turboEditStrength: input.turboEditStrength,
   });
