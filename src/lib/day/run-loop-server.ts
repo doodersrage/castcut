@@ -353,8 +353,8 @@ export async function runSceneRunOnServer(
         : keptChecks?.poseUnjudged
           ? `pose not judged (${keptChecks.poseUnjudged})`
           : '';
-    if (pick.misses.length || unchecked) {
-      const why = [...pick.misses, unchecked].filter(Boolean).join(', ');
+    if (pick.misses.length || pick.advisories.length || unchecked) {
+      const why = [...pick.misses, ...pick.advisories, unchecked].filter(Boolean).join(', ');
       kept = setSceneTakeNotes(
         kept,
         pick.take.id,

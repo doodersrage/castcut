@@ -172,6 +172,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
     setAutoReviewStills,
     redoPoseMisses,
     setRedoPoseMisses,
+    poseMissRedo,
+    setPoseMissRedo,
     poseRedoStatus,
     poseRedoMarks,
     bestOfTwoHardPoses,
@@ -983,6 +985,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
             onAutoReviewStillsChange={setAutoReviewStills}
             redoPoseMisses={redoPoseMisses}
             onRedoPoseMissesChange={setRedoPoseMisses}
+            poseMissRedo={poseMissRedo}
+            onPoseMissRedoChange={setPoseMissRedo}
             bestOfTwoHardPoses={bestOfTwoHardPoses}
             onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
             twoTakesIntimate={twoTakesIntimate}

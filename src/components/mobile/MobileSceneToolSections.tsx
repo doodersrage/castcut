@@ -709,6 +709,8 @@ export default function MobileSceneToolSections({ vm, page, runner }: Props) {
               onAutoReviewStillsChange={vm.setAutoReviewStills}
               redoPoseMisses={vm.redoPoseMisses}
               onRedoPoseMissesChange={vm.setRedoPoseMisses}
+              poseMissRedo={vm.poseMissRedo}
+              onPoseMissRedoChange={vm.setPoseMissRedo}
               bestOfTwoHardPoses={vm.bestOfTwoHardPoses}
               onBestOfTwoHardPosesChange={vm.setBestOfTwoHardPoses}
               twoTakesIntimate={vm.twoTakesIntimate}

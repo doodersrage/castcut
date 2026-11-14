@@ -281,3 +281,27 @@ bandaged"): the umbrella drawn in 4 of 5 takes; the bandage in none (one take pu
 object in her hand). A firmer sentence for the bandage ("on her body, clearly visible…") did not
 change it (0 of 3). A small change on a full-body shot is past what the engine draws from words;
 the rule (T6) still catches a shot that drops it from its state.
+
+## Pose match made advisory (FINISHING_PLAN Phase 4, 2026-11-14)
+
+Phase 4's bar: a check that triggers a reroll is at least 70% precise, or it only advises. Pose
+match was 44% on T5 (18 of 40 findings right) and 47% on V3. Re-measured from the files above
+before deciding:
+
+| Rule on T5 (pose findings)       | Fired | Right | Rejected-for-pose takes caught |
+| -------------------------------- | ----: | ----: | -----------------------------: |
+| As shipped (under 0.5)           |    40 |    18 |                            7/8 |
+| Under 0.3                        |    20 |    14 |                            4/8 |
+| Under 0.27                       |    17 |    14 |                            4/8 |
+| Under 0.5, gesture question fine |    11 |     8 |                            1/8 |
+| The gesture question alone       |    29 |    10 |                            6/8 |
+
+A lower bar is precise on T5 but loses half the real misses, and on V3 the same bar points the
+other way: every V3 finding under 0.3 was labelled wrong and most above it right (0 of 8 under
+0.3). V3's labels may be flipped as T5's were (the same sheet), but that is not known, so no bar
+was chosen from one set. The user's choice: pose match (with the gesture question folded into it)
+is advisory. A miss is recorded on the take and shown in Needs a look and a run's flagged list;
+it no longer redoes (Day's switch, now **Check poses**), rerolls (Auto-review) or counts as a run
+miss to render again (keep-best ranks it after real misses). **Redo a pose miss** (Advanced,
+`poseMissRedo`, off) brings the redo and the reroll back. A look that is computer-made is still
+redone once.

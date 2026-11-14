@@ -43,7 +43,7 @@ const NO_CHECKS: DayQualityChecks = {
 export const DAY_QUALITY_PRESETS: Record<DayQualityPreset, DayQualitySettings> = {
   // A quick first pass: Good render, nothing checked afterwards.
   fast: { ...NO_CHECKS, renderQuality: 'good' },
-  // The default: Best render, the lead's face re-rendered, a pose miss redone once, and a pose
+  // The default: Best render, the lead's face re-rendered, poses checked (a miss flagged), and a pose
   // the engine keeps missing rendered on the engine that holds it.
   balanced: {
     ...NO_CHECKS,
@@ -75,7 +75,7 @@ export const DAY_QUALITY_PRESET_OPTIONS: Array<{
   {
     id: 'balanced',
     label: 'Balanced',
-    hint: 'Best render · Face finish · Redo pose misses once · Pick the best engine per pose.',
+    hint: 'Best render · Face finish · Check poses · Pick the best engine per pose.',
   },
   {
     id: 'best',
@@ -88,7 +88,7 @@ const CHECK_LABELS: Record<DayQualityCheckKey, string> = {
   identityBoost: 'Face boost',
   faceFinish: 'Face finish',
   autoReviewStills: 'Auto-review stills',
-  redoPoseMisses: 'Redo pose misses once',
+  redoPoseMisses: 'Check poses',
   bestOfTwoHardPoses: 'Best of two for hard poses',
   bestEnginePerPose: 'Pick the best engine per pose',
 };
@@ -163,7 +163,7 @@ export function dayQualityChecksPatch(settings: DayQualitySettings): DayQualityC
   };
 }
 
-/** "Best render · Face finish · Redo pose misses once" — what this Day will do. */
+/** "Best render · Face finish · Check poses" — what this Day will do. */
 export function dayQualitySummary(settings: DayQualitySettings): string {
   const parts = [`${dayRenderQualityLabel(settings.renderQuality)} render`];
   for (const key of DAY_QUALITY_CHECK_KEYS) {

@@ -140,7 +140,10 @@ export type SlotQualityDecision = {
   warnings: string[];
   /** Mean of the three 1–5 scores, rounded to one decimal. */
   overall: number;
-  /** True when the pose check ran and the still did not follow its guide. */
+  /**
+   * True when the pose check ran and the still did not follow its guide — on a kept still too
+   * (an advisory miss, in `warnings`).
+   */
   poseMiss?: boolean;
   /** True when the measured face match says this is a different person. */
   faceMiss?: boolean;
@@ -160,10 +163,17 @@ export type SlotQualityPolicy = {
   /** identityMatch below this warns (never rerolls — see {@link SlotQualityDecision.warnings}). */
   minIdentity: number;
   /**
-   * Pose match (DWPose vs the Image 3 guide, 0–1) below this rerolls while budget remains.
-   * Only applies when a pose check ran; the pose check's own gate (calibrated in pose-score.ts).
+   * Pose match (DWPose vs the Image 3 guide, 0–1) below this is a pose miss. Only applies when a
+   * pose check ran; the pose check's own gate (calibrated in pose-score.ts).
    */
   minPoseMatch: number;
+  /**
+   * A pose miss rerolls (while budget remains) only when this is on — the player's opt-in "Redo
+   * a pose miss". Otherwise it is advisory: a warning, recorded on the take, never a reroll. On
+   * the reviewed T5 set 18 of 40 pose findings were right (44%), under FINISHING_PLAN Phase 4's
+   * 70% bar for a check that rerolls; no threshold held on both reviewed sets (2026-11-14).
+   */
+  poseRerolls?: boolean;
   /**
    * Measured face match (face-recognition similarity to the Cast plate, 0–1) below this
    * rerolls; below {@link SlotQualityPolicy.warnFaceMatch} it only warns. Uncalibrated.
@@ -393,9 +403,10 @@ export function decideSlotQuality(
   const reasons: string[] = [];
   const poseMatch = extras?.poseMatch;
   const poseMiss = typeof poseMatch === 'number' && poseMatch < policy.minPoseMatch;
-  if (poseMiss) {
-    reasons.push(`pose match ${Math.round(poseMatch * 100)}% — guide not followed`);
-  }
+  const poseNote = poseMiss
+    ? `pose match ${Math.round(poseMatch * 100)}% — guide not followed`
+    : '';
+  if (poseMiss && policy.poseRerolls === true) reasons.push(poseNote);
   const faceMatch = extras?.faceMatch;
   const faceMiss = typeof faceMatch === 'number' && faceMatch < policy.minFaceMatch;
   if (faceMiss) {
@@ -437,6 +448,8 @@ export function decideSlotQuality(
   }
 
   const warnings: string[] = [];
+  // Advisory: said, never rerolled (see SlotQualityPolicy.poseRerolls).
+  if (poseMiss && policy.poseRerolls !== true) warnings.push(poseNote);
   // Looked drawn / computer-made: redone once (like a pose miss), then only a warning.
   const realism = decideRealism(extras?.photoLook);
   const realismMiss = Boolean(realism?.computerMade) && extras?.realismRedone !== true;
@@ -463,7 +476,13 @@ export function decideSlotQuality(
   }
 
   if (reasons.length === 0) {
-    return { action: 'keep', reasons: [], warnings, overall };
+    return {
+      action: 'keep',
+      reasons: [],
+      warnings,
+      overall,
+      ...(poseMiss ? { poseMiss: true } : {}),
+    };
   }
   const budgetLeft = rerollsUsed < Math.max(0, policy.maxRerolls);
   return {

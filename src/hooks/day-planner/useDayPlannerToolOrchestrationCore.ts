@@ -1638,6 +1638,9 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     setAutoReviewStills: (next: boolean) => updateToolSettings({ autoReviewStills: next }),
     redoPoseMisses: toolSettings.redoPoseMisses === true,
     setRedoPoseMisses: (next: boolean) => updateToolSettings({ redoPoseMisses: next }),
+    // Advisory by default (FINISHING_PLAN Phase 4): a pose miss is redone only when opted in.
+    poseMissRedo: toolSettings.poseMissRedo === true,
+    setPoseMissRedo: (next: boolean) => updateToolSettings({ poseMissRedo: next }),
     bestOfTwoHardPoses: toolSettings.bestOfTwoHardPoses === true,
     setBestOfTwoHardPoses: (next: boolean) => updateToolSettings({ bestOfTwoHardPoses: next }),
     twoTakesIntimate: toolSettings.twoTakesIntimate === true,

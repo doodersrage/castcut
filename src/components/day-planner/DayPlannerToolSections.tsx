@@ -189,6 +189,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     setAutoReviewStills,
     redoPoseMisses,
     setRedoPoseMisses,
+    poseMissRedo,
+    setPoseMissRedo,
     poseRedoStatus,
     poseRedoMarks,
     bestOfTwoHardPoses,
@@ -1111,6 +1113,8 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
               onAutoReviewStillsChange={setAutoReviewStills}
               redoPoseMisses={redoPoseMisses}
               onRedoPoseMissesChange={setRedoPoseMisses}
+              poseMissRedo={poseMissRedo}
+              onPoseMissRedoChange={setPoseMissRedo}
               bestOfTwoHardPoses={bestOfTwoHardPoses}
               onBestOfTwoHardPosesChange={setBestOfTwoHardPoses}
               twoTakesIntimate={twoTakesIntimate}

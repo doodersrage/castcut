@@ -182,6 +182,13 @@ export type DayToolCache = {
    */
   redoPoseMisses?: boolean;
   /**
+   * Opt-in, off by default: a pose miss (the pose check above, or Auto-review's) is redone once.
+   * Without it the miss is advisory — recorded on the take, shown in Needs a look, never redone:
+   * on the reviewed T5 set the pose check was right on 18 of 40 findings (44%), under
+   * FINISHING_PLAN Phase 4's 70% bar for a check that rerolls (2026-11-14).
+   */
+  poseMissRedo?: boolean;
+  /**
    * Opt-in: a still whose pose guide draws a hard pose (lying, kneeling, floor, climbing,
    * bending) gets a second take with a new seed; the one whose pose reads closer is kept and the
    * other shown beside it (day-best-of-two.ts). Idle while Auto-review is on.

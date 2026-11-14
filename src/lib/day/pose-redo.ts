@@ -1,6 +1,9 @@
 /**
- * Day "Redo pose misses once" (pure): when a still's pose check (DWPose vs its pose guide) says
- * it missed, the slot is queued once more with the pose spelled out — the same nudge Auto-review
+ * Day "Check poses" (pure; stored as `redoPoseMisses`): each landed still's pose is checked
+ * (DWPose vs its pose guide). A miss is advisory — recorded and shown, not redone — unless the
+ * player opted into "Redo a pose miss" (`poseMissRedo`, FINISHING_PLAN Phase 4: 44% right on the
+ * reviewed T5 set, under the 70% bar for a check that rerolls). Then the slot is queued once
+ * more with the pose spelled out — the same nudge Auto-review
  * sends on a pose reroll (POSE_MISMATCH_NUDGE, which also turns on the pose cue line). Once per
  * take: the redo's own take is never redone, so it can't loop; a take queued later by hand gets
  * its own one redo.
@@ -45,7 +48,9 @@ export type PoseRedoSkip =
   /** The pose wasn't checked (no guide, or no DWPose). */
   | 'no-check'
   /** The pose matched its guide. */
-  | 'matched';
+  | 'matched'
+  /** The pose missed, and a pose miss is advisory (not redone without the opt-in). */
+  | 'advisory';
 
 export type PoseRedoDecision =
   { redo: true; reason: PoseRedoReason } | { redo: false; skip: PoseRedoSkip };
@@ -88,6 +93,8 @@ export function poseCheckMissed(
 
 export function poseRedoDecision(input: {
   enabled: boolean;
+  /** A pose miss is redone (the player's opt-in); without it only the look is. */
+  redoPose?: boolean;
   autoReview: boolean;
   slotId: string;
   take: string;
@@ -110,11 +117,11 @@ export function poseRedoDecision(input: {
   }
   const score = input.poseScore;
   const checked = typeof score === 'number' && Number.isFinite(score);
+  const poseMissed = poseCheckMissed(score, input.minPoseMatch);
   // A pose miss outranks the look: its redo spells the pose out (and is a new take anyway).
-  if (poseCheckMissed(score, input.minPoseMatch)) {
-    return { redo: true, reason: 'pose' };
-  }
+  if (poseMissed && input.redoPose === true) return { redo: true, reason: 'pose' };
   if (input.realismMiss === true) return { redo: true, reason: 'realism' };
+  if (poseMissed) return { redo: false, skip: 'advisory' };
   return { redo: false, skip: checked ? 'matched' : 'no-check' };
 }
 

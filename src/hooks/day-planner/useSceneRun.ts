@@ -228,8 +228,8 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           : unjudged
             ? `pose not judged (${unjudged})`
             : '';
-      if (pick.misses.length || unchecked) {
-        const why = [...pick.misses, unchecked].filter(Boolean).join(', ');
+      if (pick.misses.length || pick.advisories.length || unchecked) {
+        const why = [...pick.misses, ...pick.advisories, unchecked].filter(Boolean).join(', ');
         pageRef.current.noteTake(pick.take.id, {
           note: `Kept by the run — check it: ${why}`.slice(0, SCENE_TAKE_NOTE_MAX),
         });

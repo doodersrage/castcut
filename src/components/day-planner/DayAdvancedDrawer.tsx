@@ -34,6 +34,9 @@ export type DayQualitySwitches = {
   onAutoReviewStillsChange: (next: boolean) => void;
   redoPoseMisses: boolean;
   onRedoPoseMissesChange: (next: boolean) => void;
+  /** Redo a pose miss once (opt-in; without it a miss is only flagged). */
+  poseMissRedo?: boolean;
+  onPoseMissRedoChange?: (next: boolean) => void;
   bestOfTwoHardPoses: boolean;
   onBestOfTwoHardPosesChange: (next: boolean) => void;
   bestEnginePerPose: boolean;
@@ -165,6 +168,8 @@ export default function DayAdvancedDrawer({
   onAutoReviewStillsChange,
   redoPoseMisses,
   onRedoPoseMissesChange,
+  poseMissRedo,
+  onPoseMissRedoChange,
   bestOfTwoHardPoses,
   onBestOfTwoHardPosesChange,
   bestEnginePerPose,
@@ -317,13 +322,24 @@ export default function DayAdvancedDrawer({
             data-testid="day-redo-pose-misses"
             title={
               autoReviewStills
-                ? 'Auto-review is on and already rerolls stills that missed their pose — this takes over when Auto-review is off.'
-                : "Read each finished still's pose back (DWPose) and, when it missed the pose guide, queue that moment once more with the pose spelled out. Once per still — never loops."
+                ? 'Auto-review is on and checks the pose itself — this takes over when Auto-review is off.'
+                : "Read each finished still's pose back (DWPose) and flag a still that missed its pose guide for a look. A still that looks computer-made is redone once."
             }
             onChange={onRedoPoseMissesChange}
           >
-            Redo pose misses once
+            Check poses
           </SwitchButton>
+          {onPoseMissRedoChange ? (
+            <SwitchButton
+              checked={poseMissRedo === true}
+              disabled={busy || (!redoPoseMisses && !autoReviewStills)}
+              data-testid="day-pose-miss-redo"
+              title="Queue a still that missed its pose once more, with the pose spelled out (Auto-review rerolls it). Off by default: the pose check was right on fewer than half of the misses it found in review, so a miss is only flagged."
+              onChange={onPoseMissRedoChange}
+            >
+              Redo a pose miss
+            </SwitchButton>
+          ) : null}
           <SwitchButton
             checked={bestOfTwoHardPoses}
             disabled={busy}

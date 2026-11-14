@@ -34,6 +34,7 @@ import {
 } from '@/lib/pose/score';
 import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
 import {
+  DEFAULT_SLOT_QUALITY_POLICY,
   decideSlotQuality,
   FACE_MISMATCH_NUDGE,
   flaggedSlotIds,
@@ -101,7 +102,7 @@ export function useDaySlotQualityGate(
   const { autoReviewStills, busy, mounted, queueSlot, rerollNudgeRef, shared, slots, stills } = ctx;
   const { poseGuideExpectRef, poseVariantRef, wordsOnlyRedoRef } = ctx;
   const { plate, toolSettings, wardrobeLabelFor, stillsRef, updateToolSettings } = ctx;
-  const { leadNoun } = ctx;
+  const { leadNoun, poseMissRedo } = ctx;
 
   const [qualityStatus, setQualityStatus] = useState<string | null>(null);
   const [qualityLedger, setQualityLedger] = useState<SlotQualityLedger>({});
@@ -357,7 +358,8 @@ export function useDaySlotQualityGate(
         const decision = decideSlotQuality(
           report,
           slotRerollsUsed(ledgerRef.current, target.id),
-          undefined,
+          // A pose miss is advisory unless the player opted into redoing it.
+          { ...DEFAULT_SLOT_QUALITY_POLICY, poseRerolls: poseMissRedo },
           {
             poseMatch: poseMatch?.score ?? null,
             faceMatch,
@@ -539,8 +541,10 @@ export function useDaySlotQualityGate(
           // She sat on the ground for a crouch / off-balance guide: the reroll goes out without
           // the map, in crouch words (ground-sit-redo.ts) — and a words-only take rerolled for
           // anything else stays words-only (the map would sit her down again).
+          // Rerolled for the pose itself (the opt-in), not for something else on an advisory miss.
+          const poseReroll = Boolean(decision.poseMiss) && poseMissRedo;
           const groundSit =
-            decision.poseMiss && poseMatch && expectation
+            poseReroll && poseMatch && expectation
               ? groundSitRedoFor(poseMatch, {
                   body: expectation.keypoints[0],
                   aspect: expectation.aspect,
@@ -552,8 +556,8 @@ export function useDaySlotQualityGate(
           }
           const nudge = [
             slotRerollNudge(report.flags),
-            decision.poseMiss && !groundSit ? POSE_MISMATCH_NUDGE : '',
-            decision.poseMiss && !groundSit ? poseLimbNudge : '',
+            poseReroll && !groundSit ? POSE_MISMATCH_NUDGE : '',
+            poseReroll && !groundSit ? poseLimbNudge : '',
             decision.faceMiss ? FACE_MISMATCH_NUDGE : '',
           ]
             .filter(Boolean)
@@ -563,7 +567,7 @@ export function useDaySlotQualityGate(
           }
           // Broken bodies (extra people, merged limbs…) often come from the layout itself —
           // try a different arrangement. A pure pose miss keeps the guide and retries the render.
-          const onlyPoseMiss = decision.poseMiss && decision.reasons.length === 1;
+          const onlyPoseMiss = poseReroll && decision.reasons.length === 1;
           if (!onlyPoseMiss) {
             poseVariantRef.current[target.id] = (poseVariantRef.current[target.id] ?? 0) + 1;
           }
@@ -604,6 +608,7 @@ export function useDaySlotQualityGate(
     busy,
     faceFinish,
     leadNoun,
+    poseMissRedo,
     mounted,
     plate,
     poseGuideExpectRef,

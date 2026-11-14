@@ -98,7 +98,7 @@ describe('Day quality preset', () => {
   it('summarises what a Day will do', () => {
     assert.equal(
       dayQualitySummary(dayQualityPresetSettings('balanced')),
-      'Best render · Face finish · Redo pose misses once · Pick the best engine per pose'
+      'Best render · Face finish · Check poses · Pick the best engine per pose'
     );
     assert.equal(dayQualitySummary(dayQualityPresetSettings('fast')), 'Good render');
   });

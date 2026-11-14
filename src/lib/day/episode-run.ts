@@ -9,15 +9,31 @@
 import type { GalleryPlayChecks } from '../gallery/comfyui-gallery-entry';
 import type { SavedScene, SceneTake } from './scenes';
 
-/** What a take's checks found wrong, in words (empty: nothing, or not checked). */
+/**
+ * What a take's advisory checks found: said on the kept take and listed for a look, but never a
+ * reason to render it again. The pose check (and the gesture question folded into it) was right
+ * on 18 of 40 reviewed findings (T5, 44%), under FINISHING_PLAN Phase 4's 70% bar for a check
+ * that rerolls (2026-11-14).
+ */
+export function takeCheckAdvisories(checks: GalleryPlayChecks | undefined): string[] {
+  if (!checks) return [];
+  const notes: string[] = [];
+  if (checks.poseMiss) notes.push('the pose may have missed');
+  if (checks.gestureMiss?.trim())
+    notes.push(`the action may be off (${checks.gestureMiss.trim()})`);
+  return notes;
+}
+
+/**
+ * What a take's checks found wrong, in words (empty: nothing, or not checked) — the misses a run
+ * tries again for. The advisory ones are {@link takeCheckAdvisories}.
+ */
 export function takeCheckMisses(checks: GalleryPlayChecks | undefined): string[] {
   if (!checks) return [];
   const misses: string[] = [];
-  if (checks.poseMiss) misses.push('the pose missed');
   if (checks.faceMiss) misses.push('the face doesn’t match');
   if (checks.outfitMiss?.trim()) misses.push(`the outfit (${checks.outfitMiss.trim()})`);
   if (checks.placeMiss?.trim()) misses.push(`the place (${checks.placeMiss.trim()})`);
-  if (checks.gestureMiss?.trim()) misses.push(`the action (${checks.gestureMiss.trim()})`);
   if (checks.marksMissing?.trim()) misses.push(`marks missing (${checks.marksMissing.trim()})`);
   if (typeof checks.clipCutAt === 'number') misses.push('the clip cuts away');
   if (checks.clipSilent) misses.push('the clip has no sound');
@@ -65,6 +81,8 @@ export function takeIsBare(checks: GalleryPlayChecks | undefined): boolean {
 export type EpisodeTakePick = {
   take: SceneTake;
   misses: string[];
+  /** Advisory findings on it (takeCheckAdvisories): listed for a look, never redone for. */
+  advisories: string[];
   checked: boolean;
   /** Its outfit check found her undressed (takeIsBare). */
   bare?: boolean;
@@ -87,6 +105,7 @@ export function bestSceneTake(
       return {
         take,
         misses: [...takeCheckMisses(checks), ...takeChecksSkipped(checks, allChecks)],
+        advisories: takeCheckAdvisories(checks),
         checked: Boolean(checks),
         bare: takeIsBare(checks),
         // Dressed, then not looked at, then undressed.
@@ -99,6 +118,7 @@ export function bestSceneTake(
       (a, b) =>
         a.dress - b.dress ||
         a.misses.length - b.misses.length ||
+        a.advisories.length - b.advisories.length ||
         b.score - a.score ||
         b.take.at - a.take.at ||
         b.order - a.order
@@ -108,6 +128,7 @@ export function bestSceneTake(
     ? {
         take: best.take,
         misses: best.misses,
+        advisories: best.advisories,
         checked: best.checked,
         ...(best.bare ? { bare: true } : {}),
       }

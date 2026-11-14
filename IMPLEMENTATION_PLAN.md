@@ -4413,3 +4413,13 @@ keep-best → the runner loop.
   went on: 43 landed, 30 kept, 13 redone then flagged; 56 jobs queued for 56 tries (no
   duplicates). Open: a longer Short to reach 70 shots; Animate, marks repair, Auto-review on the
   server.
+
+**Phase 4 — continuity you can measure.**
+- **Pose match is advisory** (user's choice, 2026-11-14; docs/consistency-report.md, last
+  section). 44% right on T5 against the 70% bar for a check that rerolls; no threshold held on
+  both T5 and V3. A pose or gesture miss is recorded and flagged, never redone: Day's switch reads
+  **Check poses** (`redoPoseMisses` key and presets unchanged), Auto-review's policy rerolls on it
+  only with `poseRerolls`, and runs' keep-best lists it as an advisory (`takeCheckAdvisories`)
+  after the misses it redoes for. Opt-in `poseMissRedo` ("Redo a pose miss") restores both
+  redos. Garment colour: not measurable on T5 (the vision model's words weren't kept), so no
+  check is added before a set that has them.

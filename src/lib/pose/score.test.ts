@@ -29,7 +29,11 @@ import {
   scorePoseMatch,
   type DetectedPose,
 } from './score';
-import { decideSlotQuality, type SlotQualityReport } from '../play/slot-quality';
+import {
+  DEFAULT_SLOT_QUALITY_POLICY,
+  decideSlotQuality,
+  type SlotQualityReport,
+} from '../play/slot-quality';
 import { buildDetectorInputs, parseComfyViewRef } from './detect-server';
 import { parseRoleplayScenes } from '../story/roleplay';
 import { poseGuidePromptBlock } from './guide-prompt';
@@ -390,14 +394,24 @@ describe('pose match in the Day quality gate', () => {
     note: '',
   };
 
-  it('rerolls a still that ignored its guide and keeps one that followed it', () => {
+  it('a pose miss is advisory: kept with a warning, recorded as a miss (Phase 4)', () => {
+    // T5: 18 of 40 pose findings right (44%), under the 70% bar for a check that rerolls.
     const miss = decideSlotQuality(clean, 0, undefined, { poseMatch: 0.4 });
+    assert.equal(miss.action, 'keep');
+    assert.equal(miss.poseMiss, true);
+    assert.deepEqual(miss.reasons, []);
+    assert.match(miss.warnings[0]!, /pose match 40%/);
+  });
+
+  it('with the opt-in, rerolls a still that ignored its guide and keeps one that followed it', () => {
+    const policy = { ...DEFAULT_SLOT_QUALITY_POLICY, poseRerolls: true };
+    const miss = decideSlotQuality(clean, 0, policy, { poseMatch: 0.4 });
     assert.equal(miss.action, 'reroll');
     assert.equal(miss.poseMiss, true);
     assert.match(miss.reasons[0]!, /pose match 40%/);
-    assert.equal(decideSlotQuality(clean, 0, undefined, { poseMatch: 0.85 }).action, 'keep');
-    assert.equal(decideSlotQuality(clean, 0).action, 'keep');
-    assert.equal(decideSlotQuality(clean, 2, undefined, { poseMatch: 0.2 }).action, 'flag');
+    assert.equal(decideSlotQuality(clean, 0, policy, { poseMatch: 0.85 }).action, 'keep');
+    assert.equal(decideSlotQuality(clean, 0, policy).action, 'keep');
+    assert.equal(decideSlotQuality(clean, 2, policy, { poseMatch: 0.2 }).action, 'flag');
   });
 });
 

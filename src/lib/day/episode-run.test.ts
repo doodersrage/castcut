@@ -6,6 +6,7 @@ import {
   episodeRedosFor,
   takeIsBare,
   normalizeEpisodeRunAuto,
+  takeCheckAdvisories,
   takeCheckMisses,
   takeChecksSkipped,
 } from './episode-run';
@@ -15,7 +16,6 @@ const take = (id: string, at: number, extra = {}) => ({ id, promptId: id, imageU
 describe('episode run: which take to keep', () => {
   it('says what a take missed', () => {
     assert.deepEqual(takeCheckMisses({ poseMiss: true, outfitMiss: 'a red dress', at: 1 }), [
-      'the pose missed',
       'the outfit (a red dress)',
     ]);
     assert.deepEqual(takeCheckMisses({ face: 0.8, at: 1 }), []);
@@ -35,11 +35,27 @@ describe('episode run: which take to keep', () => {
     assert.deepEqual(pick?.misses, []);
   });
 
+  it('a pose or gesture miss is advisory: said, never a miss to try again for (Phase 4)', () => {
+    // T5: 18 of 40 pose findings right (44%), under the 70% bar for a check that rerolls.
+    const checks = { poseMiss: true, gestureMiss: 'holding the cup', face: 0.6, at: 1 };
+    assert.deepEqual(takeCheckMisses(checks), []);
+    assert.deepEqual(takeCheckAdvisories(checks), [
+      'the pose may have missed',
+      'the action may be off (holding the cup)',
+    ]);
+    // Between two takes otherwise alike, the one without the advisory is kept.
+    const pick = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, id =>
+      (id === 'b' ? checks : { face: 0.6, at: 1 }) as never
+    );
+    assert.deepEqual([pick?.take.id, pick?.misses, pick?.advisories], ['a', [], []]);
+  });
+
   it('falls back to the least-bad take, and to the newest when nothing was checked', () => {
     const failing = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, id =>
       (id === 'a' ? { poseMiss: true, faceMiss: true, at: 1 } : { poseMiss: true, at: 1 }) as never
     );
-    assert.deepEqual([failing?.take.id, failing?.misses], ['b', ['the pose missed']]);
+    assert.deepEqual([failing?.take.id, failing?.misses], ['b', []]);
+    assert.deepEqual(failing?.advisories, ['the pose may have missed']);
     const unchecked = bestSceneTake({ takes: [take('a', 1), take('b', 2)] }, () => undefined);
     assert.deepEqual([unchecked?.take.id, unchecked?.checked], ['b', false]);
     assert.equal(bestSceneTake({ takes: [] }, () => undefined), null);

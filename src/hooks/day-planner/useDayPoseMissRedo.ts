@@ -40,8 +40,10 @@ import {
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 
 /**
- * Day "Redo pose misses once" (opt-in, Auto-review off): when a still lands, read its pose back
- * (DWPose) against the slot's guide and, on a miss, queue the slot once more with the pose spelled
+ * Day "Check poses" (stored as `redoPoseMisses`; Auto-review off): when a still lands, read its
+ * pose back (DWPose) against the slot's guide. A miss is recorded and shown — advisory, since the
+ * check was right on 44% of its reviewed findings (FINISHING_PLAN Phase 4) — and, only with the
+ * opt-in "Redo a pose miss" (`poseMissRedo`), the slot is queued once more with the pose spelled
  * out — the nudge Auto-review's pose reroll uses (POSE_MISMATCH_NUDGE plus the limbs that were
  * off; it also turns on the pose cue line). A still that holds the posture but drops the beat's
  * gesture (pose-gesture.ts: hands + one vision question) is a miss too, redone with a GESTURE
@@ -76,7 +78,7 @@ export function useDayPoseMissRedo(
   beforeRedo?: (slotId: string, still: { promptId?: string; imageUrl?: string }) => Promise<void>
 ) {
   const { autoReviewStills, busy, mounted, queueBlockReason, queueSlot, redoPoseMisses } = ctx;
-  const { bestOfTwoHardPoses } = ctx;
+  const { bestOfTwoHardPoses, poseMissRedo } = ctx;
   const { poseGuideExpectRef, rerollNudgeRef, slots, stills, wordsOnlyRedoRef } = ctx;
   const { leadNoun, shared } = ctx;
   const dayEventActive = Boolean(activeDayEvent(ctx.toolSettings.dayEvent, slots));
@@ -328,6 +330,7 @@ export function useDayPoseMissRedo(
         const gestureMissed = gestureMissWords(match);
         const decision = poseRedoDecision({
           enabled: redoPoseMisses,
+          redoPose: poseMissRedo,
           autoReview: autoReviewStills,
           slotId: target.id,
           take,
@@ -380,7 +383,9 @@ export function useDayPoseMissRedo(
                     leadNoun
                   )
                 : `${target.label} pose matched (${pct}%).`
-              : `${target.label} missed the pose again (${pct}%${gestureMissed ? `, missed: ${gestureMissed}` : ''}) — redone once already; retry it or pick another pose.`
+              : decision.skip === 'advisory'
+                ? `${target.label} may have missed the pose (${pct}%${gestureMissed ? `, missed: ${gestureMissed}` : ''}) — flagged for a look, not redone.`
+                : `${target.label} missed the pose again (${pct}%${gestureMissed ? `, missed: ${gestureMissed}` : ''}) — redone once already; retry it or pick another pose.`
           );
           return;
         }
@@ -450,6 +455,7 @@ export function useDayPoseMissRedo(
     beforeRedo,
     bestOfTwoHardPoses,
     redoPoseMisses,
+    poseMissRedo,
     busy,
     checks,
     faceFinish,

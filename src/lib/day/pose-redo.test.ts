@@ -11,6 +11,8 @@ import {
 
 const base = {
   enabled: true,
+  // The opt-in "Redo a pose miss" (without it a miss is advisory — see below).
+  redoPose: true,
   autoReview: false,
   slotId: 'morning',
   take: 'p1',
@@ -22,6 +24,24 @@ describe('day pose redo', () => {
   it('redoes a missed pose once the switch is on', () => {
     assert.deepEqual(poseRedoDecision(base), { redo: true, reason: 'pose' });
     assert.deepEqual(poseRedoDecision({ ...base, enabled: false }), { redo: false, skip: 'off' });
+  });
+
+  it('a pose miss is advisory without the opt-in: not redone, but the look still is (Phase 4)', () => {
+    const advisory = { ...base, redoPose: undefined };
+    assert.deepEqual(poseRedoDecision(advisory), { redo: false, skip: 'advisory' });
+    assert.deepEqual(poseRedoDecision({ ...advisory, redoPose: false }), {
+      redo: false,
+      skip: 'advisory',
+    });
+    // Computer-made and off the pose: redone for the look.
+    assert.deepEqual(poseRedoDecision({ ...advisory, realismMiss: true }), {
+      redo: true,
+      reason: 'realism',
+    });
+    assert.deepEqual(poseRedoDecision({ ...advisory, poseScore: 0.9 }), {
+      redo: false,
+      skip: 'matched',
+    });
   });
 
   it('leaves pose misses to Auto-review when it is on', () => {

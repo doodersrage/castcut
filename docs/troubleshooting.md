@@ -140,15 +140,17 @@ Auto-review (or another pose check) is on. After installing a pack, restart Comf
   **Qwen3-VL 8B Instruct** (general; may refuse adult stills), ~6 GB each at Q4_K_M with the vision
   projector, with progress. LM Studio loads it on the first check.
 
-With a pose check on — **Auto-review stills**, **Redo pose misses once** (on with the Balanced
+With a pose check on — **Auto-review stills**, **Check poses** (on with the Balanced
 preset) or **Best of two** — and the **comfyui_controlnet_aux** node pack installed in ComfyUI
 (it provides `DWPreprocessor`), Day reads the body pose back out of every finished still and
 compares it with the guide it was sent: `pose match 82%` in the review line. The check compares
 the direction each limb points and the body's posture (standing, sitting, kneeling, crouching,
 lying, bending), so a smaller or differently framed figure still matches; a still in another
 posture than its guide (sitting where the guide lies down) reads `pose match 20% · sitting,
-guide lying on the back` and is under the 50% gate — the slot is requeued with a "match the
-Image 3 skeleton" fix. When the keypoints can't tell (a seat reclined on cushions, legs out of
+guide lying on the back` and is under the 50% gate — flagged for a look (*Needs a look*, the
+take's findings, a run's flagged list), not redone: in review the check was right on fewer than
+half the misses it found. Turn on **Redo a pose miss** (Advanced ▾) to have the slot requeued once
+with a "match the Image 3 skeleton" fix (Auto-review rerolls it). When the keypoints can't tell (a seat reclined on cushions, legs out of
 frame), the vision model is asked one yes / no question from the guide's posture. A missed hand
 gesture with the right posture (an arm left down where the guide points) is caught by the gesture
 questions the beat is turned into ("Is she holding a mug?") — in the same vision call; the miss
