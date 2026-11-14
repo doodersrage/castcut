@@ -72,7 +72,7 @@ function sceneTool() {
   };
 }
 
-async function harness() {
+async function harness(edit: (tool: ReturnType<typeof sceneTool>) => void = () => undefined) {
   const { DEFAULT_SHARED_SETTINGS, normalizeSharedSettingsInPlace } = await import(
     '../settings/cache'
   );
@@ -103,7 +103,17 @@ async function harness() {
       queueParams: loadQueueParamsSettings(),
       samplerMemory: {},
     },
-    page: { sceneTool: sceneTool(), gallery: [], leanChrome: false, locations: [], poseLibrary: [] },
+    page: {
+      sceneTool: (() => {
+        const tool = sceneTool();
+        edit(tool);
+        return tool;
+      })(),
+      gallery: [],
+      leanChrome: false,
+      locations: [],
+      poseLibrary: [],
+    },
   };
   const png = await sharp({ create: { width: 1, height: 1, channels: 4, background: '#000' } })
     .png()
@@ -249,6 +259,29 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       assert.equal(kitchenStills, 1);
       const after = queued.slice(queuedBefore).filter(prompt => !/outfit try-on/i.test(prompt));
       assert.equal(after.length, 1, 'only the Window queued after the restart');
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('an establishing shot (the empty place) renders on the server too, kept with no checks owed', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness(tool => {
+      (tool.scenes[0]!.slot as Record<string, unknown>).placeOnly = true;
+      (tool.slots[0] as Record<string, unknown>).placeOnly = true;
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.match(queued[0]!, /kitchen/i, 'the empty kitchen first');
+      assert.equal(run?.flagged?.s1, undefined, 'nobody to check in an empty place');
     } finally {
       globalThis.fetch = original;
     }

@@ -16,6 +16,8 @@ export function serverEmptyPlaceSteps(input: {
   fetchImpl?: typeof fetch;
   status?: (promptId: string) => Promise<ComfyPromptStatus>;
   sleep?: (ms: number) => Promise<void>;
+  /** How a built request reaches ComfyUI (tests record it); queueTakeToComfyUi otherwise. */
+  queue?: typeof queueTakeToComfyUi;
 }): EmptyPlaceSteps {
   const wait = serverJobWait({
     comfyUrl: input.comfyUrl,
@@ -24,7 +26,7 @@ export function serverEmptyPlaceSteps(input: {
   });
   return {
     queue: async job => {
-      const queued = await queueTakeToComfyUi(
+      const queued = await (input.queue ?? queueTakeToComfyUi)(
         {
           prompt: job.prompt,
           negativePrompt: job.negativePrompt,

@@ -170,6 +170,8 @@ import { applyLookPackToDaySlots, loadLookPack, lookPackNotes } from '@/lib/look
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 
 import {
+  placeShotJob,
+  placeShotStill,
   buildTakeSlotPrompt,
   planTakeStillModel,
   resolveTakeSlotLook,
@@ -1058,40 +1060,14 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       setError(null);
       setActiveSlotId(slot.id);
       actions.resetStatuses();
-      const place =
-        withCastPlace(slot.location, character, leadNoun)?.trim() ||
-        slot.location?.trim() ||
-        'the place';
-      const where = { name: place, look: slot.sceneHints?.trim() ?? '' };
-      const setting = /\boutdoors\b/i.test(place) ? ('EXT' as const) : ('INT' as const);
       const { requeueComfyJob } = await import('@/lib/comfyui/requeue');
       const queued = await requeueComfyJob({
-        prompt: locationPicturePrompt({ ...where, setting }),
-        negativePrompt: LOCATION_PICTURE_NEGATIVE,
-        model: LOCATION_PICTURE_MODEL,
+        ...placeShotJob(slot, { character, leadNoun }),
         tool: 'scene',
-        workflowJson: JSON.stringify(
-          locationPictureGraph({ ...where, setting }, Math.floor(Math.random() * 2 ** 31))
-        ),
         workflowFinal: true,
       }).catch(() => null);
       const id = queued?.ok && queued.promptId ? queued.promptId.trim() : '';
-      const nextStills = upsertDaySlotStill(stillsRef.current, {
-        slotId: slot.id,
-        promptId: id || undefined,
-        status: id ? 'queued' : 'error',
-        imageUrl: undefined,
-        clipPromptId: undefined,
-        clipRenderPromptId: undefined,
-        clipUrl: undefined,
-        clipStatus: undefined,
-        promptCheck: undefined,
-        beatKey: rerollBeatKey(slot.sceneHints) || undefined,
-        previousTake: undefined,
-        bestOfTwo: undefined,
-        twoTakes: undefined,
-        redoReason: undefined,
-      });
+      const nextStills = upsertDaySlotStill(stillsRef.current, placeShotStill(slot, id));
       stillsRef.current = nextStills;
       updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
       if (!id) {

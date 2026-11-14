@@ -7,8 +7,7 @@
  * working copy and kept as patches, for the page to apply (the patch queue): Scenes stay the
  * page's.
  *
- * Not yet on the server (the take says so and the run leaves it to the page): place-only shots
- * and an event's later moments.
+ * Not yet on the server (the take says so and the run pauses there): an event's later moments.
  */
 import type { CharacterRecord } from '@/lib/character/os';
 import type { ComfyUiModelLists } from '@/lib/comfyui/object-info';
@@ -43,7 +42,13 @@ import { serverDressPlateDeps } from './dress-plate-server';
 import { dayMoodFlavor } from './mood-flavor';
 import { dayPartnerNoun } from './partner';
 import type { DayPartnerStandIn } from './partner-stand-in';
-import { dayMoodReplacesKeepOutfit, normalizeDaySlotStills, type DaySlot } from './planner';
+import {
+  dayMoodReplacesKeepOutfit,
+  dayStillsCachePatch,
+  normalizeDaySlotStills,
+  upsertDaySlotStill,
+  type DaySlot,
+} from './planner';
 import {
   dayPlateIsolatePending,
   resolveDayPlate,
@@ -53,6 +58,8 @@ import {
 import type { RunBundle, RunBundlePage } from './run-bundle';
 import { openScenePatch, sceneScriptRooms, sceneSlotOf, sceneSlotsPatch } from './scenes';
 import {
+  placeShotJob,
+  placeShotStill,
   buildTakeSlotPrompt,
   planTakeStillModel,
   resolveTakeSlotLook,
@@ -346,6 +353,7 @@ export async function runServerTake(
               ...(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {}),
               ...(deps.status ? { status: deps.status } : {}),
               ...(deps.sleep ? { sleep: deps.sleep } : {}),
+              ...(deps.queue ? { queue: deps.queue } : {}),
             })
           ),
         keep: rooms => apply({ scriptRooms: rooms } as Partial<SceneToolCache>),
@@ -370,8 +378,24 @@ export async function runServerTake(
         }
       ),
     resolveSlotLook,
-    queuePlaceShot: async () => {
-      throw new Error('A place-only shot is rendered on the page for now.');
+    // A place-only shot: the empty place on Qwen-Image 2.1 Turbo, its fixed graph queued as is.
+    queuePlaceShot: async slot => {
+      const queued = await serverEmptyPlaceSteps({
+        comfyUrl: deps.comfyUrl,
+        ...(deps.appOrigin ? { appOrigin: deps.appOrigin } : {}),
+        ...(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {}),
+        ...(deps.queue ? { queue: deps.queue } : {}),
+      }).queue!(placeShotJob(slot, { character, leadNoun })).catch(() => null);
+      const id = queued?.ok && queued.promptId ? queued.promptId.trim() : '';
+      const nextStills = upsertDaySlotStill(stillsRef.current, placeShotStill(slot, id));
+      stillsRef.current = nextStills;
+      updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));
+      if (!id) {
+        setError(
+          `${slot.label}: the empty place didn't queue (it renders on Qwen-Image 2.1 Turbo)${queued?.error ? ` — ${queued.error}` : ''}.`
+        );
+      }
+      return id || null;
     },
     queueEventMoment: async () => {
       throw new Error('An event’s later moments are rendered on the page for now.');

@@ -3769,6 +3769,116 @@ const phases: Record<string, Phase> = {
   },
 
   /**
+   * FINISHING_PLAN Phase 3's gate, small: a run of SRV_TAKES Scenes from the Cast's script,
+   * rendered by the server (the run panel's "Render on the server"), the page closed. After the
+   * first take is kept, ComfyUI is restarted (POST /v2/manager/reboot; SRV_REBOOT=0 skips it).
+   * Then the run must finish by itself with one take a Scene (redo off) — no duplicates — and the
+   * page, opened again, show it done. Writes SCENE_OUT/server-run.json.
+   */
+  async srvrun(_ctx, page) {
+    const takes = Number(process.env.SRV_TAKES ?? 6);
+    const comfy = process.env.SRV_COMFY ?? 'http://127.0.0.1:8188';
+    await openScene(page, V2_CAST);
+    if (process.env.EPISODE_ENGINE !== '-') {
+      await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
+    }
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script');
+    await go(page, `/script?character=${V2_CAST}&script=${script.id}`);
+    await page.getByTestId('script-prepare-run').click({ timeout: 120_000 });
+    await toRunOnScene(page);
+    await page.getByTestId('scene-run-auto-keep').check();
+    await page.getByTestId('scene-run-auto-redo').selectOption('0');
+    await page.getByTestId('scene-run-skip-kept').uncheck();
+    await page.getByTestId('scene-run-max-takes').fill(String(takes));
+    // Scenes with a kept take were left out when the run was prepared: the first ones put back.
+    const items = page.locator('[data-testid^="scene-run-item-"] input[type="checkbox"]');
+    const count = await items.count();
+    for (let i = 0; i < Math.min(count, takes); i += 1) await items.nth(i).check();
+    await page.getByTestId('scene-run-on-server').check();
+    log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
+    await shot(page, 'server-run-prepared');
+    const started = Date.now();
+    await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+    const run = await waitForRun(page, entry => entry.state === 'running', 5);
+    const runId = (run as { id?: string }).id ?? '';
+    if (!runId) throw new Error('no run id');
+    log('server run', runId, 'started — leaving the page');
+    await page.goto(`${BASE}/manifest.json`, { waitUntil: 'domcontentloaded' });
+
+    type Patch = {
+      seq: number;
+      patch: {
+        run?: V2Run & { log?: Array<{ event: string; sceneId?: string; detail?: string }> };
+      };
+    };
+    const patches = async (): Promise<Patch[]> => {
+      const response = await page.request.get(`${BASE}/api/scene-runs/server?runId=${runId}`);
+      return response.ok()
+        ? (((await response.json()) as { patches?: Patch[] }).patches ?? [])
+        : [];
+    };
+    let rebooted = process.env.SRV_REBOOT === '0';
+    let last = '';
+    let latest: V2Run | undefined;
+    const until = Date.now() + Number(process.env.SRV_MINUTES ?? 90) * 60_000;
+    for (;;) {
+      if (Date.now() > until) throw new Error(`server run not done in time (${last})`);
+      const rows = await patches();
+      latest = rows.at(-1)?.patch.run ?? latest;
+      const done = Object.keys(latest?.outcomes ?? {}).length;
+      const now = `${latest?.state} ${done} done`;
+      if (now !== last) {
+        log(new Date().toISOString().slice(11, 19), 'server run:', now);
+        last = now;
+      }
+      if (!rebooted && done >= 1 && latest?.state === 'running') {
+        // A take in flight now? The reboot lands on it; else on the next one queued.
+        const response = await fetch(`${comfy}/v2/manager/reboot`, { method: 'POST' }).catch(
+          () => null
+        );
+        log('ComfyUI restart asked:', response?.status ?? 'no answer');
+        rebooted = true;
+      }
+      if (latest && ['done', 'cancelled', 'paused'].includes(latest.state ?? '')) break;
+      await page.waitForTimeout(10_000);
+    }
+    const events = (latest as { log?: Array<{ event: string; sceneId?: string }> })?.log ?? [];
+    const queuedPerScene: Record<string, number> = {};
+    for (const entry of events) {
+      if (entry.event === 'queued' && entry.sceneId) {
+        queuedPerScene[entry.sceneId] = (queuedPerScene[entry.sceneId] ?? 0) + 1;
+      }
+    }
+    const duplicates = Object.entries(queuedPerScene).filter(([, n]) => n > 1);
+    log(
+      'server run',
+      latest?.state,
+      'in',
+      Math.round((Date.now() - started) / 60_000),
+      'min ·',
+      Object.keys(latest?.outcomes ?? {}).length,
+      'Scenes ·',
+      Object.keys(latest?.flagged ?? {}).length,
+      'flagged ·',
+      duplicates.length ? `DUPLICATES ${JSON.stringify(duplicates)}` : 'one take a Scene',
+      latest?.stopReason ? `· ${latest.stopReason}` : ''
+    );
+    writeFileSync(
+      join(OUT, 'server-run.json'),
+      JSON.stringify({ run: latest, queuedPerScene, rebooted }, null, 1)
+    );
+    // The page, opened again, catches up.
+    await openScene(page, V2_CAST);
+    await waitForRun(
+      page,
+      entry => (entry as { id?: string }).id === runId && entry.state === latest?.state,
+      3
+    );
+    await shot(page, 'server-run-done');
+  },
+
+  /**
    * The partner in the picture (2026-11-06): the episode's shots of Rob rendered Lena alone. Give
    * a few of his Scenes what a script Scene now gets when its shot shows the partner — "Duo ·
    * companions" on and "the two of them together" in the beat — and render each once.

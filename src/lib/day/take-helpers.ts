@@ -11,8 +11,15 @@ import type { LocationRecord } from '@/lib/location/records';
 import type { PoseEngineReport } from '@/lib/pose/pose-engine-report';
 import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
 import { dayOutfitPromptName } from './clothed-lead';
+import {
+  LOCATION_PICTURE_MODEL,
+  LOCATION_PICTURE_NEGATIVE,
+  locationPictureGraph,
+  locationPicturePrompt,
+} from '@/lib/location/picture';
+import { rerollBeatKey } from '@/lib/play/metrics';
 import type { DayPartnerNoun } from './partner';
-import type { DaySlot } from './planner';
+import type { DaySlot, DaySlotStill } from './planner';
 import { resolveDayQueueIdentityPlate, type DayPlate } from './plate';
 import { resolveDaySlotLook, type DaySlotOutfit } from './slot-look';
 import { buildDaySlotPromptForStill, type DayStillSlotOptions } from './still-prompt';
@@ -202,4 +209,49 @@ export async function takeSceneRoom(
     console.warn('One room a scene: the room was not made —', error);
     return null;
   }
+}
+
+/**
+ * A place-only shot's job (an establishing shot: the empty place, no one in it) — its fixed
+ * graph on Qwen-Image 2.1 Turbo (location/picture.ts), as the page queues it and the server.
+ */
+export function placeShotJob(
+  slot: Pick<DaySlot, 'location' | 'sceneHints'>,
+  input: { character: CharacterRecord | null | undefined; leadNoun: DayPartnerNoun }
+) {
+  const place =
+    withCastPlace(slot.location, input.character, input.leadNoun)?.trim() ||
+    slot.location?.trim() ||
+    'the place';
+  const where = {
+    name: place,
+    look: slot.sceneHints?.trim() ?? '',
+    setting: /\boutdoors\b/i.test(place) ? ('EXT' as const) : ('INT' as const),
+  };
+  return {
+    prompt: locationPicturePrompt(where),
+    negativePrompt: LOCATION_PICTURE_NEGATIVE,
+    model: LOCATION_PICTURE_MODEL,
+    workflowJson: JSON.stringify(locationPictureGraph(where, Math.floor(Math.random() * 2 ** 31))),
+  };
+}
+
+/** The still a place-only shot puts on its card: its job, or an error when it didn't queue. */
+export function placeShotStill(slot: Pick<DaySlot, 'id' | 'sceneHints'>, promptId: string) {
+  return {
+    slotId: slot.id,
+    promptId: promptId || undefined,
+    status: promptId ? ('queued' as const) : ('error' as const),
+    imageUrl: undefined,
+    clipPromptId: undefined,
+    clipRenderPromptId: undefined,
+    clipUrl: undefined,
+    clipStatus: undefined,
+    promptCheck: undefined,
+    beatKey: rerollBeatKey(slot.sceneHints) || undefined,
+    previousTake: undefined,
+    bestOfTwo: undefined,
+    twoTakes: undefined,
+    redoReason: undefined,
+  } satisfies DaySlotStill;
 }
