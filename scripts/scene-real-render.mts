@@ -4294,25 +4294,37 @@ const phases: Record<string, Phase> = {
         process.env.SHORT_IDEA ??
         `${lead} spends a rainy Saturday with her partner: breakfast arguing over plans, a bookshop where they get separated, and making up over dinner`;
       // The idea box takes 240 characters (DAY_PREMISE_MAX_LENGTH): a longer one never fills.
-      if (idea.length > 240) throw new Error(`SHORT_IDEA is ${idea.length} characters (240 at most)`);
+      if (idea.length > 240)
+        throw new Error(`SHORT_IDEA is ${idea.length} characters (240 at most)`);
       const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
       const slotsNow = async () =>
         JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
       const started = Date.now();
+      let written = false;
       for (let tries = 0; tries < 6; tries += 1) {
         const input = page.getByTestId('day-idea-input').first();
         await input.fill(idea);
         await page.waitForTimeout(1500);
         if ((await input.inputValue()) !== idea) continue;
         await page.getByTestId('day-idea-write').first().click();
+        // Written: the board's beats changed, or its dialogue is being written (the page shows
+        // that before its stored board catches up — s18 took that lag for "nothing", and wrote
+        // the short six times over).
+        const progressLine = page.getByTestId('day-idea-dialogue-progress').first();
         for (let waited = 0; waited < 90; waited += 3) {
           await page.waitForTimeout(3000);
-          if ((await slotsNow()) !== before) break;
+          if (
+            (await slotsNow()) !== before ||
+            (await progressLine.isVisible().catch(() => false))
+          ) {
+            written = true;
+            break;
+          }
         }
-        if ((await slotsNow()) !== before) break;
+        if (written) break;
         log('Write it changed nothing — again');
       }
-      if ((await slotsNow()) === before) throw new Error('Write it did not change the board');
+      if (!written) throw new Error('Write it did not change the board');
       log('beats in', Math.round((Date.now() - started) / 1000), 's');
       // Then each moment's scene is written: the progress line shows until the last lands.
       const progress = page.getByTestId('day-idea-dialogue-progress').first();

@@ -147,3 +147,29 @@ describe('Write it: titles and times', () => {
   });
 });
 
+
+describe('a premise reply that is not quite JSON (Nemo, nine moments, 2026-11-14)', () => {
+  const slots = ['morning', 'morning-2', 'afternoon'];
+  const entry = (slot: string, beat: string) =>
+    `{"slot":"${slot}","title":"T","time":"morning","beat":"${beat}","setting":"sunlit kitchen"}`;
+
+  it('the closing bracket left off: every complete entry is kept', () => {
+    const reply = `[${entry('morning', 'sitting at the table, holding a mug, gazing out')},${entry('morning-2', 'standing at the counter, slicing bread, looking down')},${entry('afternoon', 'walking along the river, hands in pockets, looking ahead')}`;
+    assert.deepEqual(
+      parseDayPremiseBeats(reply, slots, { companions: false }).map(beat => beat.slotId),
+      slots
+    );
+  });
+
+  it('cut off mid-entry: the entries before it are kept', () => {
+    const reply = `[${entry('morning', 'sitting at the table, holding a mug, gazing out')},{"slot":"morning-2","title":"Cut`;
+    assert.deepEqual(
+      parseDayPremiseBeats(reply, slots, { companions: false }).map(beat => beat.slotId),
+      ['morning']
+    );
+  });
+
+  it('no array at all: nothing', () => {
+    assert.deepEqual(parseDayPremiseBeats('Sorry, I cannot help.', slots, { companions: false }), []);
+  });
+});

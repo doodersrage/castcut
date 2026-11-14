@@ -138,6 +138,34 @@ function cleanLine(value: unknown, max: number): string {
     : '';
 }
 
+/**
+ * The reply's rows: its JSON array — or, when the array doesn't parse (Mistral Nemo, writing nine
+ * moments, left off the closing bracket about one reply in five, 2026-11-14), each complete
+ * `{…}` entry in it on its own, so a reply cut short or ill-formed at the end keeps what it wrote.
+ */
+function premiseRows(reply: string): unknown[] | null {
+  const match = reply.match(/\[[\s\S]*\]/);
+  if (match) {
+    try {
+      const rows = JSON.parse(match[0]) as unknown;
+      if (Array.isArray(rows)) return rows;
+    } catch {
+      // Ill-formed: read entry by entry below.
+    }
+  }
+  const start = reply.indexOf('[');
+  if (start < 0) return null;
+  const rows: unknown[] = [];
+  for (const entry of reply.slice(start).matchAll(/\{[^{}]*\}/g)) {
+    try {
+      rows.push(JSON.parse(entry[0]) as unknown);
+    } catch {
+      // A broken entry is skipped; the slot falls back to being asked again.
+    }
+  }
+  return rows.length ? rows : null;
+}
+
 /** Beats the reply gives for these slots, checked; a slot with no usable beat is left out. */
 export function parseDayPremiseBeats(
   reply: string,
@@ -145,15 +173,8 @@ export function parseDayPremiseBeats(
   options: { companions: boolean; mood?: string }
 ): DayPremiseBeat[] {
   const bare = dayPremiseSuggestive(options.mood) ? SUGGESTIVE_BARE_RE : ADULT_RE;
-  const match = reply.match(/\[[\s\S]*\]/);
-  if (!match) return [];
-  let rows: unknown;
-  try {
-    rows = JSON.parse(match[0]);
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(rows)) return [];
+  const rows = premiseRows(reply);
+  if (!rows) return [];
   const wanted = new Set(slotIds);
   const out: DayPremiseBeat[] = [];
   const seen = new Set<string>();

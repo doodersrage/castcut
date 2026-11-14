@@ -50,7 +50,9 @@ export async function writeDayPremiseBeats(options: {
       slotIds,
       { companions: options.companions, ...(options.mood ? { mood: options.mood } : {}) }
     );
-  const beats = await ask(options.slotIds);
+  // A reply with nothing usable at all is asked once more (it is a sampled reply).
+  let beats = await ask(options.slotIds);
+  if (beats.length === 0) beats = await ask(options.slotIds).catch(() => []);
   // A beat the checks drop leaves its moment empty — on a long board, several (5 of 9 written,
   // 2026-11-07). The ones missing are asked for once more, on their own.
   const missing = options.slotIds.filter(id => !beats.some(beat => beat.slotId === id));
