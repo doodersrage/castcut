@@ -4296,3 +4296,18 @@ keep-best → the runner loop.
   browser is unchanged. Not yet tried against a real ComfyUI restart.
 - Short package (Phase 2) on a server without a data folder: the takes' pictures can't be kept
   in Scenes; the import says how many (29c48069).
+- **Step 4, the take's decisions out of the hook** (c3cb11d8, 0cbd69fb, 788ce709, 4f1dc91e):
+  `lib/day/take-plan.ts` — planTakeOutfit, planTakeModel, planTakePartner, planTakePoseGuide, as
+  they were (identity route and camera were already pure). Safety net: the golden take requests
+  (cf8bb977; `GOLDEN_TAKES=1` compares, `UPDATE_GOLDEN=1` writes; local only). It found a take
+  queued before the outfit catalog loaded going out with no outfit (7e4a9582).
+- **Step 2, the run's inputs frozen at Start, shadow mode** (3238ae0b): migration 5; each take
+  checked against the bundle (`GET /api/scene-runs/shadow?runId=`). It found a run's first take
+  deciding for the picked engine and later ones for the Edit engine the page saved over it —
+  user's choice: every take decides for the engine it renders on (5d34704a; a plated first take
+  now dresses its plate first, as the rest did).
+- **Step 5, the take's pictures on the server** (a2247e23, 08cb29b8, 9d8f34c5):
+  `media/off-page-canvas.ts` (the page's canvas, else @napi-rs/canvas registered by
+  off-page-canvas-server.ts). Pose guides identical to Chrome's, face crops and the footwear
+  reference within a small tolerance (e2e parity specs). Docker: image builds, the module loads
+  on Alpine; not in the standalone output until the runner draws on the server.

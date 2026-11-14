@@ -130,3 +130,30 @@ test('a footwear reference drawn on the server is the one the page draws', async
     expect(max, `${name}: largest difference`).toBeLessThan(32);
   }
 });
+
+test('a picture’s size read on the server is the size the page reads (EXIF turns it)', async ({ page }) => {
+  const { orientedImageSize } = await import('../src/lib/media/image-size-server');
+  // A 300×200 picture stored as a phone does: on its side, EXIF orientation 6 (the page shows
+  // it 200×300).
+  const rotated = await sharp({ create: { width: 300, height: 200, channels: 3, background: '#844' } })
+    .jpeg()
+    .withMetadata({ orientation: 6 })
+    .toBuffer();
+  const plain = await sharp({ create: { width: 320, height: 180, channels: 3, background: '#448' } })
+    .png()
+    .toBuffer();
+  await page.setContent('<html><body></body></html>');
+  for (const [name, bytes, type] of [
+    ['rotated JPEG', rotated, 'image/jpeg'],
+    ['plain PNG', plain, 'image/png'],
+  ] as const) {
+    const fromPage = await page.evaluate(
+      async ([data, mime]) => {
+        const bitmap = await createImageBitmap(new Blob([new Uint8Array(data)], { type: mime }));
+        return { width: bitmap.width, height: bitmap.height };
+      },
+      [Array.from(bytes), type] as const
+    );
+    expect(await orientedImageSize(new Uint8Array(bytes)), name).toEqual(fromPage);
+  }
+});
