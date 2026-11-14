@@ -33,6 +33,30 @@ type FaceBreakResult = {
  * different Image 1 + IP pixels).
  */
 let faceBreakCache: { key: string; result: FaceBreakResult } | null = null;
+
+/**
+ * How a face plate's pictures are fetched, the face found, cut out and uploaded. The page's way by
+ * default; the server passes its own (FINISHING_PLAN Phase 3: face-plate-ops-server.ts) — the same
+ * steps, ComfyUI asked directly.
+ */
+export type DayFacePlateOps = {
+  loadBlob: (urls: string[]) => Promise<Blob>;
+  locate?: NonNullable<Parameters<typeof cropCastFaceFromBlob>[3]>['locate'];
+  isolateOnWhite: (file: File) => Promise<File>;
+  /** The uploaded file's name in ComfyUI's input folder, or undefined. */
+  upload: (
+    file: File,
+    model: string | undefined,
+    comfyUrl: string | undefined
+  ) => Promise<string | undefined>;
+};
+
+const PAGE_FACE_PLATE_OPS: DayFacePlateOps = {
+  loadBlob: urls => loadImageBlobFromUrls(urls),
+  isolateOnWhite: file => isolateFaceCropOnWhite(file),
+  upload: async (file, model, comfyUrl) =>
+    (await resolveQueueInputImage({ file, filename: file.name, model, comfyUrl }))?.filename,
+};
 let identityVlCache: { key: string; plate: DayPlate } | null = null;
 
 export function clearDayVacationFaceBreakCache(): void {
@@ -256,14 +280,15 @@ async function uploadFaceCropFile(input: {
   model?: string | null;
   comfyUrl?: string | null;
   source: DayPlate['source'];
+  ops?: DayFacePlateOps;
 }): Promise<DayPlate | null> {
-  const uploaded = await resolveQueueInputImage({
-    file: input.file,
-    filename: input.file.name,
-    model: input.model ?? undefined,
-    comfyUrl: input.comfyUrl ?? undefined,
-  });
-  const faceFilename = uploaded?.filename?.trim();
+  const faceFilename = (
+    await (input.ops ?? PAGE_FACE_PLATE_OPS).upload(
+      input.file,
+      input.model ?? undefined,
+      input.comfyUrl ?? undefined
+    )
+  )?.trim();
   if (!faceFilename) {
     return null;
   }
@@ -288,7 +313,10 @@ export async function resolveDayVacationFaceBreakPlate(input: {
   character?: CharacterRecord | null;
   model?: string | null;
   comfyUrl?: string | null;
+  /** The server's steps (face-plate-ops-server.ts); the page's by default. */
+  ops?: DayFacePlateOps;
 }): Promise<FaceBreakResult> {
+  const ops = input.ops ?? PAGE_FACE_PLATE_OPS;
   const body = input.bodyPlate ?? null;
   if (!body) {
     return { facePlate: null, outfitVlPlate: null, bodyPlate: null, autoCropped: false };
@@ -317,7 +345,7 @@ export async function resolveDayVacationFaceBreakPlate(input: {
       });
       if (castUrls.length > 0) {
         try {
-          const castBlob = await loadImageBlobFromUrls(castUrls);
+          const castBlob = await ops.loadBlob(castUrls);
           const castCrop = await cropCastFaceFromBlob(
             castBlob,
             // Prefix must match day-vacation-face* so Lightning skips ReferenceLatent
@@ -329,14 +357,15 @@ export async function resolveDayVacationFaceBreakPlate(input: {
               aspect: 0.88,
               topInsetRatio: 0.01,
             },
-            { comfyUrl }
+            { comfyUrl, ...(ops.locate ? { locate: ops.locate } : {}) }
           );
           noFaceFound = castCrop.face === 'missing';
           facePlate = await uploadFaceCropFile({
-            file: await isolateFaceCropOnWhite(castCrop.file),
+            file: await ops.isolateOnWhite(castCrop.file),
             model: input.model,
             comfyUrl,
             source: 'cast',
+            ops,
           });
         } catch {
           facePlate = null;
@@ -350,7 +379,7 @@ export async function resolveDayVacationFaceBreakPlate(input: {
         filename: body.filename?.trim() || body.originalFilename?.trim() || undefined,
         comfyUrl,
       });
-      const blob = await loadImageBlobFromUrls(urls);
+      const blob = await ops.loadBlob(urls);
       const bodyFace = await cropCastFaceFromBlob(
         blob,
         `day-vacation-face-${stamp}.png`,
@@ -359,14 +388,15 @@ export async function resolveDayVacationFaceBreakPlate(input: {
           aspect: 0.85,
           topInsetRatio: 0.01,
         },
-        { comfyUrl }
+        { comfyUrl, ...(ops.locate ? { locate: ops.locate } : {}) }
       );
       noFaceFound = bodyFace.face === 'missing';
       facePlate = await uploadFaceCropFile({
-        file: await isolateFaceCropOnWhite(bodyFace.file),
+        file: await ops.isolateOnWhite(bodyFace.file),
         model: input.model,
         comfyUrl,
         source: body.source,
+        ops,
       });
       autoCropped = Boolean(facePlate);
     }

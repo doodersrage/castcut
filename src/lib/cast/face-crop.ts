@@ -27,9 +27,13 @@ export async function cropCastFaceFromBlob(
     comfyUrl?: string | null;
     /** Framing around a found face (computeFaceBoxCropRect); default 2.2× face, lift 0.12. */
     faceBox?: { scale?: number; liftRatio?: number };
+    /** Find the face another way than the page's /api/face-locate (the server: ComfyUI directly). */
+    locate?: (blob: Blob) => Promise<Awaited<ReturnType<typeof locateFaceOnPlateBlob>>>;
   }
 ): Promise<{ file: File; face: CastFaceCropOutcome }> {
-  const located = await locateFaceOnPlateBlob(blob, options);
+  const located = options?.locate
+    ? await options.locate(blob).catch(() => null)
+    : await locateFaceOnPlateBlob(blob, options);
   if (located?.available && located.face) {
     try {
       // Not turned upright: InsightFace also finds a face upside down, so the turn that found
