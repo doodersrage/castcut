@@ -1,15 +1,10 @@
+import { COMFYUI_MAX_BATCH_PROMPTS, queueBatchToComfyUi } from '@/lib/comfyui/client';
+import { resolveQueueInjectionContext } from '@/lib/comfyui/config';
 import {
-  COMFYUI_MAX_BATCH_PROMPTS,
-  queueBatchToComfyUi,
-  queuePromptToComfyUi,
-} from '@/lib/comfyui/client';
-import {
-  stripEmptyComfyUiRuntime,
-  resolveQueueInjectionContext,
-  parseWorkflowJson,
-  type ComfyUiRuntimeConfig,
-  type WorkflowParamValues,
-} from '@/lib/comfyui/config';
+  queueRequestContext,
+  queueTakeToComfyUi,
+  type ComfyUiQueueRequest,
+} from '@/lib/comfyui/queue-take-server';
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { resolveQueueFailureHref } from '@/lib/queue/failure-playbook';
 import { NextResponse } from 'next/server';
@@ -24,25 +19,7 @@ function apiQueueError(message: string, status: number, extra?: Record<string, u
 
 export const runtime = 'nodejs';
 
-type ComfyUiRequestBody = {
-  prompt?: string;
-  prompts?: string[];
-  negativePrompt?: string;
-  nodeTitle?: string;
-  model?: string;
-  params?: WorkflowParamValues;
-  paramsPerPrompt?: WorkflowParamValues[];
-  /** Browser WebSocket client id for live latent previews. */
-  clientId?: string;
-  /** Jump ahead of pending jobs (interactive singles). Ignored for batches. */
-  front?: boolean;
-  comfy?: ComfyUiRuntimeConfig;
-  /** Diffusers-first: classify + /v1/workflow, then optional Comfy fallback. */
-  preferDiffusers?: boolean;
-  allowComfyFallback?: boolean;
-  /** Diffusers engine URL hint when preferDiffusers is set. */
-  engineUrl?: string;
-};
+type ComfyUiRequestBody = ComfyUiQueueRequest;
 
 export async function GET() {
   return apiMethodNotAllowed(['POST'], '/api/comfyui');
@@ -51,16 +28,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ComfyUiRequestBody;
-    const runtime = stripEmptyComfyUiRuntime(body.comfy);
-    const workflow = runtime?.workflowJson?.trim()
-      ? (parseWorkflowJson(runtime.workflowJson) ?? undefined)
-      : undefined;
-    const resolvedQueue = resolveQueueInjectionContext({
-      runtime,
-      override: body.params,
-      model: runtime?.queueTargetModel ?? body.model,
-      workflow,
-    });
+    const { runtime, workflow } = queueRequestContext(body);
     const prompts =
       body.prompts?.map(entry => entry.trim()).filter(Boolean) ??
       (body.prompt?.trim() ? [body.prompt.trim()] : []);
@@ -77,23 +45,7 @@ export async function POST(request: Request) {
     }
 
     if (prompts.length === 1) {
-      const result = await queuePromptToComfyUi(
-        {
-          prompt: prompts[0]!,
-          negativePrompt: body.negativePrompt,
-          nodeTitle: body.nodeTitle,
-          model: runtime?.queueTargetModel ?? body.model,
-          params: resolvedQueue.params,
-          clientId: body.clientId?.trim() || undefined,
-          front: body.front === true,
-        },
-        runtime,
-        {
-          preferDiffusers: body.preferDiffusers === true,
-          allowComfyFallback: body.allowComfyFallback !== false,
-          diffusersUrl: body.engineUrl?.trim() || undefined,
-        }
-      );
+      const result = await queueTakeToComfyUi(body, prompts[0]!);
 
       if (!result.ok) {
         return apiQueueError(result.error ?? 'ComfyUI queue failed.', 502, {

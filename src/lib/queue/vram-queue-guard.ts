@@ -29,7 +29,16 @@ export function getVramGuardOptions(): Required<VramGuardOptions> {
   if (typeof window === 'undefined') {
     return { enabled: true, freeBytesThreshold: MAX_VRAM_FREE_BYTES_THRESHOLD, auto: true };
   }
-  const shared = loadSettingsCache().shared;
+  return vramGuardOptionsFrom(loadSettingsCache().shared);
+}
+
+/** The guard's options from shared settings (the page's own, or the server's synced copy). */
+export function vramGuardOptionsFrom(
+  shared: Pick<
+    ReturnType<typeof loadSettingsCache>['shared'],
+    'vramGuardMinFreeGb' | 'vramGuardEnabled' | 'vramGuardAutoThreshold'
+  >
+): Required<VramGuardOptions> {
   const gb = shared.vramGuardMinFreeGb;
   const freeBytesThreshold =
     typeof gb === 'number' && Number.isFinite(gb)
@@ -152,6 +161,12 @@ export async function guardQueueQualityForVram(input: {
   profile?: QueueQualityProfile;
   runtime?: ComfyUiRuntimeConfig;
   comfyUrl?: string;
+  /**
+   * The server's way (FINISHING_PLAN Phase 3, step 6): the guard's settings passed in, and the
+   * card read by `readVram` (ComfyUI's /system_stats) instead of the page asking /api/health.
+   */
+  settings?: { shared: Parameters<typeof vramGuardOptionsFrom>[0] };
+  readVram?: (comfyUrl?: string) => Promise<VramSnapshot | null>;
 }): Promise<{
   profile: QueueQualityProfile;
   runtime?: ComfyUiRuntimeConfig;
@@ -160,8 +175,12 @@ export async function guardQueueQualityForVram(input: {
   const base =
     input.profile ?? input.runtime?.queueQualityProfile ?? normalizeQueueQualityProfile(undefined);
   const targetUrl = input.comfyUrl?.trim() || input.runtime?.apiUrl?.trim() || undefined;
-  const vram = await fetchComfyVramSnapshot(targetUrl);
-  const guard = maybeDowngradeMaxForVram(base, vram);
+  const vram = await (input.readVram ?? fetchComfyVramSnapshot)(targetUrl);
+  const guard = maybeDowngradeMaxForVram(
+    base,
+    vram,
+    input.settings ? vramGuardOptionsFrom(input.settings.shared) : undefined
+  );
   return {
     profile: guard.profile,
     downgraded: guard.downgraded,

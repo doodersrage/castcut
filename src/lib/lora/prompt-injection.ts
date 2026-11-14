@@ -28,7 +28,17 @@ function resolveActiveCharacterTrigger(): string | undefined {
   }
 }
 
-/** Inject the active character's LoRA trigger so Generate / Roleplay / Video honor the flywheel. */
-export function injectLoraTriggers(prompt: string): string {
-  return applyLoraTriggerToPrompt(prompt, resolveActiveCharacterTrigger());
+/**
+ * Inject the active character's LoRA trigger so Generate / Roleplay / Video honor the flywheel.
+ * `character` passed (the server, FINISHING_PLAN Phase 3 step 6): that character's trigger, not
+ * the page's active one (undefined: none).
+ */
+export function injectLoraTriggers(
+  prompt: string,
+  given?: { character: Parameters<typeof loraTriggerFromCharacter>[0] }
+): string {
+  return applyLoraTriggerToPrompt(
+    prompt,
+    given ? loraTriggerFromCharacter(given.character) : resolveActiveCharacterTrigger()
+  );
 }
