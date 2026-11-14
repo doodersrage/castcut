@@ -4326,3 +4326,25 @@ keep-best → the runner loop.
   requests (all four variants). Still only in the browser, to carry in the run: the pinned queue
   params and the sampler memory. Note: the two-takes e2e test failed 2 in 6 when module load
   order moved (a static import in the queue hook) — a latent race in the Day card, not chased.
+- **The dress plate on the server** (cb69c55f): ensureDayDressPlate's logic with injected steps
+  — `media/picture-io.ts` (`PictureIo`: load, upload, input exists; the page's by default) and
+  `media/picture-io-server.ts` (ComfyUI's /view, else the kept copy, else the app's own path);
+  `day/dress-plate-server.ts` builds the try-on with queue-request-server.ts, queues it, waits
+  with watchedPromptStatus and keeps the plate in the run's own store (merged back by the patch
+  queue, not written into the shared dressed-plates store). The shoe vision check doesn't run on
+  the server yet: picked shoes get the feet pass, as a page with no vision model does.
+- **Every picture step of a take on the server** (2026-11-14): the partner stand-in
+  (`renderDayPartnerStandIn({steps})`) and its VL face, the empty room (`renderEmptyPlace(…, steps)`,
+  location/picture-server.ts: its fixed graph queued as it is), the nude face crop and the face
+  lock's reference check (`checkReferenceOnServer`), the Keep whole as Image 1, the shoe check
+  (`checkStillFootwearOnServer`, now in serverDressPlateDeps). The job wait is shared code
+  (comfyui/job-wait-server.ts). The page passes none of these: unchanged.
+- **The queue settings frozen at Start** (RunBundle.queue): the page's shared settings without
+  credentials, ComfyUI settings, workflow files, pinned queue params and sampler memory, as its
+  loaders read them — the server's synced copies differ (the page also merges its session LoRA
+  prefs and system-workflow sidecar). Optional: bundles saved before have none; a bundle the
+  queue settings push over the 4 MB cap is kept without them.
+- **queueSlot lifted out, block by block** (the take built off the page): the partner's face —
+  found, rendered or checked (`resolveTakePartnerFace`) and as it goes out as Image 2
+  (`sendTakePartnerFace`) — in day/take-partner-face.ts, with the server's steps passable; the
+  hook keeps what changed (its stand-ins). Golden take requests unchanged.

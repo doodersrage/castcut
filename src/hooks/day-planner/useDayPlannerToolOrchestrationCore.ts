@@ -176,14 +176,11 @@ import {
 import { resolveDayNudeIdentityPlateWithFaceCrop } from '@/lib/day/nude-face-crop';
 import { withThirdPerson, type DayThirdPerson } from '@/lib/day/group';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
-import {
-  checkReferenceImage,
-  checkStillReferences,
-  referenceViewUrl,
-} from '@/lib/checks/reference-check-client';
+import { checkStillReferences } from '@/lib/checks/reference-check-client';
 import { dayOutfitBlock } from '@/lib/day/auto-kit';
 import { RUN_BUNDLE_VERSION, type RunBundle } from '@/lib/day/run-bundle';
-import { postTakeShadow } from '@/lib/day/run-bundle-client';
+import { captureRunQueueSettings, postTakeShadow } from '@/lib/day/run-bundle-client';
+import { resolveTakePartnerFace, sendTakePartnerFace } from '@/lib/day/take-partner-face';
 import {
   planTakeModel,
   planTakeOutfit,
@@ -227,12 +224,7 @@ import {
   hasFootwearImage,
 } from '@/lib/wardrobe/footwear-image';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe/kit-picker';
-import {
-  renderDayPartnerStandIn,
-  uploadDayPartnerVlFace,
-  reusableDayPartnerStandIn,
-  type DayPartnerStandIn,
-} from '@/lib/day/partner-stand-in';
+import type { DayPartnerStandIn } from '@/lib/day/partner-stand-in';
 import { dayPartnerNoun, type DayPartner } from '@/lib/day/partner';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose/library';
 import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
@@ -1175,6 +1167,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           weakLayouts: [...weakPoseLayouts()],
           poseReport: blendedPoseEngineReport(),
         },
+        // Read at Start from this browser's stores, as the run's takes' queue reads them.
+        queue: captureRunQueueSettings(),
       };
     },
     [
@@ -2021,106 +2015,31 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           filmScriptId: partnerPlanFilmScriptId,
         });
         const { partnerCharacter } = partnerPlan;
-        let slotPartner: DayPartner | null = null;
-        let partnerFace: { filename?: string; imageUrl?: string } | null = null;
-        if (partnerPlan.kind === 'stand-in') {
-          // A script's shots share one stand-in (one partner a film): the page's is dropped
-          // whenever a Scene opens, so it is kept per script too.
-          const filmPartners = sceneMode
-            ? sceneScriptPartners(sceneCacheRef.current.scriptPartners)
-            : {};
-          const { filmKey } = partnerPlan;
-          let standIn =
-            (filmKey
-              ? reusableDayPartnerStandIn(filmPartners[filmKey], partnerPlan.candidate.noun)
-              : null) ??
-            (partnerPlan.stranger
-              ? null
-              : reusableDayPartnerStandIn(partnerStandInRef.current, partnerPlan.candidate.noun));
-          if (standIn && !partnerPlan.stranger && standIn !== partnerStandInRef.current) {
-            partnerStandInRef.current = standIn;
-            updateToolSettings({ partnerStandIn: standIn });
-          }
-          if (!standIn && lookCharacter) {
-            const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
-            const leadFace = await resolveDayNudeIdentityPlateWithFaceCrop({
-              character: lookCharacter,
-              model: stillModel,
-              comfyUrl,
-            });
-            const leadFaceFilename = leadFace.plate?.filename?.trim();
-            if (leadFace.faceLockRejected) referenceNotes.push(leadFace.faceLockRejected);
-            if (leadFaceFilename) {
-              standIn = await renderDayPartnerStandIn({
-                noun: partnerPlan.candidate.noun,
-                leadFaceFilename,
-                model: stillModel,
-                comfyUrl,
-                sendComfyUi: actions.sendComfyUi,
-                characterId: lookCharacter.id,
-                elderly: partnerPlan.stranger?.elderly,
-              }).catch(() => null);
-              if (standIn && !partnerPlan.stranger) {
-                partnerStandInRef.current = standIn;
-                updateToolSettings({ partnerStandIn: standIn });
-              }
-            }
-          }
-          if (standIn && filmKey && filmPartners[filmKey] !== standIn) {
-            storeToolSettings({
-              scriptPartners: { ...filmPartners, [filmKey]: standIn },
-            } as Parameters<typeof storeToolSettings>[0]);
-          }
-          if (standIn) {
-            partnerFace = { filename: standIn.filename };
-            slotPartner = {
-              name: '',
-              noun: standIn.noun,
-              descriptor: standIn.look.slice(0, 220),
-            };
-          } else {
-            // No face to reuse (render failed): a new stranger with their own face.
-            slotPartner = partnerPlan.candidate;
-          }
-        } else if (partnerPlan.kind === 'cast') {
-          const partnerCharacter = partnerPlan.character;
-          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
-          const resolved = await resolveDayNudeIdentityPlateWithFaceCrop({
-            character: partnerCharacter,
-            model: stillModel,
-            comfyUrl,
-          });
-          if (resolved.faceLockRejected) referenceNotes.push(resolved.faceLockRejected);
-          if (resolved.plate?.filename?.trim() || resolved.plate?.imageUrl?.trim()) {
-            // The partner's face must be a face, theirs, and not the lead's. A picture that
-            // fails is left out and the still invents the partner (the engine made up a
-            // stranger anyway when the upload was an unrelated picture, d56fe14a) — said on
-            // the card. A check that could not run keeps the picture.
-            const verdict = await checkReferenceImage({
-              role: 'partner-face',
-              filename: resolved.plate.filename,
-              imageUrl: resolved.plate.imageUrl,
-              subject: partnerCharacter.name,
-              partnerReferenceUrl: referenceViewUrl(resolveDayCastPlate(partnerCharacter)),
-              leadReferenceUrl: referenceViewUrl(resolveDayCastPlate(lookCharacter)),
-              comfyUrl,
-            });
-            if (verdict.status === 'mismatch') {
-              referenceNotes.push(
-                `${verdict.message ?? "The partner's face picture is not a face."} This still invents the partner instead.`
-              );
-              slotPartner = { name: '', noun: partnerPlan.candidate.noun, invented: true };
-            } else {
-              partnerFace = {
-                filename: resolved.plate.filename?.trim() || undefined,
-                imageUrl: resolved.plate.imageUrl?.trim() || undefined,
-              };
-              slotPartner = partnerPlan.candidate;
-            }
-          }
-        } else if (partnerPlan.note) {
-          referenceNotes.push(partnerPlan.note);
+        // The face found or made (take-partner-face.ts); what changed is kept here.
+        const filmPartners = sceneMode
+          ? sceneScriptPartners(sceneCacheRef.current.scriptPartners)
+          : {};
+        const partnerResult = await resolveTakePartnerFace({
+          plan: partnerPlan,
+          filmPartners,
+          pageStandIn: partnerStandInRef.current,
+          lead: lookCharacter,
+          stillModel,
+          comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+          sendComfyUi: actions.sendComfyUi,
+        });
+        referenceNotes.push(...partnerResult.notes);
+        if (partnerResult.pageStandIn) {
+          partnerStandInRef.current = partnerResult.pageStandIn;
+          updateToolSettings({ partnerStandIn: partnerResult.pageStandIn });
         }
+        if (partnerResult.filmPartners) {
+          storeToolSettings({
+            scriptPartners: partnerResult.filmPartners,
+          } as Parameters<typeof storeToolSettings>[0]);
+        }
+        const slotPartner: DayPartner | null = partnerResult.slotPartner;
+        const partnerFace = partnerResult.partnerFace;
         const clothingReinforce = dayStillClothingReinforce({
           omitGarment,
           replaceOutfit: replaceKeepOutfit,
@@ -2625,63 +2544,31 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         const extraUrls: Array<string | undefined> = [undefined];
         const extraFilenames: string[] = [''];
         if (partnerFace) {
-          // Clothed stills: the partner face rides VL-only (see uploadDayPartnerVlFace).
-          const partnerComfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
-          const vlFace = !adultStill
-            ? await uploadDayPartnerVlFace({
-                ...partnerFace,
-                model: stillModel,
-                comfyUrl: partnerComfyUrl,
-              })
-            : null;
-          extraUrls[1] = vlFace ? undefined : partnerFace.imageUrl;
-          extraFilenames[1] = vlFace || partnerFace.filename || '';
-          // The file that actually goes out (the VL re-upload is a new file: for four days it
-          // was a different picture from the face it was made from). A Cast partner's is
-          // compared with their plate and the lead's; the stand-in's only has to be a face.
-          const sentFilename = extraFilenames[1].trim();
-          if (sentFilename) {
-            const castPartner = slotPartner && !slotPartner.invented ? partnerCharacter : null;
-            const verdict = await checkReferenceImage({
-              role: castPartner ? 'partner-face' : 'face',
-              filename: sentFilename,
-              subject: castPartner?.name ?? "the partner's",
-              ...(castPartner
-                ? {
-                    partnerReferenceUrl: referenceViewUrl(resolveDayCastPlate(castPartner)),
-                    leadReferenceUrl: referenceViewUrl(resolveDayCastPlate(lookCharacter)),
-                  }
-                : {}),
-              comfyUrl: partnerComfyUrl,
-            });
-            if (verdict.status === 'mismatch') {
-              referenceNotes.push(
-                `${verdict.message ?? 'The partner picture is not a face.'} It was left out of this still, so the engine invents the partner.`
-              );
-              extraUrls[1] = undefined;
-              extraFilenames[1] = '';
-              // A stand-in that is no face (until 2026-11-11 its crop kept only the forehead) is
-              // forgotten, page and film alike, so the next shot renders a new one instead of
-              // every shot of the film going out without the partner.
-              const badFace = partnerFace.filename?.trim();
-              if (!castPartner && badFace) {
-                if (partnerStandInRef.current?.filename === badFace) {
-                  partnerStandInRef.current = null;
-                  updateToolSettings({ partnerStandIn: undefined });
-                }
-                const filmPartners = sceneScriptPartners(sceneCacheRef.current.scriptPartners);
-                const kept = Object.fromEntries(
-                  Object.entries(filmPartners).filter(([, standIn]) => standIn.filename !== badFace)
-                );
-                if (Object.keys(kept).length !== Object.keys(filmPartners).length) {
-                  storeToolSettings({ scriptPartners: kept } as Parameters<
-                    typeof storeToolSettings
-                  >[0]);
-                }
-              }
-            } else if (castPartner) {
-              partnerSentFace = { partnerId: castPartner.id, filename: sentFilename };
-            }
+          // Clothed stills: the partner face rides VL-only, checked as it goes
+          // (take-partner-face.ts); what changed is kept here.
+          const sent = await sendTakePartnerFace({
+            partnerFace,
+            adultStill,
+            slotPartner,
+            partnerCharacter,
+            lead: lookCharacter,
+            stillModel,
+            comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+            filmPartners: sceneScriptPartners(sceneCacheRef.current.scriptPartners),
+            pageStandIn: partnerStandInRef.current,
+          });
+          extraUrls[1] = sent.url;
+          extraFilenames[1] = sent.filename;
+          if (sent.note) referenceNotes.push(sent.note);
+          if (sent.sentFace) partnerSentFace = sent.sentFace;
+          if (sent.clearPageStandIn) {
+            partnerStandInRef.current = null;
+            updateToolSettings({ partnerStandIn: undefined });
+          }
+          if (sent.filmPartners) {
+            storeToolSettings({ scriptPartners: sent.filmPartners } as Parameters<
+              typeof storeToolSettings
+            >[0]);
           }
         } else if (garmentReinforce?.imageUrl || garmentReinforce?.imageFilename) {
           extraUrls[1] = garmentReinforce.imageUrl;

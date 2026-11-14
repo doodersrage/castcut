@@ -10,6 +10,7 @@ import '@/lib/media/off-page-canvas-server';
 import type { CharacterRecord } from '@/lib/character/os';
 import { COMFY_IMAGE_MODELS } from '@/lib/comfy-models/client';
 import type { ComfyUiModelLists } from '@/lib/comfyui/object-info';
+import { comfyOutputViewUrl, serverJobWait } from '@/lib/comfyui/job-wait-server';
 import { queueTakeToComfyUi } from '@/lib/comfyui/queue-take-server';
 import type { ComfyPromptStatus } from '@/lib/comfyui/status';
 import { serverPictureIo } from '@/lib/media/picture-io-server';
@@ -20,25 +21,12 @@ import {
   type ServerQueueSettings,
 } from '@/lib/queue/queue-request-server';
 import type { VramSnapshot } from '@/lib/queue/vram-queue-guard';
-import { watchedPromptStatus } from '@/lib/server/run-watcher-server';
+import { checkStillFootwearOnServer } from '@/lib/wardrobe/footwear-check-server';
 import type { DayDressPlateDeps, DressPlateStore } from './dress-plate-client';
 
 type Fetch = typeof fetch;
 
-/** A finished job's first picture as the page names it (/api/comfyui/view?…). */
-export function comfyOutputViewUrl(
-  status: Pick<ComfyPromptStatus, 'images' | 'comfyUrl'>
-): string | null {
-  const image = status.images?.[0];
-  if (!image?.filename) return null;
-  const params = new URLSearchParams({
-    filename: image.filename,
-    subfolder: image.subfolder ?? '',
-    type: image.type || 'output',
-  });
-  if (status.comfyUrl?.trim()) params.set('comfyUrl', status.comfyUrl.trim());
-  return `/api/comfyui/view?${params.toString()}`;
-}
+export { comfyOutputViewUrl };
 
 export function serverDressPlateDeps(input: {
   settings: ServerQueueSettings;
@@ -61,10 +49,11 @@ export function serverDressPlateDeps(input: {
     ...(input.appOrigin ? { appOrigin: input.appOrigin } : {}),
     ...(input.fetchImpl ? { fetchImpl: input.fetchImpl } : {}),
   });
-  const status =
-    input.status ??
-    ((promptId: string) => watchedPromptStatus(promptId, { apiUrl: input.comfyUrl }));
-  const sleep = input.sleep ?? ((ms: number) => new Promise<void>(done => setTimeout(done, ms)));
+  const wait = serverJobWait({
+    comfyUrl: input.comfyUrl,
+    ...(input.status ? { status: input.status } : {}),
+    ...(input.sleep ? { sleep: input.sleep } : {}),
+  });
   const installed = installedComfyModels(
     COMFY_IMAGE_MODELS,
     input.inventory ?? null,
@@ -73,10 +62,13 @@ export function serverDressPlateDeps(input: {
   let uploads = 0;
   return {
     io,
+    // The shoe check on the server: the same vision check, the still read with the run's steps.
+    visionShared: input.settings.shared,
+    checkFootwear: options => checkStillFootwearOnServer(options, io),
     store: input.store,
     comfyUrl: input.comfyUrl,
     installed: installed ? modelId => installed.has(modelId) : null,
-    resultUrl: entry => comfyOutputViewUrl(entry as unknown as ComfyPromptStatus),
+    resultUrl: wait.resultUrl,
     sendComfyUi: async (prompt, _sport, _historyId, options) => {
       const body = await buildServerQueueRequest(
         prompt,
@@ -104,20 +96,6 @@ export function serverDressPlateDeps(input: {
       if (!queued.ok) throw new Error(queued.error?.trim() || 'ComfyUI did not take the job.');
       return queued.promptId || undefined;
     },
-    // waitForGalleryPromptIds' shape: one entry per id once each is done, or what it was then.
-    waitForPromptIds: (async (ids: string[], options?: { timeoutMs?: number; pollMs?: number }) => {
-      const deadline = Date.now() + (options?.timeoutMs ?? 8 * 60_000);
-      const pollMs = options?.pollMs ?? 2_500;
-      let latest: ComfyPromptStatus[] = [];
-      for (;;) {
-        latest = await Promise.all(ids.map(id => status(id)));
-        const settled = latest.every(
-          entry => entry.status === 'completed' || entry.status === 'error'
-        );
-        if (settled || Date.now() >= deadline) break;
-        await sleep(pollMs);
-      }
-      return latest;
-    }) as unknown as DayDressPlateDeps['waitForPromptIds'],
+    waitForPromptIds: wait.waitForPromptIds,
   };
 }

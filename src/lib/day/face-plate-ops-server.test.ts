@@ -115,4 +115,57 @@ describe('a face plate on the server (Phase 3)', () => {
       )
     );
   });
+  it('the nude face crop: a face lock that is no face picture cut again from the plate, on the server', async () => {
+    const { serverFacePlateOps } = await import('./face-plate-ops-server');
+    const { resolveDayNudeIdentityPlateWithFaceCrop } = await import('./nude-face-crop');
+    const comfy = fakeComfy({ 'look-plate.png': await plate() });
+    globalThis.fetch = comfy.fetchImpl;
+    const checked: string[] = [];
+    const result = await resolveDayNudeIdentityPlateWithFaceCrop({
+      character: {
+        id: 'c1',
+        name: 'Mara',
+        reference: { originalFilename: 'look-plate.png', isolated: false },
+        ipAdapter: { imageFilename: 'old-face-lock.png' },
+      } as never,
+      model: 'qwen-image-edit-2511',
+      comfyUrl: COMFY,
+      ops: {
+        ...serverFacePlateOps({ comfyUrl: COMFY, fetchImpl: comfy.fetchImpl }),
+        locate: async () => ({
+          available: true as const,
+          face: { x: 240, y: 90, width: 120, height: 150 },
+        }),
+      },
+      checkReference: async input => {
+        checked.push(input.filename ?? '');
+        return { status: 'mismatch', issues: [], message: 'The face lock shows a whole body.' };
+      },
+    });
+    assert.deepEqual(checked, ['old-face-lock.png'], 'the face lock checked first');
+    assert.match(result.faceLockRejected ?? '', /whole body.*cropped from the look/);
+    assert.equal(result.autoCropped, true);
+    assert.equal(comfy.uploads.length, 1, 'the face cut from the look’s plate, uploaded');
+    assert.match(comfy.uploads[0]!.name, /^day-nude-face-/);
+    assert.equal(result.plate?.filename, comfy.uploads[0]!.name);
+  });
+  it('the Keep whole as Image 1 (Lightning Vacation), put in ComfyUI on the server', async () => {
+    const { serverFacePlateOps } = await import('./face-plate-ops-server');
+    const { resolveDayVacationIdentityVlPlate, clearDayVacationFaceBreakCache } = await import(
+      './vacation-face-crop'
+    );
+    clearDayVacationFaceBreakCache();
+    const comfy = fakeComfy({ 'keep-whole.png': await plate() });
+    globalThis.fetch = comfy.fetchImpl;
+    const result = await resolveDayVacationIdentityVlPlate({
+      bodyPlate: { filename: 'keep-whole.png', source: 'keep' } as never,
+      model: 'qwen-image-edit-2511',
+      comfyUrl: COMFY,
+      ops: serverFacePlateOps({ comfyUrl: COMFY, fetchImpl: comfy.fetchImpl }),
+    });
+    assert.equal(comfy.uploads.length, 1);
+    assert.match(comfy.uploads[0]!.name, /^day-vacation-keep-/);
+    assert.equal(result?.filename, comfy.uploads[0]!.name);
+    assert.equal(result?.source, 'keep');
+  });
 });

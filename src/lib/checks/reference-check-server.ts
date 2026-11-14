@@ -23,6 +23,7 @@ import {
   type ReferenceCheckResponse,
   type ReferenceFacts,
   type ReferenceRole,
+  type ReferenceVerdict,
 } from '@/lib/checks/reference-check';
 
 export type { ReferenceCheckResponse };
@@ -225,4 +226,46 @@ export async function checkReferenceInComfy(input: {
     }),
     ms: Date.now() - started,
   };
+}
+
+/**
+ * checkReferenceImage's shape on the server (FINISHING_PLAN Phase 3): the same check, asked of
+ * ComfyUI directly — its verdict, `unknown` when it could not run (callers fail open, as the
+ * page's do). Cached in this process (checkReferenceInComfy), not in a page's localStorage.
+ */
+export async function checkReferenceOnServer(input: {
+  role: ReferenceRole;
+  filename?: string | null;
+  imageUrl?: string | null;
+  subject?: string | null;
+  partnerReferenceUrl?: string | null;
+  leadReferenceUrl?: string | null;
+  comfyUrl?: string | null;
+}): Promise<ReferenceVerdict> {
+  const filename = input.filename?.trim() || undefined;
+  const imageUrl = input.imageUrl?.trim() || undefined;
+  if (!filename && !imageUrl) {
+    return { status: 'unknown', issues: [], message: 'No picture to check.' };
+  }
+  try {
+    const answer = await checkReferenceInComfy({
+      role: input.role,
+      ...(filename ? { filename } : { imageUrl }),
+      ...(input.comfyUrl?.trim() ? { comfyUrl: input.comfyUrl.trim() } : {}),
+      ...(input.subject?.trim() ? { subject: input.subject.trim() } : {}),
+      ...(input.partnerReferenceUrl?.trim()
+        ? { partnerReferenceUrl: input.partnerReferenceUrl.trim() }
+        : {}),
+      ...(input.leadReferenceUrl?.trim()
+        ? { leadReferenceUrl: input.leadReferenceUrl.trim() }
+        : {}),
+    });
+    return answer.verdict;
+  } catch (error) {
+    return {
+      status: 'unknown',
+      issues: [],
+      message: error instanceof Error ? error.message : 'The check failed.',
+    };
+  }
 }

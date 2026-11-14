@@ -11,6 +11,7 @@ import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isol
 import { cropCastFaceFromBlob } from '@/lib/cast/face-crop';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { checkReferenceImage } from '@/lib/checks/reference-check-client';
+import type { DayFacePlateOps } from '@/lib/day/vacation-face-crop';
 
 /**
  * Resolve Image 1 for nude Day: distinct Cast face when present, else a
@@ -30,6 +31,12 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
   character: CharacterRecord | null | undefined;
   model?: string | null;
   comfyUrl?: string | null;
+  /**
+   * The server's steps (FINISHING_PLAN Phase 3): the face plate's picture steps
+   * (face-plate-ops-server.ts) and the reference check (checkReferenceOnServer). The page's when absent.
+   */
+  ops?: Pick<DayFacePlateOps, 'loadBlob' | 'locate' | 'upload'>;
+  checkReference?: typeof checkReferenceImage;
 }): Promise<{
   plate: DayPlate | null;
   autoCropped: boolean;
@@ -40,7 +47,7 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
   const face = resolveDayFaceOnlyPlate(input.character);
   let faceLockRejected: string | undefined;
   if (face) {
-    const verdict = await checkReferenceImage({
+    const verdict = await (input.checkReference ?? checkReferenceImage)({
       role: 'face',
       filename: face.filename,
       imageUrl: face.imageUrl,
@@ -65,7 +72,7 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
       filename: body.filename ?? body.originalFilename,
       comfyUrl,
     });
-    const blob = await loadImageBlobFromUrls(urls);
+    const blob = input.ops ? await input.ops.loadBlob(urls) : await loadImageBlobFromUrls(urls);
     const stamp = Date.now();
     const { file, face: found } = await cropCastFaceFromBlob(
       blob,
@@ -79,15 +86,24 @@ export async function resolveDayNudeIdentityPlateWithFaceCrop(input: {
       // Tighter and higher than the default face crop: its bottom edge reached the shoulders,
       // and a plate's tank-top straps put a white top on 5 of 6 nude stills (Rapid replays,
       // 2026-10-06); cut just under the collarbones, 6 of 6 were nude.
-      { comfyUrl, faceBox: DAY_NUDE_FACE_BOX }
+      {
+        comfyUrl,
+        faceBox: DAY_NUDE_FACE_BOX,
+        ...(input.ops?.locate ? { locate: input.ops.locate } : {}),
+      }
     );
-    const uploaded = await resolveQueueInputImage({
-      file,
-      filename: file.name,
-      model: input.model ?? undefined,
-      comfyUrl,
-    });
-    const filename = uploaded?.filename?.trim();
+    const filename = (
+      input.ops
+        ? await input.ops.upload(file, input.model ?? undefined, comfyUrl)
+        : (
+            await resolveQueueInputImage({
+              file,
+              filename: file.name,
+              model: input.model ?? undefined,
+              comfyUrl,
+            })
+          )?.filename
+    )?.trim();
     if (!filename) {
       return { plate: body, autoCropped: false, ...rejected };
     }

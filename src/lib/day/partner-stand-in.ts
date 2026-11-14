@@ -16,6 +16,7 @@ import { cropPortraitFaceRegionFromBlob } from '@/lib/face/portrait-face-crop';
 import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { pickCompanionLook } from '@/lib/day/clothed-lead';
 import { neutralizeYouthWords } from '@/lib/adult/adult-age-safeguard';
+import type { PictureIo } from '@/lib/media/picture-io';
 
 export type DayPartnerStandIn = {
   noun: 'man' | 'woman';
@@ -27,7 +28,7 @@ export type DayPartnerStandIn = {
 
 type SendComfyUi = (
   prompt: string,
-  sport?: null,
+  sport?: null | undefined,
   historyId?: undefined,
   options?: SendComfyUiOptions
 ) => Promise<string | undefined | void>;
@@ -92,6 +93,13 @@ export const DAY_PARTNER_STAND_IN_CROP = {
   topInsetRatio: 0.03,
 } as const;
 
+/** How the stand-in's job is waited for and its picture fetched and uploaded (the page's: none). */
+export type DayStandInSteps = {
+  io?: PictureIo;
+  waitForPromptIds?: typeof waitForGalleryPromptIds;
+  resultUrl?: (entry: Parameters<typeof galleryEntryPrimaryViewUrl>[0]) => string | null;
+};
+
 export async function renderDayPartnerStandIn(input: {
   noun: 'man' | 'woman';
   /** The lead's face crop (ComfyUI input filename) — the edit's canvas, replaced entirely. */
@@ -102,6 +110,11 @@ export async function renderDayPartnerStandIn(input: {
   characterId?: string;
   /** An old person (scriptShotOther): their look says so. */
   elderly?: boolean;
+  /**
+   * The server's way (FINISHING_PLAN Phase 3): its picture steps, its wait for the job and how a
+   * finished job's picture is named — serverDressPlateDeps gives all three. The page's when absent.
+   */
+  steps?: DayStandInSteps;
 }): Promise<DayPartnerStandIn | null> {
   const look = pickDayPartnerStandInLook(input.noun, { elderly: input.elderly });
   const promptId = await input.sendComfyUi(buildDayPartnerStandInPrompt(look), null, undefined, {
@@ -116,23 +129,30 @@ export async function renderDayPartnerStandIn(input: {
   if (!id) {
     return null;
   }
-  const [entry] = await waitForGalleryPromptIds([id], { timeoutMs: 3 * 60_000, pollMs: 2_000 });
-  const resultUrl = entry ? galleryEntryPrimaryViewUrl(entry)?.trim() : '';
+  const wait = input.steps?.waitForPromptIds ?? waitForGalleryPromptIds;
+  const [entry] = await wait([id], { timeoutMs: 3 * 60_000, pollMs: 2_000 });
+  const resultUrl = entry
+    ? (input.steps?.resultUrl ?? galleryEntryPrimaryViewUrl)(entry)?.trim()
+    : '';
   if (!resultUrl) {
     return null;
   }
-  const blob = await loadImageBlobFromUrls([resultUrl]);
+  const blob = input.steps?.io
+    ? await input.steps.io.loadBlob([resultUrl])
+    : await loadImageBlobFromUrls([resultUrl]);
   // Head only: the portrait's T-shirt rode into every still as the partner's outfit.
   const name = `day-partner-${input.noun}-${Date.now()}.png`;
   const file = await cropPortraitFaceRegionFromBlob(blob, name, DAY_PARTNER_STAND_IN_CROP).catch(
     () => new File([blob], name, { type: blob.type || 'image/png' })
   );
-  const uploaded = await resolveQueueInputImage({
-    file,
-    filename: file.name,
-    model: input.model ?? undefined,
-    comfyUrl: input.comfyUrl,
-  });
+  const uploaded = input.steps?.io
+    ? await input.steps.io.upload(file, input.model ?? undefined)
+    : await resolveQueueInputImage({
+        file,
+        filename: file.name,
+        model: input.model ?? undefined,
+        comfyUrl: input.comfyUrl,
+      });
   const filename = uploaded?.filename?.trim();
   return filename ? { noun: input.noun, look, filename, imageUrl: resultUrl } : null;
 }
@@ -147,6 +167,8 @@ export async function uploadDayPartnerVlFace(input: {
   imageUrl?: string;
   model?: string | null;
   comfyUrl?: string;
+  /** The server's picture steps (picture-io-server.ts); the page's when absent. */
+  io?: PictureIo;
 }): Promise<string | null> {
   const urls = collectIsolateSourceUrls({
     imageUrl: input.imageUrl?.trim() || undefined,
@@ -155,16 +177,18 @@ export async function uploadDayPartnerVlFace(input: {
   });
   if (urls.length === 0) return null;
   try {
-    const blob = await loadImageBlobFromUrls(urls);
+    const blob = input.io ? await input.io.loadBlob(urls) : await loadImageBlobFromUrls(urls);
     const file = new File([blob], `day-partner-vl-${Date.now()}.png`, {
       type: blob.type || 'image/png',
     });
-    const uploaded = await resolveQueueInputImage({
-      file,
-      filename: file.name,
-      model: input.model ?? undefined,
-      comfyUrl: input.comfyUrl,
-    });
+    const uploaded = input.io
+      ? await input.io.upload(file, input.model ?? undefined)
+      : await resolveQueueInputImage({
+          file,
+          filename: file.name,
+          model: input.model ?? undefined,
+          comfyUrl: input.comfyUrl,
+        });
     return uploaded?.filename?.trim() || null;
   } catch {
     return null;

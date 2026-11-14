@@ -25,8 +25,15 @@ export async function POST(request: Request) {
   }
   const bundle = normalizeRunBundle(body.bundle);
   if (!bundle) return apiError('That is not a run bundle.', 400);
-  if (!writeRunBundle(kvScopeForUser(userId), bundle.runId, bundle)) {
-    return apiError('That run bundle is too large.', 413);
+  const scope = kvScopeForUser(userId);
+  if (writeRunBundle(scope, bundle.runId, bundle)) return apiJson({ ok: true });
+  // A large workflow library can push the queue settings over the cap: the rest is kept (the run
+  // renders on the page, its takes still checked against the bundle), and the reply says so.
+  if (bundle.queue) {
+    const { queue: _queue, ...withoutQueue } = bundle;
+    if (writeRunBundle(scope, bundle.runId, withoutQueue)) {
+      return apiJson({ ok: true, queueSettings: 'too large' });
+    }
   }
-  return apiJson({ ok: true });
+  return apiError('That run bundle is too large.', 413);
 }

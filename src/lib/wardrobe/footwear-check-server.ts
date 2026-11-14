@@ -9,8 +9,10 @@ import {
 } from '@/lib/wardrobe/footwear-check';
 import { visionCompletion } from '@/lib/llm/client';
 import {
+  parseLlmRequestOptions,
   resolveRequestLlmEnabled,
   resolveRequestLlmEndpoint,
+  sharedLlmRequestBody,
   type LlmRequestOptions,
 } from '@/lib/llm/request-options';
 import { splitImageDataUrl } from '@/lib/vision/image-prepare';
@@ -68,4 +70,41 @@ export async function checkFootwearInStill(options: {
     throw new Error('The shoe check returned an unreadable reply.');
   }
   return { reading, verdict: footwearCheckVerdict(reading, options.shoeWords) };
+}
+
+/** The page's limit before it compresses a still for a vision check (prepareVisionScanImagePayload). */
+const VISION_STILL_MAX_BYTES = 6_000_000;
+
+/**
+ * checkStillFootwear's shape on the server (FINISHING_PLAN Phase 3): the still read with the
+ * run's picture steps and checked as /api/footwear-check checks it. Null when the check cannot
+ * run (no vision model, unreadable picture or reply) — the caller keeps its unchecked rule, as
+ * the page's does. Never throws.
+ */
+export async function checkStillFootwearOnServer(
+  options: {
+    imageUrl: string;
+    shoeWords: string;
+    shared?: Parameters<typeof sharedLlmRequestBody>[0];
+  },
+  io: { loadBlob: (urls: string[]) => Promise<Blob> }
+): Promise<FootwearCheckVerdict | null> {
+  try {
+    const blob = await io.loadBlob([options.imageUrl]);
+    let bytes: Buffer = Buffer.from(await blob.arrayBuffer());
+    let mimeType = blob.type || 'image/png';
+    if (bytes.length > VISION_STILL_MAX_BYTES) {
+      bytes = await sharp(bytes).rotate().jpeg({ quality: 88 }).toBuffer();
+      mimeType = 'image/jpeg';
+    }
+    const result = await checkFootwearInStill({
+      imageDataUrl: `data:${mimeType};base64,${bytes.toString('base64')}`,
+      shoeWords: options.shoeWords.slice(0, 300),
+      llm: parseLlmRequestOptions(options.shared ? sharedLlmRequestBody(options.shared) : {}),
+    });
+    return typeof result.verdict?.ok === 'boolean' ? result.verdict : null;
+  } catch (error) {
+    console.warn('Shoe check skipped:', error instanceof Error ? error.message : error);
+    return null;
+  }
 }

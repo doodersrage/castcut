@@ -138,6 +138,96 @@ describe('a dress plate made on the server (Phase 3)', () => {
   });
 });
 
+describe('a partner stand-in made on the server (Phase 3)', () => {
+  it('the portrait queued with the server’s steps, its head cropped and uploaded', async () => {
+    const png = await sharp({ create: { width: 96, height: 128, channels: 3, background: '#8a7' } })
+      .png()
+      .toBuffer();
+    const prompts: unknown[] = [];
+    const uploads: { name: string; bytes: Buffer }[] = [];
+    const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input instanceof Request ? input.url : input));
+      if (url.pathname === '/prompt' && init?.method === 'POST') {
+        prompts.push(JSON.parse(String(init.body)));
+        return Response.json({ prompt_id: 'stand-in-1', number: 1, node_errors: {} });
+      }
+      if (url.pathname === '/view') {
+        return new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png' } });
+      }
+      if (url.pathname === '/upload/image' && init?.method === 'POST') {
+        const image = (init.body as FormData).get('image') as File;
+        uploads.push({ name: image.name, bytes: Buffer.from(await image.arrayBuffer()) });
+        return Response.json({ name: image.name, subfolder: '', type: 'input' });
+      }
+      if (url.pathname.startsWith('/object_info')) return Response.json(OBJECT_INFO);
+      return Response.json({});
+    }) as typeof fetch;
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchImpl;
+    try {
+      const { loadSettingsCache } = await import('../settings/cache');
+      const { loadComfyUiSettings } = await import('../comfyui/settings');
+      const { renderDayPartnerStandIn } = await import('./partner-stand-in');
+      const { serverDressPlateDeps } = await import('./dress-plate-server');
+      const deps = serverDressPlateDeps({
+        settings: {
+          shared: { ...loadSettingsCache().shared, selectedWorkflowFileId: 'e2e-wf' },
+          comfyUi: { ...loadComfyUiSettings(), apiUrl: COMFY },
+          workflowFiles: [
+            { id: 'e2e-wf', name: 'e2e', json: WORKFLOW, createdAt: Date.now() } as never,
+          ],
+        },
+        config: { model: 'qwen-image-edit-2511', tool: 'day' },
+        comfyUrl: COMFY,
+        store: { all: () => [], find: () => null, save: () => undefined },
+        fetchImpl,
+        status: async promptId => ({
+          promptId,
+          status: 'completed',
+          comfyUrl: COMFY,
+          images: [{ filename: 'stand-in-out.png', subfolder: '', type: 'output' }],
+        }),
+        sleep: async () => undefined,
+      });
+      const standIn = await renderDayPartnerStandIn({
+        noun: 'man',
+        leadFaceFilename: 'lead-face.png',
+        model: 'qwen-image-edit-2511',
+        comfyUrl: COMFY,
+        sendComfyUi: deps.sendComfyUi,
+        steps: deps,
+      });
+      assert.equal(prompts.length, 1, 'one portrait queued');
+      assert.match(JSON.stringify(prompts[0]), /completely different person/);
+      assert.match(JSON.stringify(prompts[0]), /lead-face\.png/, 'the lead’s face is Image 1');
+      assert.equal(uploads.length, 1, 'the head crop put in ComfyUI’s input folder');
+      assert.match(uploads[0]!.name, /^day-partner-man-/);
+      // Head only, drawn on the server's canvas: not the portrait as it came.
+      const crop = await sharp(uploads[0]!.bytes).metadata();
+      assert.ok(crop.width && crop.height, 'a picture was uploaded');
+      assert.notDeepEqual([crop.width, crop.height], [96, 128], 'the portrait was cropped');
+      assert.ok(Math.abs(crop.width! / crop.height! - 0.85) < 0.05, `head-crop aspect, got ${crop.width}x${crop.height}`);
+      assert.equal(standIn?.noun, 'man');
+      assert.equal(standIn?.filename, uploads[0]!.name);
+      assert.match(standIn?.imageUrl ?? '', /stand-in-out\.png/);
+
+      // Its face as the VL-only reference for a clothed still, put in ComfyUI the server's way.
+      const { uploadDayPartnerVlFace } = await import('./partner-stand-in');
+      const vl = await uploadDayPartnerVlFace({
+        filename: standIn!.filename,
+        model: 'qwen-image-edit-2511',
+        comfyUrl: COMFY,
+        io: deps.io!,
+      });
+      assert.equal(uploads.length, 2);
+      assert.match(uploads[1]!.name, /^day-partner-vl-/);
+      assert.equal(vl, uploads[1]!.name);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+});
+
 describe('comfyOutputViewUrl', () => {
   it('names a finished job’s picture as the page does', async () => {
     const { comfyOutputViewUrl } = await import('./dress-plate-server');

@@ -44,7 +44,7 @@ export type DayDressPlateRequest = DayDressPlateKeyInput & {
 export type DayDressPlateDeps = {
   sendComfyUi: (
     prompt: string,
-    a?: undefined,
+    a?: null,
     b?: undefined,
     options?: Record<string, unknown>
   ) => Promise<string | void>;

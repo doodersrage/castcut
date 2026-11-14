@@ -172,3 +172,47 @@ describe('the server’s shadow check of a run’s takes', () => {
     });
   });
 });
+
+describe('a bundle’s queue settings (Phase 3)', () => {
+  it('a bundle saved before them loads without (the server cannot render that run)', () => {
+    const loaded = normalizeRunBundle(JSON.parse(JSON.stringify(bundle)));
+    assert.ok(loaded);
+    assert.equal('queue' in loaded!, false);
+  });
+
+  it('kept when well formed; workflow files without an id or a graph dropped', () => {
+    const loaded = normalizeRunBundle({
+      ...bundle,
+      queue: {
+        shared: { model: 'qwen-image-edit-2511' },
+        comfyUi: { apiUrl: 'http://127.0.0.1:8188' },
+        workflowFiles: [
+          { id: 'wf-1', name: 'One', json: '{}' },
+          { id: 'wf-2', name: 'No graph' },
+          'junk',
+        ],
+        queueParams: { enabled: true, steps: '8' },
+        samplerMemory: { 'sdxl-base': { cfg: '5', updatedAt: 1 } },
+      },
+    });
+    assert.deepEqual(
+      loaded?.queue?.workflowFiles.map(file => file.id),
+      ['wf-1']
+    );
+    assert.equal(loaded?.queue?.shared.model, 'qwen-image-edit-2511');
+    assert.equal(loaded?.queue?.queueParams?.steps, '8');
+    assert.equal(loaded?.queue?.samplerMemory?.['sdxl-base']?.cfg, '5');
+  });
+
+  it('malformed queue settings are left out, the rest of the bundle kept', () => {
+    for (const queue of [null, 'x', { shared: {} }, { shared: [], comfyUi: {} }]) {
+      const loaded = normalizeRunBundle({ ...bundle, queue });
+      assert.ok(loaded, `bundle kept with queue ${JSON.stringify(queue)}`);
+      assert.equal(loaded!.queue, undefined);
+      assert.equal(loaded!.scenes.length, 2);
+    }
+    const noFiles = normalizeRunBundle({ ...bundle, queue: { shared: {}, comfyUi: {} } });
+    assert.deepEqual(noFiles?.queue?.workflowFiles, []);
+    assert.equal(noFiles?.queue?.queueParams, undefined);
+  });
+});

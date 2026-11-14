@@ -218,7 +218,10 @@ export async function resolveDayVacationIdentityVlPlate(input: {
   character?: CharacterRecord | null;
   model?: string | null;
   comfyUrl?: string | null;
+  /** The server's steps (face-plate-ops-server.ts); the page's by default. */
+  ops?: Pick<DayFacePlateOps, 'loadBlob' | 'upload'>;
 }): Promise<DayPlate | null> {
+  const ops = input.ops ?? PAGE_FACE_PLATE_OPS;
   const body = input.bodyPlate ?? null;
   if (!body) {
     return null;
@@ -237,19 +240,13 @@ export async function resolveDayVacationIdentityVlPlate(input: {
     return body.filename?.trim() ? body : null;
   }
   try {
-    const blob = await loadImageBlobFromUrls(urls);
+    const blob = await ops.loadBlob(urls);
     const stamp = dayPlateUploadStamp(cacheKey);
     // day-vacation-keep-* is NOT in the VL-only skip list — ReferenceLatent holds face.
     const file = new File([blob], `day-vacation-keep-${stamp}.png`, {
       type: blob.type || 'image/png',
     });
-    const uploaded = await resolveQueueInputImage({
-      file,
-      filename: file.name,
-      model: input.model ?? undefined,
-      comfyUrl,
-    });
-    const filename = uploaded?.filename?.trim();
+    const filename = (await ops.upload(file, input.model ?? undefined, comfyUrl))?.trim();
     if (!filename) {
       return body.filename?.trim() ? body : null;
     }

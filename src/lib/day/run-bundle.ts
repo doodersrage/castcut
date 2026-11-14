@@ -13,6 +13,7 @@ import type { ComfyImageModel } from '../comfy-models/client';
 import type { ComfyUiModelLists } from '../comfyui/object-info';
 import type { ModelCheckpointMap } from '../model/checkpoint-map';
 import type { PoseEngineReport } from '../pose/pose-engine-report';
+import type { ServerQueueSettings } from '../queue/queue-request-server';
 import type { DaySlot } from './planner';
 import { planTakeModel, planTakeOutfit, planTakePartner, planTakePoseGuide } from './take-plan';
 import type { DayAutoKitOption } from './auto-kit';
@@ -70,6 +71,14 @@ export type RunBundle = {
   cast: CharacterRecord[];
   scenes: RunBundleScene[];
   metrics: { weakLayouts: string[]; poseReport?: PoseEngineReport };
+  /**
+   * What the page's queue reads from this browser, as it read it at Start (FINISHING_PLAN Phase 3):
+   * the shared settings (no credentials — the server's environment has those), ComfyUI's settings,
+   * the workflow files, the pinned queue params, the sampler memory. The server builds a take's
+   * ComfyUI request from these (queue-request-server.ts). Absent in bundles saved before
+   * 2026-11-14: the server cannot render such a run itself.
+   */
+  queue?: ServerQueueSettings;
 };
 
 /** What a take decided, as compared. */
@@ -110,12 +119,38 @@ export type TakeShadowReport = {
 const isRec = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+/**
+ * A bundle's queue settings from untrusted JSON, or null: the shared and ComfyUI settings as
+ * objects, the workflow files that have an id and a graph; the queue params and sampler memory
+ * when they are objects.
+ */
+export function normalizeRunQueueSettings(raw: unknown): ServerQueueSettings | null {
+  if (!isRec(raw) || !isRec(raw.shared) || !isRec(raw.comfyUi)) return null;
+  const files = Array.isArray(raw.workflowFiles)
+    ? raw.workflowFiles.filter(
+        file => isRec(file) && typeof file.id === 'string' && typeof file.json === 'string'
+      )
+    : [];
+  return {
+    shared: raw.shared as ServerQueueSettings['shared'],
+    comfyUi: raw.comfyUi as ServerQueueSettings['comfyUi'],
+    workflowFiles: files as unknown as ServerQueueSettings['workflowFiles'],
+    ...(isRec(raw.queueParams)
+      ? { queueParams: raw.queueParams as NonNullable<ServerQueueSettings['queueParams']> }
+      : {}),
+    ...(isRec(raw.samplerMemory)
+      ? { samplerMemory: raw.samplerMemory as NonNullable<ServerQueueSettings['samplerMemory']> }
+      : {}),
+  };
+}
+
 /** A bundle from untrusted JSON, or null. */
 export function normalizeRunBundle(raw: unknown): RunBundle | null {
   if (!isRec(raw) || raw.version !== RUN_BUNDLE_VERSION) return null;
   if (typeof raw.runId !== 'string' || !raw.runId || typeof raw.castId !== 'string') return null;
   if (!isRec(raw.settings) || typeof raw.settings.model !== 'string') return null;
   const gender = raw.settings.clothingGender;
+  const queue = normalizeRunQueueSettings(raw.queue);
   return {
     version: RUN_BUNDLE_VERSION,
     runId: raw.runId,
@@ -146,6 +181,7 @@ export function normalizeRunBundle(raw: unknown): RunBundle | null {
           entry => isRec(entry) && typeof entry.id === 'string' && isRec(entry.slot)
         ) as unknown as RunBundleScene[])
       : [],
+    ...(queue ? { queue } : {}),
     metrics: {
       weakLayouts: Array.isArray((raw.metrics as RunBundle['metrics'] | undefined)?.weakLayouts)
         ? (raw.metrics as RunBundle['metrics']).weakLayouts.filter(
