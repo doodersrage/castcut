@@ -4397,3 +4397,12 @@ keep-best → the runner loop.
   couldn't be re-queued — its job wasn't on the watcher's list (b30aa58b, 6eafbf1a). Docker image
   built and run with the canvas binary traced (6a0d6f54). Left: the full 70-shot run; Animate,
   marks repair, Auto-review on the server.
+- **The full gate, attempted (s18, 2026-11-14):** the server ran a 19-Scene Short on Edit 2511
+  with the page closed: done in 34 min, 5 Scenes redone after failed checks, jobs per Scene equal
+  to its tries (no duplicates); 12 flagged (9 not checked — a Suggestive Short gets no outfit
+  check, two-person shots no face check; 3 face). No 70-shot Short to run: Nemo did not write a
+  9-moment Short three times ("The LLM did not write usable beats", /api/day-premise 500; one
+  idea was over the box's 240 characters — the harness now says so). A run with LM Studio's
+  vision model loaded beside Edit 2511 hit ComfyUI's "VRAM grow failed" on its first take (the
+  Scene failed and the run paused, as on the page). Open: the writer at 9 moments; the 70-shot
+  run itself.
