@@ -3731,6 +3731,7 @@ test('two takes for intimate stills: the switch, both takes on the card, pick on
  */
 async function stubComfyQueue(page: Page, ids: string[]) {
   const queued: Array<Record<string, unknown>> = [];
+  const dressPlates = new Set<string>();
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     'base64'
@@ -3748,6 +3749,7 @@ async function stubComfyQueue(page: Page, ids: string[]) {
       const body = (request.postDataJSON() ?? {}) as Record<string, unknown>;
       queued.push(body);
       const promptId = ids[queued.length - 1] ?? `e2e-job-${queued.length}`;
+      if (String(body.prompt ?? '').includes('outfit try-on')) dressPlates.add(promptId);
       await route.fulfill({
         json: { ok: true, promptId, comfyUrl: 'http://127.0.0.1:8188' },
       });
@@ -3773,6 +3775,21 @@ async function stubComfyQueue(page: Page, ids: string[]) {
         },
       });
       return;
+    }
+    // A dress plate (the take's auto outfit, put on before the still — 2026-11-13) answers as
+    // finished at once: the take behind it isn't held up by a ComfyUI the test doesn't have.
+    if (path.startsWith('/api/comfyui/jobs') || path === '/api/comfyui/status') {
+      const asked = new URL(request.url()).searchParams.get('promptId') ?? '';
+      if (dressPlates.has(asked)) {
+        const done = {
+          promptId: asked,
+          status: 'completed',
+          images: [{ filename: 'e2e-dress-plate.png', subfolder: '', type: 'output' }],
+        };
+        // /jobs wraps its answer ({ status }); /status is the answer.
+        await route.fulfill({ json: path.startsWith('/api/comfyui/jobs') ? { status: done } : done });
+        return;
+      }
     }
     if (path.startsWith('/api/comfyui/object-info')) {
       await route.fulfill({ status: 502, json: { error: 'e2e: no ComfyUI' } });

@@ -45,6 +45,7 @@ const cast = {
 /** ComfyUI stubbed: queued jobs are captured, uploads accepted, pictures a 1×1 PNG. */
 async function stubComfyQueue(page: Page) {
   const queued: string[] = [];
+  const dressPlates = new Set<string>();
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     'base64'
@@ -59,8 +60,10 @@ async function stubComfyQueue(page: Page) {
     }
     if (request.method() === 'POST' && path === '/api/comfyui') {
       queued.push(request.postData() ?? '');
+      const promptId = `e2e-scene-${queued.length}`;
+      if (isDressPlateJob(queued.at(-1)!)) dressPlates.add(promptId);
       await route.fulfill({
-        json: { ok: true, promptId: `e2e-scene-${queued.length}`, comfyUrl: 'http://127.0.0.1:8188' },
+        json: { ok: true, promptId, comfyUrl: 'http://127.0.0.1:8188' },
       });
       return;
     }
@@ -89,6 +92,21 @@ async function stubComfyQueue(page: Page) {
         },
       });
       return;
+    }
+    // A dress plate (the take's auto outfit, put on before the still — 2026-11-13) answers as
+    // finished at once: the take behind it isn't held up by a ComfyUI the test doesn't have.
+    if (path.startsWith('/api/comfyui/jobs') || path === '/api/comfyui/status') {
+      const asked = new URL(request.url()).searchParams.get('promptId') ?? '';
+      if (dressPlates.has(asked)) {
+        const done = {
+          promptId: asked,
+          status: 'completed',
+          images: [{ filename: 'e2e-dress-plate.png', subfolder: '', type: 'output' }],
+        };
+        // /jobs wraps its answer ({ status }); /status is the answer.
+        await route.fulfill({ json: path.startsWith('/api/comfyui/jobs') ? { status: done } : done });
+        return;
+      }
     }
     if (path.startsWith('/api/comfyui/object-info')) {
       await route.fulfill({ status: 502, json: { error: 'e2e: no ComfyUI' } });
