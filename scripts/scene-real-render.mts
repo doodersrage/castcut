@@ -3774,6 +3774,7 @@ const phases: Record<string, Phase> = {
    * first take is kept, ComfyUI is restarted (POST /v2/manager/reboot; SRV_REBOOT=0 skips it).
    * Then the run must finish by itself with one take a Scene (redo off) — no duplicates — and the
    * page, opened again, show it done. Writes SCENE_OUT/server-run.json.
+   * SRV_TIER=preview|final runs it at that tier (Phase 5; server-run-<tier>.json).
    */
   async srvrun(_ctx, page) {
     const takes = Number(process.env.SRV_TAKES ?? 6);
@@ -3800,7 +3801,17 @@ const phases: Record<string, Phase> = {
     const items = page.locator('[data-testid^="scene-run-item-"] input[type="checkbox"]');
     const count = await items.count();
     for (let i = 0; i < Math.min(count, takes); i += 1) await items.nth(i).check();
-    await page.getByTestId('scene-run-on-server').check();
+    // SRV_TIER=preview|final (Phase 5): the run's tier — it sets keep, redo and the server itself.
+    const tier = process.env.SRV_TIER;
+    if (tier === 'preview' || tier === 'final') {
+      await page.getByTestId(`scene-run-tier-${tier}`).click();
+      if (tier === 'final' && process.env.SRV_REDO) {
+        // The tier locks the episode settings: its own redo (one) stands.
+        log('final tier: one redo (SRV_REDO ignored)');
+      }
+    } else {
+      await page.getByTestId('scene-run-on-server').check();
+    }
     log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
     await shot(page, 'server-run-prepared');
     const started = Date.now();
@@ -3880,8 +3891,12 @@ const phases: Record<string, Phase> = {
       latest?.stopReason ? `· ${latest.stopReason}` : ''
     );
     writeFileSync(
-      join(OUT, 'server-run.json'),
-      JSON.stringify({ run: latest, queuedPerScene, rebooted }, null, 1)
+      join(OUT, tier ? `server-run-${tier}.json` : 'server-run.json'),
+      JSON.stringify(
+        { run: latest, queuedPerScene, rebooted, minutes: (Date.now() - started) / 60_000 },
+        null,
+        1
+      )
     );
     // The page, opened again, catches up.
     await openScene(page, V2_CAST);
