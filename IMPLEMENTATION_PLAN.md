@@ -4406,3 +4406,10 @@ keep-best → the runner loop.
   vision model loaded beside Edit 2511 hit ComfyUI's "VRAM grow failed" on its first take (the
   Scene failed and the run paused, as on the page). Open: the writer at 9 moments; the 70-shot
   run itself.
+- **The gate, run (s18 attempt 4, 2026-11-14):** with f42ec9d5 (a beat list missing its closing
+  bracket keeps its complete entries) Nemo wrote the 9-moment Short first time; it planned 43
+  shots, not 70 (the board's shot count for those moments). The server rendered all 43 with the
+  page closed on Edit 2511 in 111 min, ComfyUI restarted after the 20th kept take and the run
+  went on: 43 landed, 30 kept, 13 redone then flagged; 56 jobs queued for 56 tries (no
+  duplicates). Open: a longer Short to reach 70 shots; Animate, marks repair, Auto-review on the
+  server.
