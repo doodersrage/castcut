@@ -4348,3 +4348,11 @@ keep-best → the runner loop.
   found, rendered or checked (`resolveTakePartnerFace`) and as it goes out as Image 2
   (`sendTakePartnerFace`) — in day/take-partner-face.ts, with the server's steps passable; the
   hook keeps what changed (its stand-ins). Golden take requests unchanged.
+- **queueSlot's body is a function** (hooks/day-planner/day-take-run.ts, `runDayTake(ctx, slot,
+  options)`): the page passes `DayTakeContext` (its settings, refs, setters and six helpers; of the
+  queue actions only sendComfyUi, finalizePrompt, resetStatuses). The group still's third and
+  fourth faces in day/take-group.ts. Next: the browser stores the body still reads directly
+  (ComfyUI settings, Cast lookup, locations, pose library, toasts, uploads) become context steps,
+  then the file moves to lib/day and the server passes its context. Seen once in a full e2e run:
+  the two-takes test's pair never ready (30/30 alone, 105/105 twice in the Play spec) — a rare
+  race in marking landed takes, not chased yet.
