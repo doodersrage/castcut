@@ -211,6 +211,26 @@ export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
       requeued_as TEXT,
       cancelled_at INTEGER
     );`),
+  // 5 (2026-11-13, Phase 3 step 2): a run's inputs frozen at Start, and the shadow check of each
+  // take's decisions against them (sqlite/scene-run-bundles.ts).
+  db =>
+    db.exec(`CREATE TABLE IF NOT EXISTS scene_run_bundles (
+      scope TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      json TEXT NOT NULL,
+      captured_at INTEGER NOT NULL,
+      PRIMARY KEY (scope, run_id)
+    );
+    CREATE TABLE IF NOT EXISTS scene_run_shadow (
+      scope TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      scene_id TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      diffs_json TEXT NOT NULL,
+      page_json TEXT NOT NULL,
+      server_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS scene_run_shadow_run ON scene_run_shadow (scope, run_id, at);`),
 ];
 export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
 

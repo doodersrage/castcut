@@ -6,6 +6,7 @@ import {
   runIsHeldElsewhere,
   RUN_LOCK_RENEW_MS,
 } from '@/lib/day/run-lock';
+import { postRunBundle } from '@/lib/day/run-bundle-client';
 import {
   claimServerRunLease,
   releaseServerRunLease,
@@ -574,6 +575,13 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           { at: now, event: 'resumed', detail: run.state === 'prepared' ? 'started' : 'resumed' }
         )
       );
+      // The run's inputs, frozen for the server (run-bundle.ts): each take is checked against
+      // them (shadow mode). Best effort — the run never waits for it.
+      try {
+        postRunBundle(vmRef.current.captureRunBundle(run));
+      } catch (error) {
+        console.warn('The run bundle could not be captured:', error);
+      }
       void loop();
     })();
   }, [loop, me, save]);

@@ -182,6 +182,8 @@ import {
   referenceViewUrl,
 } from '@/lib/checks/reference-check-client';
 import { dayOutfitBlock } from '@/lib/day/auto-kit';
+import { RUN_BUNDLE_VERSION, type RunBundle } from '@/lib/day/run-bundle';
+import { postTakeShadow } from '@/lib/day/run-bundle-client';
 import {
   planTakeModel,
   planTakeOutfit,
@@ -384,14 +386,16 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
    * not for one picture (Day clears it — there it was written to the picture). Clearing it lost
    * 58 of Lena's 78 lines in the 2026-11-06 episode: every redo or re-roll dropped one.
    */
-  const sceneCacheRef = useRef<Pick<SceneToolCache, 'scenes' | 'activeSceneId' | 'scriptPartners'>>(
-    {}
-  );
+  const sceneCacheRef = useRef<
+    Pick<SceneToolCache, 'scenes' | 'activeSceneId' | 'scriptPartners' | 'run'>
+  >({});
   sceneCacheRef.current = sceneMode
     ? {
         scenes: (storedToolSettings as SceneToolCache).scenes,
         activeSceneId: (storedToolSettings as SceneToolCache).activeSceneId,
         scriptPartners: (storedToolSettings as SceneToolCache).scriptPartners,
+        // The run rendering (a take of it reports to the server's shadow check, run-bundle.ts).
+        run: (storedToolSettings as SceneToolCache).run,
       }
     : {};
   /** One room a scene: on when the running run asked for it (EpisodeRunAuto.oneRoom). */
@@ -1108,6 +1112,88 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     ]
   );
 
+  /**
+   * A run's inputs, frozen at Start (FINISHING_PLAN Phase 3, step 2; run-bundle.ts): the page's
+   * settings and plate, the run's Scenes as their takes read them, the Cast they name, the play
+   * metrics. The server keeps it; each of the run's takes is checked against it (shadow mode).
+   */
+  const captureRunBundle = useCallback(
+    (run: { id: string; castId: string; items: ReadonlyArray<{ sceneId: string }> }): RunBundle => {
+      const ids = new Set(run.items.map(item => item.sceneId));
+      const scenes = (sceneCacheRef.current.scenes ?? [])
+        .filter(scene => ids.has(scene.id))
+        .map(scene => ({
+          id: scene.id,
+          slot: scene.slot,
+          ...(scene.dayMood !== undefined ? { dayMood: scene.dayMood } : {}),
+          ...(scene.intimateMix !== undefined ? { intimateMix: scene.intimateMix } : {}),
+          ...(scene.allowCompanions !== undefined
+            ? { allowCompanions: scene.allowCompanions }
+            : {}),
+          ...(scene.partnerCharacterId ? { partnerCharacterId: scene.partnerCharacterId } : {}),
+          ...(scene.outfit ? { outfit: scene.outfit as Record<string, string> } : {}),
+          ...(scene.fromScript ? { fromScript: scene.fromScript } : {}),
+        }));
+      const castIds = new Set(
+        [
+          run.castId,
+          character?.id,
+          toolSettings.partnerCharacterId,
+          ...scenes.map(scene => scene.partnerCharacterId),
+        ].filter((id): id is string => Boolean(id?.trim()) && !id!.startsWith('new:'))
+      );
+      return {
+        version: RUN_BUNDLE_VERSION,
+        runId: run.id,
+        castId: run.castId,
+        capturedAt: Date.now(),
+        settings: {
+          model: shared.model,
+          ...(shared.modelCheckpointMap ? { modelCheckpointMap: shared.modelCheckpointMap } : {}),
+          dayMood: toolSettings.dayMood,
+          intimateMix: toolSettings.intimateMix,
+          intimateEnabled,
+          allowCompanions: toolSettings.allowCompanions === true,
+          bestEnginePerPose: toolSettings.bestEnginePerPose === true,
+          ...(toolSettings.partnerCharacterId
+            ? { partnerCharacterId: toolSettings.partnerCharacterId }
+            : {}),
+          ...(shared.lockedWardrobeId?.trim()
+            ? { lockedWardrobeId: shared.lockedWardrobeId.trim() }
+            : {}),
+          clothingGender,
+        },
+        pagePlate: {
+          hasPlate: Boolean(hasPlate),
+          ...(plate?.source ? { plateSource: plate.source } : {}),
+        },
+        cast: [...castIds]
+          .map(id => getCharacter(id))
+          .filter((record): record is NonNullable<typeof record> => Boolean(record)),
+        scenes,
+        metrics: {
+          weakLayouts: [...weakPoseLayouts()],
+          poseReport: blendedPoseEngineReport(),
+        },
+      };
+    },
+    [
+      character?.id,
+      clothingGender,
+      hasPlate,
+      intimateEnabled,
+      plate?.source,
+      shared.lockedWardrobeId,
+      shared.model,
+      shared.modelCheckpointMap,
+      toolSettings.allowCompanions,
+      toolSettings.bestEnginePerPose,
+      toolSettings.dayMood,
+      toolSettings.intimateMix,
+      toolSettings.partnerCharacterId,
+    ]
+  );
+
   // The beat each slot last rendered for the player (re-roll record, play-metrics).
   const lastPlayerBeatRef = useRef<Record<string, string>>({});
   useEffect(() => {
@@ -1544,6 +1630,12 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               () => wardrobeOptions
             );
         // The outfit, decided in the take's plan (take-plan.ts — the server makes it the same way).
+        // What the outfit choice started from (a run's shadow report sends it).
+        const outfitInput = {
+          target: queueTarget,
+          workingSlots,
+          latestSlots: latestSlotsRef.current,
+        };
         const outfitPlan = planTakeOutfit({
           target: queueTarget,
           lockedWardrobeId: outfit.lockedWardrobeId,
@@ -1583,7 +1675,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           );
         }
         const packshotUrl = resolveWardrobeGarmentThumbQueueUrl(wardrobeId);
-        const { omitGarment, stillModel, poseEngineSwap, pinNote } =
+        const { omitGarment, stillModel, queueModel, poseEngineSwap, pinNote } =
           await resolveSlotStillModel(queueTarget);
         const replaceKeepOutfit = dayMoodReplacesKeepOutfit(toolSettings.dayMood);
         // Dress plate: dress her once (the picked clothing and shoes on the Cast plate), then
@@ -1908,6 +2000,11 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         // face crop takes Image 2 (the outfit is said in words), the pose map stays Image 3 — or
         // an invented man / woman ("new:…") with their own face and no extra image. Who, decided
         // in the take's plan (take-plan.ts); the faces found or rendered here.
+        const partnerPlanFilmScriptId = sceneMode
+          ? sceneCacheRef.current.scenes?.find(
+              scene => scene.id === sceneCacheRef.current.activeSceneId
+            )?.fromScript?.scriptId
+          : undefined;
         const partnerPlan = planTakePartner({
           slot: queueTarget,
           partnerCharacterId: toolSettings.partnerCharacterId,
@@ -1921,11 +2018,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           intimateMix: toolSettings.intimateMix,
           allowCompanions: toolSettings.allowCompanions === true,
           stillModel,
-          filmScriptId: sceneMode
-            ? sceneCacheRef.current.scenes?.find(
-                scene => scene.id === sceneCacheRef.current.activeSceneId
-              )?.fromScript?.scriptId
-            : undefined,
+          filmScriptId: partnerPlanFilmScriptId,
         });
         const { partnerCharacter } = partnerPlan;
         let slotPartner: DayPartner | null = null;
@@ -2171,6 +2264,65 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         });
         skipPoseGuideImage = poseGuidePlan.skip;
         const { kleinSpoonRecipe } = poseGuidePlan;
+        // A run's take: what it decided, for the server to check against the run's bundle
+        // (run-bundle.ts, shadow mode — nothing here waits for it).
+        const shadowRun = sceneMode ? sceneCacheRef.current.run : undefined;
+        if (shadowRun?.state === 'running' && sceneCacheRef.current.activeSceneId) {
+          const sceneId = sceneCacheRef.current.activeSceneId;
+          postTakeShadow({
+            runId: shadowRun.id,
+            sceneId,
+            slot: outfitInput.target,
+            outfitScenes: (sceneCacheRef.current.scenes ?? []).map(scene => ({
+              id: scene.id,
+              createdAt: scene.createdAt,
+              ...(scene.fromScript ? { fromScript: scene.fromScript } : {}),
+              slot: { id: scene.slot.id, wardrobeId: scene.slot.wardrobeId },
+            })),
+            workingSlots: outfitInput.workingSlots,
+            latestSlots: outfitInput.latestSlots,
+            scriptShot: scriptLineStays(),
+            ...(partnerPlanFilmScriptId ? { filmScriptId: partnerPlanFilmScriptId } : {}),
+            settings: {
+              dayMood: toolSettings.dayMood,
+              intimateMix: toolSettings.intimateMix,
+              allowCompanions: toolSettings.allowCompanions === true,
+              ...(toolSettings.partnerCharacterId
+                ? { partnerCharacterId: toolSettings.partnerCharacterId }
+                : {}),
+            },
+            look: {
+              ...(lookCharacter?.id ? { lookCharacterId: lookCharacter.id } : {}),
+              hasPlate: lookHasPlate,
+              ...(lookPlate?.source ? { plateSource: lookPlate.source } : {}),
+              ...(outfit.lockedWardrobeId?.trim()
+                ? { lockedWardrobeId: outfit.lockedWardrobeId.trim() }
+                : {}),
+              customGarment: Boolean(
+                outfit.customGarmentImageUrl?.trim() || outfit.customGarmentImageFilename?.trim()
+              ),
+            },
+            decisions: {
+              ...(wardrobeId ? { wardrobeId } : {}),
+              stillModel,
+              queueModel,
+              partner: partnerPlan.kind,
+              ...(partnerPlan.kind === 'cast' ? { partnerId: partnerPlan.character.id } : {}),
+              poseGuideSkip: planTakePoseGuide({
+                slot: queueTarget,
+                stillModel,
+                dayMood: toolSettings.dayMood,
+                intimateEnabled,
+                intimateMix: toolSettings.intimateMix,
+                allowCompanions: toolSettings.allowCompanions === true,
+                skippedForIdentity: false,
+                wordsOnlyRedo: false,
+                partnerNoun: partnerPlan.kind === 'none' ? null : partnerPlan.candidate.noun,
+                leadNoun,
+              }).skip,
+            },
+          });
+        }
         // Clothing options for this still's brief / recipe (the pose map's are added below).
         const slotPromptOptions = {
           faceOnlyIdentity,
@@ -3943,6 +4095,7 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
     poseGuidePreviews: poseGuidePreviews(poseGuideOutcomes),
     keeperStandIn: keeperStandIn.status,
     makeStandingPicture: keeperStandIn.makeStandingPicture,
+    captureRunBundle,
     wardrobeOptions,
     wardrobeReady,
     wardrobeCategoryFilter,

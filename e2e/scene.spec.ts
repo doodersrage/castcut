@@ -1946,6 +1946,88 @@ test('a run renders Scene by Scene, keeps nothing, and resumes without a second 
   await expect(page.getByTestId('scene-run-log').locator('[data-event="queued"]')).toHaveCount(2);
 });
 
+// FINISHING_PLAN Phase 3, step 2 (shadow mode): a run sends its inputs at Start, each take what it
+// decided; the server decides again from the inputs alone and finds no difference. Needs server
+// storage (a local run's data folder): skipped where the server has none (CI).
+test('a run’s takes are decided the same from its inputs alone (the server’s shadow check)', async ({
+  page,
+}) => {
+  const probe = await page.request.get('/api/scene-runs/shadow?runId=probe');
+  test.skip(probe.status() === 503, 'the server keeps no storage here');
+  const queued = await stubComfyQueue(page);
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: { status: { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] } },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check']) {
+    await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
+  }
+  const empty = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  const RUN = `run-shadow-${Date.now().toString(36)}`;
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [empty('shadow-a', 'Shadow A', 3), empty('shadow-b', 'Shadow B', 4)],
+          activeSceneId: 'shadow-a',
+          run: {
+            id: RUN,
+            castId: CAST,
+            label: 'Shadow run',
+            items: [
+              { sceneId: 'shadow-a', include: true },
+              { sceneId: 'shadow-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: true,
+            state: 'prepared',
+            position: 0,
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', { timeout: 60_000 });
+  await page.getByTestId('scene-run-start').click();
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', { timeout: 120_000 });
+  expect(queuedTakes(queued)).toHaveLength(2);
+  // Both takes checked against the run's bundle, and no difference found.
+  let rows: Array<{ sceneId: string; diffs: string[] }> = [];
+  await expect
+    .poll(
+      async () => {
+        rows = ((await (await page.request.get(`/api/scene-runs/shadow?runId=${RUN}`)).json()) as {
+          rows?: typeof rows;
+        }).rows ?? [];
+        return rows.map(row => row.sceneId).sort().join(',');
+      },
+      { timeout: 30_000 }
+    )
+    .toBe('shadow-a,shadow-b');
+  expect(rows.flatMap(row => row.diffs)).toEqual([]);
+});
+
 // Part 19 G1: an episode run keeps the best take of each Scene — no one clicks Keep.
 test('an episode run keeps a take on each Scene by itself', async ({
   page,
