@@ -116,6 +116,15 @@ function promptOf(body: string): string {
   return JSON.parse(body) ? body.replace(/\\n/g, '\n').replace(/\\"/g, '"') : body;
 }
 
+/**
+ * The takes queued, without the dress plate a take's auto outfit is put on first (a take with a
+ * plate dresses it before the still, the first take of a run included — 2026-11-13).
+ */
+const takesOf = (queued: string[]) =>
+  queued.filter(
+    body => !String((JSON.parse(body || '{}') as { prompt?: string }).prompt ?? '').includes('outfit try-on')
+  );
+
 test("a slot's Camera row reaches the still as one Camera line", async ({ page }) => {
   const queued = await stubComfyQueue(page);
   await seedDay(page);
@@ -133,8 +142,8 @@ test("a slot's Camera row reaches the still as one Camera line", async ({ page }
   // A shot size crops the drawn figure: its legs leave the preview.
   await page.getByTestId('day-slot-queue').click();
 
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  const prompt = promptOf(queued[0]!);
+  await expect.poll(() => takesOf(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  const prompt = promptOf(takesOf(queued)[0]!);
   expect(prompt).toContain(
     'Camera: a low angle looking up at her, three-quarter view, waist-up shot, legs out of frame, wide-angle lens.'
   );
@@ -189,8 +198,8 @@ test("a 3D pose's Camera panel wins over the slot row and reaches the still", as
   );
 
   await page.getByTestId('day-slot-queue').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  const prompt = promptOf(queued[0]!);
+  await expect.poll(() => takesOf(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  const prompt = promptOf(takesOf(queued)[0]!);
   expect(prompt).toContain(
     'Camera: at eye level, side view, in profile, knees-up shot, cut off just below the knees, long telephoto lens.'
   );

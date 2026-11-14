@@ -7,6 +7,7 @@ import {
   planTakeOutfit,
   planTakePartner,
   planTakePoseGuide,
+  takeEngineFor,
   takeModelNeedsInventory,
 } from './take-plan';
 
@@ -223,5 +224,27 @@ describe('a take’s plan: its drawn pose guide (Phase 3, step 4)', () => {
     });
     assert.equal(plan.skip, true);
     assert.match(String(plan.skipReason), /walk in step/);
+  });
+});
+
+describe('a take decides for the engine it renders on (2026-11-13)', () => {
+  it('with a plate, Qwen-Image 2512 decides as Edit 2511 — the first take as the rest', () => {
+    assert.equal(takeEngineFor('qwen-image-2512' as never, true), 'qwen-image-edit-2511');
+    assert.equal(takeEngineFor('qwen-image-2512' as never, false), 'qwen-image-2512');
+    const plan = planTakeModel({
+      slot: slot({ sceneHints: 'pours coffee' }),
+      pickedModel: 'qwen-image-2512' as never,
+      dayMood: 'everyday',
+      intimateEnabled: false,
+      intimateMix: undefined,
+      allowCompanions: false,
+      bestEnginePerPose: false,
+      hasPlate: true,
+      inventory: null,
+      weakLayouts: () => new Set(),
+      poseReport: () => new Set() as never,
+    });
+    assert.equal(plan.stillModel, 'qwen-image-edit-2511');
+    assert.equal(plan.queueModel, 'qwen-image-edit-2511');
   });
 });

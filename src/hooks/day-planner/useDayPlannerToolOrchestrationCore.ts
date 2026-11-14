@@ -3054,9 +3054,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
               adultNude: isDayAdultMood(dayMood) && omitGarment,
             })
           : undefined;
-        if (plateQueueModel && plateQueueModel !== stillModel) {
-          updateShared({ model: plateQueueModel });
-        }
+        // Sent as queueModel below; the picked engine is left as you picked it (the take's plan
+        // decides for the engine it renders on — take-plan.ts takeEngineFor).
         const withDuoPartnerSlotLine = (prompt: string) =>
           partnerBodySlot !== null && slotPartner
             ? withDuoPartnerBodyLine(

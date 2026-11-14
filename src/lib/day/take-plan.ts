@@ -182,11 +182,23 @@ type TakeModelInput = {
 };
 
 /**
+ * The engine a take decides with: with a plate, the Edit-capable engine it renders on (2512 →
+ * Edit 2511). Before 2026-11-13 the page decided the first take of a run with the picked engine
+ * and then saved the Edit one as the picked engine, so the first take's words were another
+ * engine's than the rest's (found by the run's shadow check).
+ */
+export function takeEngineFor(pickedModel: ComfyImageModel, hasPlate: boolean): ComfyImageModel {
+  return hasPlate
+    ? (resolveAdultNudePlateQueueModel(pickedModel, { adultNude: false }) as ComfyImageModel)
+    : pickedModel;
+}
+
+/**
  * Whether the model choice needs ComfyUI's installed models (an engine with hand-offs, the best
  * engine per pose, a card's own engine): the caller asks ComfyUI before {@link planTakeModel}.
  */
 export function takeModelNeedsInventory(input: TakeModelInput): boolean {
-  const profile = poseProfileForModel(input.pickedModel);
+  const profile = poseProfileForModel(takeEngineFor(input.pickedModel, input.hasPlate));
   return Boolean(
     profile.adultEngine ||
     profile.clothedDuoEngine ||
@@ -212,7 +224,9 @@ export function planTakeModel(
     poseReport: () => PoseEngineReport | undefined;
   }
 ): TakeModelPlan {
-  const { slot } = input;
+  const slot = input.slot;
+  // Decided for the engine it renders on (takeEngineFor).
+  const pickedModel = takeEngineFor(input.pickedModel, input.hasPlate);
   const omitGarment = dayBeatOmitsGarmentPackshot({
     blurb: slot.sceneHints,
     prompt: [slot.location, slot.sceneHints].filter(Boolean).join(' · '),
@@ -225,7 +239,7 @@ export function planTakeModel(
   // Qwen Edit 2511 hands adult nude stills to Rapid AIO NSFW — this still only; the picked engine
   // stays picked (pose-model-profile: adultEngine).
   const adultNudeStill = isDayAdultMood(input.dayMood) && input.intimateEnabled && omitGarment;
-  const handOffProfile = poseProfileForModel(input.pickedModel);
+  const handOffProfile = poseProfileForModel(pickedModel);
   const bestEnginePerPose = input.bestEnginePerPose && input.hasPlate;
   const installed = (modelId: string) =>
     installedComfyModels(COMFY_IMAGE_MODELS, input.inventory, input.modelCheckpointMap)?.has(
@@ -253,7 +267,7 @@ export function planTakeModel(
         dayMood: playedMood,
         intimateMix: input.intimateMix as never,
         allowCompanions: input.allowCompanions,
-        model: input.pickedModel,
+        model: pickedModel,
       });
       return headcount >= 2 && isPenetrationLayout(layout);
     })();
@@ -267,9 +281,9 @@ export function planTakeModel(
     Boolean(handOffProfile.customPoseEngines?.length) &&
     Boolean(slot.posePhoto?.people.length) &&
     input.hasPlate &&
-    pose(input.pickedModel).headcount === 1 &&
+    pose(pickedModel).headcount === 1 &&
     customPoseOffPlate(photoPoseForStill(slot.posePhoto, 1)) !== null;
-  const routedStillModel = resolveDayStillModel(input.pickedModel, {
+  const routedStillModel = resolveDayStillModel(pickedModel, {
     adultNude: adultNudeStill,
     penetrationDuo,
     handOffs,
@@ -280,7 +294,7 @@ export function planTakeModel(
       // Not on the adult moods: their two-person beats that keep clothes on (a flash, a wardrobe
       // slip) belong on the adult engine, not plain Rapid.
       !(isDayAdultMood(input.dayMood) && input.intimateEnabled) &&
-      pose(input.pickedModel).headcount >= 2,
+      pose(pickedModel).headcount >= 2,
     installed,
   });
   // "Pick the best engine per pose" (opt-in): a one-person clothed still whose pose the routed
@@ -311,7 +325,7 @@ export function planTakeModel(
   // The card's own engine (its sheet's "Engine for this shot") wins over every hand-off: the
   // engine picked for the short when it is that family, else the family's installed variant; none
   // installed, the still stays on the short's engine and the card says so.
-  const pinned = resolvePinnedEngine({ pin: slot.engine, picked: input.pickedModel, installed });
+  const pinned = resolvePinnedEngine({ pin: slot.engine, picked: pickedModel, installed });
   const pinnedEngine = pinned.model as ComfyImageModel | null;
   const stillModel = (pinnedEngine ?? poseEngineSwap?.model ?? routedStillModel) as ComfyImageModel;
   const queueModel = input.hasPlate

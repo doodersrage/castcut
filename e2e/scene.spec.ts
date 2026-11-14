@@ -275,8 +275,8 @@ test('a new scene: the shot, its pose camera, and a take queued on Day’s engin
   await shot(page, 'scene-desk-new');
 
   await page.getByTestId('scene-queue-take').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  const prompt = promptOf(queued[0]!);
+  await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  const prompt = promptOf(queuedTakes(queued)[0]!);
   expect(prompt).toContain('Camera: a low angle looking up at her');
   expect(prompt).toContain('waist-up shot');
   expect(prompt).toMatch(/risotto/);
@@ -549,8 +549,8 @@ test('a Scene set in a location queues its take with the location\'s look', asyn
   await expect(picker).not.toHaveValue('');
 
   await page.getByTestId('scene-queue-take').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  expect(promptOf(queued[0]!)).toContain(
+  await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(promptOf(queuedTakes(queued)[0]!)).toContain(
     'at the counter by the window, at Corner café: green tiled counter, brass espresso machine'
   );
 });
@@ -2294,7 +2294,7 @@ test('after a reload a run is paused, and Resume waits for the take in flight', 
     timeout: 120_000,
   });
   // Run A's take was waited for, not queued again: the only new job is Run B's.
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
   await expect
     .poll(async () => {
       const tool = JSON.parse((await storedSceneTool(page)) || '{}');
@@ -2307,12 +2307,20 @@ test('after a reload a run is paused, and Resume waits for the take in flight', 
 test('Pause stops the run after the take rendering now', async ({ page }) => {
   const queued = await stubComfyQueue(page);
   let finish = false;
+  // The take renders until `finish`; the dress plate its auto outfit is dressed on first
+  // finishes at once (the stub numbers jobs e2e-scene-1, -2… in the order they were queued).
+  const dressPlate = (url: string) => {
+    const id = new URL(url).searchParams.get('promptId') ?? '';
+    const index = Number(id.replace('e2e-scene-', '')) - 1;
+    return index >= 0 && isDressPlateJob(queued[index] ?? '');
+  };
   await page.route('**/api/comfyui/jobs**', route =>
     route.fulfill({
       json: {
-        status: finish
-          ? { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] }
-          : { status: 'running' },
+        status:
+          finish || dressPlate(route.request().url())
+            ? { status: 'completed', images: [{ filename: 'e2e-run.png', subfolder: '', type: 'output' }] }
+            : { status: 'running' },
       },
     })
   );
@@ -2363,7 +2371,7 @@ test('Pause stops the run after the take rendering now', async ({ page }) => {
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBe(1);
+  await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBe(1);
   await page.getByTestId('scene-run-pause').click();
   await expect(page.getByTestId('scene-run-state')).toContainText('pausing after this take');
   finish = true;
@@ -2371,7 +2379,7 @@ test('Pause stops the run after the take rendering now', async ({ page }) => {
     timeout: 120_000,
   });
   await expect(page.getByTestId('scene-run-state')).toContainText('1 of 2 done');
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
   await expect(page.getByTestId('scene-run-start')).toHaveText('Resume');
 });
 
@@ -2537,7 +2545,7 @@ test('a run stops at its take limit, and Film Director shows its log', async ({ 
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
 
   await gotoStable(page, '/production');
   await dismissBlockingOverlays(page);
@@ -2561,7 +2569,7 @@ test('Cancel stops the run after the take in flight, and nothing else is queued'
       : { status: 'running' }
   );
   await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBe(1);
+  await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBe(1);
   await page.getByTestId('scene-run-cancel').click();
   await expect(page.getByTestId('scene-run-state')).toContainText('cancelling after this take');
   finish = true;
@@ -2570,7 +2578,7 @@ test('Cancel stops the run after the take in flight, and nothing else is queued'
   });
   // A moment more: nothing else goes to the engine.
   await page.waitForTimeout(3_000);
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
   await expect(page.getByTestId('scene-run-start')).toHaveCount(0);
 });
 
@@ -2588,7 +2596,7 @@ test('engine lost the job mid-run: the run pauses with why, and the job shows as
     timeout: 120_000,
   });
   await expect(page.getByTestId('scene-run-stop-reason')).toContainText('failed');
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
 
   await gotoStable(page, '/production');
   await dismissBlockingOverlays(page);
@@ -2608,7 +2616,7 @@ test('a take lands while the Gallery can’t store its media: the take is kept, 
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
   await expect
     .poll(async () => {
       const tool = JSON.parse((await storedSceneTool(page)) || '{}');
@@ -3946,8 +3954,8 @@ test('mood fit never replaces the scene’s own Setting (a blank beat is filled 
 
   // Queue: its fit and beat draw keep the Setting too.
   await page.getByTestId('scene-queue-take').click();
-  await expect.poll(() => queued.length, { timeout: 60_000 }).toBeGreaterThan(0);
-  expect(promptOf(queued[0]!)).toContain('attic studio');
+  await expect.poll(() => queuedTakes(queued).length, { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(promptOf(queuedTakes(queued)[0]!)).toContain('attic studio');
   await expect(page.getByTestId('day-slot-location')).toHaveValue(setting);
 });
 
@@ -4024,7 +4032,7 @@ test('phone: a script imported, a shot made a Scene, and a run prepared and star
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
-  expect(queued).toHaveLength(1);
+  expect(queuedTakes(queued)).toHaveLength(1);
   await context.close();
 });
 
