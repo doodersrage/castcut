@@ -5522,6 +5522,10 @@ for (const variant of goldenVariants) {
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
     });
+    // Each sendComfyUi call noted (queue-call-record.ts), to rebuild on the server below.
+    await page.addInitScript(() => {
+      (window as unknown as { __castcutQueueCalls: unknown[] }).__castcutQueueCalls = [];
+    });
     // An empty server each time: what one take records (an outfit worn) chose the next one's.
     await isolateServerStorage(page);
     const queued = await stubComfyQueue(page);
@@ -5542,6 +5546,58 @@ for (const variant of goldenVariants) {
     }
     const file = path.join(__dirname, 'golden', 'take-requests', `${variant.name}.json`);
     const got = normalizedTakeRequests(queued);
+    // The server's build of the same calls (FINISHING_PLAN Phase 3, queue-request-server.ts) sends
+    // exactly what the page sent.
+    const calls = await page.evaluate(
+      () => (window as unknown as { __castcutQueueCalls: unknown[] }).__castcutQueueCalls
+    );
+    const { buildServerQueueRequest } = await import('../src/lib/queue/queue-request-server');
+    let uploadsOnServer = 0;
+    const rebuilt: string[] = [];
+    for (const call of calls as Array<Parameters<typeof buildServerQueueRequest>[0] extends string
+      ? {
+          prompt: string;
+          sport?: Parameters<typeof buildServerQueueRequest>[4];
+          options?: Parameters<typeof buildServerQueueRequest>[1];
+          config: Parameters<typeof buildServerQueueRequest>[2];
+          settings: Parameters<typeof buildServerQueueRequest>[3]['settings'];
+          inventory: Parameters<typeof buildServerQueueRequest>[3]['inventory'];
+          character?: Parameters<typeof buildServerQueueRequest>[3]['character'];
+        }
+      : never>) {
+      const body = await buildServerQueueRequest(
+        call.prompt,
+        call.options,
+        call.config,
+        {
+          settings: call.settings,
+          inventory: call.inventory,
+          character: call.character,
+          // As the page's upload: a name in ComfyUI, and the size of the picture it got.
+          upload: async (url: string) => {
+            // Measured as the page measures it (its routes, its decoder).
+            const size = await page.evaluate(async src => {
+              try {
+                const bitmap = await createImageBitmap(await (await fetch(src)).blob());
+                return { width: bitmap.width, height: bitmap.height };
+              } catch {
+                // probeImageUrlDimensions' fallback (an SVG plate): an <img>.
+                return new Promise<{ width?: number; height?: number }>(resolve => {
+                  const img = new Image();
+                  img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                  img.onerror = () => resolve({});
+                  img.src = src;
+                });
+              }
+            }, url);
+            return { filename: `e2e-upload-${900_000 + ++uploadsOnServer}.png`, ...size };
+          },
+        },
+        call.sport
+      );
+      rebuilt.push(JSON.stringify({ ...body, clientId: 'server' }));
+    }
+    expect(normalizedTakeRequests(rebuilt), 'the server builds the requests the page sent').toEqual(got);
     if (GOLDEN_MODE === 'write') {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, `${JSON.stringify(got, null, 1)}\n`);

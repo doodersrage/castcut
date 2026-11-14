@@ -93,6 +93,15 @@ export type ResolveQueueParamsOptions = {
    * aspect and size (figurePixelSize); without a probed size it is raised to 1536.
    */
   castPlateReference?: boolean;
+  /**
+   * The settings to resolve with, instead of this browser's (FINISHING_PLAN Phase 3: the server's
+   * synced copies — runtime-for-model's RuntimeSettingsSource, plus the pinned queue params).
+   */
+  settings?: import('../comfyui/runtime-for-model').RuntimeSettingsSource & {
+    queueParams?: QueueParamsSettings;
+    /** The 4–5★ sampler memory (history/sampler-memory.ts); none when absent. */
+    samplerMemory?: Parameters<typeof rememberedSamplerOverrides>[1];
+  };
 };
 
 /** Random KSampler seed for a new queue job. */
@@ -183,7 +192,8 @@ function normalizeResolveQueueParamsInput(
     'forceNewSeed' in input ||
     'figurePixelSize' in input ||
     'preserveInputAspect' in input ||
-    'castPlateReference' in input
+    'castPlateReference' in input ||
+    'settings' in input
   ) {
     return input as ResolveQueueParamsOptions;
   }
@@ -230,9 +240,12 @@ export function resolveQueueParams(
     figurePixelSize,
     preserveInputAspect,
     castPlateReference,
+    settings: given,
   } = normalizeResolveQueueParamsInput(input);
-  const settings = loadQueueParamsSettings();
-  const shared = loadSettingsCache().shared;
+  const settings = given
+    ? { ...DEFAULT_QUEUE_PARAMS, ...given.queueParams }
+    : loadQueueParamsSettings();
+  const shared = given?.shared ?? loadSettingsCache().shared;
   const lockExact = isLockLatentSizeParams(base);
   const lockedWidth = lockExact ? base?.width?.toString().trim() : '';
   const lockedHeight = lockExact ? base?.height?.toString().trim() : '';
@@ -244,13 +257,23 @@ export function resolveQueueParams(
     model,
   });
   const presetTier = resolveEffectiveSamplerPreset(
-    samplerPreset ?? loadModelSamplerPresetTier(),
+    samplerPreset ??
+      (given
+        ? normalizeModelSamplerPresetTier(shared.modelSamplerPreset)
+        : loadModelSamplerPresetTier()),
     profile,
     { model }
   );
-  const orientation = resolutionOrientation ?? loadModelResolutionOrientation();
+  const orientation =
+    resolutionOrientation ??
+    (given
+      ? normalizeResolutionOrientation(shared.modelResolutionOrientation)
+      : loadModelResolutionOrientation());
   const sizeTier = resolveEffectiveResolutionSizeTier(
-    resolutionSizeTier ?? loadModelResolutionSizeTier(),
+    resolutionSizeTier ??
+      (given
+        ? normalizeResolutionSizeTier(shared.modelResolutionSizeTier)
+        : loadModelResolutionSizeTier()),
     profile
   );
   const modelDefaults = model
@@ -259,7 +282,7 @@ export function resolveQueueParams(
         ...resolveModelResolutionParams(model, orientation, sizeTier),
         ...resolveModelSamplingParams(model, presetTier),
         // 4–5★ gallery memory overrides catalog sampler defaults (not sidebar overrides).
-        ...rememberedSamplerOverrides(model),
+        ...rememberedSamplerOverrides(model, given ? (given.samplerMemory ?? {}) : undefined),
         ...pickModelSamplerOverrideFields(samplerOverrides ?? shared.modelSamplerOverrides),
       }
     : {};
@@ -374,11 +397,20 @@ export function resolveQueueParams(
   }
 
   if (model) {
-    const comfySettings = mergeLoraLibraryIntoCustomTokens(loadComfyUiSettings(), {
-      activeOnly: true,
-    });
-    const selectedWorkflowId = getSelectedWorkflowFileId();
-    const workflowFile = selectedWorkflowId ? findComfyWorkflowFile(selectedWorkflowId) : undefined;
+    const comfySettings = mergeLoraLibraryIntoCustomTokens(
+      given?.comfyUi ?? loadComfyUiSettings(),
+      {
+        activeOnly: true,
+      }
+    );
+    const selectedWorkflowId = given
+      ? (shared.selectedWorkflowFileId ?? shared.selectedWorkflowPresetId)
+      : getSelectedWorkflowFileId();
+    const workflowFile = !selectedWorkflowId
+      ? undefined
+      : given
+        ? given.workflowFiles.find(entry => entry.id === selectedWorkflowId)
+        : findComfyWorkflowFile(selectedWorkflowId);
     const workflowCustomTokens = workflowFile?.customTokens ?? [];
     const customTokens = mergeCustomWorkflowTokens(
       comfySettings.customTokens,

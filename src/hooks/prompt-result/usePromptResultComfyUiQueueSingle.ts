@@ -71,6 +71,20 @@ export function usePromptResultComfyUiQueueSingle(
         return;
       }
       queueInFlightRef.current = true;
+      // Test-only (window.__castcutQueueCalls): the server rebuilds this call and compares.
+      // Loaded only when a test asks (window.__castcutQueueCalls): nothing joins the page's bundle.
+      if (typeof window !== 'undefined' && Array.isArray(window.__castcutQueueCalls)) {
+        await import('@/lib/queue/queue-call-record')
+          .then(({ recordQueueCallForTests }) =>
+            recordQueueCallForTests({
+              prompt,
+              sport,
+              options,
+              config: { model: config.model, tool: config.tool, hints: config.hints },
+            })
+          )
+          .catch(() => undefined);
+      }
 
       previewGenerationRef.current += 1;
       setComfyUiPreviewUrl(null);

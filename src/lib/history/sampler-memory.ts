@@ -74,12 +74,16 @@ export function rememberSamplerFromGalleryEntry(
 }
 
 /** Remembered sampler overrides for catalog defaults (empty when none / distilled). */
-export function rememberedSamplerOverrides(model: string | undefined): WorkflowParamValues {
+export function rememberedSamplerOverrides(
+  model: string | undefined,
+  /** The memory passed in (the server's synced copy); this browser's when absent. */
+  memory?: ReturnType<typeof loadModelSamplerMemory>
+): WorkflowParamValues {
   const id = model?.trim();
   if (!id || isQwenLightningModel(id) || isQwenRapidAioModel(id)) {
     return {};
   }
-  const remembered = loadModelSamplerMemory()[id];
+  const remembered = (memory ?? loadModelSamplerMemory())[id];
   if (!remembered) {
     return {};
   }

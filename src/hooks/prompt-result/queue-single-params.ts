@@ -20,6 +20,10 @@ export async function buildQueueSingleParams(input: {
   uploadedFigureSize?: { width: number; height: number };
   pluginDenoise?: string | number;
   pluginCfg?: string | number;
+  /** Settings passed in (the server's synced copies, FINISHING_PLAN Phase 3); this browser's when absent. */
+  settings?: NonNullable<
+    import('@/lib/queue/params-settings').ResolveQueueParamsOptions['settings']
+  >;
 }): Promise<WorkflowParamValues> {
   const {
     options,
@@ -63,11 +67,16 @@ export async function buildQueueSingleParams(input: {
       uploadedFigureSize ??
       (options?.castPlateReference === true ? { ...PLAY_FACE_CROP_CANVAS } : undefined),
     castPlateReference: options?.castPlateReference,
+    ...(input.settings ? { settings: input.settings } : {}),
   });
 
   if (pluginDenoise != null && pluginDenoise.toString().trim() !== '') {
     const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model/sampler-defaults');
-    if (!resolveUserSamplerDenoiseOverride(loadSettingsCache().shared.modelSamplerOverrides)) {
+    if (
+      !resolveUserSamplerDenoiseOverride(
+        (input.settings?.shared ?? loadSettingsCache().shared).modelSamplerOverrides
+      )
+    ) {
       queueParams.denoise = pluginDenoise;
     }
   }
@@ -91,7 +100,7 @@ export async function buildQueueSingleParams(input: {
       const { resolveDistilledQueueDenoise } = await import('@/lib/model/denoise-defaults');
       const { resolveUserSamplerDenoiseOverride } = await import('@/lib/model/sampler-defaults');
       const userDenoiseOverride = resolveUserSamplerDenoiseOverride(
-        loadSettingsCache().shared.modelSamplerOverrides
+        (input.settings?.shared ?? loadSettingsCache().shared).modelSamplerOverrides
       );
       const resolvedDenoise = resolveDistilledQueueDenoise(queueModel, {
         tool: effectiveTool,
@@ -109,7 +118,9 @@ export async function buildQueueSingleParams(input: {
   if (effectiveTool === 'compose') {
     const { isFluxKleinModel, isZImageModel } = await import('@/lib/model/denoise-defaults');
     const { isCloudEngine } = await import('@/lib/engine/capabilities');
-    const cloudEngine = isCloudEngine(loadSettingsCache().shared.inferenceEngine);
+    const cloudEngine = isCloudEngine(
+      (input.settings?.shared ?? loadSettingsCache().shared).inferenceEngine
+    );
     // Cloud face-ref uses ordered image refs + prompt instruction — never IP-Adapter patches.
     if (!cloudEngine && isFluxKleinModel(queueModel)) {
       const { buildComposeKleinQueuePatch } = await import('@/lib/prompt/compose-identity-lock');
@@ -139,7 +150,7 @@ export async function buildQueueSingleParams(input: {
     }
   } else if (options?.identityLock) {
     const { isCloudEngine } = await import('@/lib/engine/capabilities');
-    if (!isCloudEngine(loadSettingsCache().shared.inferenceEngine)) {
+    if (!isCloudEngine((input.settings?.shared ?? loadSettingsCache().shared).inferenceEngine)) {
       const { buildComposeIdentityLockQueuePatch } =
         await import('@/lib/prompt/compose-identity-lock');
       const identityPatch = buildComposeIdentityLockQueuePatch({
