@@ -4388,6 +4388,12 @@ keep-best → the runner loop.
   functions are client references in a production server route ("Attempted to call runDayTake()
   from the server") — the 54 lib modules the runner reaches lost the marker (none touch the
   browser at load; render-backend-status.ts, with a React hook, keeps it — only the page calls it).
-- **Left for Phase 3's gate:** the live acceptance run (a 70-shot Short, the browser closed,
-  ComfyUI killed mid-run) on the real ComfyUI — with the user's OK; the Docker image with
-  @napi-rs/canvas in the standalone output (the server now draws); Animate on the server.
+- **Phase 3's gate, small, live (s17, 2026-11-14, user's OK):** 6 Scenes of Slyne's Short
+  rendered by the server on Qwen-Image 2.1 Turbo with the page closed; ComfyUI restarted
+  (/v2/manager/reboot) after the first kept take. Done 6/6 in about 2 min; the take ComfyUI lost
+  was sent again once and kept; one job a Scene (no duplicates); the page, opened again, showed it
+  done. 3 flagged (2 not checked — no vision model loaded; 1 face). Two attempts before it found
+  what the fakes didn't: establishing shots weren't on the server (878e182c), and a lost take
+  couldn't be re-queued — its job wasn't on the watcher's list (b30aa58b, 6eafbf1a). Docker image
+  built and run with the canvas binary traced (6a0d6f54). Left: the full 70-shot run; Animate,
+  marks repair, Auto-review on the server.
