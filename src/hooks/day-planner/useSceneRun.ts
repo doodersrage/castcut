@@ -8,6 +8,14 @@ import {
 } from '@/lib/day/run-lock';
 import { postRunBundle } from '@/lib/day/run-bundle-client';
 import {
+  applyServerRunTakes,
+  appliedServerSeq,
+  askServerRun,
+  fetchServerRunPatches,
+  markServerSeq,
+  sendRunBundle,
+} from '@/lib/day/run-patches-client';
+import {
   claimServerRunLease,
   releaseServerRunLease,
   serverRunHeldElsewhere,
@@ -546,6 +554,43 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     }
   }, [afterEpisodeTake, me, save]);
 
+  // A run the server renders: what it did, applied here in order (each patch once), while the
+  // page is open — and when it opens again, everything since. Stops asking once it has ended.
+  const [serverTick, setServerTick] = useState(0);
+  const serverRunId = page.run?.onServer ? page.run.id : '';
+  const serverRunLive =
+    Boolean(serverRunId) && (page.run?.state === 'running' || page.run?.state === 'paused');
+  useEffect(() => {
+    if (!serverRunId || !serverRunLive) return;
+    let stopped = false;
+    let busy = false;
+    const pull = async () => {
+      if (busy || stopped) return;
+      busy = true;
+      try {
+        const answer = await fetchServerRunPatches(serverRunId, appliedServerSeq(serverRunId));
+        for (const row of answer?.patches ?? []) {
+          if (stopped) return;
+          pageRef.current.applyServerPatch(row.patch);
+          if (row.patch.run) runRef.current = row.patch.run;
+          await applyServerRunTakes(row.patch.takes, row.patch.dressPlates, {
+            characterId: row.patch.run?.castId,
+          });
+          markServerSeq(serverRunId, row.seq);
+          if (row.patch.run?.state !== 'running') setStopping(null);
+        }
+      } finally {
+        busy = false;
+      }
+    };
+    void pull();
+    const timer = window.setInterval(() => void pull(), 4000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [serverRunId, serverRunLive, serverTick]);
+
   const start = useCallback(() => {
     const run = runRef.current;
     if (!run || run.state === 'running' || run.state === 'done' || run.state === 'cancelled')
@@ -559,6 +604,33 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
     }
     stopRef.current = null;
     void (async () => {
+      // Rendered by the server (Phase 3): its inputs frozen and sent, the server asked to start;
+      // the page then applies what it does (the effect below). Refused: rendered here, as before.
+      if (run.onServer) {
+        const now = Date.now();
+        const { stopReason: _reason, ...rest } = runRef.current ?? run;
+        const running = withRunLog(
+          { ...rest, state: 'running', startedAt: run.startedAt ?? now },
+          { at: now, event: 'resumed', detail: 'on the server' }
+        );
+        let refused: string | null = null;
+        try {
+          refused = (await sendRunBundle(vmRef.current.captureRunBundle(running)))
+            ? await askServerRun(run.id, 'start')
+            : 'its inputs did not reach the server';
+        } catch (error) {
+          refused = error instanceof Error ? error.message : 'its inputs could not be captured';
+        }
+        if (!refused) {
+          save(running);
+          setServerTick(tick => tick + 1);
+          return;
+        }
+        pushSystemTrayMessage({
+          text: `“${run.label}” renders in this tab instead — ${refused}`,
+          tone: 'warning',
+        });
+      }
       // Another device rendering it (the server's lease): left to it, nothing written here.
       if (await serverRunHeldElsewhere(run.id, me)) {
         pushSystemTrayMessage({
@@ -643,6 +715,17 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       const run = runRef.current;
       if (!run) return;
       if (how === 'cancel') void cancelHanded(run);
+      // Rendered by the server: it stops after the step it is on, and says so in its patches.
+      if (run.onServer && run.state === 'running' && !loopingRef.current) {
+        setStopping(how);
+        void askServerRun(run.id, how === 'cancel' ? 'cancel' : 'pause').then(refused => {
+          if (refused) {
+            setStopping(null);
+            pushSystemTrayMessage({ text: `Couldn’t stop it: ${refused}`, tone: 'warning' });
+          }
+        });
+        return;
+      }
       if (loopingRef.current) {
         stopRef.current = how;
         setStopping(how);

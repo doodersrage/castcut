@@ -1,5 +1,3 @@
-'use client';
-
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
 import {

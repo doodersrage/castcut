@@ -1,5 +1,3 @@
-'use client';
-
 import { buildUserAnalyticsSnapshot } from './analytics';
 import { loadComfyGallery } from '../gallery/comfyui-gallery';
 import { loadPromptHistoryStore } from '../prompt/history';

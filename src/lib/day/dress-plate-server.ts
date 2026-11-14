@@ -43,6 +43,11 @@ export function serverDressPlateDeps(input: {
   /** A job's status (tests); watchedPromptStatus against ComfyUI otherwise. */
   status?: (promptId: string) => Promise<ComfyPromptStatus>;
   sleep?: (ms: number) => Promise<void>;
+  /** How a built request reaches ComfyUI (tests record it); queueTakeToComfyUi otherwise. */
+  queue?: (
+    body: Parameters<typeof queueTakeToComfyUi>[0],
+    prompt: string
+  ) => ReturnType<typeof queueTakeToComfyUi>;
 }): DayDressPlateDeps {
   const io = serverPictureIo({
     comfyUrl: input.comfyUrl,
@@ -91,7 +96,10 @@ export function serverDressPlateDeps(input: {
         }
       );
       const comfy = { ...body.comfy, apiUrl: body.comfy?.apiUrl?.trim() || input.comfyUrl };
-      const queued = await queueTakeToComfyUi({ ...body, comfy }, body.prompt ?? prompt);
+      const queued = await (input.queue ?? queueTakeToComfyUi)(
+        { ...body, comfy },
+        body.prompt ?? prompt
+      );
       // The page shows why in its status line; the server says it in the error (the run reports it).
       if (!queued.ok) throw new Error(queued.error?.trim() || 'ComfyUI did not take the job.');
       return queued.promptId || undefined;

@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * "Same stranger all day": an invented Day partner gets one face, rendered once as a
  * head-and-shoulders portrait (an edit of the lead's face crop into a different person), then

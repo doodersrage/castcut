@@ -1,5 +1,3 @@
-'use client';
-
 import { postComfyUiPrompt } from '@/lib/comfyui/queue-request';
 import { fetchComfyJobStatus } from '@/lib/gallery/comfyui-gallery-client';
 import { buildComfyViewPath } from '@/lib/comfyui/outputs';

@@ -1,5 +1,3 @@
-'use client';
-
 import type { HistoryFilter } from './filter';
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 

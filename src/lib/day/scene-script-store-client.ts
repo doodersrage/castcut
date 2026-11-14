@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * The browser side of the script store (scene-script-store.ts): kept under its own key, and
  * synced with `/api/scene-scripts` one script at a time — a change sends only the scripts it

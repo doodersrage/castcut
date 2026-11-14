@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { pullNamespaceFromServer, syncNamespaceToServer } from '../storage/sync';
 import { capGalleryEntriesForLocalStorage } from './cap';

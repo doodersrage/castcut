@@ -56,6 +56,11 @@ export type SceneRun = {
    * overnight run goes on without anyone clicking Resume. Autopilot and Make the short set it.
    */
   resumeOnReload?: boolean;
+  /**
+   * Rendered by the server (FINISHING_PLAN Phase 3, day/run-service-server.ts): the page can be
+   * closed; it applies what the server did when it is open. Unset: the page renders it.
+   */
+  onServer?: boolean;
   state: SceneRunState;
   /** Items done so far (W4). */
   position: number;
@@ -293,6 +298,7 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     maxMinutes: whole(run.maxMinutes, 1, 24 * 60, RUN_DEFAULT_MAX_MINUTES),
     skipKept: run.skipKept !== false,
     ...(run.resumeOnReload === true ? { resumeOnReload: true } : {}),
+    ...(run.onServer === true ? { onServer: true } : {}),
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
     ...(run.outcomes && typeof run.outcomes === 'object'

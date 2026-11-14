@@ -71,6 +71,21 @@ const baseConfig = {
   },
   // The Castcut node pack the app serves for copy-install (src/app/api/castcut-nodes/file).
   outputFileTracingIncludes: {
+    // A run the server renders draws pose guides and crops (off-page-canvas-server.ts): the
+    // canvas package loads its platform binary by name, which tracing doesn't follow — the
+    // Docker image's (Alpine, npm: linux-x64-musl) and a Linux install's are listed here.
+    '/api/scene-runs/server': [
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-musl/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+      './node_modules/@napi-rs/canvas-linux-arm64-musl/**',
+    ],
+    '/api/scene-runs/server/resume': [
+      './node_modules/@napi-rs/canvas/**',
+      './node_modules/@napi-rs/canvas-linux-x64-musl/**',
+      './node_modules/@napi-rs/canvas-linux-x64-gnu/**',
+      './node_modules/@napi-rs/canvas-linux-arm64-musl/**',
+    ],
     '/api/castcut-nodes/file': ['./comfyui-nodes/castcut/castcut_nodes.py'],
     // The voice engine Castcut ships, copied into the data folder by Install (voice-engine-install.ts).
     '/api/voice-engine/install': [

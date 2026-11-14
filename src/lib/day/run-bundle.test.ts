@@ -9,6 +9,7 @@ import { categoryLabel } from '@/lib/wardrobe/clothing-catalog-fields';
 import type { DaySlot } from './planner';
 import {
   normalizeRunBundle,
+  plateGalleryEntries,
   RUN_BUNDLE_VERSION,
   takeDecisionDiffs,
   takeDecisionsFromBundle,
@@ -214,5 +215,30 @@ describe('a bundle’s queue settings (Phase 3)', () => {
     const noFiles = normalizeRunBundle({ ...bundle, queue: { shared: {}, comfyUi: {} } });
     assert.deepEqual(noFiles?.queue?.workflowFiles, []);
     assert.equal(noFiles?.queue?.queueParams, undefined);
+  });
+});
+
+describe('a bundle’s page section (Phase 3)', () => {
+  it('older bundles have none; malformed is left out; the gallery keeps entries with an id', () => {
+    assert.equal(normalizeRunBundle(JSON.parse(JSON.stringify(bundle)))?.page, undefined);
+    assert.equal(normalizeRunBundle({ ...bundle, page: { sceneTool: 'x' } })?.page, undefined);
+    const page = normalizeRunBundle({
+      ...bundle,
+      page: { sceneTool: { scenes: [] }, gallery: [{ id: 'g1' }, { nope: 1 }], leanChrome: true },
+    })?.page;
+    assert.deepEqual(page?.gallery.map(entry => entry.id), ['g1']);
+    assert.equal(page?.leanChrome, true);
+  });
+
+  it('the plates’ gallery entries: every look’s keepers, nothing else', () => {
+    const cast = [
+      { id: 'a', looks: [{ id: 'l1', keeperEntryIds: ['k1', ' k2 '] }, { id: 'l2' }] },
+      { id: 'b', looks: [{ id: 'l3', keeperEntryIds: ['k3'] }] },
+    ] as never;
+    const gallery = ['k1', 'k2', 'k3', 'other'].map(id => ({ id })) as never;
+    assert.deepEqual(
+      plateGalleryEntries(cast, gallery).map(entry => entry.id),
+      ['k1', 'k2', 'k3']
+    );
   });
 });

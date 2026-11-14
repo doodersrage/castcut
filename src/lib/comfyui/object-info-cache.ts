@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComfyUiModelLists } from './object-info';
 import { resolveSelectedWorkflowRuntime } from './runtime';
 import type { WebpSaveAdapter } from '../workflow/save-format';

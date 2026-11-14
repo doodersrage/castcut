@@ -1,5 +1,3 @@
-'use client';
-
 import type { CharacterRecord } from '@/lib/character/os';
 import type { DayPlate } from '@/lib/day/plate';
 import { resolveDayFaceOnlyPlate } from '@/lib/day/plate';
@@ -176,7 +174,10 @@ export async function uploadDayIdentityLatentPlate(input: {
   filename?: string | null;
   model?: string | null;
   comfyUrl?: string | null;
+  /** The server's steps (face-plate-ops-server.ts); the page's by default. */
+  ops?: Pick<DayFacePlateOps, 'loadBlob' | 'upload'>;
 }): Promise<DayPlate | null> {
+  const ops = input.ops ?? PAGE_FACE_PLATE_OPS;
   const comfyUrl = input.comfyUrl?.trim() || undefined;
   const urls = collectIsolateSourceUrls({
     imageUrl: input.imageUrl?.trim() || undefined,
@@ -187,19 +188,13 @@ export async function uploadDayIdentityLatentPlate(input: {
     return null;
   }
   try {
-    const blob = await loadImageBlobFromUrls(urls);
+    const blob = await ops.loadBlob(urls);
     const stamp = Date.now();
     const file = new File([blob], `day-identity-rl-${stamp}.png`, {
       type: blob.type || 'image/png',
       lastModified: stamp,
     });
-    const uploaded = await resolveQueueInputImage({
-      file,
-      filename: file.name,
-      model: input.model ?? undefined,
-      comfyUrl,
-    });
-    const filename = uploaded?.filename?.trim();
+    const filename = (await ops.upload(file, input.model ?? undefined, comfyUrl))?.trim();
     return filename
       ? { filename, imageUrl: undefined, isolated: false, isolateSubject: false, source: 'keeper' }
       : null;

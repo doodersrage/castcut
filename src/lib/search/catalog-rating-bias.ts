@@ -1,5 +1,3 @@
-'use client';
-
 import { loadComfyGallery } from '../gallery/comfyui-gallery';
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 

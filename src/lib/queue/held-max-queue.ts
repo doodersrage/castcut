@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import type { ComfyUiRuntimeConfig, WorkflowParamValues } from '../comfyui/config';
 import type { QueueQualityProfile } from './quality-profile';

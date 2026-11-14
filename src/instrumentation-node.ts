@@ -71,6 +71,18 @@ export async function registerNode(
     runWatchTimer.unref?.();
   }
 
+  // Scene runs the server was rendering when it stopped (FINISHING_PLAN Phase 3): picked up
+  // again once the app is up — each waits for the take it had in flight, never queues a second.
+  if (process.env.PROMPT_DATA_DIR?.trim() && process.env.CASTCUT_SERVER_RUNS !== 'off') {
+    const resumeTimer = setTimeout(() => {
+      // Through its route: the runner is Play's, and this file is shared.
+      void postInstrumentationRoute('/api/scene-runs/server/resume').catch(error =>
+        console.warn('[server-run] resume failed', error)
+      );
+    }, 30_000);
+    resumeTimer.unref?.();
+  }
+
   // The built-in LLM's hooks (llm-local.ts): LLM calls find it, start it on demand.
   await import('@/lib/llm/local-server');
 

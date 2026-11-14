@@ -1,5 +1,3 @@
-'use client';
-
 import { loadComfyUiSettings, mergeLoraLibraryIntoCustomTokens } from '../comfyui/settings';
 import { loadSettingsCache } from '../settings/cache';
 import { auditLoaderMapsAgainstComfyUi } from './loader-map-health-audit';

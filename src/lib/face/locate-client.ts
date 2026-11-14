@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Find the face on a plate through the app's /api/face-locate route, cached per plate. Shared:
  * Fix area and the Cast face crop use it (cast-face-crop re-exports); docs/architecture-boundaries.md.

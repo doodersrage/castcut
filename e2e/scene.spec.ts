@@ -8,6 +8,7 @@ import { closeDaySheets, openDaySlotSheet } from './helpers/day';
 import { gotoStable } from './helpers/navigation';
 import { dismissBlockingOverlays } from './helpers/overlays';
 import { isolateServerStorage } from './helpers/storage';
+import { startFakeComfyUi } from './helpers/fake-comfyui';
 import { dayShortFingerprint } from '../src/lib/day/day-as-short';
 import type { DayToolCache } from '../src/lib/play/settings';
 
@@ -115,6 +116,25 @@ async function stubComfyQueue(page: Page) {
     await route.continue();
   });
   return queued;
+}
+
+/**
+ * Start (or Resume) a run: a click before the page hydrates is lost, so it is clicked until the
+ * run's state moves on from the one it had.
+ */
+async function startRun(page: Page): Promise<void> {
+  const state = page.getByTestId('scene-run-state');
+  const before = await state.getAttribute('data-state');
+  await expect
+    .poll(
+      async () => {
+        const now = await state.getAttribute('data-state');
+        if (now === before) await page.getByTestId('scene-run-start').click();
+        return now;
+      },
+      { timeout: 60_000, intervals: [1000] }
+    )
+    .not.toBe(before);
 }
 
 /** A saved scene with two finished takes, open on the page. */
@@ -1939,7 +1959,7 @@ test('a run renders Scene by Scene, keeps nothing, and resumes without a second 
   await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', {
     timeout: 60_000,
   });
-  await page.getByTestId('scene-run-start').click();
+  await startRun(page);
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
@@ -2027,7 +2047,7 @@ test('a run’s takes are decided the same from its inputs alone (the server’s
   await gotoStable(page, `/scene?character=${CAST}`);
   await dismissBlockingOverlays(page);
   await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', { timeout: 60_000 });
-  await page.getByTestId('scene-run-start').click();
+  await startRun(page);
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', { timeout: 120_000 });
   expect(queuedTakes(queued)).toHaveLength(2);
   // Both takes checked against the run's bundle, and no difference found.
@@ -2118,7 +2138,7 @@ test('an episode run keeps a take on each Scene by itself', async ({
   await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', {
     timeout: 60_000,
   });
-  await page.getByTestId('scene-run-start').click();
+  await startRun(page);
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
@@ -2150,6 +2170,113 @@ test('an episode run keeps a take on each Scene by itself', async ({
   // You looked, it's fine: off the list (2026-11-11).
   await page.getByTestId('scene-run-flagged-fine-run-a').click();
   await expect(page.getByTestId('scene-run-flagged').locator('li')).toHaveCount(1);
+});
+
+// FINISHING_PLAN Phase 3's gate in small: a run rendered by the server goes on with the page
+// closed, and the page, opened again, catches up — each Scene's take kept, one take each. The
+// server talks to ComfyUI itself, so a stand-in ComfyUI (helpers/fake-comfyui.ts) is its ComfyUI.
+test('a run rendered on the server goes on with the page closed; the page catches up', async ({
+  page,
+}) => {
+  test.setTimeout(360_000);
+  const fake = await startFakeComfyUi({ renderMs: 800 });
+  try {
+    const empty = (id: string, name: string, at: number) => ({
+      id,
+      castId: CAST,
+      name,
+      slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+      takes: [],
+      createdAt: at,
+      updatedAt: at,
+    });
+    const runId = `run-server-${Date.now()}`;
+    const base = sceneWithTakes();
+    await seedSettingsCacheOnNextLoad(
+      page,
+      {
+        shared: { activeCharacterId: CAST },
+        characters: cast,
+        comfyUi: { apiUrl: fake.url },
+        tools: {
+          scene: {
+            ...base,
+            scenes: [empty('srv-a', 'Server A', 3), empty('srv-b', 'Server B', 4)],
+            activeSceneId: 'srv-a',
+            slots: [empty('srv-a', 'Server A', 3).slot],
+            stills: [],
+            run: {
+              id: runId,
+              castId: CAST,
+              label: 'Server run',
+              items: [
+                { sceneId: 'srv-a', include: true },
+                { sceneId: 'srv-b', include: true },
+              ],
+              maxTakes: 6,
+              maxMinutes: 60,
+              skipKept: false,
+              onServer: true,
+              auto: { keep: true, redo: 0, animate: false },
+              state: 'prepared',
+              position: 0,
+              log: [],
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          },
+        },
+      },
+      { once: true }
+    );
+    await gotoStable(page, `/scene?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    await expect(page.getByTestId('scene-run-state')).toContainText('Ready · 0 of 2 done', {
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId('scene-run-on-server')).toBeChecked();
+    await startRun(page);
+    await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'running', {
+      timeout: 60_000,
+    });
+
+    // The page closes; the server goes on.
+    await page.goto('/manifest.json');
+    await expect
+      .poll(
+        async () => {
+          const answer = (await (
+            await page.request.get(`/api/scene-runs/server?runId=${runId}`)
+          ).json()) as { patches?: Array<{ patch: { run?: { state?: string } } }> };
+          return answer.patches?.at(-1)?.patch.run?.state ?? '';
+        },
+        { timeout: 150_000, intervals: [2000] }
+      )
+      .toBe('done');
+    const stills = fake.jobs.filter(job => !/outfit try-on/i.test(job.text));
+    expect(stills.length, 'one take a Scene, never a second').toBe(2);
+
+    // Opened again: the page applies what the server did — both Scenes kept, the run done.
+    await gotoStable(page, `/scene?character=${CAST}`);
+    await dismissBlockingOverlays(page);
+    await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId('scene-run-state')).toContainText('2 of 2 done');
+    await expect
+      .poll(async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        return (tool.scenes ?? [])
+          .map((entry: { id: string; takes: unknown[]; keptTakeId?: string }) =>
+            `${entry.id}:${entry.takes.length}${entry.keptTakeId ? 'k' : ''}`
+          )
+          .sort()
+          .join('|');
+      }, { timeout: 30_000 })
+      .toBe('srv-a:1k|srv-b:1k');
+  } finally {
+    await fake.close();
+  }
 });
 
 // 2026-11-06: an episode's redos and re-rolls dropped 58 of the lead's 78 script lines — a new
@@ -2389,7 +2516,7 @@ test('after a reload a run is paused, and Resume waits for the take in flight', 
   });
   await expect(page.getByTestId('scene-run-stop-reason')).toContainText('reloaded');
 
-  await page.getByTestId('scene-run-start').click();
+  await startRun(page);
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });
@@ -4128,7 +4255,7 @@ test('phone: a script imported, a shot made a Scene, and a run prepared and star
     await page.getByTestId('scene-scripts').screenshot({ path: `${SHOTS}/phone-script.png` });
     await run.screenshot({ path: `${SHOTS}/phone-run.png` });
   }
-  await page.getByTestId('scene-run-start').click();
+  await startRun(page);
   await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
     timeout: 120_000,
   });

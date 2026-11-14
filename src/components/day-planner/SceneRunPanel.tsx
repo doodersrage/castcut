@@ -1,5 +1,6 @@
 'use client';
 
+import { comfyModelLabel, type ComfyImageModel } from '@/lib/comfy-models/client';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
@@ -32,8 +33,11 @@ export default function SceneRunPanel({
   disabled,
   onChange,
   onOpenScene,
+  model,
   children,
 }: {
+  /** The engine the run renders on (its takes' typical time, and the summary says which). */
+  model?: string;
   /** Open a Scene (a flagged one, to check its kept take). */
   onOpenScene?: (sceneId: string) => void;
   run: SceneRun;
@@ -44,7 +48,7 @@ export default function SceneRunPanel({
   children?: React.ReactNode;
 }) {
   // A typical take's render time here: the Queue's own measure (recent finished jobs).
-  const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery()) / 1000, []);
+  const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery(), model) / 1000, [model]);
   const plan = useMemo(() => runQueue(run, scenes, typicalSec), [run, scenes, typicalSec]);
   const byId = useMemo(() => new Map(scenes.map(scene => [scene.id, scene])), [scenes]);
   const queuedIds = new Set(plan.queued.map(entry => entry.sceneId));
@@ -67,7 +71,7 @@ export default function SceneRunPanel({
       <div className="space-y-2">
         <p className="type-caption" data-testid="scene-run-summary">
           {plan.queued.length
-            ? `${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}`
+            ? `${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}${model ? ` on ${comfyModelLabel(model as ComfyImageModel)}` : ''}`
             : 'Nothing to queue with these limits.'}
           {plan.left.length ? ` · ${plan.left.length} past the limits` : ''}
           {plan.gone.length
@@ -136,6 +140,19 @@ export default function SceneRunPanel({
             />
             Resume by itself after a reload
           </label>
+          <label
+            className="flex items-center gap-1"
+            title="The server renders it: close the page and come back to the takes. Stills only for now — Animate, marks repair and Auto-review stay with the page (a take they didn't see is flagged)."
+          >
+            <input
+              type="checkbox"
+              checked={run.onServer === true}
+              disabled={disabled || run.state === 'running'}
+              data-testid="scene-run-on-server"
+              onChange={event => set({ onServer: event.target.checked || undefined })}
+            />
+            Render on the server (the page can be closed)
+          </label>
         </div>
         <fieldset
           className="flex flex-wrap items-center gap-3 text-sm"
@@ -143,7 +160,8 @@ export default function SceneRunPanel({
           disabled={disabled || run.state === 'running'}
         >
           <legend className="type-caption mb-1 text-[var(--text-muted)]">
-            Episode — for a whole script, unattended (keep this page open)
+            Episode — for a whole script, unattended
+            {run.onServer ? ' (on the server: no Animate yet)' : ' (keep this page open)'}
           </legend>
           <label
             className="flex items-center gap-1"

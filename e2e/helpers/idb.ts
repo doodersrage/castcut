@@ -98,6 +98,8 @@ export async function seedSettingsCacheOnNextLoad(
     shared?: Record<string, unknown>;
     tools?: Record<string, unknown>;
     characters?: unknown;
+    /** ComfyUI's settings (Settings → ComfyUI): e.g. `apiUrl` of a stand-in ComfyUI. */
+    comfyUi?: Record<string, unknown>;
   },
   /** `once`: seed only the tab's first load (a reload keeps what the app saved since). */
   options: { once?: boolean } = {}
@@ -116,6 +118,9 @@ export async function seedSettingsCacheOnNextLoad(
   };
   if (cache.characters !== undefined) {
     entries['comfy-prompt-characters-v1'] = cache.characters;
+  }
+  if (cache.comfyUi !== undefined) {
+    entries['comfyui-settings-v4'] = cache.comfyUi;
   }
   // The init-script write below is async and can lose the race with the app's own hydrate (a
   // localStorage-only seed lost outright). When an app page is already open, also write now

@@ -1,5 +1,3 @@
-'use client';
-
 import type { CharacterRecord } from '@/lib/character/os';
 import {
   dayNudeNeedsAutoFaceCrop,

@@ -31,6 +31,8 @@
   "src/app/api/review/[token]/video/route.ts",
   "src/app/api/roleplay/route.ts",
   "src/app/api/scene-runs/bundle/route.ts",
+  "src/app/api/scene-runs/server/resume/route.ts",
+  "src/app/api/scene-runs/server/route.ts",
   "src/app/api/scene-runs/shadow/route.ts",
   "src/app/api/script-episode/route.ts",
   "src/app/api/script-shots/route.ts",

@@ -1,5 +1,3 @@
-'use client';
-
 import { loadLocations, shotPlacePhoto } from '@/lib/location/records';
 
 import {
@@ -44,7 +42,7 @@ import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-prof
 
 import { activeDayEvent } from '@/lib/day/event';
 
-import { usePromptResultActions } from '@/hooks/usePromptResultActions';
+import type { usePromptResultActions } from '@/hooks/usePromptResultActions';
 
 import {
   activeLook,
@@ -209,6 +207,11 @@ import type { DaySlotOutfit } from '@/lib/day/slot-look';
 import type { TakeModelPlan } from '@/lib/day/take-plan';
 import type { DayToolCache } from '@/lib/play/settings';
 import type { SharedToolSettings } from '@/lib/settings/cache';
+import type { DayDressPlateDeps } from '@/lib/day/dress-plate-client';
+import type { DayStandInSteps } from '@/lib/day/partner-stand-in';
+import type { DayFacePlateOps } from '@/lib/day/vacation-face-crop';
+import type { PictureIo } from '@/lib/media/picture-io';
+import { checkReferenceImage } from '@/lib/checks/reference-check-client';
 
 /**
  * A Day / Scene take, queued (FINISHING_PLAN Phase 3: the take built off the page). The body of
@@ -243,8 +246,11 @@ export type DayPoseGuideExpectation = {
  * away). Said once per queue (the tray replaces the same notice), with the Cast home where
  * Prepare plate lives.
  */
-function warnNoFaceOnPlate(character: { id: string } | null | undefined): void {
-  pushSystemTrayMessage({
+function warnNoFaceOnPlate(
+  character: { id: string } | null | undefined,
+  tray: typeof pushSystemTrayMessage = pushSystemTrayMessage
+): void {
+  tray({
     text: NO_FACE_ON_PLATE_MESSAGE,
     tone: 'warning',
     ttlMs: 30_000,
@@ -295,6 +301,8 @@ export type DayTakeOptions = {
 };
 
 export type DayTakeContext = {
+  /** Over the page's steps (PAGE_TAKE_STEPS). */
+  steps?: Partial<DayTakeSteps>;
   toolSettings: DayToolCache;
   shared: SharedToolSettings;
   sceneCacheRef: RefObject<
@@ -352,6 +360,63 @@ export type DayTakeContext = {
   clothingGender: 'women' | 'men' | 'any';
 };
 
+/**
+ * What a take reads and writes outside its context, each a step (FINISHING_PLAN Phase 3): the
+ * page's by default (PAGE_TAKE_STEPS); the server passes its own — ComfyUI asked directly, the
+ * run's frozen metrics, its picture steps, and records kept for the run (not this browser's).
+ */
+export type DayTakeSteps = {
+  comfyUrl: () => string | undefined;
+  getCharacter: typeof getCharacter;
+  locations: typeof loadLocations;
+  poseLibrary: typeof loadPoseLibrary;
+  /** A picture put in ComfyUI's inputs (the pose guide). */
+  upload: (file: File, model?: string) => Promise<{ filename?: string } | null | undefined>;
+  imageSize: typeof probeImage1Size;
+  checkStillReferences: typeof checkStillReferences;
+  nodeTypes: typeof fetchComfyObjectInfoNodeTypesCached;
+  metrics: { weakLayouts: typeof weakPoseLayouts; cueLayouts: typeof cuePoseLayouts };
+  notify: { toast: typeof pushAppToast; tray: typeof pushSystemTrayMessage };
+  record: {
+    poseGuideOutcome: typeof recordPoseGuideOutcome;
+    poseTakeQueued: typeof notePoseTakeQueued;
+    castOutfitWorn: typeof recordCastOutfitWorn;
+    syncIdentity: typeof syncSharedIdentityToCast;
+    takeShadow: typeof postTakeShadow;
+    draftFields: typeof rememberDraftFields;
+    playerSlotRender: typeof recordPlayerSlotRender;
+  };
+  /** Picture steps (face crops, uploads, the reference check, the stand-in's wait): the page's when absent. */
+  faceOps?: DayFacePlateOps;
+  checkReference?: typeof checkReferenceImage;
+  standIn?: DayStandInSteps;
+  io?: PictureIo;
+  /** Over the page's dress plate steps (serverDressPlateDeps on the server). */
+  dressPlate?: Partial<DayDressPlateDeps>;
+};
+
+export const PAGE_TAKE_STEPS: DayTakeSteps = {
+  comfyUrl: () => loadComfyUiSettings().apiUrl?.trim() || undefined,
+  getCharacter,
+  locations: loadLocations,
+  poseLibrary: loadPoseLibrary,
+  upload: (file, model) => resolveQueueInputImage({ file, filename: file.name, model }),
+  imageSize: probeImage1Size,
+  checkStillReferences,
+  nodeTypes: fetchComfyObjectInfoNodeTypesCached,
+  metrics: { weakLayouts: weakPoseLayouts, cueLayouts: cuePoseLayouts },
+  notify: { toast: pushAppToast, tray: pushSystemTrayMessage },
+  record: {
+    poseGuideOutcome: recordPoseGuideOutcome,
+    poseTakeQueued: notePoseTakeQueued,
+    castOutfitWorn: recordCastOutfitWorn,
+    syncIdentity: syncSharedIdentityToCast,
+    takeShadow: postTakeShadow,
+    draftFields: rememberDraftFields,
+    playerSlotRender: recordPlayerSlotRender,
+  },
+};
+
 export async function runDayTake(
   ctx: DayTakeContext,
   slot: DaySlot,
@@ -399,6 +464,7 @@ export async function runDayTake(
     isolatePending,
     clothingGender,
   } = ctx;
+  const steps: DayTakeSteps = { ...PAGE_TAKE_STEPS, ...ctx.steps };
   const manageBusy = options?.manageBusy !== false;
   // One event, moment 2 on: an edit of the moment before, not a Day still of its own.
   const dayEvent = activeDayEvent(toolSettings.dayEvent, slots);
@@ -435,7 +501,7 @@ export async function runDayTake(
     const rerolled = Boolean(beatKey) && lastBeat === beatKey;
     lastPlayerBeatRef.current[slot.id] = beatKey;
     try {
-      recordPlayerSlotRender({
+      steps.record.playerSlotRender({
         layout: daySlotPoseLayout({
           slot,
           dayMood: normalizeDayMood(toolSettings.dayMood),
@@ -693,7 +759,7 @@ export async function runDayTake(
             visionShared: sharedRef.current,
             onShoePass: () => {
               setDressPlateStatus({ text: DRESS_PLATE_SHOE_PASS_STATUS, busy: true });
-              pushSystemTrayMessage({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
+              steps.notify.tray({ text: DRESS_PLATE_SHOE_PASS_STATUS, tone: 'info' });
             },
             onRender: ({ change }) => {
               const text = dayDressPlateStatus({
@@ -703,8 +769,9 @@ export async function runDayTake(
                 change,
               });
               setDressPlateStatus({ text, busy: true });
-              pushSystemTrayMessage({ text, tone: 'info' });
+              steps.notify.tray({ text, tone: 'info' });
             },
+            ...steps.dressPlate,
           }
         );
         dressedPlate = {
@@ -792,23 +859,25 @@ export async function runDayTake(
       dressedPlate: Boolean(dressedPlate),
     });
     if (identityRoute === 'nude' && lookCharacter) {
-      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const comfyUrl = steps.comfyUrl();
       const nudeIdentity = await resolveDayNudeIdentityPlateWithFaceCrop({
         character: lookCharacter,
         model: stillModel,
         comfyUrl,
+        ...(steps.faceOps ? { ops: steps.faceOps } : {}),
+        ...(steps.checkReference ? { checkReference: steps.checkReference } : {}),
       });
       if (nudeIdentity.plate) {
         identityPlate = nudeIdentity.plate;
         nudeFaceAutoCropped = nudeIdentity.autoCropped;
       }
-      if (nudeIdentity.noFaceFound) warnNoFaceOnPlate(lookCharacter);
+      if (nudeIdentity.noFaceFound) warnNoFaceOnPlate(lookCharacter, steps.notify.tray);
       if (nudeIdentity.faceLockRejected) referenceNotes.push(nudeIdentity.faceLockRejected);
     } else if (identityRoute === 'heat-full-plate' || identityRoute === 'face-break') {
       // Upright MID-STRIDE / WAVING / DANCING: full Keep as Image 1 freezes stand.
       // On Edit-2511, sit/lounge freezes the same way — face-break every clothed-heat beat.
       // Face-crop Image 1; full Keep rides Image 2 for outfit (no re-suggest needed).
-      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const comfyUrl = steps.comfyUrl();
       const bodyPlate = identityPlate ?? slotQueuePlate;
       if (identityRoute === 'heat-full-plate') {
         // Face-crop Image 1 invents a new person every slot. Legacy pose-guide Image 3
@@ -820,6 +889,7 @@ export async function runDayTake(
           character: lookCharacter,
           model: stillModel,
           comfyUrl,
+          ...(steps.faceOps ? { ops: steps.faceOps } : {}),
         });
         if (identityVl) {
           identityPlate = identityVl;
@@ -830,8 +900,9 @@ export async function runDayTake(
           character: lookCharacter,
           model: stillModel,
           comfyUrl,
+          ...(steps.faceOps ? { ops: steps.faceOps } : {}),
         });
-        if (faceBreak.noFaceFound) warnNoFaceOnPlate(lookCharacter);
+        if (faceBreak.noFaceFound) warnNoFaceOnPlate(lookCharacter, steps.notify.tray);
         if (faceBreak.facePlate) {
           faceBreakBodyPlate = bodyPlate ?? null;
           identityPlate = faceBreak.facePlate;
@@ -844,6 +915,7 @@ export async function runDayTake(
               filename: bodyPlate.filename,
               model: stillModel,
               comfyUrl,
+              ...(steps.faceOps ? { ops: steps.faceOps } : {}),
             });
           }
         }
@@ -854,12 +926,13 @@ export async function runDayTake(
       // or from the OpenPose map.
       skipPoseGuideImage = lightningDropsPoseGuide;
       lightningIdentityPath = true;
-      const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+      const comfyUrl = steps.comfyUrl();
       const identityVl = await resolveDayVacationIdentityVlPlate({
         bodyPlate: identityPlate ?? slotQueuePlate,
         character: lookCharacter,
         model: stillModel,
         comfyUrl,
+        ...(steps.faceOps ? { ops: steps.faceOps } : {}),
       });
       if (identityVl) {
         identityPlate = identityVl;
@@ -930,7 +1003,7 @@ export async function runDayTake(
       scriptShot: scriptLineStays(),
       leadNoun,
       lead: lookCharacter,
-      getCharacter,
+      getCharacter: steps.getCharacter,
       lookHasPlate,
       dayMood: toolSettings.dayMood,
       intimateEnabled,
@@ -948,8 +1021,13 @@ export async function runDayTake(
       pageStandIn: partnerStandInRef.current,
       lead: lookCharacter,
       stillModel,
-      comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+      comfyUrl: steps.comfyUrl(),
       sendComfyUi: actions.sendComfyUi,
+      steps: {
+        faceOps: steps.faceOps,
+        checkReference: steps.checkReference,
+        standIn: steps.standIn,
+      },
     });
     referenceNotes.push(...partnerResult.notes);
     if (partnerResult.pageStandIn) {
@@ -1021,6 +1099,7 @@ export async function runDayTake(
             garment: clothingReinforce,
             footwear: footwearRef,
             model: stillModel,
+            ...(steps.io ? { io: steps.io, comfyUrl: steps.comfyUrl() } : {}),
           });
           if (reference?.combined) {
             garmentReinforce = {
@@ -1032,7 +1111,7 @@ export async function runDayTake(
           }
         } catch (footwearError) {
           console.warn('Day footwear image could not be attached:', footwearError);
-          pushAppToast({
+          steps.notify.toast({
             text: `${queueTarget.label}: the shoe picture couldn't be attached — the shoes go out in words only.`,
             tone: 'warning',
             ttlMs: 12_000,
@@ -1056,12 +1135,13 @@ export async function runDayTake(
             bodyPlate: identityPlate ?? slotQueuePlate,
             character: lookCharacter,
             model: stillModel,
-            comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+            comfyUrl: steps.comfyUrl(),
+            ...(steps.faceOps ? { ops: steps.faceOps } : {}),
           })
         ).facePlate;
       } catch (faceError) {
         console.warn('Klein face reference could not be attached:', faceError);
-        pushAppToast({
+        steps.notify.toast({
           text: `${queueTarget.label}: the face close-up couldn't be attached — the face may match the cast less closely.`,
           tone: 'warning',
           ttlMs: 12_000,
@@ -1111,7 +1191,7 @@ export async function runDayTake(
     const shadowRun = sceneMode ? sceneCacheRef.current.run : undefined;
     if (shadowRun?.state === 'running' && sceneCacheRef.current.activeSceneId) {
       const sceneId = sceneCacheRef.current.activeSceneId;
-      postTakeShadow({
+      steps.record.takeShadow({
         runId: shadowRun.id,
         sceneId,
         slot: outfitInput.target,
@@ -1207,7 +1287,7 @@ export async function runDayTake(
           allowCompanions: toolSettings.allowCompanions === true,
           model: stillModel,
           retryVariant: poseVariantRef.current[queueTarget.id] ?? 0,
-          weakLayouts: weakPoseLayouts(),
+          weakLayouts: steps.metrics.weakLayouts(),
         });
         // The still renders at Image 1's aspect, so draw the guide at that aspect too —
         // a portrait guide squeezed onto a square latent lands the body in the wrong place.
@@ -1218,7 +1298,7 @@ export async function runDayTake(
           image1Plate?.imageUrl?.trim() ||
           collectIsolateSourceUrls({
             filename: image1Plate?.filename?.trim() || undefined,
-            comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+            comfyUrl: steps.comfyUrl(),
           }).find(url => url !== IDENTITY_MEDIA_URL);
         const poseBuild = await buildDayPoseGuide(queueTarget.id, posePlan.sceneText, stillModel, {
           ...posePlan.options,
@@ -1227,8 +1307,8 @@ export async function runDayTake(
             ? null
             : stillCanvas
               ? stillCanvas
-              : await probeImage1Size(image1Url),
-          library: isOpenPoseStyle(poseGuideStyle) ? loadPoseLibrary() : [],
+              : await steps.imageSize(image1Url),
+          library: isOpenPoseStyle(poseGuideStyle) ? steps.poseLibrary() : [],
         });
         const poseFile = poseBuild.file;
         poseGuideDrawnStyle = poseBuild.stylePreference;
@@ -1251,14 +1331,10 @@ export async function runDayTake(
           poseKey: poseBuild.poseKey,
           beat: queueTarget.sceneHints,
         };
-        const uploaded = await resolveQueueInputImage({
-          file: poseFile,
-          filename: poseFile.name,
-          model: stillModel,
-        });
+        const uploaded = await steps.upload(poseFile, stillModel);
         poseGuideFilename = uploaded?.filename?.trim() || undefined;
         if (poseGuideFilename) {
-          const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+          const comfyUrl = steps.comfyUrl();
           poseGuideUrl =
             collectIsolateSourceUrls({
               filename: poseGuideFilename,
@@ -1279,7 +1355,7 @@ export async function runDayTake(
       delete poseGuideExpectRef.current[queueTarget.id];
     }
     setPoseGuideOutcomes(previous =>
-      recordPoseGuideOutcome(previous, {
+      steps.record.poseGuideOutcome(previous, {
         slotId: queueTarget.id,
         slotLabel: queueTarget.label,
         ...(poseGuideFilename
@@ -1385,7 +1461,7 @@ export async function runDayTake(
           }
         : null,
       customPose: customPose || null,
-      cueLayouts: cuePoseLayouts(),
+      cueLayouts: steps.metrics.cueLayouts(),
       poseLook: queueTarget.poseLook,
       kleinFace: Boolean(kleinFaceFilename),
       qualityNudge,
@@ -1440,7 +1516,7 @@ export async function runDayTake(
     const adultSafeguards =
       dayMoodNeedsAdultSafeguards(dayMoodForPrompt) || isAdultContentPrompt(finalized);
     setOutput(finalized);
-    rememberDraftFields({
+    steps.record.draftFields({
       toolKey: TOOL_ID,
       label: 'Short',
       href: '/day',
@@ -1462,9 +1538,10 @@ export async function runDayTake(
         partnerCharacter,
         lead: lookCharacter,
         stillModel,
-        comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+        comfyUrl: steps.comfyUrl(),
         filmPartners: sceneScriptPartners(sceneCacheRef.current.scriptPartners),
         pageStandIn: partnerStandInRef.current,
+        steps: { io: steps.io, checkReference: steps.checkReference },
       });
       extraUrls[1] = sent.url;
       extraFilenames[1] = sent.filename;
@@ -1508,7 +1585,7 @@ export async function runDayTake(
     // Set in a location record (M8): its picture, when it has one — never a room of her home
     // (a photo added beside the Setting is kept on one). The adult and group prompts below
     // say "the room shown in Image N": an outdoor location's photo is not theirs.
-    const slotLocations = queueTarget.locationId?.trim() ? loadLocations() : [];
+    const slotLocations = queueTarget.locationId?.trim() ? steps.locations() : [];
     const settingPhoto = (indoorsOnly = false) =>
       shotPlacePhoto(
         queueTarget.locationId,
@@ -1564,13 +1641,14 @@ export async function runDayTake(
     // room photo then rides as Image 5 (below).
     const group = await resolveTakeGroupFaces({
       slot: queueTarget,
-      getCharacter,
+      getCharacter: steps.getCharacter,
       stillModel,
-      comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+      comfyUrl: steps.comfyUrl(),
       placePhoto: Boolean(placePhoto),
       adultStill,
       partnerFace: Boolean(partnerFace),
       kleinFace: Boolean(kleinFaceFilename),
+      steps: { faceOps: steps.faceOps, checkReference: steps.checkReference },
     });
     referenceNotes.push(...group.notes);
     const thirdPerson: DayThirdPerson | null = group.third?.person ?? null;
@@ -1816,7 +1894,11 @@ export async function runDayTake(
                 characterId: partnerCharacter.id,
                 lookId: activeLook(partnerCharacter)?.id,
               },
-              { sendComfyUi: actions.sendComfyUi, visionShared: sharedRef.current }
+              {
+                sendComfyUi: actions.sendComfyUi,
+                visionShared: sharedRef.current,
+                ...steps.dressPlate,
+              }
             );
             partnerBody = { filename: entry.filename, imageUrl: entry.imageUrl };
           } catch {
@@ -1842,14 +1924,14 @@ export async function runDayTake(
       extraFilenames.some((name, index) => index > 0 && Boolean(name.trim()));
     // Image 1 meant as a face crop, and the clothing image, checked against their roles
     // (cached per picture: the same crop goes out with every still of the Day).
-    const plainReferenceNote = await checkStillReferences({
+    const plainReferenceNote = await steps.checkStillReferences({
       face: faceOnlyIdentity ? imageOnePlate : null,
       clothing:
         !partnerFace && !nudeBodyAttached && extraFilenames[1]?.trim()
           ? { filename: extraFilenames[1] }
           : null,
       subject: lookCharacter?.name,
-      comfyUrl: loadComfyUiSettings().apiUrl?.trim() || undefined,
+      comfyUrl: steps.comfyUrl(),
     });
     if (plainReferenceNote) referenceNotes.push(plainReferenceNote);
     const queueOptions = !lookHasPlate
@@ -1873,7 +1955,7 @@ export async function runDayTake(
     // The active look's: a slot made in another look must not switch the session to it (its
     // own face goes on the job, below).
     if (character) {
-      syncSharedIdentityToCast(character);
+      steps.record.syncIdentity(character);
     }
     const dayMood = normalizeDayMood(toolSettings.dayMood);
     const intimateMix = normalizeDayIntimateMix(toolSettings.intimateMix);
@@ -2029,7 +2111,7 @@ export async function runDayTake(
     }
     if (checked.remaining.length > 0) {
       console.warn('Day prompt check:', queueTarget.label, checked.remaining, queuedPrompt);
-      pushSystemTrayMessage({
+      steps.notify.tray({
         text: stillPromptIssuesLine(checked.remaining, queueTarget.label),
         tone: 'warning',
         ttlMs: 20_000,
@@ -2079,7 +2161,7 @@ export async function runDayTake(
       // The one-job pair returns two takes at once; the adult-appearance gate checks one.
       !adultSafeguards &&
       bestOfTwoAsOneJob({ ...pairRule, packInstalled: true }) &&
-      castcutBestOfTwoAvailable(await fetchComfyObjectInfoNodeTypesCached().catch(() => null))
+      castcutBestOfTwoAvailable(await steps.nodeTypes().catch(() => null))
     ) {
       castcutPoseGuide = castcutGuideJson(poseExpectation.keypoints, poseExpectation.aspect);
     }
@@ -2184,7 +2266,7 @@ export async function runDayTake(
         }
       } catch (secondError) {
         console.warn('Day: the second take was not queued:', queueTarget.label, secondError);
-        pushAppToast({
+        steps.notify.toast({
           text: `${queueTarget.label}: the second take wasn't queued (${shortErrorText(secondError)}) — the first one is on its way.`,
           tone: 'warning',
           ttlMs: 12_000,
@@ -2194,7 +2276,7 @@ export async function runDayTake(
     // What she wore, for Cast home's wardrobe (cast-wardrobe.ts) — not a beat that drops the
     // outfit (nude, or the mood's own clothes).
     if (typeof promptId === 'string' && !omitGarment && !replaceKeepOutfit) {
-      recordCastOutfitWorn(lookCharacter?.id, {
+      steps.record.castOutfitWorn(lookCharacter?.id, {
         outfit: {
           wardrobeId: wardrobeId || undefined,
           customGarmentImageUrl: wardrobeId ? undefined : outfit.customGarmentImageUrl,
@@ -2212,7 +2294,7 @@ export async function runDayTake(
     }
     // Pose × engine stats: the take, and whether it redoes the slot's last one.
     if (typeof promptId === 'string') {
-      notePoseTakeQueued({
+      steps.record.poseTakeQueued({
         takeId: promptId,
         poseKey: trackedPoseKey,
         model: stillModel,
@@ -2224,7 +2306,7 @@ export async function runDayTake(
       });
       // The second of two takes is the other half of a pick, not a redo.
       if (secondPromptId) {
-        notePoseTakeQueued({
+        steps.record.poseTakeQueued({
           takeId: secondPromptId,
           poseKey: trackedPoseKey,
           model: stillModel,

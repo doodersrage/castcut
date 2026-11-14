@@ -32,6 +32,7 @@ import {
   setSceneTakeReview,
   setSceneTakeNotes,
   scenesWithWorking,
+  sceneWorkingPatch,
   swapSceneForCast,
   takeAsStill,
   upsertScene,
@@ -320,6 +321,41 @@ export function useScenePage(vm: DayEngineView) {
     },
     [cache, castId, write]
   );
+  /**
+   * What the server did on a run it renders (FINISHING_PLAN Phase 3; day/run-loop-server.ts): its
+   * Scene as the server has it (on the card too when it is the open one), the run's record, the
+   * stand-ins and rooms a take made. Applied in order, each once.
+   */
+  const applyServerPatch = useCallback(
+    (patch: {
+      run?: SceneRun;
+      scene?: SavedScene;
+      scriptPartners?: unknown;
+      scriptRooms?: unknown;
+    }) => {
+      const next: Partial<SceneToolCache> = {};
+      if (patch.scene && patch.scene.castId === castId) {
+        next.scenes = upsertScene(scenes, patch.scene);
+        if (patch.scene.id === cache.activeSceneId) {
+          const {
+            partnerStandIn: _p,
+            partnerSentFace: _f,
+            ...working
+          } = sceneWorkingPatch(patch.scene);
+          Object.assign(next, working);
+        }
+      }
+      if (patch.run) next.run = patch.run;
+      if (patch.scriptPartners && typeof patch.scriptPartners === 'object') {
+        next.scriptPartners = patch.scriptPartners as SceneToolCache['scriptPartners'];
+      }
+      if (patch.scriptRooms && typeof patch.scriptRooms === 'object') {
+        next.scriptRooms = patch.scriptRooms as SceneToolCache['scriptRooms'];
+      }
+      if (Object.keys(next).length) write(next);
+    },
+    [cache.activeSceneId, castId, scenes, write]
+  );
   /** Change the prepared run (its list, limits), or drop it (null). */
   const updateRun = useCallback(
     (next: SceneRun | null) => {
@@ -579,6 +615,7 @@ export function useScenePage(vm: DayEngineView) {
     makeSceneFrom,
     prepareRun,
     updateRun,
+    applyServerPatch,
     run: cache.run && cache.run.castId === castId ? normalizeSceneRun(cache.run) : undefined,
     openScene,
     renameScene,

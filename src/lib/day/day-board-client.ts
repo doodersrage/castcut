@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * A Short's board as its short has it, for what reads a Short away from the board (Cut, Play's
  * pose targets and counts, a Cast's file, the writers that change its moments or park it): the

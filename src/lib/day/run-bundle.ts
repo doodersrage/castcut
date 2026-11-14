@@ -14,6 +14,9 @@ import type { ComfyUiModelLists } from '../comfyui/object-info';
 import type { ModelCheckpointMap } from '../model/checkpoint-map';
 import type { PoseEngineReport } from '../pose/pose-engine-report';
 import type { ServerQueueSettings } from '../queue/queue-request-server';
+import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
+import { normalizeLocations, type LocationRecord } from '../location/records';
+import type { PoseLibraryEntry } from '../pose/library';
 import type { DaySlot } from './planner';
 import { planTakeModel, planTakeOutfit, planTakePartner, planTakePoseGuide } from './take-plan';
 import type { DayAutoKitOption } from './auto-kit';
@@ -79,7 +82,58 @@ export type RunBundle = {
    * 2026-11-14: the server cannot render such a run itself.
    */
   queue?: ServerQueueSettings;
+  /**
+   * The rest of what a take reads from the page (FINISHING_PLAN Phase 3, the take on the
+   * server): the Scene tool's stored settings as they were at Start (its Scenes, their takes so
+   * far, the stand-ins and rooms), the gallery entries the Cast's plates come from (their looks'
+   * keepers), and whether the workspace is lean (a lean page skips the prompt lint). Absent in
+   * bundles saved before 2026-11-14.
+   */
+  page?: RunBundlePage;
 };
+
+export type RunBundlePage = {
+  sceneTool: Record<string, unknown>;
+  gallery: ComfyGalleryEntry[];
+  leanChrome: boolean;
+  /** The saved locations (a shot set in one) and the pose library (photo poses). */
+  locations: LocationRecord[];
+  poseLibrary: PoseLibraryEntry[];
+};
+
+/** The page section from untrusted JSON, or null. */
+export function normalizeRunBundlePage(raw: unknown): RunBundlePage | null {
+  if (!isRec(raw) || !isRec(raw.sceneTool)) return null;
+  return {
+    sceneTool: raw.sceneTool,
+    gallery: Array.isArray(raw.gallery)
+      ? (raw.gallery.filter(
+          entry => isRec(entry) && typeof entry.id === 'string'
+        ) as unknown as ComfyGalleryEntry[])
+      : [],
+    leanChrome: raw.leanChrome === true,
+    locations: normalizeLocations(raw.locations),
+    poseLibrary: Array.isArray(raw.poseLibrary)
+      ? (raw.poseLibrary.filter(
+          entry => isRec(entry) && typeof entry.id === 'string'
+        ) as unknown as PoseLibraryEntry[])
+      : [],
+  };
+}
+
+/** The gallery entries the Cast's plates are read from: every look's keepers. */
+export function plateGalleryEntries(
+  cast: ReadonlyArray<CharacterRecord>,
+  gallery: ReadonlyArray<ComfyGalleryEntry>
+): ComfyGalleryEntry[] {
+  const ids = new Set<string>();
+  for (const record of cast) {
+    for (const look of record.looks ?? []) {
+      for (const id of look.keeperEntryIds ?? []) if (id?.trim()) ids.add(id.trim());
+    }
+  }
+  return gallery.filter(entry => ids.has(entry.id));
+}
 
 /** What a take decided, as compared. */
 export type TakeDecisions = {
@@ -151,6 +205,7 @@ export function normalizeRunBundle(raw: unknown): RunBundle | null {
   if (!isRec(raw.settings) || typeof raw.settings.model !== 'string') return null;
   const gender = raw.settings.clothingGender;
   const queue = normalizeRunQueueSettings(raw.queue);
+  const page = normalizeRunBundlePage(raw.page);
   return {
     version: RUN_BUNDLE_VERSION,
     runId: raw.runId,
@@ -182,6 +237,7 @@ export function normalizeRunBundle(raw: unknown): RunBundle | null {
         ) as unknown as RunBundleScene[])
       : [],
     ...(queue ? { queue } : {}),
+    ...(page ? { page } : {}),
     metrics: {
       weakLayouts: Array.isArray((raw.metrics as RunBundle['metrics'] | undefined)?.weakLayouts)
         ? (raw.metrics as RunBundle['metrics']).weakLayouts.filter(

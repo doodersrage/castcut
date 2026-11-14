@@ -1,5 +1,3 @@
-'use client';
-
 import { loadSettingsCache } from '../settings/cache';
 import type { WildcardMap } from './wildcard-expand';
 

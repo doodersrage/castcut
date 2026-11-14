@@ -1,5 +1,3 @@
-'use client';
-
 import { getCharacter, loraTriggerFromCharacter } from '../character/os';
 import { loadSettingsCache } from '../settings/cache';
 

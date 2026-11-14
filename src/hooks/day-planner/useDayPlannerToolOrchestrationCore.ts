@@ -1,6 +1,7 @@
 'use client';
 
 import { loadLocations } from '@/lib/location/records';
+import { loadPoseLibrary } from '@/lib/pose/library';
 import { useKeeperStandIn } from '@/hooks/fitting-room/useKeeperStandIn';
 import { useLatestRef } from '@/hooks/useLatestRef';
 import {
@@ -16,7 +17,7 @@ import type { KeyedShot } from '@/lib/film/cut-plan';
 import { useRenderBackend } from '@/lib/engine/render-backend-status';
 import { realKitId } from '@/lib/fitting/outfit-handoff';
 import { useEngineWarmUp } from '@/hooks/useEngineWarmUp';
-import { type DayStillSlotOptions, buildDaySlotPromptForStill } from '@/lib/day/still-prompt';
+import { type DayStillSlotOptions } from '@/lib/day/still-prompt';
 
 import { castPlateThumbUrl } from '@/lib/character/plate-thumb';
 import {
@@ -121,10 +122,8 @@ import {
 import { resolveDayPlate, resolveDayQueueIdentityPlate } from '@/lib/day/plate';
 
 import { dayOutfitBlock } from '@/lib/day/auto-kit';
-import { RUN_BUNDLE_VERSION, type RunBundle } from '@/lib/day/run-bundle';
+import { plateGalleryEntries, RUN_BUNDLE_VERSION, type RunBundle } from '@/lib/day/run-bundle';
 import { captureRunQueueSettings } from '@/lib/day/run-bundle-client';
-
-import { planTakeModel, takeModelNeedsInventory } from '@/lib/day/take-plan';
 
 import { setLearnedHardLayoutsSource } from '@/lib/day/best-of-two';
 
@@ -137,7 +136,7 @@ import { probeImageUrlDimensions } from '@/lib/storage/browser-image-dimensions'
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { dayThemeOf } from '@/lib/day/themes';
 import { normalizeDayWeather } from '@/lib/day/weather';
-import { dayOutfitPromptName } from '@/lib/day/clothed-lead';
+
 import { normalizeFootwear } from '@/lib/wardrobe/footwear';
 
 import type { DayPartnerStandIn } from '@/lib/day/partner-stand-in';
@@ -170,7 +169,13 @@ import {
 import { applyLookPackToDaySlots, loadLookPack, lookPackNotes } from '@/lib/look/pack';
 import { resolvePlayLoopEntryCharacterId } from '@/lib/play/campaign';
 
-import { resolveDaySlotLook } from '@/lib/day/slot-look';
+import {
+  buildTakeSlotPrompt,
+  planTakeStillModel,
+  resolveTakeSlotLook,
+  takeSceneRoom,
+  takeWardrobeLabel,
+} from '@/lib/day/take-helpers';
 import {
   chronicRerollBeats,
   PLAY_METRICS_UPDATED_EVENT,
@@ -399,33 +404,24 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
    * off, not a script's shot, or the render fails (the shot goes out as before).
    */
   const scriptSceneRoom = useCallback(
-    async (slot: DaySlot): Promise<string | null> => {
-      if (!oneRoomRef.current.on) return null;
-      const link = sceneCacheRef.current.scenes?.find(
-        scene => scene.id === sceneCacheRef.current.activeSceneId
-      )?.fromScript;
-      if (!link?.scriptId || !link.sceneId) return null;
-      const key = `${link.scriptId}|${link.sceneId}`;
-      const known = oneRoomRef.current.rooms[key];
-      if (known) return known;
-      const place =
-        withCastPlace(slot.location, character, leadNoun)?.trim() || slot.location?.trim();
-      if (!place) return null;
-      try {
-        const { renderEmptyPlace } = await import('@/lib/location/picture-client');
-        const file = await renderEmptyPlace(
-          { name: place, look: '', setting: /\boutdoors\b/i.test(place) ? 'EXT' : 'INT' },
-          `scene-room-${link.sceneId.slice(0, 40)}.png`
-        );
-        const rooms = { ...oneRoomRef.current.rooms, [key]: file };
-        oneRoomRef.current = { ...oneRoomRef.current, rooms };
-        storeToolSettings({ scriptRooms: rooms } as Parameters<typeof storeToolSettings>[0]);
-        return file;
-      } catch (error) {
-        console.warn('One room a scene: the room was not made —', error);
-        return null;
-      }
-    },
+    (slot: DaySlot): Promise<string | null> =>
+      takeSceneRoom(slot, {
+        oneRoom: oneRoomRef.current.on,
+        rooms: oneRoomRef.current.rooms,
+        link: sceneCacheRef.current.scenes?.find(
+          scene => scene.id === sceneCacheRef.current.activeSceneId
+        )?.fromScript,
+        character,
+        leadNoun,
+        render: async (place, filename) => {
+          const { renderEmptyPlace } = await import('@/lib/location/picture-client');
+          return renderEmptyPlace(place, filename);
+        },
+        keep: rooms => {
+          oneRoomRef.current = { ...oneRoomRef.current, rooms };
+          storeToolSettings({ scriptRooms: rooms } as Parameters<typeof storeToolSettings>[0]);
+        },
+      }),
     [character, leadNoun, storeToolSettings]
   );
   // The Cast store hydrates after first render; a one-off read left the partner picker without
@@ -802,19 +798,13 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   }, [shared.activeCharacterId, updateToolSettings]);
 
   const wardrobeLabelFor = useCallback(
-    (wardrobeId?: string) => {
-      const id = wardrobeId?.trim();
-      if (!id) {
-        return '';
-      }
-      // A kit auto-picked at queue time has no fetched label yet — the raw id went into the brief.
-      return (
-        wardrobeLabels[id] ??
-        getCachedClothingLabel(id) ??
-        wardrobeOptions.find(option => option.value === id)?.label ??
-        humanizeClothingId(id)
-      );
-    },
+    (wardrobeId?: string) =>
+      takeWardrobeLabel(wardrobeId, {
+        labels: wardrobeLabels,
+        cached: getCachedClothingLabel,
+        options: wardrobeOptions,
+        humanize: humanizeClothingId,
+      }),
     [wardrobeLabels, wardrobeOptions]
   );
 
@@ -822,10 +812,9 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   // plate — without changing the active look (day-slot-look.ts). Unset (or the active look):
   // the same character, plates and outfit picks as before, so those stills are unchanged.
   const resolveSlotLook = useCallback(
-    (slot: Pick<DaySlot, 'lookId'>) => {
-      const resolved = resolveDaySlotLook({
+    (slot: Pick<DaySlot, 'lookId'>) =>
+      resolveTakeSlotLook(slot, {
         character,
-        slot,
         gallery: galleryEntries,
         isolateSubject,
         outfit: {
@@ -837,22 +826,11 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           footwearImageUrl: toolSettings.footwearImageUrl,
           footwearImageFilename: toolSettings.footwearImageFilename,
         },
-      });
-      if (!resolved.lookId) {
-        return { ...resolved, plate, hasPlate: Boolean(hasPlate), queuePlate };
-      }
-      const lookPlate = resolved.plate ?? null;
-      return {
-        ...resolved,
-        plate: lookPlate,
-        hasPlate: Boolean(lookPlate?.filename?.trim() || lookPlate?.imageUrl?.trim()),
-        queuePlate: resolveDayQueueIdentityPlate({
-          character: resolved.character,
-          displayPlate: lookPlate,
-          preferCastPlate,
-        }),
-      };
-    },
+        plate,
+        hasPlate: Boolean(hasPlate),
+        queuePlate,
+        preferCastPlate,
+      }),
     [
       character,
       galleryEntries,
@@ -874,23 +852,14 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   // The brief / recipe for one still is written in day-still-prompt.ts (the same code the
   // finished-prompt sweep runs); this only hands it the Day state.
   const buildSlotPrompt = useCallback(
-    (slot: DaySlot, options?: DayStillSlotOptions) => {
-      const look = resolveSlotLook(slot);
-      return buildDaySlotPromptForStill(
+    (slot: DaySlot, options?: DayStillSlotOptions) =>
+      buildTakeSlotPrompt(
         slot,
         {
-          plate: look.plate,
-          queuePlate: look.queuePlate,
-          character: look.character,
-          hasPlate: look.hasPlate,
+          look: resolveSlotLook(slot),
           leadNoun,
-          packshotUrl: resolveWardrobeGarmentThumbQueueUrl(
-            slot.wardrobeId?.trim() || look.outfit.lockedWardrobeId?.trim()
-          ),
-          wardrobeLabel: dayOutfitPromptName(wardrobeLabelFor(slot.wardrobeId)),
-          customGarmentUrl: look.outfit.customGarmentImageUrl,
-          customGarmentFilename: look.outfit.customGarmentImageFilename,
-          customGarmentDescription: look.outfit.customGarmentDescription,
+          packshotUrl: resolveWardrobeGarmentThumbQueueUrl,
+          wardrobeLabel: wardrobeLabelFor,
           dayMood: toolSettings.dayMood,
           intimateEnabled,
           intimateMix: toolSettings.intimateMix,
@@ -901,11 +870,10 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
           notes: toolSettings.notes,
           model: shared.model,
           realismMode: shared.renderRealismMode,
-          defaultPoseGuideStyle: loadPoseGuideStylePreference(shared.model),
+          poseGuideStyle: loadPoseGuideStylePreference(shared.model),
         },
         options
-      );
-    },
+      ),
     [
       resolveSlotLook,
       shared.lockedLocation,
@@ -925,33 +893,30 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
   // The engine one still renders on (its hand-offs: Edit 2511 adult nude → Rapid, Edit 2511 custom
   // pose off its plate → Noct-Q / Turbo, 2.1 sex-pose duo → Rapid), and the model it is queued as — Queue all groups stills by it (model-aware queue).
   const resolveSlotStillModel = useCallback(
-    async (queueTarget: DaySlot) => {
+    (queueTarget: DaySlot) =>
       // The engine, decided in the take's plan (take-plan.ts — the server makes it the same way).
-      const input = {
-        slot: queueTarget,
-        pickedModel: shared.model,
-        modelCheckpointMap: shared.modelCheckpointMap,
-        dayMood: toolSettings.dayMood,
-        intimateEnabled,
-        intimateMix: toolSettings.intimateMix,
-        allowCompanions: toolSettings.allowCompanions === true,
-        bestEnginePerPose: toolSettings.bestEnginePerPose === true,
-        hasPlate: resolveSlotLook(queueTarget).hasPlate,
-      };
-      // What is installed, for the per-still hand-offs. The list is only in memory once something
-      // has asked ComfyUI for it; in a fresh session it was missing and the hand-off silently did
-      // not happen, so ask for it here when the picked engine has one.
-      const inventory = takeModelNeedsInventory(input)
-        ? (readCachedComfyObjectInfoModels() ??
-          (await fetchComfyObjectInfoModelsCached().catch(() => null)))
-        : null;
-      return planTakeModel({
-        ...input,
-        inventory,
-        weakLayouts: weakPoseLayouts,
-        poseReport: blendedPoseEngineReport,
-      });
-    },
+      // What is installed is asked for when the picked engine has a per-still hand-off: in a
+      // fresh session the list was missing and the hand-off silently did not happen.
+      planTakeStillModel(
+        {
+          slot: queueTarget,
+          pickedModel: shared.model,
+          modelCheckpointMap: shared.modelCheckpointMap,
+          dayMood: toolSettings.dayMood,
+          intimateEnabled,
+          intimateMix: toolSettings.intimateMix,
+          allowCompanions: toolSettings.allowCompanions === true,
+          bestEnginePerPose: toolSettings.bestEnginePerPose === true,
+          hasPlate: resolveSlotLook(queueTarget).hasPlate,
+        },
+        {
+          inventory: async () =>
+            readCachedComfyObjectInfoModels() ??
+            (await fetchComfyObjectInfoModelsCached().catch(() => null)),
+          weakLayouts: weakPoseLayouts,
+          poseReport: blendedPoseEngineReport,
+        }
+      ),
     [
       intimateEnabled,
       resolveSlotLook,
@@ -1029,9 +994,24 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         },
         // Read at Start from this browser's stores, as the run's takes' queue reads them.
         queue: captureRunQueueSettings(),
+        page: {
+          sceneTool: storedToolSettings as unknown as Record<string, unknown>,
+          gallery: plateGalleryEntries(
+            [...castIds]
+              .map(id => getCharacter(id))
+              .filter((record): record is NonNullable<typeof record> => Boolean(record)),
+            galleryEntries
+          ),
+          leanChrome,
+          locations: loadLocations(),
+          poseLibrary: loadPoseLibrary(),
+        },
       };
     },
     [
+      galleryEntries,
+      leanChrome,
+      storedToolSettings,
       character?.id,
       clothingGender,
       hasPlate,

@@ -1,5 +1,3 @@
-'use client';
-
 export const COMFY_LIVE_PREVIEW_UPDATED_EVENT = 'comfyui-live-preview-updated';
 
 /** promptId → object URL */

@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComfyImageModel } from '../comfy-models/client';
 import type { ReplayGraphSource } from '../gallery/provenance';
 import {

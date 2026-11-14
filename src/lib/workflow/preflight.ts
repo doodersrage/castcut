@@ -1,5 +1,3 @@
-'use client';
-
 import { modelUsesNegativePrompt } from '../prompt/pair';
 import { getComfyModelDefinition, type ComfyImageModel } from '../comfy-models/client';
 import { isInpaintModel, isEditQueueTool } from '../model/denoise-defaults';

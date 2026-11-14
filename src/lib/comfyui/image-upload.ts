@@ -1,5 +1,3 @@
-'use client';
-
 import { compressImageForEngineUpload } from '../storage/browser-compress-image';
 import { fileToDataUrl } from '../storage/browser-file-data-url';
 import { resolveRuntimeForModel } from './runtime-for-model';

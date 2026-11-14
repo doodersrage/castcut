@@ -129,16 +129,17 @@ export function SceneScriptPart({
 /** The Cast's run and its controls, where it renders (Scene). */
 export function SceneRunPart({ vm, page, runner }: { vm: Vm; page: Page; runner: Runner }) {
   useSceneRunStart(vm, page, runner);
-  return <SceneRunPanelOf page={page} runner={runner} />;
+  return <SceneRunPanelOf page={page} runner={runner} model={vm.shared.model} />;
 }
 
-function SceneRunPanelOf({ page, runner }: { page: Page; runner: Runner }) {
+function SceneRunPanelOf({ page, runner, model }: { page: Page; runner: Runner; model?: string }) {
   return (
     <>
       {page.run ? (
         <SceneRunPanel
           run={page.run}
           scenes={page.castScenes}
+          {...(model ? { model } : {})}
           disabled={page.inFlight || runner.looping}
           onChange={page.updateRun}
           onOpenScene={sceneId => page.openScene(sceneId)}
@@ -185,7 +186,7 @@ export default function SceneScriptAndRun({
           page.updateRun(next);
         }}
       />
-      <SceneRunPanelOf page={page} runner={runner} />
+      <SceneRunPanelOf page={page} runner={runner} model={vm.shared.model} />
     </>
   );
 }

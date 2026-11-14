@@ -1,5 +1,3 @@
-'use client';
-
 import { loadSettingsCache } from '../settings/cache';
 import {
   DEFAULT_ANATOMY_GUARD_MODE,

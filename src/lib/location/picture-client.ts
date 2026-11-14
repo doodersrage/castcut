@@ -1,5 +1,3 @@
-'use client';
-
 import { waitForGalleryPromptIds } from '../best-of-n/vision-queue';
 import { uploadComfyInputImage } from '../comfyui/image-upload';
 import { galleryEntryPrimaryViewUrl } from '../gallery/comfyui-gallery';

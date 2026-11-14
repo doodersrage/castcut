@@ -1,5 +1,3 @@
-'use client';
-
 import { readBrowserValue, writeBrowserValue } from '../storage/browser-storage';
 import type { ComfyImageModel } from '../comfy-models/client';
 import { registerComfyGalleryJob } from '../gallery/comfyui-gallery-client';

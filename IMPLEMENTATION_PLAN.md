@@ -4356,3 +4356,38 @@ keep-best → the runner loop.
   then the file moves to lib/day and the server passes its context. Seen once in a full e2e run:
   the two-takes test's pair never ready (30/30 alone, 105/105 twice in the Play spec) — a rare
   race in marking landed takes, not chased yet.
+- **A run's take made on the server, the same as the page's** (day/run-take-server.ts,
+  `runServerTake(bundle, state, sceneId, deps)`): its Scene opened as the page opens it
+  (openScenePatch) on the run's working copy; plates, look, brief and engine from the functions
+  the page's helpers now call (day/take-helpers.ts); every browser read or write of the take a
+  step (`DayTakeSteps`, the page's by default); the lint and fix as `finalizePromptRules`; the
+  shared settings normalized as the page normalizes them (`normalizeSharedSettingsInPlace`). The
+  bundle also freezes the Scene tool's settings, the plates' gallery entries, locations, the pose
+  library and lean mode (`RunBundle.page`). Checked: all four golden take requests made in Node
+  from the bundle alone match the page's (run-take-server.test.ts; a blank beat is drawn at
+  random, so place-no-beat's prompt text is left out). Not on the server yet: place-only shots,
+  an event's later moments, the reference checks before queueing, the play-metrics records.
+- **Steps 7 and 8: the server renders a run** (2026-11-14). Checks: day/run-checks-server.ts — the
+  page's after-checks (outfit on an Everyday day, face against the plate when alone, marks) with
+  the server's functions; no marks repair (a miss is recorded, the run tries again), no
+  Auto-review, Face finish or pose judge. Loop: day/run-loop-server.ts — useSceneRun's steps on
+  the run's working copy (nextRunStep, runServerTake, the watcher's status, scenesWithWorking,
+  bestSceneTake / episodeRedosFor, withRunOutcome); the take in flight is in the record before
+  anything waits, so a run picked up again waits for it (test: stopped mid-take, resumed, one
+  take). Service: day/run-service-server.ts (the server's lease, renewed; pause / cancel after
+  the step it is on; resumed at start via POST /api/scene-runs/server/resume from
+  instrumentation-node). Store: migration 6 (scene_run_state, scene_run_patches). Page: the run
+  panel's "Render on the server" (SceneRun.onServer); Start sends the bundle and asks the server,
+  refused → rendered in the tab as before; the patches are applied in order
+  (useScenePage.applyServerPatch: the Scene, the run, stand-ins and rooms; run-patches-client.ts:
+  the takes registered in the Gallery and polled from ComfyUI, their checks, dressed plates).
+  Stills only: no Animate on the server yet.
+- **E2E: a run rendered on the server goes on with the page closed** (e2e/scene.spec.ts, with a
+  stand-in ComfyUI, e2e/helpers/fake-comfyui.ts): two Scenes, one take each, both kept; the page
+  reopened catches up. It found what the unit tests could not: a `'use client'` module's
+  functions are client references in a production server route ("Attempted to call runDayTake()
+  from the server") — the 54 lib modules the runner reaches lost the marker (none touch the
+  browser at load; render-backend-status.ts, with a React hook, keeps it — only the page calls it).
+- **Left for Phase 3's gate:** the live acceptance run (a 70-shot Short, the browser closed,
+  ComfyUI killed mid-run) on the real ComfyUI — with the user's OK; the Docker image with
+  @napi-rs/canvas in the standalone output (the server now draws); Animate on the server.

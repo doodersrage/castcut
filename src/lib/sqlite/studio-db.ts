@@ -231,6 +231,25 @@ export const STUDIO_DB_MIGRATIONS: ReadonlyArray<(db: DatabaseSync) => void> = [
       server_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS scene_run_shadow_run ON scene_run_shadow (scope, run_id, at);`),
+  // 6 (2026-11-14, Phase 3 step 8): a run the server renders — its working copy of the Scene
+  // settings (resumed after a restart), and what it changed, in order, for the page to apply
+  // (the patch queue; sqlite/scene-run-patches.ts).
+  db =>
+    db.exec(`CREATE TABLE IF NOT EXISTS scene_run_state (
+      scope TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      json TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (scope, run_id)
+    );
+    CREATE TABLE IF NOT EXISTS scene_run_patches (
+      scope TEXT NOT NULL,
+      run_id TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      json TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      PRIMARY KEY (scope, run_id, seq)
+    );`),
 ];
 export const STUDIO_DB_VERSION = STUDIO_DB_MIGRATIONS.length;
 

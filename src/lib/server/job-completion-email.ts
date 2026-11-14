@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * The "jobs finished" email: one per batch, not one per render. Finished jobs are counted, and the
  * email goes once nothing is left to wait for — no job still queued or rendering, and no hold (a

@@ -1,5 +1,3 @@
-'use client';
-
 import { setComfyLivePreviewUrl } from './live-preview-store';
 
 export type ComfyUiWebSocketProgress = {

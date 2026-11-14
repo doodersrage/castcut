@@ -1,5 +1,3 @@
-'use client';
-
 import { locateFaceOnPlateBlob } from '@/lib/face/locate-client';
 import {
   cropFaceBoxFromBlob,

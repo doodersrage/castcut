@@ -33,8 +33,14 @@ export async function loadPictureOnServer(
   // The page's ComfyUI proxy (/api/comfyui/view?filename=…): ComfyUI's own /view.
   const parsed = new URL(trimmed, 'http://castcut.invalid');
   if (parsed.pathname.replace(/\/$/, '') !== '/api/comfyui/view') {
-    // Another of the app's own paths: from the app, when the caller says where it runs.
-    if (!options.appOrigin || !trimmed.startsWith('/')) return null;
+    // Another of the app's own paths: a static file of the app is read from its public folder
+    // (behind a proxy the page's origin may not be reachable from here), else fetched.
+    if (!trimmed.startsWith('/')) return null;
+    if (!parsed.pathname.startsWith('/api/')) {
+      const file = await readPublicFile(parsed.pathname);
+      if (file) return file;
+    }
+    if (!options.appOrigin) return null;
     const response = await fetchImpl(new URL(trimmed, options.appOrigin).toString()).catch(
       () => null
     );
@@ -64,6 +70,39 @@ export async function loadPictureOnServer(
     if (copy) return new Blob([new Uint8Array(copy)], { type: 'image/png' });
   }
   return null;
+}
+
+/**
+ * Photos only: the server's canvas does not draw an SVG as a browser does (the app's SVGs are
+ * icons, never a plate — e2e fixtures use one as a stand-in plate, fetched as before).
+ */
+const PUBLIC_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+};
+
+/** A picture in the app's public folder by its path (/wardrobe-thumbs/…), or null. */
+async function readPublicFile(pathname: string): Promise<Blob | null> {
+  const { extname, join, normalize, sep } = await import('node:path');
+  const type = PUBLIC_TYPES[extname(pathname).toLowerCase()];
+  if (!type) return null;
+  const root = join(process.cwd(), 'public');
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  const full = normalize(join(root, decoded));
+  if (!full.startsWith(root + sep)) return null;
+  try {
+    const { readFile } = await import('node:fs/promises');
+    return new Blob([new Uint8Array(await readFile(full))], { type });
+  } catch {
+    return null;
+  }
 }
 
 export function serverPictureIo(

@@ -1568,6 +1568,115 @@ export function migrateLegacyToolSettings(tools: ToolSettingsCache): {
   };
 }
 
+/**
+ * Shared settings as they are read (defaults filled, old values moved to their current form,
+ * the suggested model maps merged in) — the pure part of loadSettingsCache, in place. The page
+ * runs it on what this browser stored; the server on a synced or frozen copy (FINISHING_PLAN
+ * Phase 3). This browser's own extras (session LoRA prefs, sidecars) are not here.
+ */
+export function normalizeSharedSettingsInPlace(shared: SharedToolSettings): void {
+  if (!isDetailLevel(shared.detail)) {
+    shared.detail = DEFAULT_SHARED_SETTINGS.detail;
+  }
+
+  shared.modelSamplerPreset = normalizeModelSamplerPresetTier(
+    shared.modelSamplerPreset ?? DEFAULT_MODEL_SAMPLER_PRESET_TIER
+  );
+  shared.modelResolutionOrientation = normalizeResolutionOrientation(
+    shared.modelResolutionOrientation ?? DEFAULT_RESOLUTION_ORIENTATION
+  );
+  shared.modelResolutionSizeTier = normalizeResolutionSizeTier(
+    shared.modelResolutionSizeTier ?? DEFAULT_RESOLUTION_SIZE_TIER
+  );
+  shared.renderRealismMode = normalizeRenderRealismMode(
+    shared.renderRealismMode ?? DEFAULT_SHARED_SETTINGS.renderRealismMode
+  );
+  shared.poseGuideStyle = normalizeStoredPoseGuideStyle(shared.poseGuideStyle);
+  shared.anatomyGuardMode = normalizeAnatomyGuardMode(
+    shared.anatomyGuardMode ?? DEFAULT_ANATOMY_GUARD_MODE
+  );
+  shared.queueQualityProfile = normalizeQueueQualityProfile(
+    shared.queueQualityProfile ?? DEFAULT_QUEUE_QUALITY_PROFILE
+  );
+  shared.galleryWorkflowRetentionDays = normalizeGalleryWorkflowRetentionDays(
+    shared.galleryWorkflowRetentionDays
+  );
+  shared.galleryWorkflowMaxBytes = normalizeGalleryWorkflowMaxBytes(shared.galleryWorkflowMaxBytes);
+  shared.expandWildcards = shared.expandWildcards !== false;
+  shared.autoRetryOnOom = shared.autoRetryOnOom !== false;
+  shared.oomRetryDowngrade = shared.oomRetryDowngrade !== false;
+  shared.vramGuardEnabled = shared.vramGuardEnabled !== false;
+  shared.vramGuardAutoThreshold = shared.vramGuardAutoThreshold !== false;
+  shared.promptVersioningEnabled = shared.promptVersioningEnabled !== false;
+  const freeGb = shared.vramGuardMinFreeGb;
+  shared.vramGuardMinFreeGb =
+    typeof freeGb === 'number' && Number.isFinite(freeGb)
+      ? Math.min(48, Math.max(1, Math.round(freeGb * 10) / 10))
+      : DEFAULT_SHARED_SETTINGS.vramGuardMinFreeGb;
+  shared.toolQueueQualityProfiles = {
+    ...SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES,
+    ...normalizeToolQueueQualityProfiles(shared.toolQueueQualityProfiles),
+  };
+  shared.toolQualityRecipes = mergeToolQualityRecipes(shared.toolQualityRecipes);
+  // The short-lived global "Renderer: Qwen-Image 2.1" switch is now its own engine.
+  if (
+    shared.qwenRenderer === 'qwen-image-2.1' &&
+    /qwen.*edit|qwen-rapid-aio-edit/i.test(String(shared.model ?? ''))
+  ) {
+    shared.model = 'qwen-image-2.1-edit';
+  }
+  delete shared.qwenRenderer;
+  const preferredHost =
+    typeof shared.preferredComfyHost === 'string' ? shared.preferredComfyHost.trim() : '';
+  shared.preferredComfyHost = preferredHost || undefined;
+  shared.comfyPoolUrls = Array.isArray(shared.comfyPoolUrls)
+    ? shared.comfyPoolUrls.map(url => String(url).trim()).filter(Boolean)
+    : [];
+  shared.loraDatasetExportPrefs = normalizeLoraDatasetExportPrefs(shared.loraDatasetExportPrefs);
+  shared.loraTrainTrainerPrefs = normalizeLoraTrainTrainerPrefs(shared.loraTrainTrainerPrefs);
+  shared.loraTrainJobs = normalizeTrainJobs(shared.loraTrainJobs);
+  shared.modelCheckpointMap = {
+    ...SUGGESTED_MODEL_CHECKPOINT_MAP,
+    ...shared.modelCheckpointMap,
+  };
+  shared.modelVaeMap = {
+    ...SUGGESTED_MODEL_VAE_MAP,
+    ...shared.modelVaeMap,
+  };
+  shared.modelRefinerMap = {
+    ...SUGGESTED_MODEL_REFINER_MAP,
+    ...shared.modelRefinerMap,
+  };
+  shared.modelUpscaleMap = mergeSuggestedUpscaleMap(shared.modelUpscaleMap);
+  shared.modelLoraMap = {
+    ...SUGGESTED_MODEL_LORA_MAP,
+    ...shared.modelLoraMap,
+  };
+
+  // Migrate sticky global LoRA session → per-model for the current model only.
+  // Other models keep the system default (map or empty) until the user picks.
+  const byModel = shared.sessionActiveLoraIdsByModel ?? {};
+  const byModelEmpty = Object.keys(byModel).length === 0;
+  if (byModelEmpty && Array.isArray(shared.sessionActiveLoraIds) && shared.model?.trim()) {
+    shared.sessionActiveLoraIdsByModel = {
+      [shared.model.trim()]: shared.sessionActiveLoraIds,
+    };
+  } else if (!shared.sessionActiveLoraIdsByModel) {
+    shared.sessionActiveLoraIdsByModel = {};
+  }
+
+  const strengthByModel = shared.sessionLoraStrengthOverridesByModel ?? {};
+  const strengthByModelEmpty = Object.keys(strengthByModel).length === 0;
+  const legacyStrength = normalizeSessionLoraStrengthOverrides(shared.sessionLoraStrengthOverrides);
+  if (strengthByModelEmpty && Object.keys(legacyStrength).length > 0 && shared.model?.trim()) {
+    shared.sessionLoraStrengthOverridesByModel = {
+      [shared.model.trim()]: legacyStrength,
+    };
+  } else if (!shared.sessionLoraStrengthOverridesByModel) {
+    shared.sessionLoraStrengthOverridesByModel = {};
+  }
+}
+
 export function loadSettingsCache(): SettingsCache {
   if (typeof window === 'undefined') {
     return { shared: DEFAULT_SHARED_SETTINGS, tools: {}, installedPlugins: [] };
@@ -1613,110 +1722,7 @@ export function loadSettingsCache(): SettingsCache {
     };
     applyCriticalSharedPrefs(shared);
 
-    if (!isDetailLevel(shared.detail)) {
-      shared.detail = DEFAULT_SHARED_SETTINGS.detail;
-    }
-
-    shared.modelSamplerPreset = normalizeModelSamplerPresetTier(
-      shared.modelSamplerPreset ?? DEFAULT_MODEL_SAMPLER_PRESET_TIER
-    );
-    shared.modelResolutionOrientation = normalizeResolutionOrientation(
-      shared.modelResolutionOrientation ?? DEFAULT_RESOLUTION_ORIENTATION
-    );
-    shared.modelResolutionSizeTier = normalizeResolutionSizeTier(
-      shared.modelResolutionSizeTier ?? DEFAULT_RESOLUTION_SIZE_TIER
-    );
-    shared.renderRealismMode = normalizeRenderRealismMode(
-      shared.renderRealismMode ?? DEFAULT_SHARED_SETTINGS.renderRealismMode
-    );
-    shared.poseGuideStyle = normalizeStoredPoseGuideStyle(shared.poseGuideStyle);
-    shared.anatomyGuardMode = normalizeAnatomyGuardMode(
-      shared.anatomyGuardMode ?? DEFAULT_ANATOMY_GUARD_MODE
-    );
-    shared.queueQualityProfile = normalizeQueueQualityProfile(
-      shared.queueQualityProfile ?? DEFAULT_QUEUE_QUALITY_PROFILE
-    );
-    shared.galleryWorkflowRetentionDays = normalizeGalleryWorkflowRetentionDays(
-      shared.galleryWorkflowRetentionDays
-    );
-    shared.galleryWorkflowMaxBytes = normalizeGalleryWorkflowMaxBytes(
-      shared.galleryWorkflowMaxBytes
-    );
-    shared.expandWildcards = shared.expandWildcards !== false;
-    shared.autoRetryOnOom = shared.autoRetryOnOom !== false;
-    shared.oomRetryDowngrade = shared.oomRetryDowngrade !== false;
-    shared.vramGuardEnabled = shared.vramGuardEnabled !== false;
-    shared.vramGuardAutoThreshold = shared.vramGuardAutoThreshold !== false;
-    shared.promptVersioningEnabled = shared.promptVersioningEnabled !== false;
-    const freeGb = shared.vramGuardMinFreeGb;
-    shared.vramGuardMinFreeGb =
-      typeof freeGb === 'number' && Number.isFinite(freeGb)
-        ? Math.min(48, Math.max(1, Math.round(freeGb * 10) / 10))
-        : DEFAULT_SHARED_SETTINGS.vramGuardMinFreeGb;
-    shared.toolQueueQualityProfiles = {
-      ...SUGGESTED_TOOL_QUEUE_QUALITY_PROFILES,
-      ...normalizeToolQueueQualityProfiles(shared.toolQueueQualityProfiles),
-    };
-    shared.toolQualityRecipes = mergeToolQualityRecipes(shared.toolQualityRecipes);
-    // The short-lived global "Renderer: Qwen-Image 2.1" switch is now its own engine.
-    if (
-      shared.qwenRenderer === 'qwen-image-2.1' &&
-      /qwen.*edit|qwen-rapid-aio-edit/i.test(String(shared.model ?? ''))
-    ) {
-      shared.model = 'qwen-image-2.1-edit';
-    }
-    delete shared.qwenRenderer;
-    const preferredHost =
-      typeof shared.preferredComfyHost === 'string' ? shared.preferredComfyHost.trim() : '';
-    shared.preferredComfyHost = preferredHost || undefined;
-    shared.comfyPoolUrls = Array.isArray(shared.comfyPoolUrls)
-      ? shared.comfyPoolUrls.map(url => String(url).trim()).filter(Boolean)
-      : [];
-    shared.loraDatasetExportPrefs = normalizeLoraDatasetExportPrefs(shared.loraDatasetExportPrefs);
-    shared.loraTrainTrainerPrefs = normalizeLoraTrainTrainerPrefs(shared.loraTrainTrainerPrefs);
-    shared.loraTrainJobs = normalizeTrainJobs(shared.loraTrainJobs);
-    shared.modelCheckpointMap = {
-      ...SUGGESTED_MODEL_CHECKPOINT_MAP,
-      ...shared.modelCheckpointMap,
-    };
-    shared.modelVaeMap = {
-      ...SUGGESTED_MODEL_VAE_MAP,
-      ...shared.modelVaeMap,
-    };
-    shared.modelRefinerMap = {
-      ...SUGGESTED_MODEL_REFINER_MAP,
-      ...shared.modelRefinerMap,
-    };
-    shared.modelUpscaleMap = mergeSuggestedUpscaleMap(shared.modelUpscaleMap);
-    shared.modelLoraMap = {
-      ...SUGGESTED_MODEL_LORA_MAP,
-      ...shared.modelLoraMap,
-    };
-
-    // Migrate sticky global LoRA session → per-model for the current model only.
-    // Other models keep the system default (map or empty) until the user picks.
-    const byModel = shared.sessionActiveLoraIdsByModel ?? {};
-    const byModelEmpty = Object.keys(byModel).length === 0;
-    if (byModelEmpty && Array.isArray(shared.sessionActiveLoraIds) && shared.model?.trim()) {
-      shared.sessionActiveLoraIdsByModel = {
-        [shared.model.trim()]: shared.sessionActiveLoraIds,
-      };
-    } else if (!shared.sessionActiveLoraIdsByModel) {
-      shared.sessionActiveLoraIdsByModel = {};
-    }
-
-    const strengthByModel = shared.sessionLoraStrengthOverridesByModel ?? {};
-    const strengthByModelEmpty = Object.keys(strengthByModel).length === 0;
-    const legacyStrength = normalizeSessionLoraStrengthOverrides(
-      shared.sessionLoraStrengthOverrides
-    );
-    if (strengthByModelEmpty && Object.keys(legacyStrength).length > 0 && shared.model?.trim()) {
-      shared.sessionLoraStrengthOverridesByModel = {
-        [shared.model.trim()]: legacyStrength,
-      };
-    } else if (!shared.sessionLoraStrengthOverridesByModel) {
-      shared.sessionLoraStrengthOverridesByModel = {};
-    }
+    normalizeSharedSettingsInPlace(shared);
 
     const sidecars = loadSettingsBlobSidecars();
     applySettingsMapsSidecar(shared, sidecars.maps ?? null);

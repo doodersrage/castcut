@@ -1,5 +1,3 @@
-'use client';
-
 import { dispatchWebhook } from '../settings/webhook-settings';
 
 const TRACKER_KEY = 'scheduled-batch-tracker-v1';

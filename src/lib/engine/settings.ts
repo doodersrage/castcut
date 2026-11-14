@@ -1,5 +1,3 @@
-'use client';
-
 import { loadSettingsCache, saveSharedSettings, type SharedToolSettings } from '../settings/cache';
 import type { EngineId } from './types';
 import {

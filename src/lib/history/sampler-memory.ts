@@ -1,5 +1,3 @@
-'use client';
-
 import type { ComfyGalleryEntry } from '../gallery/comfyui-gallery';
 import type { WorkflowParamValues } from '../comfyui/config';
 import { isQwenLightningModel } from '../workflow/model-sampling-patch';

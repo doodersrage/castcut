@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * A run's bundle and its takes' shadow reports, sent to the server (run-bundle.ts) — best effort:
  * a take never waits for them, and without server storage they go nowhere.

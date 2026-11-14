@@ -1,5 +1,3 @@
-'use client';
-
 import { appFlag } from '../app/flags';
 import { isH3Model } from '../engine/h3-renderer';
 import { isFibo2Model } from '../engine/fibo2-renderer';
