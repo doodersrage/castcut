@@ -182,6 +182,15 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                       {isRejected ? 'Rejected' : '✓ Good'}
                     </span>
                   ) : null}
+                  {take.tier === 'preview' ? (
+                    // A Preview run's draft (run-tier.ts): the animatic's, never kept by a run.
+                    <span
+                      className="type-caption pointer-events-none absolute right-1 bottom-1 rounded bg-[var(--bg-base)]/85 px-1 !text-[var(--text-muted)]"
+                      data-testid={`scene-take-preview-${index}`}
+                    >
+                      Preview
+                    </span>
+                  ) : null}
                 </button>
                 {/* One row that wraps: on a narrow take the two badges stack instead of overlapping. */}
                 {onCard || isKept ? (
@@ -318,7 +327,9 @@ export function SceneTakeList({ page, strip = false }: { page: Page; strip?: boo
                         title={
                           isKept
                             ? 'Keep another take first — Cut uses this one'
-                            : 'Reject — hide it from the takes (it stays in the Gallery)'
+                            : take.tier === 'preview'
+                              ? 'Reject — change it: a Final run leaves this shot out until it is previewed again (it stays in the Gallery)'
+                              : 'Reject — hide it from the takes (it stays in the Gallery)'
                         }
                         onClick={() => reviewTake(take.id, 'rejected')}
                       >

@@ -166,6 +166,7 @@ import {
   sceneCutShots,
   scriptScenesInOrder,
 } from '@/lib/day/scenes';
+import { previewTakeOf } from '@/lib/day/run-tier';
 import { normalizeDayShortLink } from '@/lib/day/scene-links';
 import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
 import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
@@ -425,10 +426,22 @@ export function useCutRoom() {
         shots: animaticScript.shots,
         made: savedScenes,
       }),
-      keptBySceneId: new Map(sceneShots.map(shot => [shot.key, shot])),
+      keptBySceneId: new Map([
+        // A shot with no kept take yet shows its preview (run-tier.ts: a Preview run's draft).
+        ...sceneCutShots(
+          savedScenes
+            .filter(scene => !keptTakeOf(scene))
+            .flatMap(scene => {
+              const preview = previewTakeOf(scene);
+              return preview ? [{ ...scene, keptTakeId: preview.id }] : [];
+            }),
+          sceneCastId
+        ).map(shot => [shot.key, shot] as const),
+        ...sceneShots.map(shot => [shot.key, shot] as const),
+      ]),
       card: text => renderTextCard({ text: text.text, sub: text.sub, resolution }),
     });
-  }, [animaticScript, resolution, savedScenes, sceneShots]);
+  }, [animaticScript, resolution, savedScenes, sceneCastId, sceneShots]);
   const bySource = useMemo(
     () =>
       cutRoomSourceShots({

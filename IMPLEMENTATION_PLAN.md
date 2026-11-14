@@ -4430,3 +4430,14 @@ keep-best → the runner loop.
   exception (user's choice): the outfit check, 9 of 13 (69%) — it caught 12 of 13 outfit
   rejects, and an undressed take is never kept as passing. Open: rejected takes with no finding
   are 5 of 27 (19%, bar 10%) — the place check never fired (2 of 2 place rejects missed).
+
+**Phase 5 — two tiers** (user's choices 2026-11-14: two runs, Preview then Final; Final renders
+all but the shots whose preview was rejected). `lib/day/run-tier.ts`: `SceneRun.tier`
+(`preview` | `final`, normalized; a tier renders on the server), `SceneTake.tier: 'preview'`.
+Preview: 2.1 Turbo (`qwen-image-2.1-edit-turbo-8`, queued on Rapid AIO's graph with the 2.1
+Turbo pass, as any 2.1 take), one take a Scene, unchecked, nothing kept, marked on the Scene.
+Final: Edit 2511, keep-best with the checks, one redo; Scenes whose newest take is a rejected
+preview are left out (`sceneHeldFromFinals`). Keep-best never keeps a preview. Cut's animatic
+shows a shot's preview until it has a kept take. The run panel's Tier control and budget line
+(takes, minutes, engine). Open: the live gate — a 12-scene short's animatic under 15 minutes,
+finals overnight unattended.

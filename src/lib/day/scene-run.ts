@@ -7,6 +7,7 @@
  */
 import { parseScript } from '../script/parse';
 import { normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
+import { isRunTier, type RunTier } from './run-tier';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
@@ -61,6 +62,12 @@ export type SceneRun = {
    * closed; it applies what the server did when it is open. Unset: the page renders it.
    */
   onServer?: boolean;
+  /**
+   * Two tiers (FINISHING_PLAN Phase 5, run-tier.ts): `preview` drafts every shot once on the
+   * quick engine, unchecked, for the animatic; `final` renders on the finishing engine with the
+   * checks and keep-best. Both render on the server. Unset: on each take's own engine, as before.
+   */
+  tier?: RunTier;
   state: SceneRunState;
   /** Items done so far (W4). */
   position: number;
@@ -298,7 +305,8 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     maxMinutes: whole(run.maxMinutes, 1, 24 * 60, RUN_DEFAULT_MAX_MINUTES),
     skipKept: run.skipKept !== false,
     ...(run.resumeOnReload === true ? { resumeOnReload: true } : {}),
-    ...(run.onServer === true ? { onServer: true } : {}),
+    ...(run.onServer === true || isRunTier(run.tier) ? { onServer: true } : {}),
+    ...(isRunTier(run.tier) ? { tier: run.tier } : {}),
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
     ...(run.outcomes && typeof run.outcomes === 'object'

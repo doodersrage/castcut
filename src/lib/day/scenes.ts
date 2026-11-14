@@ -55,6 +55,11 @@ export type SceneTake = {
   stars?: number;
   /** Your note on it: "hands wrong", "best face". */
   note?: string;
+  /**
+   * A preview (FINISHING_PLAN Phase 5, run-tier.ts): drafted on the quick engine for the animatic,
+   * never kept as the Scene's take by a run. Unset: a take as any other.
+   */
+  tier?: 'preview';
   at: number;
 };
 
@@ -346,6 +351,7 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
       ? { stars: Math.round(take.stars) }
       : {}),
     ...(text(take.note, SCENE_TAKE_NOTE_MAX) ? { note: text(take.note, SCENE_TAKE_NOTE_MAX) } : {}),
+    ...(take.tier === 'preview' ? { tier: 'preview' as const } : {}),
     at: time(take.at, now),
   };
 }

@@ -212,6 +212,65 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('a Preview run: each Scene once on the quick engine, unchecked, marked preview, nothing kept', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued, patches } = await harness(tool => {
+      Object.assign(tool.run, { tier: 'preview', auto: { keep: false, redo: 0, animate: false } });
+    });
+    const bodies: string[] = [];
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const { PREVIEW_ENGINE } = await import('./run-tier');
+      const state = serverRunState(bundle as never)!;
+      let checked = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        queue: async (body: unknown, prompt: string) => {
+          bodies.push(JSON.stringify(body));
+          return deps.queue(body, prompt);
+        },
+        checkTake: async () => {
+          checked += 1;
+          return { outfitChecked: true, face: 0.8 };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.equal(checked, 0, 'a preview is not checked');
+      const stills = queued.filter(prompt => !/outfit try-on/i.test(prompt));
+      assert.equal(stills.length, 2, 'one take a Scene');
+      for (const entry of state.sceneTool.scenes!) {
+        assert.equal(entry.keptTakeId, undefined, `${entry.name}: nothing kept`);
+        assert.deepEqual(
+          entry.takes.map(take => take.tier),
+          ['preview']
+        );
+      }
+      const takes = patches.flatMap(
+        patch => (patch as { takes?: { model?: string }[] }).takes ?? []
+      );
+      assert.deepEqual(
+        takes.map(take => take.model),
+        [PREVIEW_ENGINE, PREVIEW_ENGINE]
+      );
+      // The page's Scenes carry the mark too (the patch sends the Scene whole).
+      const lastScenes = patches
+        .map(patch => (patch as { scene?: { id: string; takes: { tier?: string }[] } }).scene)
+        .filter(Boolean);
+      assert.ok(lastScenes.some(scene => scene!.takes.some(take => take.tier === 'preview')));
+      // Rendered on 2.1 Turbo: it queues on Rapid AIO's graph, which the runtime turns into 2.1's
+      // eight-step Turbo pass (runtime-for-model.ts).
+      assert.equal(bodies.length, 2);
+      for (const body of bodies) {
+        assert.match(body, /"qwenRenderer":"qwen-image-2\.1"/);
+        assert.match(body, /"qwenImage21EightStep":"turbo"/);
+      }
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('picked up after the server stopped mid-take: it waits for that take, never queues another', async () => {
     const original = globalThis.fetch;
     const { bundle, deps, queued, saved } = await harness();

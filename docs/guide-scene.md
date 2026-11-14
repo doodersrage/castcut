@@ -214,6 +214,22 @@ page. It is prepared on Script and renders on Scene: **Open the run →** on Scr
    and the checks that run on the card (Face finish, review, pose redo) only run on the take that
    lands on the open Scene. Use **Start the run** when you want them on every take.
 
+### Preview, then Final
+
+**Tier** on the run, for a short you want to see before spending the night on it:
+
+- **Preview** renders every shot once on **Qwen-Image 2.1 Turbo** (about 11 s a still), on the
+  server, with no checks and no redos. Each take is marked _Preview_ and is never kept, so Cut's
+  **Script animatic** shows it in the shot's place until a final is kept — a 12-scene short is
+  watchable in a quarter of an hour. A shot you want changed: **Reject** its preview on the Scene.
+- **Final** renders on **Qwen-Image Edit 2511**, on the server, keeping the best take by its
+  checks (one redo unless you set more), overnight. It renders every shot except the ones whose
+  newest preview you rejected; preview those again (or restore the take) to send them to finals.
+  A preview is never kept as a Scene's take.
+- **As set** is the run as before: each take on its own engine.
+
+The summary line before Start is the budget: how many takes, about how long, on which engine.
+
 A run never keeps a take — choosing stays yours — unless you make it an **episode run**:
 
 ### Episode runs
@@ -222,8 +238,10 @@ For a whole script — a half-hour episode is 200–350 shots — without clicki
 Under the limits, **Episode**:
 
 - **Keep the best take by its checks** — after each take and its checks (Auto-review, face match,
-  the pose, the outfit, the place, the action), the run keeps the Scene's best take: one with no
-  check missed, then the best face and pose scores, then the newest. Turn **Auto-review** on for
+  the outfit, the place), the run keeps the Scene's best take: one with no check missed, then the
+  best face and pose scores, then the newest. A pose or action miss is advisory: said on the kept
+  take and listed to check, never a reason to render it again (the pose check was right on fewer
+  than half the misses it found in review). Turn **Auto-review** on for
   it to judge more than the face and the pose; with no checks at all it keeps the newest take.
   Switching it on with the limits at their defaults fits them to the script: a take per Scene and
   its redos, up to a day.

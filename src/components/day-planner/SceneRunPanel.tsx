@@ -4,7 +4,7 @@ import { comfyModelLabel, type ComfyImageModel } from '@/lib/comfy-models/client
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
-import { ToolSection } from '@/components/ui/ToolPageShell';
+import { SegmentedControl, ToolSection } from '@/components/ui/ToolPageShell';
 import { EPISODE_REDO_MAX } from '@/lib/day/episode-run';
 import {
   flaggedByScene,
@@ -15,6 +15,7 @@ import {
   type SceneRun,
 } from '@/lib/day/scene-run';
 import type { SavedScene } from '@/lib/day/scenes';
+import { runTierEngine, sceneHeldFromFinals, withRunTier, type RunTier } from '@/lib/day/run-tier';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { formatEta, typicalRenderMs } from '@/lib/queue/eta';
 
@@ -36,7 +37,10 @@ export default function SceneRunPanel({
   model,
   children,
 }: {
-  /** The engine the run renders on (its takes' typical time, and the summary says which). */
+  /**
+   * The engine the run renders on (its takes' typical time, and the summary says which); a
+   * tiered run renders on its tier's engine instead.
+   */
   model?: string;
   /** Open a Scene (a flagged one, to check its kept take). */
   onOpenScene?: (sceneId: string) => void;
@@ -47,13 +51,22 @@ export default function SceneRunPanel({
   /** The run's controls (W4). */
   children?: React.ReactNode;
 }) {
+  const engine = runTierEngine(run.tier) ?? model;
   // A typical take's render time here: the Queue's own measure (recent finished jobs).
-  const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery(), model) / 1000, [model]);
+  const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery(), engine) / 1000, [engine]);
   const plan = useMemo(() => runQueue(run, scenes, typicalSec), [run, scenes, typicalSec]);
   const byId = useMemo(() => new Map(scenes.map(scene => [scene.id, scene])), [scenes]);
   const queuedIds = new Set(plan.queued.map(entry => entry.sceneId));
   const leftIds = new Set(plan.left.map(entry => entry.sceneId));
   const set = (patch: Partial<SceneRun>) => onChange({ ...run, ...patch, updatedAt: Date.now() });
+  // A Final run holds back the shots whose newest preview you rejected (run-tier.ts).
+  const heldCount =
+    run.tier === 'final'
+      ? run.items.filter(item => {
+          const scene = byId.get(item.sceneId);
+          return scene && sceneHeldFromFinals(scene);
+        }).length
+      : 0;
   // Dailies: the takes to check and the shots that failed, by scene (2026-11-12).
   const reviewGroups = useMemo(() => flaggedByScene(run, scenes), [run, scenes]);
   const reviewShots = reviewGroups.flatMap(entry => entry.shots);
@@ -71,16 +84,43 @@ export default function SceneRunPanel({
       <div className="space-y-2">
         <p className="type-caption" data-testid="scene-run-summary">
           {plan.queued.length
-            ? `${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}${model ? ` on ${comfyModelLabel(model as ComfyImageModel)}` : ''}`
+            ? `${run.tier === 'preview' ? 'Preview: ' : run.tier === 'final' ? 'Final: ' : ''}${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}${engine ? ` on ${comfyModelLabel(engine as ComfyImageModel)}` : ''}`
             : 'Nothing to queue with these limits.'}
+          {heldCount
+            ? ` · ${heldCount} held back — you rejected its preview (preview it again, or restore the take)`
+            : ''}
           {plan.left.length ? ` · ${plan.left.length} past the limits` : ''}
           {plan.gone.length
             ? ` · ${plan.gone.length} Scene${plan.gone.length === 1 ? '' : 's'} gone`
             : ''}
-          {run.auto?.keep
-            ? ' · it keeps the best take by its checks; any it isn’t sure of are listed for you.'
-            : ' · it never keeps a take: you choose.'}
+          {run.tier === 'preview'
+            ? ' · drafts for the animatic: unchecked, never kept — reject one in its Scene to change it before the Final.'
+            : run.auto?.keep
+              ? ' · it keeps the best take by its checks; any it isn’t sure of are listed for you.'
+              : ' · it never keeps a take: you choose.'}
         </p>
+        <div
+          className="flex flex-wrap items-center gap-2 text-sm"
+          title="Preview drafts every shot quickly for the animatic; Final renders the shots you didn't reject on the finishing engine, checked, on the server overnight."
+        >
+          <span className="type-caption text-[var(--text-muted)]">Tier</span>
+          <SegmentedControl<RunTier | 'none'>
+            aria-label="Tier"
+            value={run.tier ?? 'none'}
+            onChange={next => {
+              if (disabled || run.state === 'running') return;
+              onChange({
+                ...withRunTier(run, next === 'none' ? undefined : next, scenes),
+                updatedAt: Date.now(),
+              });
+            }}
+            options={[
+              { value: 'none', label: 'As set', testId: 'scene-run-tier-none' },
+              { value: 'preview', label: 'Preview', testId: 'scene-run-tier-preview' },
+              { value: 'final', label: 'Final', testId: 'scene-run-tier-final' },
+            ]}
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="flex items-center gap-1">
             At most
@@ -147,7 +187,8 @@ export default function SceneRunPanel({
             <input
               type="checkbox"
               checked={run.onServer === true}
-              disabled={disabled || run.state === 'running'}
+              // A tiered run renders on the server.
+              disabled={disabled || run.state === 'running' || Boolean(run.tier)}
               data-testid="scene-run-on-server"
               onChange={event => set({ onServer: event.target.checked || undefined })}
             />
@@ -157,7 +198,8 @@ export default function SceneRunPanel({
         <fieldset
           className="flex flex-wrap items-center gap-3 text-sm"
           data-testid="scene-run-episode"
-          disabled={disabled || run.state === 'running'}
+          // A tier sets these itself (run-tier.ts).
+          disabled={disabled || run.state === 'running' || Boolean(run.tier)}
         >
           <legend className="type-caption mb-1 text-[var(--text-muted)]">
             Episode — for a whole script, unattended

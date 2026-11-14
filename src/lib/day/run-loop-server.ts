@@ -45,6 +45,8 @@ import {
   upsertScene,
   type SavedScene,
 } from './scenes';
+import { runTierEngine } from './run-tier';
+import type { SceneToolCache } from './scenes';
 
 /** A take's gallery entry as the page registers it, and its checks. */
 export type RunPatchTake = {
@@ -117,6 +119,21 @@ const RENDER_TIMEOUT_MS = 20 * 60_000;
 const LOST_REQUEUE_TRIES = 6;
 
 /** The stop reason that ends the run (Cancel) rather than pausing it. */
+/** The Scene's take of this job marked a preview (run-tier.ts). */
+function markPreviewTake(tool: SceneToolCache, sceneId: string, promptId: string): SceneToolCache {
+  const scenes = tool.scenes?.map(scene =>
+    scene.id !== sceneId
+      ? scene
+      : {
+          ...scene,
+          takes: scene.takes.map(take =>
+            (take.promptId ?? take.id) === promptId ? { ...take, tier: 'preview' as const } : take
+          ),
+        }
+  );
+  return scenes ? { ...tool, scenes } : tool;
+}
+
 export const SERVER_RUN_CANCELLED = 'Cancelled';
 const stoppedState = (why: string) => (why === SERVER_RUN_CANCELLED ? 'cancelled' : 'paused');
 
@@ -299,9 +316,22 @@ export async function runSceneRunOnServer(
     markStill(state, promptId, { status: 'completed', imageUrl });
     const filed = scenesWithWorking(state.sceneTool, now());
     if (filed) state.sceneTool = { ...state.sceneTool, scenes: filed };
-    const checks = await deps
-      .checkTake({ promptId, imageUrl, sceneId, ...(report ? { report } : {}), state, bundle })
-      .catch(() => undefined);
+    const tier = runOf()?.tier;
+    // A preview (run-tier.ts): marked on its Scene, and not checked — the animatic's draft.
+    if (tier === 'preview') state.sceneTool = markPreviewTake(state.sceneTool, sceneId, promptId);
+    const checks =
+      tier === 'preview'
+        ? undefined
+        : await deps
+            .checkTake({
+              promptId,
+              imageUrl,
+              sceneId,
+              ...(report ? { report } : {}),
+              state,
+              bundle,
+            })
+            .catch(() => undefined);
     if (checks) state.checks[promptId] = { ...(state.checks[promptId] ?? {}), ...checks };
     const take: RunPatchTake = {
       promptId,
@@ -310,7 +340,9 @@ export async function runSceneRunOnServer(
       imageUrl,
       comfyUrl: deps.comfyUrl,
       ...(report?.prompt ? { prompt: report.prompt } : {}),
-      ...(bundle.queue?.shared.model ? { model: bundle.queue.shared.model } : {}),
+      ...((runTierEngine(tier) ?? bundle.queue?.shared.model)
+        ? { model: runTierEngine(tier) ?? bundle.queue?.shared.model }
+        : {}),
       ...(state.checks[promptId] ? { playChecks: state.checks[promptId] } : {}),
     };
 

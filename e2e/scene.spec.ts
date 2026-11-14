@@ -1868,6 +1868,30 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
     .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.auto)
     .toEqual({ keep: true, animate: true, animateOnly: 'lines', redo: 1 });
 
+  // Two tiers (FINISHING_PLAN Phase 5): Preview drafts every shot once on 2.1 Turbo, on the
+  // server, keeping nothing; Final renders on Edit 2511 and keeps the best by its checks.
+  await page.getByTestId('scene-run-tier-preview').click();
+  await expect(page.getByTestId('scene-run-summary')).toContainText('Preview: 3 takes');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('Qwen-Image 2.1 Turbo');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('never kept');
+  await expect(page.getByTestId('scene-run-on-server')).toBeChecked();
+  await expect(page.getByTestId('scene-run-on-server')).toBeDisabled();
+  await expect
+    .poll(async () => {
+      const stored = JSON.parse((await storedSceneTool(page)) || '{}').run;
+      return [stored?.tier, stored?.onServer, stored?.auto?.keep, stored?.auto?.redo].join('|');
+    })
+    .toBe('preview|true|false|0');
+  await page.getByTestId('scene-run-tier-final').click();
+  await expect(page.getByTestId('scene-run-summary')).toContainText('Final: ');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('Qwen-Image-Edit-2511');
+  await expect(page.getByTestId('scene-run-summary')).toContainText('it keeps the best take by its checks');
+  await page.getByTestId('scene-run-tier-none').click();
+  await expect
+    .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.tier ?? 'none')
+    .toBe('none');
+  expect(queued).toHaveLength(0);
+
   await page.getByTestId('scene-run-discard').click();
   await page.getByTestId('confirm-dialog-confirm').click();
   await expect(run).toHaveCount(0);

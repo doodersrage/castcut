@@ -97,7 +97,8 @@ export function bestSceneTake(
   scene: Pick<SavedScene, 'takes'>,
   checksOf: (promptId: string) => GalleryPlayChecks | undefined
 ): EpisodeTakePick | null {
-  const takes = scene.takes.filter(take => take.review !== 'rejected');
+  // A preview (run-tier.ts) is the animatic's draft, never the Scene's kept take.
+  const takes = scene.takes.filter(take => take.review !== 'rejected' && take.tier !== 'preview');
   const allChecks = takes.map(take => checksOf(take.promptId ?? take.id));
   const ranked = takes
     .map((take, order) => {

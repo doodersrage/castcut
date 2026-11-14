@@ -66,6 +66,7 @@ import {
   takeSceneRoom,
   takeWardrobeLabel,
 } from './take-helpers';
+import { runTierEngine } from './run-tier';
 
 type Fetch = typeof fetch;
 
@@ -152,7 +153,9 @@ export async function runServerTake(
   const toolSettings = (
     flavor === stored.dayMood ? stored : { ...stored, dayMood: flavor }
   ) as DayToolCache;
-  const shared = queue.shared;
+  // A tiered run (run-tier.ts) renders on its tier's engine, as if the Engine were set to it.
+  const tierEngine = runTierEngine(state.sceneTool.run?.tier);
+  const shared = tierEngine ? { ...queue.shared, model: tierEngine } : queue.shared;
   const castById = new Map(bundle.cast.map(record => [record.id, record]));
   const getCharacter = (id: string | undefined | null) =>
     (id ? castById.get(id) : undefined) as CharacterRecord | undefined;
