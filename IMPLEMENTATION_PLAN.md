@@ -4448,3 +4448,25 @@ finals overnight unattended.
   is hidden in the Gallery (`RunPatchTake.adultCheck`), taken off its Scene (`removedTakeIds`),
   and the Scene rendered once more with the stronger age line or the coverage line; withheld
   again, the Scene fails. Every tier.
+- **The live gate (s19, 2026-11-14, scratch copy of s18; build b8fdf5c1):** s18's 9-moment
+  Short, 43 shots. Preview on 2.1 Turbo, page closed: 43 takes in 11.2 min (15.6 s a shot), one
+  job a Scene, all marked preview, none kept. Contact sheet: the 35 Everyday shots dressed and
+  coherent (outfit held; the partner's face changes, Phase 4's open item); 3 of 8 Suggestive
+  shots undressed — the gap fixed above (that build had no server adult gate). Final on Edit
+  2511, page closed: 43 Scenes in 83 min, unattended, 43 jobs for 43 tries, 24 kept passing and
+  19 flagged (9 face, 3 outfit, 10 not checked); no redo ran — the harness set redo 0 before
+  picking the tier, which keeps a redo already set. Against the bar: this Short's animatic in
+  under 15 min, yes; a 70-shot Short at this rate is about 18 min, over it.
+
+**Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
+unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
+already done in Castcut: it offers two workspaces (Film, Studio — `normalizeWorkspaceMode` maps
+Simple to Film and Full to Studio), and the parked Extras (Topics, Audio, Mesh, Logo, the
+Pet / Fantasy / Background aliases) are `STUDIO_ONLY_ROUTES`, not served by Castcut at all; only
+the classic Prompt Studio profile still lists them. The user chose "Film + Full" for the modes
+on a question that wrongly said Castcut had four — left as Film + Studio until they say.
+Left to people: the flagship film and five outside testers.
+- **E2E, full suite on a production build (2026-11-14):** 414 / 416 then 18 / 18 for the fixed
+  accessibility spec. The two-takes flake was a product bug (1cc485ca: the board linking to a
+  Short mid-pick kept take 2 and dropped the pick); "day end pose" and the accessibility scan
+  of "/" were test races. Left: gallery "Recently deleted → Restore" (local only, as before).
