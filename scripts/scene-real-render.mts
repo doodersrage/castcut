@@ -4293,6 +4293,8 @@ const phases: Record<string, Phase> = {
       const idea =
         process.env.SHORT_IDEA ??
         `${lead} spends a rainy Saturday with her partner: breakfast arguing over plans, a bookshop where they get separated, and making up over dinner`;
+      // The idea box takes 240 characters (DAY_PREMISE_MAX_LENGTH): a longer one never fills.
+      if (idea.length > 240) throw new Error(`SHORT_IDEA is ${idea.length} characters (240 at most)`);
       const before = JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
       const slotsNow = async () =>
         JSON.stringify((await dayOf()).slots?.map(slot => slot.sceneHints ?? ''));
