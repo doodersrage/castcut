@@ -4311,3 +4311,11 @@ keep-best → the runner loop.
   off-page-canvas-server.ts). Pose guides identical to Chrome's, face crops and the footwear
   reference within a small tolerance (e2e parity specs). Docker: image builds, the module loads
   on Alpine; not in the standalone output until the runner draws on the server.
+- **Step 6, the queue steps the server way** (62ddd4f9, 2f74d243, 1efc7a53): each takes what it
+  read from this browser as an argument — the runtime (`settings`: shared, workflow files,
+  ComfyUI settings; inventory passed in, nothing fetched), prompt preparation (realism, anatomy
+  guard, wildcards, the negative — `negativePromptForRequest`, the /api/negative route's body),
+  the VRAM guard (`readVram`), LoRA triggers (the take's character). One take to ComfyUI:
+  `comfyui/queue-take-server.ts`, the route's single prompt as a function. The page passes none:
+  unchanged (golden take requests). `'use client'` doesn't stop the server calling these: no API
+  route in the production build has a client reference.
