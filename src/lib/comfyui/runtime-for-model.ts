@@ -104,7 +104,25 @@ export type ResolveRuntimeOptions = {
   skipFaceChangingLoras?: boolean;
   /** Cap the Klein color anchor for this queue (kleinColorAnchorStrengthForTool). */
   kleinColorAnchorMax?: number;
+  /**
+   * The settings to resolve with, instead of this browser's stores (FINISHING_PLAN Phase 3,
+   * step 6): the server passes its synced copies. With it, nothing is read from or saved to
+   * browser storage, and the inventory isn't fetched — pass `inventory`.
+   */
+  settings?: RuntimeSettingsSource;
 };
+
+/** What a queue's runtime is resolved from: the shared settings, workflow files, ComfyUI's. */
+export type RuntimeSettingsSource = {
+  shared: ReturnType<typeof loadSettingsCache>['shared'];
+  workflowFiles: ReturnType<typeof loadComfyWorkflowFiles>;
+  comfyUi: ComfyUiSettings;
+};
+
+const sharedOf = (options?: ResolveRuntimeOptions) =>
+  options?.settings?.shared ?? loadSettingsCache().shared;
+const workflowFilesOf = (options?: ResolveRuntimeOptions) =>
+  options?.settings?.workflowFiles ?? loadComfyWorkflowFiles();
 
 /**
  * Scan ComfyUI inventory and persist healed loader maps when system workflows
@@ -265,9 +283,10 @@ function attachLightningTokens(
 
 function loadComfyUiSettingsForModel(
   model: ComfyImageModel,
-  inventory?: ComfyUiModelLists | null
+  inventory?: ComfyUiModelLists | null,
+  given?: ComfyUiSettings
 ): ComfyUiSettings {
-  const settings = loadComfyUiSettings();
+  const settings = given ?? loadComfyUiSettings();
   return {
     ...settings,
     loraLibrary: enrichLoraLibraryForKleinBaseModel(
@@ -355,18 +374,22 @@ export function resolveRuntimeForModel(
   tool?: string,
   options?: ResolveRuntimeOptions
 ): ComfyUiRuntimeConfig {
-  const shared = loadSettingsCache().shared;
+  const shared = sharedOf(options);
   const inventory =
-    options?.inventory !== undefined ? options.inventory : readCachedComfyObjectInfoModels();
+    options?.inventory !== undefined
+      ? options.inventory
+      : options?.settings
+        ? null
+        : readCachedComfyObjectInfoModels();
   const videoRequest = tool === 'video' || isVideoModel(model);
 
   const resolveViaSystemPath = (): ComfyUiRuntimeConfig => {
-    const workflowFiles = loadComfyWorkflowFiles();
+    const workflowFiles = workflowFilesOf(options);
     // System packs replace workflow JSON / loader maps but must keep the session
     // LoRA stack from Settings — otherwise Lightning neutralize leaves style LoRAs
     // at 0 and sidebar picks never re-apply.
     const settingsRuntime = comfyUiSettingsToRuntime(
-      loadComfyUiSettingsForModel(model, inventory),
+      loadComfyUiSettingsForModel(model, inventory, options?.settings?.comfyUi),
       {
         sessionActiveLoraIds: options?.sessionActiveLoraIds,
         sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
@@ -410,9 +433,13 @@ export function resolveRuntimeForModel(
     return resolveViaSystemPath();
   }
 
-  const workflowFiles = loadComfyWorkflowFiles();
+  const workflowFiles = workflowFilesOf(options);
   const selectionTool = videoRequest ? (tool ?? 'video') : tool;
-  const manualId = options?.ignoreManualWorkflow ? undefined : getSelectedWorkflowFileId();
+  const manualId = options?.ignoreManualWorkflow
+    ? undefined
+    : options?.settings
+      ? (shared.selectedWorkflowFileId ?? shared.selectedWorkflowPresetId)
+      : getSelectedWorkflowFileId();
   const mappedId = resolveWorkflowForModel(model, shared.modelWorkflowMap);
   const autoId =
     shared.autoSelectWorkflowForModel !== false
@@ -469,12 +496,15 @@ export function resolveRuntimeForModel(
   // Same as the system-workflow path: always forward the session-filtered LoRA
   // library. Mapped/manual graphs may omit it when no workflow file resolves,
   // and Lightning cannot fall back to {{LORA_*}} custom-token injection.
-  const settingsRuntime = comfyUiSettingsToRuntime(loadComfyUiSettingsForModel(model, inventory), {
-    sessionActiveLoraIds: options?.sessionActiveLoraIds,
-    sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
-    model,
-    skipFaceChangingLoras: options?.skipFaceChangingLoras,
-  });
+  const settingsRuntime = comfyUiSettingsToRuntime(
+    loadComfyUiSettingsForModel(model, inventory, options?.settings?.comfyUi),
+    {
+      sessionActiveLoraIds: options?.sessionActiveLoraIds,
+      sessionLoraStrengthOverrides: options?.sessionLoraStrengthOverrides,
+      model,
+      skipFaceChangingLoras: options?.skipFaceChangingLoras,
+    }
+  );
 
   return {
     ...(stackCompatible ?? {}),
@@ -515,7 +545,7 @@ export function resolveRuntimeForQueue(
       ignoreManualWorkflow: true,
     });
   }
-  const shared = loadSettingsCache().shared;
+  const shared = sharedOf(options);
   const resolvedProfile = resolveQueueQualityProfile({
     tool,
     global: shared.queueQualityProfile,
@@ -612,6 +642,13 @@ export async function resolveRuntimeForQueueAsync(
   tool?: string,
   options?: ResolveRuntimeOptions & { comfyUrl?: string }
 ): Promise<ComfyUiRuntimeConfig> {
+  // Settings passed in (the server): resolved from them and the inventory given, nothing fetched.
+  if (options?.settings) {
+    return resolveRuntimeForQueue(model, tool, {
+      ...options,
+      inventory: options.inventory ?? null,
+    });
+  }
   const shared = loadSettingsCache().shared;
   let inventory = options?.inventory;
   if (shared.useSystemWorkflows === true && inventory === undefined) {
