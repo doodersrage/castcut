@@ -8,59 +8,15 @@ import '@/lib/media/off-page-canvas-server';
 import { getComfyUiBaseUrl } from '@/lib/comfyui/client';
 import { stripEmptyComfyUiRuntime } from '@/lib/comfyui/config';
 import { uploadComfyInputContent } from '@/lib/comfyui/comfy-input-upload-server';
-import { readComfyInputCopy } from '@/lib/comfyui/input-store-server';
 import { isolateSubjectOnWhiteBuffer } from '@/lib/edit/isolate-subject-server';
 import { locateFaceInComfy } from '@/lib/face/locate-server';
 import { orientedImageSize } from '@/lib/media/image-size-server';
-import {
-  normalizeComfyViewType,
-  sanitizeComfyViewFilename,
-  sanitizeComfyViewSubfolder,
-} from '@/lib/server/url-safety';
+import { loadPictureOnServer } from '@/lib/media/picture-io-server';
 import type { DayFacePlateOps } from './vacation-face-crop';
 
 type Fetch = typeof fetch;
 
-/** The bytes behind one of the page's picture URLs, read without the page. */
-export async function loadPictureOnServer(
-  url: string,
-  options: { comfyUrl?: string; fetchImpl?: Fetch } = {}
-): Promise<Blob | null> {
-  const fetchImpl = options.fetchImpl ?? fetch;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-  if (/^(?:https?:|data:)/i.test(trimmed)) {
-    const response = await fetchImpl(trimmed).catch(() => null);
-    return response?.ok ? response.blob() : null;
-  }
-  // The page's ComfyUI proxy (/api/comfyui/view?filename=…): ComfyUI's own /view.
-  const parsed = new URL(trimmed, 'http://castcut.invalid');
-  if (parsed.pathname.replace(/\/$/, '') !== '/api/comfyui/view') return null;
-  const ref = {
-    filename: sanitizeComfyViewFilename(parsed.searchParams.get('filename') ?? ''),
-    subfolder: sanitizeComfyViewSubfolder(parsed.searchParams.get('subfolder') ?? ''),
-    type: normalizeComfyViewType(parsed.searchParams.get('type')?.trim() || 'output'),
-  };
-  const base = getComfyUiBaseUrl(
-    stripEmptyComfyUiRuntime({
-      apiUrl: parsed.searchParams.get('comfyUrl') ?? options.comfyUrl ?? undefined,
-    })
-  );
-  const view = new URL(`${base}/view`);
-  view.searchParams.set('filename', ref.filename);
-  view.searchParams.set('subfolder', ref.subfolder);
-  view.searchParams.set('type', ref.type);
-  const response = await fetchImpl(view.toString(), { signal: AbortSignal.timeout(30_000) }).catch(
-    () => null
-  );
-  if (response?.ok) return response.blob();
-  // ComfyUI lost it (a restart, a cleaned input folder): the copy the app kept.
-  if (ref.type !== 'temp') {
-    const copy = readComfyInputCopy(ref);
-    if (copy) return new Blob([new Uint8Array(copy)], { type: 'image/png' });
-  }
-  return null;
-}
+export { loadPictureOnServer };
 
 /** The face plate's steps for a run on the server, against `comfyUrl` (else the configured one). */
 export function serverFacePlateOps(

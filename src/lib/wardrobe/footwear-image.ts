@@ -8,11 +8,11 @@
  */
 
 import { loadComfyUiSettings } from '@/lib/comfyui/settings';
-import { collectIsolateSourceUrls, loadImageBlobFromUrls } from '@/lib/edit/isolate-subject';
+import { collectIsolateSourceUrls } from '@/lib/edit/isolate-subject';
 import { IDENTITY_MEDIA_URL } from '@/lib/gallery/media-client';
 import { poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import { resolveQueueInputImage } from '@/lib/queue/input-image';
 import { drawingCanvas } from '@/lib/media/off-page-canvas';
+import { PAGE_PICTURE_IO, type PictureIo } from '@/lib/media/picture-io';
 
 export type FootwearImageRef = { imageUrl?: string | null; imageFilename?: string | null };
 
@@ -76,8 +76,8 @@ export function footwearComboLayout(
   };
 }
 
-function sourceUrls(ref: FootwearImageRef | GarmentImageRef): string[] {
-  const comfyUrl = loadComfyUiSettings().apiUrl?.trim() || undefined;
+function sourceUrls(ref: FootwearImageRef | GarmentImageRef, givenComfyUrl?: string): string[] {
+  const comfyUrl = givenComfyUrl?.trim() || loadComfyUiSettings().apiUrl?.trim() || undefined;
   return collectIsolateSourceUrls({
     imageUrl: ref.imageUrl?.trim() || undefined,
     filename: ref.imageFilename?.trim() || undefined,
@@ -85,8 +85,12 @@ function sourceUrls(ref: FootwearImageRef | GarmentImageRef): string[] {
   }).filter(url => url !== IDENTITY_MEDIA_URL);
 }
 
-async function loadPicture(ref: FootwearImageRef | GarmentImageRef): Promise<Blob> {
-  return loadImageBlobFromUrls(sourceUrls(ref));
+async function loadPicture(
+  ref: FootwearImageRef | GarmentImageRef,
+  io: PictureIo = PAGE_PICTURE_IO,
+  comfyUrl?: string
+): Promise<Blob> {
+  return io.loadBlob(sourceUrls(ref, comfyUrl));
 }
 
 /**
@@ -152,6 +156,9 @@ export async function buildFootwearReferenceImage(input: {
   garment?: GarmentImageRef | null;
   footwear: FootwearImageRef;
   model: string;
+  /** The server's picture steps (picture-io-server.ts) and ComfyUI; the page's by default. */
+  io?: PictureIo;
+  comfyUrl?: string;
 }): Promise<{ filename: string; combined: boolean } | null> {
   if (!hasFootwearImage(input.footwear)) return null;
   const garment =
@@ -161,15 +168,14 @@ export async function buildFootwearReferenceImage(input: {
   if (cached) return { filename: cached, combined: Boolean(garment) };
 
   const drawn = await composeFootwearReference({
-    shoes: await loadPicture(input.footwear),
-    clothes: garment ? await loadPicture(garment) : null,
+    shoes: await loadPicture(input.footwear, input.io, input.comfyUrl),
+    clothes: garment ? await loadPicture(garment, input.io, input.comfyUrl) : null,
   });
   const name = `${drawn.combined ? 'outfit-footwear' : 'footwear'}-${Date.now()}.png`;
-  const uploaded = await resolveQueueInputImage({
-    file: new File([drawn.png as BlobPart], name, { type: 'image/png', lastModified: Date.now() }),
-    filename: name,
-    model: input.model,
-  });
+  const uploaded = await (input.io ?? PAGE_PICTURE_IO).upload(
+    new File([drawn.png as BlobPart], name, { type: 'image/png', lastModified: Date.now() }),
+    input.model
+  );
   const filename = uploaded?.filename?.trim();
   if (!filename) throw new Error('Footwear reference upload did not return a filename.');
   comboCache.set(key, filename);
