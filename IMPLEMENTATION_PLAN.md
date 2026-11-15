@@ -4457,6 +4457,16 @@ finals overnight unattended.
   19 flagged (9 face, 3 outfit, 10 not checked); no redo ran — the harness set redo 0 before
   picking the tier, which keeps a redo already set. Against the bar: this Short's animatic in
   under 15 min, yes; a 70-shot Short at this rate is about 18 min, over it.
+- **s20 (2026-11-14, s19's data, build d092ddbf):** Preview again with the server adult gate:
+  the 3 undressed Suggestive previews withheld, redone with the coverage line, withheld again —
+  their Scenes failed, nothing shown; an empty-place establishing shot was gated too (no readable
+  answer about nobody) — now skipped. 47 jobs for 43 Scenes in 13.2 min; ComfyUI median 11.8 s.
+  The smaller preview canvas did nothing: the 2.1 renderer snaps to its own canvases and its only
+  16:9 one is 1664×928 (reverted). Sampling is ~5 s of a take; the rest is encoding the prompt
+  and pictures, new for every shot. At ~13 s a shot a 70-shot animatic is ~15 min — on the bar,
+  not under it. What's left to try: queueing the next preview while one renders (several takes
+  in flight on the server — it touches the restart rule, one job a try) — not done. The run's
+  record now counts a gate redo as a try (the harness read the 4 as duplicates).
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were

@@ -265,8 +265,6 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       for (const body of bodies) {
         assert.match(body, /"qwenRenderer":"qwen-image-2\.1"/);
         assert.match(body, /"qwenImage21EightStep":"turbo"/);
-        // On the preview canvas (16:9, smaller: 1344×768 asked, 1280×736 on the engine's grid).
-        assert.match(body, /"width":"1280","height":"736"/);
       }
     } finally {
       globalThis.fetch = original;
@@ -349,6 +347,8 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       assert.equal(asked, 2, 'the Suggestive Scene twice; the Everyday one never');
       assert.equal(run?.outcomes?.s1, 'landed');
       assert.equal(run?.outcomes?.s2, 'failed');
+      // Two jobs, two tries: never read as a duplicate.
+      assert.equal(run?.attempts?.s2, 2);
       const window = state.sceneTool.scenes!.find(entry => entry.id === 's2')!;
       assert.deepEqual([window.takes.length, window.keptTakeId], [0, undefined]);
     } finally {
@@ -413,7 +413,11 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     const { bundle, deps, queued } = await harness(tool => {
       (tool.scenes[0]!.slot as Record<string, unknown>).placeOnly = true;
       (tool.slots[0] as Record<string, unknown>).placeOnly = true;
+      // A Suggestive short: the empty place still has nobody for the adult check to judge.
+      for (const entry of tool.scenes) (entry as { dayMood: string }).dayMood = 'suggestive';
+      tool.dayMood = 'suggestive';
     });
+    const gated: string[] = [];
     globalThis.fetch = deps.fetchImpl;
     try {
       const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
@@ -421,9 +425,14 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       const run = await runSceneRunOnServer(bundle as never, state, {
         ...deps,
         checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        adultGate: async (input: { imageUrl: string }) => {
+          gated.push(input.imageUrl);
+          return { verdict: 'pass', reason: 'clearly adult (95%)' };
+        },
       } as never);
       assert.equal(run?.state, 'done');
       assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.equal(gated.length, 1, 'only the Window shot, which has someone in it');
       assert.match(queued[0]!, /kitchen/i, 'the empty kitchen first');
       assert.equal(run?.flagged?.s1, undefined, 'nobody to check in an empty place');
     } finally {

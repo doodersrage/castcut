@@ -286,8 +286,6 @@ export async function runSceneRunOnServer(
       const result = await runServerTake(bundle, state, sceneId, deps, {
         ...(gateRedo === 'bare' ? { coverageLine: true } : {}),
         ...(gateRedo === 'age' ? { strongAgeLine: true } : {}),
-        // A Preview run's drafts on the smaller canvas (run-tier.ts).
-        ...(latest.tier === 'preview' ? { previewCanvas: true } : {}),
       });
       report = result.report;
       const still = activeStill(state);
@@ -375,7 +373,9 @@ export async function runSceneRunOnServer(
       bundle.settings.intimateEnabled === true
     );
     let adultCheck: RunPatchTake['adultCheck'];
-    if (dayMoodNeedsAdultSafeguards(mood)) {
+    // An establishing shot of the empty place has nobody to judge (s20: one was withheld for an
+    // unreadable answer about no one).
+    if (dayMoodNeedsAdultSafeguards(mood) && !sceneOf(sceneId)?.slot.placeOnly) {
       const redoneFor = state.gateRedo?.[sceneId];
       const decision: AdultGateDecision = deps.adultGate
         ? await deps
@@ -429,9 +429,17 @@ export async function runSceneRunOnServer(
         } else {
           const { [sceneId]: _done, ...rest } = state.gateRedo ?? {};
           state.gateRedo = rest;
+          const failedRun = runOf()!;
           setRun(
             withRunOutcome(
-              runOf()!,
+              {
+                ...failedRun,
+                // Its tries counted, as keep-best counts them (one job per try).
+                attempts: {
+                  ...(failedRun.attempts ?? {}),
+                  [sceneId]: (failedRun.attempts?.[sceneId] ?? 0) + 1,
+                },
+              },
               sceneId,
               'failed',
               `${scene.name}: ${cause === 'bare' ? CLOTHED_GATE_WITHHELD_MESSAGE : ADULT_GATE_WITHHELD_MESSAGE}`,
@@ -477,7 +485,11 @@ export async function runSceneRunOnServer(
 
     const now0 = runOf()!;
     if (!now0.auto?.keep) {
-      setRun(withRunOutcome(now0, sceneId, 'landed', `${scene.name}: a take landed`, now()));
+      // A Scene the adult check had redone: this landed take is its second try.
+      const tried = now0.attempts?.[sceneId]
+        ? { ...now0, attempts: { ...now0.attempts, [sceneId]: now0.attempts[sceneId]! + 1 } }
+        : now0;
+      setRun(withRunOutcome(tried, sceneId, 'landed', `${scene.name}: a take landed`, now()));
       emit({ scene: sceneOf(sceneId), takes: [take] });
       continue;
     }

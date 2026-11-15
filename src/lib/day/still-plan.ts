@@ -273,11 +273,6 @@ export const DAY_OUTFIT_LINE_RE = /^OUTFIT \(mandatory\):/m;
 /** Landscape canvas for a lying solo still on a face crop (pose-model-profile: wideLyingSolo). */
 /** A still shot 16:9 (Qwen-Image 2.1's own wide canvas; other engines take it as asked). */
 export const DAY_WIDE_CANVAS = { width: 1664, height: 928 } as const;
-/**
- * A Preview run's 16:9 canvas (run-tier.ts): Qwen's small landscape size, about two thirds of the
- * pixels — the draft's sampling 3.7 s against 5 s on 2.1 Turbo (s19, 2026-11-14).
- */
-export const DAY_PREVIEW_CANVAS = { width: 1344, height: 768 } as const;
 
 export const DAY_LYING_WIDE_CANVAS = {
   width: PLAY_FACE_CROP_CANVAS.height,
