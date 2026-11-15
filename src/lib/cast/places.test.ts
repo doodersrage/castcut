@@ -259,5 +259,16 @@ describe('withPlacePhotoInLongAdultBrief', () => {
     );
     // Not these words: left alone.
     assert.equal(withRoomPhotoAsImage2(day, { words: 'a kitchen' }), null);
+    // A script scene's own room (One room a scene) keeps its words beside the photo: s22's
+    // close-ups, with only "the room shown in Image 2", kept the plate's studio wall.
+    const street = withRoomPhotoAsImage2(
+      'POSE FIRST: she lifts her phone. SCENE: she is in the quiet city street, outdoors — show that place around her. Place: quiet city street, outdoors.',
+      { words: 'quiet city street, outdoors', keepWords: true }
+    )!;
+    assert.match(
+      street,
+      /SCENE: she is at the quiet city street, outdoors, in the room shown in Image 2 — the same walls/
+    );
+    assert.match(street, /Place: the room shown in Image 2\./);
   });
 });

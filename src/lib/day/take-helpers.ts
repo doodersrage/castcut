@@ -19,6 +19,7 @@ import {
 } from '@/lib/location/picture';
 import { rerollBeatKey } from '@/lib/play/metrics';
 import type { DayPartnerNoun } from './partner';
+import { slotDayPart, type DayPart } from './parts';
 import type { DaySlot, DaySlotStill } from './planner';
 import { resolveDayQueueIdentityPlate, type DayPlate } from './plate';
 import { resolveDaySlotLook, type DaySlotOutfit } from './slot-look';
@@ -169,6 +170,26 @@ export async function planTakeStillModel(
 }
 
 /**
+ * The light a scene's empty room is made in — its shots' time of day. Made from the place words
+ * alone, a night street came out in daylight and its night shots dropped it for the plate's
+ * studio wall (s22, 2026-11-14). '' for the afternoon (the picture's own natural light).
+ */
+export function sceneRoomLight(part: DayPart, outdoors: boolean): string {
+  if (part === 'night') {
+    return outdoors
+      ? 'at night, dark sky, lit only by street lamps, lit windows and signs'
+      : 'at night, dark windows, lit only by its own lamps';
+  }
+  if (part === 'evening') {
+    return outdoors
+      ? 'in the evening, low warm golden-hour sun, long shadows'
+      : 'in the evening, warm low sun through the windows and lamps on';
+  }
+  if (part === 'morning') return 'in the morning, soft fresh daylight';
+  return '';
+}
+
+/**
  * One room a scene (a run's oneRoom): the room a script's scene is shot in — made the first time
  * the scene is shot (its empty room, from the shot's place words), then the same for every shot.
  * Null when off, not a script's shot, or the render fails (the shot goes out as before).
@@ -199,8 +220,13 @@ export async function takeSceneRoom(
     withCastPlace(slot.location, input.character, input.leadNoun)?.trim() || slot.location?.trim();
   if (!place) return null;
   try {
+    const outdoors = /\boutdoors\b/i.test(place);
     const file = await input.render(
-      { name: place, look: '', setting: /\boutdoors\b/i.test(place) ? 'EXT' : 'INT' },
+      {
+        name: place,
+        look: sceneRoomLight(slotDayPart(slot), outdoors),
+        setting: outdoors ? 'EXT' : 'INT',
+      },
       `scene-room-${link.sceneId.slice(0, 40)}.png`
     );
     input.keep({ ...input.rooms, [key]: file });

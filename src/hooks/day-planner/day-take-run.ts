@@ -2058,12 +2058,14 @@ export async function runDayTake(
                   beat: queueTarget.sceneHints,
                   place: placePhoto.locationName,
                   words: queueTarget.location,
+                  ...(sceneRoom && placePhoto.filename === sceneRoom ? { keepWords: true } : {}),
                 }) ?? finalized)
               : placePhoto
                 ? withPlacePhotoInPrompt(finalized, 3, {
                     lead: roomLedEngine,
                     place: placePhoto.locationName,
                     words: queueTarget.location,
+                    ...(sceneRoom && placePhoto.filename === sceneRoom ? { keepWords: true } : {}),
                   })
                 : adultPlacePhoto
                   ? withPlacePhotoInAdultPrompt(finalized)

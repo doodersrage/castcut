@@ -344,6 +344,12 @@ export function withPlacePhotoInPrompt(
      * (a location with no look of its own — one made from a photo — has no ", at Name: …").
      */
     words?: string;
+    /**
+     * Keep the Setting's words beside the photo ("SCENE: she is at the quiet city street, in the
+     * room shown in Image 2 …") — a script scene's own room (One room a scene), whose words are
+     * the scene's place. Not a location made from a photo (its name is only "Place from a photo").
+     */
+    keepWords?: boolean;
   } = {}
 ): string {
   const room = `in the room shown in Image ${image} — the same walls, floor, windows, furniture, plants and colours`;
@@ -389,7 +395,10 @@ export function withPlacePhotoInPrompt(
             `\\bSCENE: (she|he) is in (?:the )?${escape(words)} — show that place around (?:her|him)\\.`,
             'i'
           ),
-          `SCENE: $1 is ${room}.`
+          // The place's words stay beside the photo: on its own, "the room shown in Image 2"
+          // left close-ups with nothing naming the place, and they kept the plate's studio wall
+          // (s22, 2026-11-14: 4 of 43 Edit 2511 finals on a plain backdrop).
+          options.keepWords ? `SCENE: $1 is at the ${words}, ${room}.` : `SCENE: $1 is ${room}.`
         )
         .replace(
           new RegExp(`\\bPlace: (?:the )?${escape(words)}\\.`, 'i'),
@@ -426,9 +435,13 @@ export function withPlacePhotoInPrompt(
  */
 export function withRoomPhotoAsImage2(
   prompt: string,
-  options: { beat?: string; place?: string; words?: string } = {}
+  options: { beat?: string; place?: string; words?: string; keepWords?: boolean } = {}
 ): string | null {
-  const placed = withPlacePhotoInPrompt(prompt, 2, { place: options.place, words: options.words });
+  const placed = withPlacePhotoInPrompt(prompt, 2, {
+    place: options.place,
+    words: options.words,
+    ...(options.keepWords ? { keepWords: true } : {}),
+  });
   if (!placed.includes('in the room shown in Image 2')) return null;
   const beat = options.beat?.trim().replace(/[.\s]+$/, '');
   const pose = beat
