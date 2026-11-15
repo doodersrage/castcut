@@ -582,6 +582,28 @@ export function synthesizeHandKeypoints(elbow: Point, wrist: Point, bodyCenter: 
 }
 
 /** One person on the map: body (COCO-18) plus optional hands (21 each), all canvas pixels. */
+/**
+ * A drawn person cut to a shot size, as the 3D rig's camera keeps them (rig3d-camera.ts): waist-up
+ * keeps nothing below the hips, a close-up nothing below the shoulders. Cropped only by region, a
+ * seated waist-up guide kept the hips and knees on the bottom edge — long neck-to-hip lines over
+ * knee stubs that read as two tall standing figures, and the stills drew a third person, a figure
+ * from behind and a leg up (the flagship's café, 2026-11-15; without the map 3 of 3 came out right).
+ */
+export function cropOpenPosePersonToFraming(
+  person: OpenPosePerson,
+  framing: PoseFraming | null | undefined
+): OpenPosePerson {
+  const drop =
+    framing === 'waist-up' ? [9, 10, 12, 13] : framing === 'close-up' ? [8, 9, 10, 11, 12, 13] : [];
+  if (!drop.length) return person;
+  return {
+    ...person,
+    body: person.body.map((point, index) =>
+      drop.includes(index) ? null : point
+    ) as OpenPoseKeypoints,
+  };
+}
+
 export type OpenPosePerson = {
   body: OpenPoseKeypoints;
   lHand?: Array<Point | null>;

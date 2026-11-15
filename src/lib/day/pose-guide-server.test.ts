@@ -30,3 +30,35 @@ describe('pose guides drawn on the server (Phase 3, step 5)', () => {
     });
   }
 });
+
+describe('a guide cut to its shot size (the flagship café, 2026-11-15)', () => {
+  // Cropped only by region, a seated waist-up two-shot kept hips and knees on the bottom edge:
+  // long neck-to-hip lines over knee stubs, and the stills drew a third person and a leg up.
+  it('waist-up keeps nothing below the hips; a close-up nothing below the shoulders', async () => {
+    const guide = (shot: 'waist' | 'head' | 'full') =>
+      buildDayPoseGuide(
+        'afternoon' as never,
+        'Slyne and Jason, the two of them together. Slyne sits down across from him.',
+        'qwen-image-2.1-edit-turbo-8',
+        {
+          stylePreference: 'openpose',
+          aspect: { width: 1664, height: 928 },
+          forcePeople: 2,
+          pose: { body: 'sit' },
+          camera: { shot },
+          library: [],
+        } as never
+      );
+    const knees = [9, 10, 12, 13];
+    const waist = await guide('waist');
+    assert.equal(waist.keypoints.length, 2);
+    for (const person of waist.keypoints) {
+      assert.ok(knees.every(index => !person[index]), 'no knees or ankles');
+      assert.ok(person[1], 'the neck is drawn');
+    }
+    const head = await guide('head');
+    for (const person of head.keypoints) assert.ok([8, 11, ...knees].every(index => !person[index]));
+    const full = await guide('full');
+    assert.ok(full.keypoints.some(person => person[9] || person[12]), 'a full shot keeps the legs');
+  });
+});

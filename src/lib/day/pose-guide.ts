@@ -23,6 +23,7 @@ import {
 import { stripNegatedClauses } from '@/lib/prompt/negated-clauses';
 import { oralReceiverSeated } from '@/lib/pose/rapid-oral-pose';
 import {
+  cropOpenPosePersonToFraming,
   drawOpenPoseFigures,
   drawOpenPosePeople,
   mirrorPoseFacing,
@@ -6676,6 +6677,10 @@ export function planOpenPoseGuide(input: {
     people = input.figures.map(figure =>
       stickToOpenPosePerson(figure, canvas, { hands: input.hands })
     );
+  }
+  // A shot size asked for (a script shot's camera): nothing below the frame's cut is drawn.
+  if (input.framing === 'waist-up' || input.framing === 'close-up') {
+    people = people.map(person => cropOpenPosePersonToFraming(person, input.framing));
   }
   return {
     canvas: size,
