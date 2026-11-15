@@ -265,6 +265,8 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       for (const body of bodies) {
         assert.match(body, /"qwenRenderer":"qwen-image-2\.1"/);
         assert.match(body, /"qwenImage21EightStep":"turbo"/);
+        // On the preview canvas (16:9, smaller: 1344×768 asked, 1280×736 on the engine's grid).
+        assert.match(body, /"width":"1280","height":"736"/);
       }
     } finally {
       globalThis.fetch = original;

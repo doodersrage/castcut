@@ -169,6 +169,7 @@ import {
   dayStillSceneDressesItself,
   dayStillDressedPlateUse,
   dayStillFaceCropCanvas,
+  DAY_PREVIEW_CANVAS,
   DAY_WIDE_CANVAS,
   dayStillFootwearApplies,
   dayStillIdentityRoute,
@@ -298,6 +299,8 @@ export type DayTakeOptions = {
   coverageLine?: boolean;
   /** Queued by the player (board, slot sheet, retry) — counted in the re-roll record. */
   byPlayer?: boolean;
+  /** A Preview run's draft (run-tier.ts): a 16:9 still on the smaller canvas. */
+  previewCanvas?: boolean;
 };
 
 export type DayTakeContext = {
@@ -1271,7 +1274,9 @@ export async function runDayTake(
       : null;
     // The still's canvas when it isn't Image 1's shape: 16:9 stills on every identity path (a
     // plate is portrait — the first live take came back 1104×1472), else the face crop's.
-    const stillCanvas = stillsAreWide(toolSettings) ? { ...DAY_WIDE_CANVAS } : faceCropCanvas;
+    const stillCanvas = stillsAreWide(toolSettings)
+      ? { ...(options?.previewCanvas ? DAY_PREVIEW_CANVAS : DAY_WIDE_CANVAS) }
+      : faceCropCanvas;
     if (lookHasPlate && !skipPoseGuideImage) {
       try {
         const dayMood = normalizeDayMood(

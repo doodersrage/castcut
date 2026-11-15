@@ -283,17 +283,12 @@ export async function runSceneRunOnServer(
       const before = activeStill(state)?.promptId;
       // A take the adult check withheld is redone once with the line it needs (as on the page).
       const gateRedo = state.gateRedo?.[sceneId];
-      const result = await runServerTake(
-        bundle,
-        state,
-        sceneId,
-        deps,
-        gateRedo === 'bare'
-          ? { coverageLine: true }
-          : gateRedo === 'age'
-            ? { strongAgeLine: true }
-            : undefined
-      );
+      const result = await runServerTake(bundle, state, sceneId, deps, {
+        ...(gateRedo === 'bare' ? { coverageLine: true } : {}),
+        ...(gateRedo === 'age' ? { strongAgeLine: true } : {}),
+        // A Preview run's drafts on the smaller canvas (run-tier.ts).
+        ...(latest.tier === 'preview' ? { previewCanvas: true } : {}),
+      });
       report = result.report;
       const still = activeStill(state);
       const queued =
@@ -567,6 +562,12 @@ function markStill(
   };
 }
 
+/**
+ * How often a take in flight is asked after (the watcher's status, from ComfyUI's history). Every
+ * 3 s waited 1.5 s a take on average — a tenth of a 2.1 Turbo preview (s19, 2026-11-14).
+ */
+const JOB_POLL_MS = 1_000;
+
 async function waitForJob(
   promptId: string,
   sceneId: string,
@@ -590,7 +591,7 @@ async function waitForJob(
         if (next) {
           requeued = true;
           onRequeued(next);
-          await sleep(deps.pollMs ?? 3_000);
+          await sleep(deps.pollMs ?? JOB_POLL_MS);
           continue;
         }
         tries += 1;
@@ -603,6 +604,6 @@ async function waitForJob(
     }
     if (now() >= deadline) return { ...last, status: 'error', statusMessage: 'it timed out' };
     if (deps.shouldStop?.()) return 'stopped';
-    await sleep(deps.pollMs ?? 3_000);
+    await sleep(deps.pollMs ?? JOB_POLL_MS);
   }
 }
