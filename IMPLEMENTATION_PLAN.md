@@ -4467,6 +4467,13 @@ finals overnight unattended.
   not under it. What's left to try: queueing the next preview while one renders (several takes
   in flight on the server — it touches the restart rule, one job a try) — not done. The run's
   record now counts a gate redo as a try (the harness read the 4 as duplicates).
+- **Drafts queued ahead (c805e02e) — s21 (2026-11-14, s19's data):** a Preview queues the next
+  Scene's draft as soon as the current one is queued (`SceneRun.ahead`, waited for after a
+  restart like `current`). 43 Scenes in 11.5 min with a ComfyUI restart mid-run: both jobs in
+  flight were lost and each queued again once; 45 jobs, no duplicates; every draft on its own
+  Scene, none kept. Steady rate 12.3 s a shot (median between landings; s20 sequential 14.0 s;
+  ComfyUI's own ~11.8 s), so a 70-shot Everyday Short's animatic is ~14.4 min — under the bar.
+  The adult gate's vision calls on Suggestive shots and a restart add to that (mean 14.3 s).
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
