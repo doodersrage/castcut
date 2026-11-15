@@ -4498,6 +4498,13 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   shot's place words must share one with its scene's heading — for the room and the same-room
   reference. (3) s19's baseline by the same check (each shot against its scene's first shot):
   15 of 23 "other room". Not yet the Final default; s23 re-runs s22 with the fixes.
+- **s23 (2026-11-15, s22 again at 46e4854e):** 116 min, 43 Scenes, 25 flagged — 19 room, 5 face.
+  The night street now holds one lamp-lit street (9A, the walk, 9C), no hotel in the park, and
+  one close-up on a plain backdrop (was four). The room notes split by shot: 11 of 18
+  head-and-shoulders shots, 1 of 7 waist, 2 of 8 full — the close-ups that visibly left the
+  place (6E, 4E, 4G; 4G also drew her three times) kept one on their words in s19, and the check
+  reads a blurred background as elsewhere. So close-ups go out on their words (af8d3815). Not
+  live-run yet; One room a scene stays a choice, off by default.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
