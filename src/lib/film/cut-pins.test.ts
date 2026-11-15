@@ -167,6 +167,18 @@ describe('a pinned still whose take was animated since', () => {
     assert.equal(same.shots[0]!.url, '/clip-1.webp');
     assert.equal(same.shots[0]!.kind, 'clip');
     assert.equal(same.states['scenes:s1']!.state, 'pinned');
+    // Its still moved to the Gallery since (a new address): the same take by its entry.
+    const moved = pinnedCutShots({
+      shots: [
+        {
+          ...clip('scenes:s1', '/clip-1.webp'),
+          thumbUrl: '/api/gallery/media/x',
+          stillEntryId: 'p1',
+        },
+      ],
+      edits: pinned,
+    });
+    assert.equal(moved.shots[0]!.url, '/clip-1.webp');
     // Another take, with its own clip: an offer, the pinned still plays.
     const other = pinnedCutShots({
       shots: [{ ...clip('scenes:s1', '/clip-2.webp'), thumbUrl: '/still-2.png' }],

@@ -88,8 +88,9 @@ export function pinnedCutShots(input: {
     if (
       pin.kind === 'still' &&
       shot.kind === 'clip' &&
-      shot.thumbUrl &&
-      shot.thumbUrl === pin.url
+      // Matched by the still's entry too: its picture can move to the Gallery (a new address).
+      ((Boolean(shot.thumbUrl) && shot.thumbUrl === pin.url) ||
+        (Boolean(pin.entryId) && shot.stillEntryId === pin.entryId))
     ) {
       states[shot.key] = { state: 'pinned' };
       return shot;

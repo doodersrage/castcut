@@ -1448,6 +1448,7 @@ export function sceneCutShots(
               kind: 'clip',
               thumbUrl: take.imageUrl,
               entryId: take.clipPromptId || `${scene.id}-clip`,
+              ...(take.promptId ? { stillEntryId: take.promptId } : {}),
               ...(spoken ? { spoken } : {}),
             },
           ]

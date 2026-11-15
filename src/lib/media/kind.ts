@@ -63,6 +63,11 @@ export type FilmMediaRef = Pick<
 
 export type FilmPlaylistShot = {
   entryId?: string;
+  /**
+   * A clip made from a still (a Scene's kept take, animated): that still's entry — a Cut shot
+   * pinned to the still plays the clip (cut-pins.ts).
+   */
+  stillEntryId?: string;
   title: string;
   url: string;
   kind: FilmShotKind;
