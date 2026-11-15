@@ -174,7 +174,7 @@ import type { SavedScript } from '@/lib/day/scene-scripts';
 import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { storyboard } from '@/lib/day/storyboard';
 import { normalizeSceneRun } from '@/lib/day/scene-run';
-import { useServerRunPending } from './useServerRunPending';
+import { useServerRunPending } from './day-planner/useServerRunPending';
 import { parseScript } from '@/lib/script/parse';
 import {
   cutAddedSceneList,
