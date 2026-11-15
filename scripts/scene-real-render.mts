@@ -3610,11 +3610,17 @@ const phases: Record<string, Phase> = {
       .split(',')
       .map(label => label.trim())
       .filter(Boolean);
+    // EPISODE_RESET_EDITS='{"9E":{"slot":{"sceneHints":"…"},"allowCompanions":true}}': what each
+    // of those shots says changed as it is let go (a Scene drafted before a fix to its words).
+    const edits = JSON.parse(process.env.EPISODE_RESET_EDITS || '{}') as Record<
+      string,
+      { slot?: Record<string, unknown>; [field: string]: unknown }
+    >;
     await page.waitForTimeout(3000);
     // Written with no app page open (it would write its own copy back).
     await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
     const counts = await page.evaluate(
-      ({ castId, labels }) =>
+      ({ castId, labels, edits }) =>
         new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
           const request = indexedDB.open('comfy-prompt-studio-v1');
           request.onerror = () => reject(request.error);
@@ -3652,8 +3658,18 @@ const phases: Record<string, Phase> = {
                 scenes += 1;
                 takes += entry.takes.length;
                 const { keptTakeId: _kept, ...rest } = entry;
+                const edit = edits[label];
                 return {
                   ...rest,
+                  ...(edit ?? {}),
+                  ...(edit?.slot
+                    ? {
+                        slot: {
+                          ...(entry as unknown as { slot: Record<string, unknown> }).slot,
+                          ...edit.slot,
+                        },
+                      }
+                    : {}),
                   takes: entry.takes.map(take => ({ ...take, review: 'rejected' })),
                   updatedAt: now + index,
                 };
@@ -3669,7 +3685,7 @@ const phases: Record<string, Phase> = {
             };
           };
         }),
-      { castId: V2_CAST, labels: only }
+      { castId: V2_CAST, labels: only, edits }
     );
     log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
     // The run's panel is on Scene.
