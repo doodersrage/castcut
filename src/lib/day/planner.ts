@@ -497,6 +497,12 @@ export type DaySlot = {
   /** Two-person slots: what the other person answers (one-shot conversation, LTX-2.5). */
   replyLine?: string;
   /**
+   * A script's two-shot where the partner speaks and she doesn't (no `line`): his line, so the
+   * clip is him saying it in his kept voice while she listens. Before (the flagship, 2026-11-15)
+   * it sat in the beat as "Jason says: …" — the clip moved his lips with no voice.
+   */
+  partnerLine?: string;
+  /**
    * Group stills (day-group.ts): a third person — another Cast member — in this clothed
    * two-person still. Edit 2511 only (it reads their face as Image 3).
    */
@@ -984,6 +990,9 @@ export function normalizeDaySlots(input?: DaySlot[] | null, length?: number | nu
       ...(slot.placeOnly === true ? { placeOnly: true } : {}),
       lineTone: normalizeSpokenLineTone(slot.lineTone),
       replyLine: normalizeSpokenLine(slot.replyLine) || undefined,
+      ...(normalizeSpokenLine(slot.partnerLine)
+        ? { partnerLine: normalizeSpokenLine(slot.partnerLine) }
+        : {}),
       ...(readText(slot.thirdCastId, 120) ? { thirdCastId: readText(slot.thirdCastId, 120) } : {}),
       ...(readText(slot.thirdCastId, 120) && readText(slot.fourthCastId, 120)
         ? { fourthCastId: readText(slot.fourthCastId, 120) }

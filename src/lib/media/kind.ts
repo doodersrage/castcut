@@ -130,6 +130,11 @@ export type FilmPlaylistShot = {
   pipToSec?: number;
   /** How this shot comes in from the one before (Cut's timeline); unset = the cut's crossfade. */
   transitionIn?: CutTransitionIn;
+  /**
+   * Which scene of a script the shot belongs to (a Scene made from one): where it changes, a cut
+   * with "Dip to black between scenes" dips (cut-media.ts withSceneBreaks).
+   */
+  sceneGroup?: string;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
   thumbUrl?: string;
   /** The voice-over heard over this shot — subtitled when there is no spoken line. */

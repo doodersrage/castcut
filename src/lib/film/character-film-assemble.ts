@@ -40,6 +40,8 @@ export async function assembleAndStampFilm(input: {
   length?: FilmCutLength;
   /** Land still cuts on the music's beat. */
   beatSnap?: boolean;
+  /** A dip to black where the script's scene changes. */
+  sceneBreaks?: boolean;
   /** Music bed / lines gain (server encode). */
   musicLevel?: number;
   voiceLevel?: number;
@@ -114,6 +116,7 @@ export async function assembleAndStampFilm(input: {
   const prepared = await prepareCutShots(input.shots, {
     length: input.length,
     beatSnap: input.beatSnap,
+    ...(input.sceneBreaks ? { sceneBreaks: true } : {}),
     audioBedUrl: input.audioBedUrl,
     crossfadeSec: input.crossfadeSec,
     titleCard: Boolean(input.titleCard?.title?.trim()),

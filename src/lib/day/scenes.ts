@@ -1241,6 +1241,7 @@ export function daySlotPatchFromScene(scene: SavedScene): Partial<DaySlot> {
     'lineFullFrame',
     'lineTone',
     'replyLine',
+    'partnerLine',
     'thirdCastId',
     'fourthCastId',
     'lineLanguage',
@@ -1414,6 +1415,12 @@ export function scriptScenesInOrder(
   );
 }
 
+/** The script scene a Scene was made from, as Cut groups its shots (none: made by hand). */
+function sceneGroupOf(scene: SavedScene): { sceneGroup?: string } {
+  const from = scene.fromScript;
+  return from?.scriptId && from.sceneId ? { sceneGroup: `${from.scriptId}|${from.sceneId}` } : {};
+}
+
 /**
  * Cut's Scenes source: each of the Cast's scenes with a kept take, oldest scene first (or in the
  * order given: `inOrder`) — the kept take's clip when it has one, else the still. Keys are the
@@ -1437,7 +1444,7 @@ export function sceneCutShots(
         ? scene.slot.replyLine?.trim()
           ? `${scene.slot.line.trim()} — ${scene.slot.replyLine.trim()}`
           : scene.slot.line.trim()
-        : '';
+        : scene.slot.partnerLine?.trim() || '';
       return take.clipUrl
         ? [
             {
@@ -1449,6 +1456,7 @@ export function sceneCutShots(
               thumbUrl: take.imageUrl,
               entryId: take.clipPromptId || `${scene.id}-clip`,
               ...(take.promptId ? { stillEntryId: take.promptId } : {}),
+              ...sceneGroupOf(scene),
               ...(spoken ? { spoken } : {}),
             },
           ]
@@ -1463,6 +1471,7 @@ export function sceneCutShots(
               entryId: take.promptId || scene.id,
               // Her line, for Read the lines on stills (the reply is another person's).
               ...(scene.slot.line?.trim() ? { stillLine: scene.slot.line.trim() } : {}),
+              ...sceneGroupOf(scene),
               ...sceneStillFraming(scene),
             },
           ];
@@ -1599,6 +1608,7 @@ const CONTINUE_CLEARS = [
   'lineFullFrame',
   'lineTone',
   'replyLine',
+  'partnerLine',
   'lineLanguage',
   'lineOriginal',
   'replyOriginal',

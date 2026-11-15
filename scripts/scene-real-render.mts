@@ -4075,6 +4075,18 @@ const phases: Record<string, Phase> = {
    */
   async epanimate(_ctx, page) {
     await openScene(page, V2_CAST);
+    // EPISODE_CLIP_ENGINE=h3 (or wan, ltx): what Animate renders on (Day's and Scene's choice).
+    const clipEngine = process.env.EPISODE_CLIP_ENGINE?.trim();
+    if (clipEngine) {
+      const select = page.getByTestId('clip-engine-day').first();
+      await select.waitFor({ timeout: 120_000 });
+      await select.selectOption(clipEngine);
+      await page.waitForTimeout(1500);
+      log('clips on:', await select.inputValue());
+      if ((await select.inputValue()) !== clipEngine) {
+        problems.push(`epanimate: clips not on ${clipEngine}`);
+      }
+    }
     const button = page.getByTestId('scene-run-animate-kept');
     await button.waitFor({ timeout: 180_000 });
     log('offered:', (await button.textContent())?.trim());
@@ -4102,6 +4114,62 @@ const phases: Record<string, Phase> = {
     await shot(page, 'animated');
   },
 
+  /**
+   * A kept voice for the lead and each Cast member of the script (EPISODE_VOICE_NAMES, default
+   * the lead's and EPISODE_PARTNER_NAME): Cast → Voice → Audition, the first kept (pick again on
+   * the Cast page by ear). Talking clips on MiniMax-H3 then speak in it.
+   */
+  async voices(_ctx, page) {
+    const names = (process.env.EPISODE_VOICE_NAMES ?? `${EP_LEAD_NAME},${EP_PARTNER_NAME}`)
+      .split(',')
+      .map(name => name.trim())
+      .filter(Boolean);
+    await go(page, `/characters/${V2_CAST}`);
+    const people = await page.evaluate(
+      () =>
+        new Promise<Array<{ id: string; name: string; voice: boolean }>>(resolve => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onsuccess = () => {
+            const get = request.result
+              .transaction('kv', 'readonly')
+              .objectStore('kv')
+              .get('comfy-prompt-characters-v1');
+            get.onsuccess = () => {
+              request.result.close();
+              const list = (get.result?.value?.characters ?? []) as Array<Record<string, unknown>>;
+              resolve(
+                list.map(entry => ({
+                  id: String(entry.id),
+                  name: String(entry.name ?? ''),
+                  voice: Boolean((entry.voice as { clip?: string } | undefined)?.clip),
+                }))
+              );
+            };
+          };
+        })
+    );
+    for (const name of names) {
+      const person = people.find(entry => entry.name.toLowerCase() === name.toLowerCase());
+      if (!person) {
+        problems.push(`voices: no Cast member named ${name}`);
+        continue;
+      }
+      if (person.voice && process.env.EPISODE_VOICE_AGAIN !== '1') {
+        log(name, 'has a kept voice already');
+        continue;
+      }
+      await attempt(page, `${name}'s voice`, async () => {
+        await go(page, `/characters/${person.id}`);
+        await page.getByTestId('cast-voice-audition').click({ timeout: 120_000 });
+        await page.getByTestId('cast-voice-keep-0').waitFor({ timeout: 20 * 60_000 });
+        await page.getByTestId('cast-voice-keep-0').click();
+        await page.getByTestId('cast-voice-current').waitFor({ timeout: 10 * 60_000 });
+        log(name, 'voice:', (await page.getByTestId('cast-voice-current').textContent())?.trim());
+      });
+      await shot(page, `voice-${name}`);
+    }
+  },
+
   async epcut(_ctx, page) {
     await openScene(page, V2_CAST);
     await page.waitForTimeout(30_000);
@@ -4127,6 +4195,23 @@ const phases: Record<string, Phase> = {
       log('new takes used:', taken);
     }
     await page.getByTestId('cut-tab-options').click();
+    // EPISODE_CUT_CROSSFADE=0.3: shots fade into each other; EPISODE_CUT_SCENE_BREAKS=1: a dip to
+    // black where the script's scene changes.
+    const crossfade = process.env.EPISODE_CUT_CROSSFADE?.trim();
+    const breaks = process.env.EPISODE_CUT_SCENE_BREAKS === '1';
+    if (crossfade || breaks) {
+      const timing = page.getByTestId('cut-options-timing');
+      await timing.waitFor({ timeout: 60_000 });
+      if ((await timing.getAttribute('open')) === null) {
+        await timing.locator('summary').first().click();
+      }
+      if (crossfade) await page.getByTestId(`cut-crossfade-${crossfade}`).click();
+      if (breaks) {
+        const toggle = page.getByTestId('cut-scene-breaks');
+        if ((await toggle.getAttribute('aria-checked')) !== 'true') await toggle.click();
+      }
+      log('timing:', (await timing.locator('summary').first().textContent())?.trim());
+    }
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();

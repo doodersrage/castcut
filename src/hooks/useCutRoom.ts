@@ -2709,6 +2709,7 @@ export function useCutRoom() {
           characterName: name,
           lookId: cast?.activeLookId ?? shared.activeLookId,
           crossfadeSec: cutOptions.crossfadeSec,
+          ...(cutOptions.sceneBreaks ? { sceneBreaks: true } : {}),
           resolution: filmResolutionForCutOptions(cutOptions),
           audioBedUrl: cutOptions.audioBedUrl.trim() || undefined,
           musicLevel: cutOptions.musicLevel,

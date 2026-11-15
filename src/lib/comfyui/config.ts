@@ -289,6 +289,8 @@ export type WorkflowParamValues = {
   /** The partner's kept voice clip (a Cast member's), for the reply. */
   videoPartnerVoiceClip?: string;
   videoPartnerVoiceClipWords?: string;
+  /** Whose voice videoVoiceClip is (the partner saying their line: 'He'); unset = 'She'. */
+  videoVoiceWho?: 'He' | 'She';
   /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -636,6 +638,9 @@ export function resolveQueueParams(
     'videoPartnerVoiceClipWords',
   ] as const) {
     if (merged[key]?.trim()) result[key] = merged[key].trim();
+  }
+  if (merged.videoVoiceWho === 'He' || merged.videoVoiceWho === 'She') {
+    result.videoVoiceWho = merged.videoVoiceWho;
   }
   if (merged.videoVoiceSteer === 'on') {
     result.videoVoiceSteer = 'on';
@@ -2166,6 +2171,7 @@ export function injectPromptsWithFallbacks(
                 ...(voiceClip
                   ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
                   : { voiceAudio }),
+                ...(input.params?.videoVoiceWho === 'He' ? { who: 'He' as const } : {}),
               })
             : null;
         injected = { ...injected, workflow: conversation ?? anchored ?? converted.workflow };

@@ -774,6 +774,12 @@ describe('her line while she touches him (a two-shot)', () => {
     assert.equal(hug.partnerInFrame, true);
     assert.match(hug.slot.sceneHints ?? '', /^Slyne and Jason, the two of them together\. .*hugs him/);
     assert.equal(hug.slot.line, "Yes. That's my answer. Yes.");
+    // His line on the two-shot is his to say (the flagship's were silent mouths, 2026-11-15).
+    const his = draft(shots.findIndex(shot => shot.line === "It's leaning toward you."));
+    assert.equal(his.partnerInFrame, true);
+    assert.equal(his.slot.partnerLine, "It's leaning toward you.");
+    assert.equal(his.slot.line, undefined);
+    assert.equal(hug.slot.partnerLine, undefined);
     // Her alone with a glass: still her alone.
     const water = draft(shots.findIndex(shot => shot.line === 'Thirsty.'));
     assert.equal(water.partnerInFrame, undefined);

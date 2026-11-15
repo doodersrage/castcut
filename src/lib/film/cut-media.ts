@@ -12,6 +12,7 @@ import {
 } from './cut-plan';
 import { locateFaceOnPlateBlob } from '../face/locate-client';
 import type { FilmPlaylistShot } from './character-film';
+import { CUT_TRANSITION_SEC } from '../video/cut-timeline';
 
 const PROBE_TIMEOUT_MS = 8_000;
 
@@ -68,6 +69,20 @@ export async function detectTempoBpmFromUrl(url: string): Promise<number | null>
   }
 }
 
+/**
+ * A dip to black where the script's scene changes (its shots' sceneGroup), so a new place and
+ * time doesn't arrive as a hard jump (the flagship, 2026-11-15) — except where a transition was
+ * picked by hand, or nothing says which scene a shot is in.
+ */
+export function withSceneBreaks(shots: FilmPlaylistShot[]): FilmPlaylistShot[] {
+  return shots.map((shot, index) => {
+    const before = shots[index - 1];
+    if (!before || shot.transitionIn || !shot.sceneGroup || !before.sceneGroup) return shot;
+    if (shot.sceneGroup === before.sceneGroup) return shot;
+    return { ...shot, transitionIn: { kind: 'black', sec: CUT_TRANSITION_SEC } };
+  });
+}
+
 export type PreparedCut = {
   shots: FilmPlaylistShot[];
   /** What was done, for the status line ("fit to the 42 s track · on the beat (120 BPM)"). */
@@ -87,12 +102,15 @@ export async function prepareCutShots(
     crossfadeSec?: number;
     titleCard?: boolean;
     captions?: boolean;
+    /** A dip to black where the script's scene changes (withSceneBreaks). */
+    sceneBreaks?: boolean;
   }
 ): Promise<PreparedCut> {
   const notes: string[] = [];
   let next = options.captions
     ? shots.map(shot => (shot.caption?.trim() ? { ...shot, title: shot.caption.trim() } : shot))
     : shots;
+  if (options.sceneBreaks) next = withSceneBreaks(next);
   const length = options.length ?? 'shots';
   const audio = options.audioBedUrl?.trim() || '';
   if (length !== 'shots') {

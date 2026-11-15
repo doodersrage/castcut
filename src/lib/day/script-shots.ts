@@ -798,6 +798,17 @@ export function shotSceneDraft(input: {
         ? { placeOnly: true }
         : {}),
       ...(leadSpeaks && shot.line ? { line: shot.line } : {}),
+      // The partner says it in the shot (a two-shot, heard and seen): his line, in his voice.
+      ...(!leadSpeaks &&
+      !leadVoiceOver &&
+      shot.line &&
+      !shot.offscreen &&
+      partnerInFrame &&
+      partner?.speaker &&
+      shot.speaker &&
+      speakerKey(shot.speaker) === partner.speaker
+        ? { partnerLine: shot.line }
+        : {}),
       ...(leadVoiceOver && shot.line ? { narration: shot.line } : {}),
     },
     ...(partner?.castId ? { partnerCharacterId: partner.castId } : {}),

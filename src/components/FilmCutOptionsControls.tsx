@@ -76,6 +76,8 @@ export type FilmCutOptionsValue = {
   length?: FilmCutLength;
   /** Land still cuts on the music's beat (needs an audio bed). */
   beatSnap?: boolean;
+  /** A dip to black where a script's scene changes (a Scene film). */
+  sceneBreaks?: boolean;
   /** Day episodes: open with a few shots of the last episode (default on when there is one). */
   previouslyOn?: boolean;
   /** Story: each scene's first sentence read as a voice-over over its shot (story-film.ts). */
@@ -431,6 +433,7 @@ export default function FilmCutOptionsControls({
         summary={join(
           value.crossfadeSec > 0 ? `${value.crossfadeSec} s crossfades` : 'hard cuts',
           value.beatSnap && hasBed && 'on the beat',
+          value.sceneBreaks && 'dips between scenes',
           previouslyAvailable && value.previouslyOn !== false && 'previously on'
         )}
         persistKey={groupKey('timing')}
@@ -455,6 +458,14 @@ export default function FilmCutOptionsControls({
           disabled={disabled || !hasBed}
           onChange={next => onChange({ ...value, beatSnap: next })}
           testId={`${testIdPrefix}-beat-snap`}
+        />
+        <OptionSwitch
+          label="Dip to black between scenes"
+          note="Where a script's scene changes — a new place doesn't arrive as a jump"
+          checked={value.sceneBreaks === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, sceneBreaks: next })}
+          testId={`${testIdPrefix}-scene-breaks`}
         />
         {previouslyAvailable ? (
           <OptionSwitch

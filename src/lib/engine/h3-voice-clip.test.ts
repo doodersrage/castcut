@@ -282,3 +282,21 @@ describe('a clip on the reference model is made longer on H3', () => {
     assert.equal(h3ReplaySource(plain), plain);
   });
 });
+
+describe('the partner saying his line in his own voice (a script two-shot)', () => {
+  // The flagship (2026-11-15): Jason's lines moved his lips with no voice. His line is now the
+  // clip's, in his kept voice clip, said as his.
+  it('anchors on his voice clip, as his', () => {
+    const prompt = String(
+      talkingClip(
+        { videoVoiceClip: 'jason-voice.mp4', videoVoiceClipWords: 'Hello there.', videoVoiceWho: 'He' },
+        undefined,
+        'He says, "It\'s leaning toward you." The woman beside him listens and does not speak.'
+      ).find(node => node.class_type === H3_REF_NODE)!.inputs.prompt
+    );
+    assert.match(prompt, /<Audio 1> is only how his voice sounds: its words \("Hello there\."\) are not his to say — he never says them\./);
+    assert.match(prompt, /The woman beside him listens and does not speak\./);
+    assert.match(prompt, /He says it once/);
+    assert.doesNotMatch(prompt, /She says it once/);
+  });
+});

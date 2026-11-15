@@ -460,7 +460,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           : undefined;
         // LTX-2.5 drifts off two-person sex acts — those clips stay on WAN.
         // A spoken line makes a talking clip (LTX-2.5 speaks it, lip-synced, with sound).
-        const spokenLine = normalizeSpokenLine(slot.line);
+        // Her line — or, on a script's two-shot where only the partner speaks, his (partnerLine):
+        // he says it in his kept voice while she listens.
+        const leadLine = normalizeSpokenLine(slot.line);
+        const partnerSays = leadLine ? '' : normalizeSpokenLine(slot.partnerLine);
+        const spokenLine = leadLine || partnerSays;
+        const partnerId = partnerSays ? toolSettings.partnerCharacterId?.trim() || '' : '';
+        const partnerWho: 'He' | 'She' =
+          dayPartnerNoun(getCharacter(partnerId) ?? {}) === 'woman' ? 'She' : 'He';
+        const voiceOf = partnerSays && partnerId ? partnerId : shared.activeCharacterId;
         const videoModel = resolveDayClipEngine({
           stillPromptId: still?.promptId,
           dayMood: toolSettings.dayMood,
@@ -565,19 +573,26 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // A talking clip starts chest-up when her face is small in the still (the lips are
         // unreadable full-body) — not with an end pose, whose frame matches the full still.
         const framed =
-          speaking && !conversation && !endImageFilename && !slot.lineFullFrame && imageUrl
+          speaking &&
+          !conversation &&
+          !partnerSays &&
+          !endImageFilename &&
+          !slot.lineFullFrame &&
+          imageUrl
             ? await framedTalkingStill(imageUrl)
             : null;
         // Kept whole and not already close: wording that holds the framing, or LTX punches in
         // to her face (talking-clip-framing.ts).
         const framing =
-          speaking && !conversation && !framed && imageUrl
+          speaking && !conversation && !partnerSays && !framed && imageUrl
             ? await talkingStillFraming(imageUrl)
-            : 'close';
+            : partnerSays
+              ? 'wide'
+              : 'close';
         // The still's pose: seated or lying (else its words) — only then the seated hold — and the
         // limbs it caught mid-action, which the clip relaxes instead of freezing.
         const stillBody =
-          speaking && !conversation && imageUrl
+          speaking && !conversation && !partnerSays && imageUrl
             ? await talkingStillBody(imageUrl, parentEntry?.prompt)
             : null;
         const seated =
@@ -609,8 +624,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   })
                 : talkingClipPrompt({
                     setting: slot.location,
-                    line: pronounceForCast(spokenLine, shared.activeCharacterId),
-                    speaker: manLead ? 'He' : 'She',
+                    line: pronounceForCast(spokenLine, voiceOf),
+                    speaker: partnerSays ? partnerWho : manLead ? 'He' : 'She',
                     tone: slot.lineTone,
                     framing,
                     seated,
@@ -618,6 +633,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     heldGesture: stillHeldGesture(parentEntry?.prompt),
                     ...(stillBody ? { limbs: stillBody.limbs } : {}),
                   }),
+            // He speaks; she, beside him, listens (her mouth stays shut — one voice).
+            partnerSays
+              ? `The ${manLead ? 'man' : 'woman'} beside ${partnerWho === 'He' ? 'him' : 'her'} listens and does not speak.`
+              : '',
             ageLine,
           ]
             .filter(Boolean)
@@ -626,8 +645,16 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           if (!normalizeDubLanguage(slot.lineLanguage)) {
             prompt = withAccent(
               prompt,
-              castAccent(shared.activeCharacterId),
-              conversation ? (manLead ? 'The man' : 'The woman') : manLead ? 'He' : 'She'
+              castAccent(voiceOf),
+              conversation
+                ? manLead
+                  ? 'The man'
+                  : 'The woman'
+                : partnerSays
+                  ? partnerWho
+                  : manLead
+                    ? 'He'
+                    : 'She'
             );
           }
           // Dub: the line (and reply) said in the slot's language (day-dub.ts).
@@ -701,7 +728,10 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                             )
                           )
                         : {}
-                      : castVoiceSampleFor(shared.activeCharacterId)),
+                      : {
+                          ...castVoiceSampleFor(voiceOf),
+                          ...(partnerSays ? { videoVoiceWho: partnerWho } : {}),
+                        }),
                     // Not cropped chest-up: render larger so the small face holds.
                     ...(framed ? {} : { videoLongSide: LTX25_TALKING_FULL_FRAME_LONG_SIDE }),
                     // The place's room sound under the voice (ROOM_SOUND_UNDER_TALKING; the
@@ -1214,7 +1244,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       const parentEntry = still?.promptId
         ? loadComfyGallery().find(entry => entry.promptId === still.promptId)
         : undefined;
-      const spokenLine = normalizeSpokenLine(slot.line);
+      // Hers, or on a script's two-shot where only the partner speaks, his (partnerLine).
+      const spokenLine = normalizeSpokenLine(slot.line) || normalizeSpokenLine(slot.partnerLine);
       const engine = resolveDayClipEngine({
         stillPromptId: still?.promptId,
         dayMood: toolSettings.dayMood,
