@@ -6,6 +6,7 @@ import {
   inventedDayPartner,
   dayPartnerBriefLine,
   dayPartnerNoun,
+  partnerEverydayWear,
   scrubDayPartnerOutfitImageClaims,
   toDayPartner,
 } from './partner';
@@ -263,5 +264,30 @@ describe('one partner for the whole film on a script’s shots (2026-11-11)', ()
     // A pick stands: a Cast member, or a same-sex stand-in.
     assert.equal(dayPartnerChoiceFor('cast-theo', { scriptShot: true, lead: 'woman' }), 'cast-theo');
     assert.equal(dayPartnerChoiceFor('new:woman', { scriptShot: true, lead: 'woman' }), 'new:woman');
+  });
+});
+
+describe('a Cast partner’s clothes, the same in every shot', () => {
+  // The flagship's kitchen (2026-11-15): "he wears a casual shirt and jeans" put Jason in a green
+  // shirt, a white T-shirt, a black T-shirt — and once her camisole.
+  it('one everyday outfit, picked by name; the evening and bedtime beats keep theirs', () => {
+    const jason = toDayPartner({ name: 'Jason', traits: { sex: 'man' } })!;
+    assert.equal(jason.wears, partnerEverydayWear('Jason', 'man'));
+    assert.equal(partnerEverydayWear('jason ', 'man'), jason.wears, 'the same however written');
+    assert.equal(partnerEverydayWear('Jason', 'person'), undefined);
+    const say = (beat: string) =>
+      buildRapidSuggestiveDuoRecipe({
+        beat,
+        poseGuide: 'third',
+        outfit: 'slip dress',
+        partner: { partner: jason, image: 'second' },
+      })!;
+    assert.ok(say('Slyne and Jason, the two of them together. She stares at the key.').includes(
+      `he wears ${jason.wears}.`
+    ));
+    assert.ok(say('Slyne and Jason sit at a small cafe table.').includes(`he wears ${jason.wears}.`));
+    assert.match(say('Slyne and Jason at dinner, candlelit'), /he wears a dark button-up shirt and trousers/);
+    // An invented partner has no Cast: the words as before.
+    assert.equal(inventedDayPartner('new:man')?.wears, undefined);
   });
 });

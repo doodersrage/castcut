@@ -1866,7 +1866,7 @@ function impliedCoupleWear(beat: string, noun: DayPartnerNoun): string {
   return 'wears underwear';
 }
 
-function partnerClothes(beat: string, noun: DayPartnerNoun = 'man'): string {
+function partnerClothes(beat: string, noun: DayPartnerNoun = 'man', wears?: string): string {
   if (/\b(?:evening|dinner|rooftop|bar|hotel|candlelit|night\s+out)\b/i.test(beat)) {
     return noun === 'woman' ? 'a dark evening dress' : 'a dark button-up shirt and trousers';
   }
@@ -1877,7 +1877,7 @@ function partnerClothes(beat: string, noun: DayPartnerNoun = 'man'): string {
   ) {
     return 'a T-shirt and sleep pants';
   }
-  return 'a casual shirt and jeans';
+  return wears?.trim() || 'a casual shirt and jeans';
 }
 
 /**
@@ -1969,7 +1969,7 @@ export function buildRapidSuggestiveDuoRecipe(input: {
     `Moment: ${moment}.`,
     suggestiveBeatIsImpliedNudity(beat) && !input.outfitImage && !input.outfitFromFirst
       ? `${leadPronoun} ${impliedCoupleWear(beat, lead)}; ${otherWho} ${impliedCoupleWear(beat, partnerNoun)}.`
-      : `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun)}.`,
+      : `${leadPronoun} wears ${withArticle(leadWears)}; ${otherWears} ${partnerClothes(beat, partnerNoun, input.partner?.partner.wears)}.`,
     recipeRoom(beat, rapidDuoSurface(beat), input.setting, input.timeOfDay),
     leadMan ? descriptor?.replace(/^The woman:/, 'The man:') : descriptor,
     input.partner

@@ -23,7 +23,38 @@ export type DayPartner = {
   invented?: boolean;
   /** What the partner Cast is to the lead (cast-relationships.ts). */
   relation?: CastRelationKind | null;
+  /**
+   * The everyday clothes a Cast partner wears in every shot (partnerEverydayWear): "a casual
+   * shirt and jeans" dressed Jason differently in each shot of the flagship's kitchen (2026-11-15).
+   */
+  wears?: string;
 };
+
+const EVERYDAY_WEAR: Record<'man' | 'woman', readonly string[]> = {
+  man: [
+    'a navy crew-neck T-shirt and dark blue jeans',
+    'a grey henley shirt and khaki chinos',
+    'a white button-up shirt with rolled sleeves and dark jeans',
+    'an olive overshirt over a white T-shirt and dark jeans',
+  ],
+  woman: [
+    'a cream knit sweater and dark blue jeans',
+    'a navy striped top and white jeans',
+    'a rust-coloured blouse and black trousers',
+    'a grey cardigan over a white T-shirt and blue jeans',
+  ],
+};
+
+/** One everyday outfit for a partner, the same in every shot: picked by their name. */
+export function partnerEverydayWear(name: string, noun: DayPartnerNoun): string | undefined {
+  if (noun !== 'man' && noun !== 'woman') return undefined;
+  const key = name.trim().toLowerCase();
+  if (!key) return undefined;
+  let hash = 0;
+  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  const list = EVERYDAY_WEAR[noun];
+  return list[hash % list.length];
+}
 
 /** Partner setting values for an invented partner (next to Cast ids). */
 export const DAY_NEW_PARTNER_OPTIONS = [
@@ -63,9 +94,12 @@ export function toDayPartner(
     return null;
   }
   const descriptor = (character.descriptor || character.hints || '').trim();
+  const noun = dayPartnerNoun(character);
+  const wears = partnerEverydayWear(character.name, noun);
   return {
     name: character.name.trim(),
-    noun: dayPartnerNoun(character),
+    noun,
+    ...(wears ? { wears } : {}),
     ...(descriptor ? { descriptor: descriptor.slice(0, 220) } : {}),
     ...(character.traits?.ageBand ? { ageBand: character.traits.ageBand } : {}),
   };
