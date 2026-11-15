@@ -3500,7 +3500,8 @@ const phases: Record<string, Phase> = {
     // LLM — then Who's who and Make … Cast as below.
     const own = process.env.EPISODE_SCRIPT_FILE?.trim();
     if (own) {
-      await page.getByTestId('scene-scripts').waitFor({ timeout: 60_000 });
+      // Scripts live on Script (Scene links there).
+      await go(page, `/script?character=${V2_CAST}`);
       await page.getByTestId('script-import').first().click({ timeout: 60_000 });
       await page.getByTestId('script-import-text').fill(readFileSync(own, 'utf8'));
       log(
