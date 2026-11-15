@@ -46,7 +46,7 @@ import {
   type SavedScene,
 } from './scenes';
 import { runTierEngine } from './run-tier';
-import type { SceneToolCache } from './scenes';
+import { resolveRenderingTakes, type SceneToolCache } from './scenes';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
   CLOTHED_GATE_WITHHELD_MESSAGE,
@@ -221,6 +221,54 @@ export async function runSceneRunOnServer(
   };
   const save = () => deps.saveState(state);
 
+  /**
+   * A Preview's next take, queued while `currentScene`'s renders: recorded as the run's `ahead`
+   * before it is sent and with its job once queued. Not queued (ComfyUI said no): dropped — the
+   * loop queues that Scene in turn.
+   */
+  const queueAhead = async (currentScene: string) => {
+    const now0 = runOf()!;
+    // The next Scene as if the one in flight were done.
+    const step = nextRunStep(
+      {
+        ...now0,
+        current: undefined,
+        outcomes: { ...(now0.outcomes ?? {}), [currentScene]: 'landed' },
+      },
+      state.sceneTool.scenes ?? [],
+      now()
+    );
+    if (step.kind !== 'scene' || step.sceneId === currentScene) return;
+    const nextId = step.sceneId;
+    setRun({ ...now0, ahead: { sceneId: nextId, at: now() } });
+    save();
+    const before = activeStill(state)?.promptId;
+    const gateRedo = state.gateRedo?.[nextId];
+    const result = await runServerTake(bundle, state, nextId, deps, {
+      ...(gateRedo === 'bare' ? { coverageLine: true } : {}),
+      ...(gateRedo === 'age' ? { strongAgeLine: true } : {}),
+    }).catch(() => ({ error: 'not queued' }) as Awaited<ReturnType<typeof runServerTake>>);
+    const still = activeStill(state);
+    const queued =
+      still?.promptId && still.promptId !== before && still.status !== 'error'
+        ? still.promptId
+        : undefined;
+    const { ahead: _tried, ...rest } = runOf()!;
+    if (!queued || result.error) {
+      setRun(rest);
+      save();
+      return;
+    }
+    deps.onJob?.('queued', queued, nextId);
+    setRun(
+      withRunLog(
+        { ...rest, ahead: { sceneId: nextId, promptId: queued, at: now() } },
+        { at: now(), sceneId: nextId, event: 'queued', detail: queued }
+      )
+    );
+    emit({ scene: sceneOf(nextId) });
+  };
+
   let run = runOf();
   if (!run) return null;
   if (run.state !== 'running') {
@@ -253,10 +301,17 @@ export async function runSceneRunOnServer(
       emit();
       return runOf()!;
     }
+    // A Preview's take queued ahead: next in line once the one before it settled (its job is
+    // known — a restart waits for it too; one never queued is dropped and queued in turn).
+    const promoted = runOf()!;
+    if (!promoted.current && promoted.ahead) {
+      const { ahead, ...rest } = promoted;
+      setRun(ahead.promptId ? { ...rest, current: ahead } : rest);
+    }
     const latest = runOf()!;
     const step = nextRunStep(latest, state.sceneTool.scenes ?? [], now());
     if (step.kind === 'done') {
-      const { current: _current, ...rest } = latest;
+      const { current: _current, ahead: _ahead, ...rest } = latest;
       setRun(
         withRunLog(
           { ...rest, state: 'done' },
@@ -320,6 +375,9 @@ export async function runSceneRunOnServer(
       emit({ scene: sceneOf(sceneId) });
     }
 
+    // A Preview queues the next draft now, so ComfyUI goes straight on to it (run-tier.ts).
+    if (runOf()!.tier === 'preview' && !runOf()!.ahead) await queueAhead(sceneId);
+
     // Wait for it to land (the watcher follows a job ComfyUI queued again).
     const landed = await waitForJob(promptId, sceneId, deps, sleep, now, requeued => {
       setRun(
@@ -364,6 +422,24 @@ export async function runSceneRunOnServer(
     markStill(state, promptId, { status: 'completed', imageUrl });
     const filed = scenesWithWorking(state.sceneTool, now());
     if (filed) state.sceneTool = { ...state.sceneTool, scenes: filed };
+    // Its Scene isn't the open one (a Preview's next take opened another): it lands there, as a
+    // take handed off lands on its Scene (resolveRenderingTakes).
+    if (state.sceneTool.activeSceneId !== sceneId) {
+      state.sceneTool = {
+        ...state.sceneTool,
+        scenes: state.sceneTool.scenes?.map(entry =>
+          entry.id === sceneId
+            ? resolveRenderingTakes(
+                entry.renderingTakeIds?.includes(promptId)
+                  ? entry
+                  : { ...entry, renderingTakeIds: [...(entry.renderingTakeIds ?? []), promptId] },
+                [{ promptId, status: 'completed', imageUrl }],
+                now()
+              )
+            : entry
+        ),
+      };
+    }
     // The adult-appearance gate, before anything else looks at the take (useDayAdultGate's rule):
     // an adult-mood take that doesn't read clearly adult — or, on a clothed mood, shows bare
     // skin — is withheld for good, taken off its Scene, and the Scene rendered once more.

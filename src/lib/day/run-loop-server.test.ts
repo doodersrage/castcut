@@ -356,6 +356,112 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('a Preview queues the next draft while one renders; each lands on its own Scene; a restart waits for both', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued, saved } = await harness(tool => {
+      Object.assign(tool.run, { tier: 'preview', auto: { keep: false, redo: 0, animate: false } });
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      // The server stops while the first draft renders: by then the second is queued ahead.
+      let stopping = false;
+      const first = serverRunState(bundle as never)!;
+      await runSceneRunOnServer(bundle as never, first, {
+        ...deps,
+        checkTake: async () => undefined,
+        jobStatus: async (promptId: string) => {
+          stopping = true;
+          return { promptId, status: 'running' as const, comfyUrl: COMFY };
+        },
+        shouldStop: () => (stopping ? 'the server stopped' : null),
+      } as never);
+      const stopped = (saved() as { sceneTool: { run: { current?: { sceneId: string; promptId?: string }; ahead?: { sceneId: string; promptId?: string } } } })
+        .sceneTool.run;
+      assert.deepEqual(
+        [stopped.current?.sceneId, stopped.ahead?.sceneId],
+        ['s1', 's2'],
+        'the next draft queued while the first rendered'
+      );
+      assert.ok(stopped.current?.promptId && stopped.ahead?.promptId);
+      const stills = () => queued.filter(prompt => !/outfit try-on/i.test(prompt)).length;
+      assert.equal(stills(), 2);
+
+      // Picked up again: both jobs waited for, nothing queued again; each on its own Scene.
+      const again = serverRunState(bundle as never, saved())!;
+      const asked = new Set<string>();
+      const run = await runSceneRunOnServer(bundle as never, again, {
+        ...deps,
+        checkTake: async () => undefined,
+        jobStatus: async (promptId: string) => {
+          asked.add(promptId);
+          return {
+            promptId,
+            status: 'completed' as const,
+            comfyUrl: COMFY,
+            images: [{ filename: `${promptId}.png`, subfolder: '', type: 'output' }],
+          };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      assert.equal(stills(), 2, 'no draft queued twice');
+      assert.deepEqual([...asked].sort(), [stopped.current!.promptId!, stopped.ahead!.promptId!].sort());
+      for (const [id, job] of [
+        ['s1', stopped.current!.promptId!],
+        ['s2', stopped.ahead!.promptId!],
+      ] as const) {
+        const entry = again.sceneTool.scenes!.find(scene => scene.id === id)!;
+        assert.deepEqual(
+          entry.takes.map(take => [take.promptId, take.tier]),
+          [[job, 'preview']],
+          `${id}: its own draft, marked preview`
+        );
+      }
+      assert.equal(run?.ahead, undefined);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('a Preview with a draft withheld by the adult check: redone after the one queued ahead, one job a try', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness(tool => {
+      for (const entry of tool.scenes) (entry as { dayMood: string }).dayMood = 'suggestive';
+      tool.dayMood = 'suggestive';
+      Object.assign(tool.run, { tier: 'preview', auto: { keep: false, redo: 0, animate: false } });
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      let asked = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => undefined,
+        adultGate: async () => {
+          asked += 1;
+          return asked === 1
+            ? { verdict: 'requeue', reason: 'bare chest', cause: 'bare' }
+            : { verdict: 'pass', reason: 'clearly adult (95%)' };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(run?.outcomes, { s1: 'landed', s2: 'landed' });
+      const stills = queued.filter(prompt => !/outfit try-on/i.test(prompt));
+      assert.equal(stills.length, 3, 'Kitchen, Window ahead, Kitchen again');
+      assert.match(stills[2]!, /cover/i);
+      assert.equal(run?.attempts?.s1, 2);
+      const kitchen = state.sceneTool.scenes!.find(entry => entry.id === 's1')!;
+      assert.equal(kitchen.takes.length, 1, 'only the draft that passed');
+      assert.equal(kitchen.takes[0]!.tier, 'preview');
+      const window = state.sceneTool.scenes!.find(entry => entry.id === 's2')!;
+      assert.equal(window.takes.length, 1);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('picked up after the server stopped mid-take: it waits for that take, never queues another', async () => {
     const original = globalThis.fetch;
     const { bundle, deps, queued, saved } = await harness();

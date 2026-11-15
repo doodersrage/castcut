@@ -75,6 +75,12 @@ export type SceneRun = {
   outcomes?: Record<string, SceneRunOutcome>;
   /** The take in flight: its Scene, and its job once queued (a restart waits for it). */
   current?: { sceneId: string; promptId?: string; at: number };
+  /**
+   * A Preview run's next take, queued while {@link current} renders (run-loop-server.ts) so
+   * ComfyUI never waits on the server between drafts. Becomes `current` once that one settles; a
+   * restart waits for it as for `current` — never queued twice.
+   */
+  ahead?: { sceneId: string; promptId?: string; at: number };
   /** When it was started (the time limit counts from here). */
   startedAt?: number;
   /** Why it stopped, when it stopped short. */
@@ -324,6 +330,15 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
             sceneId: run.current.sceneId,
             ...(typeof run.current.promptId === 'string' ? { promptId: run.current.promptId } : {}),
             at: whole(run.current.at, 0, Number.MAX_SAFE_INTEGER, 0),
+          },
+        }
+      : {}),
+    ...(run.ahead && typeof run.ahead.sceneId === 'string'
+      ? {
+          ahead: {
+            sceneId: run.ahead.sceneId,
+            ...(typeof run.ahead.promptId === 'string' ? { promptId: run.ahead.promptId } : {}),
+            at: whole(run.ahead.at, 0, Number.MAX_SAFE_INTEGER, 0),
           },
         }
       : {}),
