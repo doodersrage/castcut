@@ -4481,7 +4481,8 @@ already done in Castcut: it offers two workspaces (Film, Studio — `normalizeWo
 Simple to Film and Full to Studio), and the parked Extras (Topics, Audio, Mesh, Logo, the
 Pet / Fantasy / Background aliases) are `STUDIO_ONLY_ROUTES`, not served by Castcut at all; only
 the classic Prompt Studio profile still lists them. The user chose "Film + Full" for the modes
-on a question that wrongly said Castcut had four — left as Film + Studio until they say.
+on a question that wrongly said Castcut had four; asked again, they agreed to keep "Studio"
+(2026-11-14) — revisit if the outside testers can't find their way from Film to it.
 Left to people: the flagship film and five outside testers.
 - **E2E, full suite on a production build (2026-11-14):** 414 / 416 then 18 / 18 for the fixed
   accessibility spec. The two-takes flake was a product bug (1cc485ca: the board linking to a
