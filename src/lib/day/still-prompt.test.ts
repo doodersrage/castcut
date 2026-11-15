@@ -637,3 +637,16 @@ describe('a picked lean names something to lean on (2026-11-12, Turbo)', () => {
     assert.match(out, /Pose: leaning with her shoulder and hip against a wall, post or railing beside her\. Place:/);
   });
 });
+
+describe('a moment already a sentence leads the pose line as written', () => {
+  // The flagship's close-ups (2026-11-15): "POSE FIRST: she is She stops at a crosswalk…" and
+  // "she is Sunlight across a small, tidy kitchen…".
+  const line = (moment: string) =>
+    dayPoseFirstLine(`Day photo: One woman alone. Moment: ${moment}.`, { withoutMap: true });
+  it('her own sentence, the place’s, or a verb of hers', () => {
+    assert.equal(line('She stops at a crosswalk and laughs'), 'POSE FIRST: she stops at a crosswalk and laughs.');
+    assert.equal(line('Sunlight across a small, tidy kitchen'), 'POSE FIRST: Sunlight across a small, tidy kitchen.');
+    assert.equal(line('reads a book'), 'POSE FIRST: she reads a book.');
+    assert.equal(line('on a park bench'), 'POSE FIRST: she is on a park bench.');
+  });
+});

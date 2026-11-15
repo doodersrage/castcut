@@ -790,6 +790,16 @@ export const QWEN_IMAGE_21_LEAN_BODY =
  * - Eating or drinking "at a café table" stood her beside the table: she sits on a chair at it.
  */
 function withRelaxedPoseFirst(prompt: string): string {
+  // Her legs out of the picture (waist-up, a head-and-shoulders close-up): no stance — "her weight
+  // on one leg and the other knee softly bent" on the flagship's close-ups drew a leg flung up into
+  // a crosswalk portrait (2026-11-15).
+  if (
+    /\blegs? (?:and feet )?(?:are )?out of (?:the )?(?:frame|picture)\b|\bhead-and-shoulders\b|\bnothing below her chest\b/i.test(
+      prompt
+    )
+  ) {
+    return prompt;
+  }
   return prompt.replace(
     /(POSE FIRST: )([^\n]*?)(\.)(?=\s|$)/,
     (match, head: string, pose: string, dot: string) => {

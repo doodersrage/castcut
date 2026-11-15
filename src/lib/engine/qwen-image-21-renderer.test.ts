@@ -1086,6 +1086,23 @@ describe('Qwen-Image 2.1: natural POSE FIRST on one-person stills (2026-10-20 sw
     }
   });
 
+  it('no stance when her legs are out of the picture (waist-up, a close-up)', () => {
+    // The flagship's crosswalk close-up (2026-11-15) drew a leg flung up into the portrait.
+    const close = (camera: string) =>
+      withNaturalPoses(
+        `Edit <image1>: CAMERA FIRST: ${camera} POSE FIRST: she stops at a crosswalk and laughs.\nSCENE: a street.`
+      );
+    assert.doesNotMatch(
+      close('head-and-shoulders close-up — a close portrait: her head and shoulders fill the frame, nothing below her chest shows.'),
+      /standing relaxed/
+    );
+    assert.doesNotMatch(
+      close('waist-up shot, legs out of frame — she is framed from the waist up; her legs and feet are out of the picture.'),
+      /standing relaxed/
+    );
+    assert.match(close('full body.'), /standing relaxed/);
+  });
+
   it('a preset beat off its feet (plank, one knee, a kick, a hurdle, mid-air) gets no relaxed stance', () => {
     for (const pose of [
       'she holds a plank, face down, body raised on straight arms',
