@@ -20,7 +20,7 @@ import { getClothingCatalogFieldCategories } from '@/lib/wardrobe/clothing-catal
 import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe/garment-thumbs';
 import type { DayDressPlateEntry } from './dress-plate-cache';
 import { normalizeRunBundle, type RunBundle } from './run-bundle';
-import { checkServerTake } from './run-checks-server';
+import { checkServerTake, roomReferenceFor } from './run-checks-server';
 import { decideAdultGate } from '@/lib/adult/adult-appearance-gate';
 import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
 import { parseLlmRequestOptions, sharedLlmRequestBody } from '@/lib/llm/request-options';
@@ -171,11 +171,13 @@ async function renderOnServer(
           coveredTake,
         });
       },
-      checkTake: async ({ imageUrl, report }) =>
+      checkTake: async ({ imageUrl, report, sceneId, state: now }) =>
         report
           ? checkServerTake({
               imageUrl,
               report,
+              // The scene's room photo or first kept shot: the same-room check (advisory).
+              roomReferenceUrl: roomReferenceFor(now.sceneTool, sceneId),
               shared: bundle.queue!.shared,
               comfyUrl,
               io,

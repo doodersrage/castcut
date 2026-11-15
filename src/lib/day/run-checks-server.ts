@@ -22,6 +22,7 @@ import { reviewOutfitLabel } from '@/lib/play/slot-quality';
 import type { SharedToolSettings } from '@/lib/settings/cache';
 import { outfitWearerFor } from '@/lib/still/outfit-check';
 import { checkOutfitInStill } from '@/lib/still/outfit-check-server';
+import { askSameRoom } from '@/lib/still/room-server';
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from './planner';
 import type { ServerTakeReport } from './run-take-server';
 
@@ -60,18 +61,35 @@ export async function checkServerTake(input: {
   shared: SharedToolSettings;
   comfyUrl: string;
   io: Pick<PictureIo, 'loadBlob'>;
+  /** The scene's reference to hold the take against (roomReferenceFor): the same-room check. */
+  roomReferenceUrl?: string | null;
   /** Tests replace the vision checks and the face match. */
+  sameRoom?: typeof askSameRoom;
   outfitCheck?: typeof checkOutfitInStill;
   readMarks?: typeof readMarksInStill;
   faceMatch?: typeof measureFaceMatchInComfy;
 }): Promise<GalleryPlayChecks | undefined> {
   const { report, shared } = input;
   if (report.slot.placeOnly) return undefined;
+  // The same room as the scene's reference (still/room.ts; advisory) — two shots of one scene in
+  // two kitchens went unseen. Asked whoever is in frame.
+  const roomCheck = async (checks: GalleryPlayChecks) => {
+    const reference = input.roomReferenceUrl?.trim();
+    if (!reference || reference === input.imageUrl) return;
+    const verdict = await (input.sameRoom ?? askSameRoom)({
+      io: input.io as PictureIo,
+      referenceUrl: reference,
+      imageUrl: input.imageUrl,
+      llm: parseLlmRequestOptions(sharedLlmRequestBody(shared)),
+    }).catch(() => null);
+    if (verdict) checks.roomMiss = verdict.same ? '' : verdict.note || 'another room';
+  };
   const autoReview = report.toolSettings.autoReviewStills === true;
   const { solo, outfit, wearer, mood } = serverChecksPlan(report, autoReview);
-  if (!solo && !wearer) return undefined;
-  const llm = parseLlmRequestOptions(sharedLlmRequestBody(shared));
   const checks: GalleryPlayChecks = { at: Date.now() };
+  await roomCheck(checks);
+  if (!solo && !wearer) return Object.keys(checks).length > 1 ? checks : undefined;
+  const llm = parseLlmRequestOptions(sharedLlmRequestBody(shared));
   let image: string | null = null;
   const still = async () => (image ??= await dataUrlOf(input.io, input.imageUrl));
 
@@ -126,4 +144,37 @@ export async function checkServerTake(input: {
     }
   }
   return found();
+}
+
+/**
+ * What a take of `sceneId` is held against for the same room (still/room.ts): its script scene's
+ * room photo (one room a scene), else the kept take of that scene's first shot that has one —
+ * never the take's own Scene. Null for a Scene not from a script, or with nothing to compare.
+ */
+export function roomReferenceFor(
+  tool: {
+    scenes?: readonly {
+      id: string;
+      keptTakeId?: string;
+      takes: readonly { id: string; imageUrl: string; tier?: string }[];
+      fromScript?: { scriptId: string; sceneId: string };
+      createdAt?: number;
+    }[];
+    scriptRooms?: Record<string, string>;
+  },
+  sceneId: string
+): string | null {
+  const scene = tool.scenes?.find(entry => entry.id === sceneId);
+  const link = scene?.fromScript;
+  if (!link?.scriptId || !link.sceneId) return null;
+  const room = tool.scriptRooms?.[`${link.scriptId}|${link.sceneId}`];
+  if (room) return comfyInputViewUrl(room);
+  for (const other of tool.scenes ?? []) {
+    if (other.id === sceneId) continue;
+    if (other.fromScript?.scriptId !== link.scriptId || other.fromScript.sceneId !== link.sceneId)
+      continue;
+    const kept = other.takes.find(take => take.id === other.keptTakeId && take.tier !== 'preview');
+    if (kept?.imageUrl) return kept.imageUrl;
+  }
+  return null;
 }

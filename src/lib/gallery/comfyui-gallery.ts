@@ -1040,6 +1040,7 @@ export function mergeGalleryPlayChecks(
   if (checks.outfitChecked) merged.outfitChecked = true;
   if ('realismMiss' in checks) merged.realismMiss = checks.realismMiss?.trim() || undefined;
   if ('placeMiss' in checks) merged.placeMiss = checks.placeMiss?.trim() || undefined;
+  if ('roomMiss' in checks) merged.roomMiss = checks.roomMiss?.trim() || undefined;
   if ('gestureMiss' in checks) merged.gestureMiss = checks.gestureMiss?.trim() || undefined;
   if ('keyframeMiss' in checks) merged.keyframeMiss = checks.keyframeMiss?.trim() || undefined;
   if ('poseUnjudged' in checks) merged.poseUnjudged = checks.poseUnjudged?.trim() || undefined;

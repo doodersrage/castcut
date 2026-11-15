@@ -19,6 +19,7 @@ export default function GalleryPlayChecksBadge({ entry }: { entry: ComfyGalleryE
     checks.marksMissing ? 'marks' : null,
     checks.outfitMiss ? 'outfit' : null,
     checks.placeMiss ? 'place' : null,
+    checks.roomMiss ? 'room' : null,
     checks.keyframeMiss ? 'keyframe' : null,
     checks.realismMiss ? 'looks fake' : null,
   ].filter(Boolean);

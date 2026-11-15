@@ -1,0 +1,217 @@
+{
+  "note": "Same-room pairs (still/room.ts), 2026-11-14: s19's Edit 2511 finals (castcut-s19-run, scratch data), one reviewer (Claude, from the pictures). 'clear' = pairs the reviewer was sure of; 'hard' = close-ups with blurred backgrounds and look-alike rooms, where the reviewer's 'same' was generous (several may be different places). Model nsfwvision-qwen3-vl-8b-v3, temperature 0, ROOM_COMPARE_PROMPT, the two pictures side by side at 640x360.",
+  "clear": [
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT B",
+      "take": "6 BUSTLING SHOPPING DISTRICT D",
+      "label": "same",
+      "reply": "same: yes — both show mall corridors with similar store fronts, lighting, and flooring; identical background elements confirm same location.",
+      "files": ["Castcut_11573_.png", "Castcut_11577_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT B",
+      "take": "6 BUSTLING SHOPPING DISTRICT F",
+      "label": "same",
+      "reply": "same: yes — both show mall corridors with similar store fronts, lighting, and ceiling design.",
+      "files": ["Castcut_11573_.png", "Castcut_11580_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT B",
+      "take": "6 BUSTLING SHOPPING DISTRICT G",
+      "label": "same",
+      "reply": "same: yes — identical mall corridor, store signs (e.g., “BLOXATIR”), lighting, ceiling structure, and floor pattern match exactly.",
+      "files": ["Castcut_11573_.png", "Castcut_11581_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT B",
+      "take": "6 BUSTLING SHOPPING DISTRICT H",
+      "label": "same",
+      "reply": "same: yes — identical mall corridor, store signs (e.g., “SOLARIE”), lighting, and perspective confirm same location.",
+      "files": ["Castcut_11573_.png", "Castcut_11582_.png"]
+    },
+    {
+      "reference": "4 PARK B",
+      "take": "4 PARK F",
+      "label": "same",
+      "reply": "same: yes — both show an outdoor park setting with grass, trees, and bright sunlight; identical background elements confirm it's the same location.",
+      "files": ["Castcut_11559_.png", "Castcut_11565_.png"]
+    },
+    {
+      "reference": "4 PARK B",
+      "take": "4 PARK H",
+      "label": "same",
+      "reply": "same: yes — both show identical grassy park setting, trees, sunlight patterns, and picnic blanket.",
+      "files": ["Castcut_11559_.png", "Castcut_11567_.png"]
+    },
+    {
+      "reference": "4 PARK E",
+      "take": "4 PARK G",
+      "label": "same",
+      "reply": "same: yes — both show outdoor park setting with grass, trees, and picnic blanket/furniture; identical lighting and background elements.",
+      "files": ["Castcut_11564_.png", "Castcut_11566_.png"]
+    },
+    {
+      "reference": "7 BRIDGE OVER CANAL A",
+      "take": "7 BRIDGE OVER CANAL C",
+      "label": "same",
+      "reply": "same: yes — identical canal view, bridge railing, buildings, and lighting conditions.",
+      "files": ["Castcut_11583_.png", "Castcut_11586_.png"]
+    },
+    {
+      "reference": "2 KITCHEN C",
+      "take": "1 BRIGHT KITCHEN D",
+      "label": "same",
+      "reply": "same: yes — identical layout, black cabinetry, white island, large windows with city view, pendant lights, and flooring.",
+      "files": ["Castcut_11550_.png", "Castcut_11547_.png"]
+    },
+    {
+      "reference": "1 BRIGHT BEDROOM A",
+      "take": "3 BEDROOM A",
+      "label": "same",
+      "reply": "same: yes identical walls, bed, lamp, window view, floor, and furniture layout",
+      "files": ["location_00074_.png", "Castcut_11553_.png"]
+    },
+    {
+      "reference": "1 BRIGHT KITCHEN C",
+      "take": "1 BRIGHT KITCHEN D",
+      "label": "different",
+      "reply": "same: no Different window views and furniture layouts; left has white cabinetry and couch, right has black cabinets and bar stools.",
+      "files": ["Castcut_11545_.png", "Castcut_11547_.png"]
+    },
+    {
+      "reference": "2 KITCHEN A",
+      "take": "2 KITCHEN C",
+      "label": "different",
+      "reply": "same: no Left: outdoor view, glass railing, dark wall with TV; Right: cityscape, kitchen island, built-in appliances",
+      "files": ["Castcut_11548_.png", "Castcut_11550_.png"]
+    },
+    {
+      "reference": "3 BEDROOM A",
+      "take": "3 BEDROOM C",
+      "label": "different",
+      "reply": "same: no Left: large bed, floor-standing mirror, dark walls; Right: desk/table, different window view, no bed visible.",
+      "files": ["Castcut_11553_.png", "Castcut_11556_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT A",
+      "take": "6 BUSTLING SHOPPING DISTRICT B",
+      "label": "different",
+      "reply": "same: no Left: outdoor street at sunset; Right: indoor shopping mall corridor.",
+      "files": ["Castcut_11572_.png", "Castcut_11573_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT E",
+      "take": "6 BUSTLING SHOPPING DISTRICT B",
+      "label": "different",
+      "reply": "same: no Left: outdoor market with stalls and awnings; Right: indoor shopping mall with store fronts and tiled floors.",
+      "files": ["Castcut_11578_.png", "Castcut_11573_.png"]
+    },
+    {
+      "reference": "1 BRIGHT KITCHEN C",
+      "take": "2 KITCHEN C",
+      "label": "different",
+      "reply": "same: no — left has white walls and couch, right has black walls and city view.",
+      "files": ["Castcut_11545_.png", "Castcut_11550_.png"]
+    },
+    {
+      "reference": "4 PARK B",
+      "take": "6 BUSTLING SHOPPING DISTRICT E",
+      "label": "different",
+      "reply": "same: no Left: grassy park with trees; Right: urban market with stalls and buildings.",
+      "files": ["Castcut_11559_.png", "Castcut_11578_.png"]
+    },
+    {
+      "reference": "8 CAFÉ B",
+      "take": "3 CANDLELIT COCKTAIL BAR A",
+      "label": "different",
+      "reply": "same: no Left: dining table, large windows; Right: bar counter, stools, shelves of bottles.",
+      "files": ["Castcut_11590_.png", "Castcut_11588_.png"]
+    }
+  ],
+  "hard": [
+    {
+      "reference": "4 PARK B",
+      "take": "4 PARK G",
+      "label": "same",
+      "reply": "same: yes — both show an outdoor park setting with grass, trees, and natural daylight; background elements like tree patterns and lighting are consistent.",
+      "files": ["Castcut_11559_.png", "Castcut_11566_.png"]
+    },
+    {
+      "reference": "9 QUIET CITY STREET A",
+      "take": "9 QUIET CITY STREET D",
+      "label": "same",
+      "reply": "same: no — left shows cobblestone street at night, right shows blurred urban background with different lighting and perspective.",
+      "files": ["Castcut_11598_.png", "Castcut_11601_.png"]
+    },
+    {
+      "reference": "9 QUIET CITY STREET A",
+      "take": "9 QUIET CITY STREET C",
+      "label": "same",
+      "reply": "same: no — left shows cobblestone street at night with lit lampposts; right shows paved sidewalk with cars and warmer lighting, different urban setting.",
+      "files": ["Castcut_11598_.png", "Castcut_11600_.png"]
+    },
+    {
+      "reference": "8 CAFÉ D",
+      "take": "8 CAFÉ G",
+      "label": "same",
+      "reply": "same: yes — warm lighting, similar background fixtures and blurred interior elements match both photos.",
+      "files": ["Castcut_11593_.png", "Castcut_11596_.png"]
+    },
+    {
+      "reference": "8 CAFÉ C",
+      "take": "8 CAFÉ D",
+      "label": "same",
+      "reply": "same: no — left shows hazy urban lights outside, right has warmer indoor lighting and different background fixtures.",
+      "files": ["Castcut_11592_.png", "Castcut_11593_.png"]
+    },
+    {
+      "reference": "6 BUSTLING SHOPPING DISTRICT D",
+      "take": "6 BUSTLING SHOPPING DISTRICT G",
+      "label": "same",
+      "reply": "same: no — left shows bright natural light and storefronts; right has artificial lighting, shoppers, and multi-level mall structure.",
+      "files": ["Castcut_11577_.png", "Castcut_11581_.png"]
+    },
+    {
+      "reference": "2 DIM HOTEL SUITE A",
+      "take": "2 DIM HOTEL SUITE J",
+      "label": "same",
+      "reply": "same: yes — identical bed, lamp, curtains, and wall fixtures visible in both photos.",
+      "files": ["Castcut_11557_.png", "Castcut_11561_.png"]
+    },
+    {
+      "reference": "2 DIM HOTEL SUITE A",
+      "take": "2 DIM HOTEL SUITE D",
+      "label": "different",
+      "reply": "same: yes — both show hotel room with bed, lamp, mirror, and window view; furniture layout identical.",
+      "files": ["Castcut_11557_.png", "Castcut-reframe_01013_.png"]
+    },
+    {
+      "reference": "2 DIM HOTEL SUITE J",
+      "take": "1 BRIGHT BEDROOM A",
+      "label": "different",
+      "reply": "same: no Different wall colors, window views, furniture styles, and lighting setups indicate distinct rooms.",
+      "files": ["Castcut_11561_.png", "location_00074_.png"]
+    },
+    {
+      "reference": "5 BUSY CITY STREET A",
+      "take": "9 QUIET CITY STREET A",
+      "label": "different",
+      "reply": "same: no — left shows a busy street intersection with cars and crosswalk; right shows a dimly lit cobblestone street at night with streetlights.",
+      "files": ["Castcut_11568_.png", "Castcut_11598_.png"]
+    },
+    {
+      "reference": "9 QUIET CITY STREET C",
+      "take": "7 BRIDGE OVER CANAL C",
+      "label": "different",
+      "reply": "same: no Left: urban street with buildings and cars; Right: canal-side bridge with water and trees.",
+      "files": ["Castcut_11600_.png", "Castcut_11586_.png"]
+    },
+    {
+      "reference": "8 CAFÉ H",
+      "take": "8 CAFÉ B",
+      "label": "different",
+      "reply": "same: no Left: dark, minimalist background; right: restaurant-style setting with tables, windows, and warm lighting.",
+      "files": ["Castcut_11597_.png", "Castcut_11590_.png"]
+    }
+  ]
+}

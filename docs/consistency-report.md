@@ -305,3 +305,20 @@ it no longer redoes (Day's switch, now **Check poses**), rerolls (Auto-review) o
 miss to render again (keep-best ranks it after real misses). **Redo a pose miss** (Advanced,
 `poseMissRedo`, off) brings the redo and the reroll back. A look that is computer-made is still
 redone once.
+
+## Same room (FINISHING_PLAN Phase 4, 2026-11-14)
+
+T5's place misses were "same place rendered as different rooms" — the kind of place right, the
+room not. The place check reads the kind of place, so it can't see that: on s19's 35 Edit 2511
+finals it flagged 1 (a mirror shot read as a bathroom) and passed the one take outside its kind
+("an indoor space overlooking wetlands" for a kitchen). Every interior scene with two or more
+shots changed room (two kitchens, two bedrooms, three hotel rooms).
+
+The same-room check (`still/room.ts`): the take beside its scene's reference — its room photo
+(one room a scene), else the kept take of its first shot — and one question to the vision model.
+On pairs from those finals ([`consistency/room-pairs.json`](consistency/room-pairs.json), one
+reviewer): the 18 clear pairs all right (8 different rooms found, no false alarm); of 12 hard
+ones (close-ups with blurred backgrounds, look-alike rooms) 7 — two hotel rooms read as one, and
+four blurred or differently framed shots of one scene read as somewhere else. Its "different
+place" findings: 12 of 16 right. **Advisory**: said on the take (`roomMiss`, the `room-miss`
+rule) and listed to check; never a redo until a reviewed set holds it to the 70% bar.

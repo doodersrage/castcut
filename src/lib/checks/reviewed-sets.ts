@@ -47,6 +47,8 @@ export const RULE_ACTION: Partial<Record<ContinuityRule, 'rerolls' | 'advises'>>
   'pose-miss': 'advises',
   'outfit-miss': 'rerolls',
   'place-miss': 'rerolls',
+  // 12 of 16 on s19's finals, one reviewer (still/room.ts): advisory.
+  'room-miss': 'advises',
   'marks-missing': 'rerolls',
   'realism-miss': 'rerolls',
 };

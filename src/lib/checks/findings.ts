@@ -21,6 +21,8 @@ export type ContinuityRule =
   | 'outfit-miss'
   /** Auto-review's place check saw somewhere other than the planned place (M7 T2). */
   | 'place-miss'
+  /** Not the room of its scene's reference (still/room.ts; advisory). */
+  | 'room-miss'
   /** A longer clip's part ran from a keyframe that failed every draft's checks (M12 T3). */
   | 'keyframe-miss'
   /** The realism check called the still computer-made (2026-11-11). */
@@ -174,6 +176,15 @@ export function findingsForGalleryEntry(
       'Auto-review',
       `Not the planned place — the still shows ${checks.placeMiss.trim()}`,
       'Redo it, or change where the shot is set.'
+    );
+  }
+  if (checks?.roomMiss?.trim()) {
+    add(
+      'room-miss',
+      'warns',
+      'Same room',
+      `Maybe not the scene's room — ${checks.roomMiss.trim()}`,
+      'Check it against the scene’s first shot; redo it, or keep it if the place is right.'
     );
   }
   if (checks?.realismMiss?.trim()) {

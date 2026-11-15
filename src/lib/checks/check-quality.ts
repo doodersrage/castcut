@@ -19,6 +19,7 @@ export const CONTINUITY_RULE_LABELS: Record<ContinuityRule, string> = {
   'looks-wrong': 'Your Looks wrong',
   'outfit-miss': 'Outfit check',
   'place-miss': 'Place check',
+  'room-miss': 'Same room check',
   'keyframe-miss': 'Longer clip: keyframe failed',
   'realism-miss': 'Realism check',
   'source-gone': 'Cut: source gone',

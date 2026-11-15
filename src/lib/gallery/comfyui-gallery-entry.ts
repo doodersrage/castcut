@@ -31,6 +31,11 @@ export type GalleryPlayChecks = {
   realismMiss?: string;
   /** Auto-review's place check (still-place.ts): where she is when that isn't the planned place. */
   placeMiss?: string;
+  /**
+   * The same-room check (still/room.ts): not the room of its scene's reference (its room photo
+   * or first shot) — what the model saw differ. Advisory: said, never redone.
+   */
+  roomMiss?: string;
   /** The gesture check (pose/gesture.ts): what the still's hands or action didn't do. */
   gestureMiss?: string;
   /**

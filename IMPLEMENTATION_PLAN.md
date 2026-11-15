@@ -4475,6 +4475,13 @@ finals overnight unattended.
   ComfyUI's own ~11.8 s), so a 70-shot Everyday Short's animatic is ~14.4 min — under the bar.
   The adult gate's vision calls on Suggestive shots and a restart add to that (mean 14.3 s).
 
+**Phase 4, the place:** the same-room check (2026-11-14; docs/consistency-report.md, "Same
+room"): every server-checked take of a script scene is held beside its scene's room photo, else
+the kept take of its first shot (`roomReferenceFor`), and the vision model says whether it is
+the same place (`still/room.ts`, `room-server.ts`). Advisory (`roomMiss`, rule `room-miss`):
+12 of 16 findings right on s19's finals, 18 of 18 clear pairs, one reviewer. The kind-of-place
+check stays as it was (Auto-review). Not yet on the page's own checks (Balanced runs on the page).
+
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
 already done in Castcut: it offers two workspaces (Film, Studio — `normalizeWorkspaceMode` maps

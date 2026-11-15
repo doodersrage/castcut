@@ -82,3 +82,65 @@ describe('a run’s take checked on the server (Phase 3, step 7)', () => {
     assert.equal(checks, undefined);
   });
 });
+
+describe('the same room as the scene’s reference (still/room.ts, advisory)', () => {
+  it('held against the scene’s room photo, else its first kept shot — never its own Scene', async () => {
+    const { roomReferenceFor } = await import('./run-checks-server');
+    const take = (id: string, extra = {}) => ({ id, imageUrl: `/${id}.png`, ...extra });
+    const link = { scriptId: 'sc', sceneId: 'int-kitchen' };
+    const tool = {
+      scenes: [
+        { id: 'a', keptTakeId: 'pa', takes: [take('pa', { tier: 'preview' })], fromScript: link },
+        { id: 'b', keptTakeId: 'b1', takes: [take('b1')], fromScript: link },
+        { id: 'c', keptTakeId: 'c1', takes: [take('c1')], fromScript: link },
+        { id: 'loose', keptTakeId: 'l1', takes: [take('l1')] },
+      ],
+    };
+    // A preview is no reference; the first kept final is.
+    assert.equal(roomReferenceFor(tool, 'c'), '/b1.png');
+    assert.equal(roomReferenceFor(tool, 'b'), '/c1.png');
+    assert.equal(roomReferenceFor(tool, 'loose'), null);
+    // One room a scene: its photo.
+    assert.match(
+      roomReferenceFor({ ...tool, scriptRooms: { 'sc|int-kitchen': 'room.png' } }, 'c') ?? '',
+      /room\.png/
+    );
+  });
+
+  it('a different room is said on the take; the same room clears it; no reference, no question', async () => {
+    const { checkServerTake } = await import('./run-checks-server');
+    const base = {
+      imageUrl: '/api/comfyui/view?filename=t.png&type=output',
+      report: report({ drawnPeople: 2, prompt: 'she cooks beside a tall man' }),
+      shared: {} as never,
+      comfyUrl: 'http://127.0.0.1:8188',
+      io,
+      outfitCheck: async () => ({ match: true, seen: 'a black romper' }) as never,
+    };
+    const asked: string[] = [];
+    const other = await checkServerTake({
+      ...base,
+      roomReferenceUrl: '/first.png',
+      sameRoom: async input => {
+        asked.push(input.referenceUrl);
+        return { same: false, note: 'white cabinets, not black' };
+      },
+    });
+    assert.deepEqual(asked, ['/first.png']);
+    assert.equal(other?.roomMiss, 'white cabinets, not black');
+    const same = await checkServerTake({
+      ...base,
+      roomReferenceUrl: '/first.png',
+      sameRoom: async () => ({ same: true, note: 'identical' }),
+    });
+    assert.equal(same?.roomMiss, '');
+    const none = await checkServerTake({
+      ...base,
+      roomReferenceUrl: null,
+      sameRoom: async () => {
+        throw new Error('not asked');
+      },
+    });
+    assert.equal(none?.roomMiss, undefined);
+  });
+});

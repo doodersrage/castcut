@@ -21,6 +21,8 @@ export function takeCheckAdvisories(checks: GalleryPlayChecks | undefined): stri
   if (checks.poseMiss) notes.push('the pose may have missed');
   if (checks.gestureMiss?.trim())
     notes.push(`the action may be off (${checks.gestureMiss.trim()})`);
+  // The same-room check (still/room.ts): 12 of 16 findings right, one reviewer — advisory.
+  if (checks.roomMiss?.trim()) notes.push(`maybe not the scene's room (${checks.roomMiss.trim()})`);
   return notes;
 }
 
