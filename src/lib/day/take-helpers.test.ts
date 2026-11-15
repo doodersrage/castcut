@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { locationPictureGraph, locationPicturePrompt } from '@/lib/location/picture';
-import { placeShotJob, placeShotStill, sceneRoomFits, takeSceneRoom } from './take-helpers';
+import { sceneRoomFits } from './room-reference';
+import { placeShotJob, placeShotStill, takeSceneRoom } from './take-helpers';
 import type { DaySlot } from './planner';
 
 describe('a place-only shot (take-helpers.ts)', () => {

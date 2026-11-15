@@ -105,6 +105,17 @@ describe('the same room as the scene’s reference (still/room.ts, advisory)', (
       roomReferenceFor({ ...tool, scriptRooms: { 'sc|int-kitchen': 'room.png' } }, 'c') ?? '',
       /room\.png/
     );
+    // A shot still linked to another place's scene (s22's hotel shots on the park): no reference,
+    // and never anyone's.
+    const park = { scriptId: 'sc', sceneId: 'ext-park-day' };
+    const linked = {
+      scenes: [
+        { id: 'h', keptTakeId: 'h1', takes: [take('h1')], fromScript: park, slot: { location: 'dim hotel suite' } },
+        { id: 'p', keptTakeId: 'p1', takes: [take('p1')], fromScript: park, slot: { location: 'park, outdoors' } },
+      ],
+    };
+    assert.equal(roomReferenceFor(linked, 'h'), null);
+    assert.equal(roomReferenceFor(linked, 'p'), null);
   });
 
   it('a different room is said on the take; the same room clears it; no reference, no question', async () => {
