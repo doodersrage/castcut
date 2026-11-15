@@ -189,6 +189,38 @@ export function sceneRoomLight(part: DayPart, outdoors: boolean): string {
   return '';
 }
 
+const HEADING_WORDS = new Set([
+  'int',
+  'ext',
+  'morning',
+  'afternoon',
+  'evening',
+  'night',
+  'day',
+  'the',
+  'scene',
+]);
+const placeWordsOf = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(word => word.length > 2 && !HEADING_WORDS.has(word));
+
+/**
+ * Whether a shot belongs in its script scene's room: its place words share one with the scene's
+ * heading (its id, "ext-park-day"). s22 (2026-11-14): two hotel-suite shots still linked to the
+ * park scene from an earlier draft of the script made the park's room a hotel suite, and every
+ * park shot was sent it. An id with no place words in it (an older "scene-3") is not checked.
+ */
+export function sceneRoomFits(location: string | null | undefined, sceneId: string): boolean {
+  const heading = placeWordsOf(sceneId);
+  if (heading.length === 0) return true;
+  const words = new Set(placeWordsOf(location ?? ''));
+  return heading.some(word => words.has(word));
+}
+
 /**
  * One room a scene (a run's oneRoom): the room a script's scene is shot in — made the first time
  * the scene is shot (its empty room, from the shot's place words), then the same for every shot.
@@ -213,6 +245,7 @@ export async function takeSceneRoom(
   if (!input.oneRoom) return null;
   const link = input.link;
   if (!link?.scriptId || !link.sceneId) return null;
+  if (!sceneRoomFits(slot.location, link.sceneId)) return null;
   const key = `${link.scriptId}|${link.sceneId}`;
   const known = input.rooms[key];
   if (known) return known;

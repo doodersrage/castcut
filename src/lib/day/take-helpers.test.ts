@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { locationPictureGraph, locationPicturePrompt } from '@/lib/location/picture';
-import { placeShotJob, placeShotStill, takeSceneRoom } from './take-helpers';
+import { placeShotJob, placeShotStill, sceneRoomFits, takeSceneRoom } from './take-helpers';
 import type { DaySlot } from './planner';
 
 describe('a place-only shot (take-helpers.ts)', () => {
@@ -44,10 +44,10 @@ describe('one room a scene (takeSceneRoom)', () => {
   it('makes the room at its shots’ time of day, once a scene', async () => {
     const made: Array<{ name: string; look: string; setting: string }> = [];
     let kept: Record<string, string> = {};
-    const input = (rooms: Record<string, string>) => ({
+    const input = (rooms: Record<string, string>, sceneId = 'ext-quiet-city-street-night') => ({
       oneRoom: true,
       rooms,
-      link: { scriptId: 's1', sceneId: 'ext-quiet-city-street-night' },
+      link: { scriptId: 's1', sceneId },
       character: null,
       leadNoun: 'woman' as const,
       render: async (place: { name: string; look: string; setting: string }) => {
@@ -67,13 +67,31 @@ describe('one room a scene (takeSceneRoom)', () => {
     assert.equal(await takeSceneRoom(night, input(kept)), 'scene-room-street.png');
     assert.equal(made.length, 1);
     // A chosen time of day wins; the afternoon keeps the picture's own light.
-    await takeSceneRoom({ id: 'morning', label: '1C', timeOfDay: 'evening', location: 'a kitchen' }, input({}));
+    await takeSceneRoom({ id: 'morning', label: '1C', timeOfDay: 'evening', location: 'a kitchen' }, input({}, 'int-kitchen-morning'));
     assert.match(made[1]!.look, /evening/);
     assert.equal(made[1]!.setting, 'INT');
-    await takeSceneRoom({ id: 'afternoon', label: '4B', location: 'a park, outdoors' }, input({}));
+    await takeSceneRoom({ id: 'afternoon', label: '4B', location: 'a park, outdoors' }, input({}, 'ext-park-day'));
     assert.equal(made[2]!.look, '');
+    // A shot linked to another place's scene (an earlier draft's link): not that scene's room.
+    assert.equal(
+      await takeSceneRoom({ id: 'afternoon', label: '2A', location: 'dim hotel suite' }, input({}, 'ext-park-day')),
+      null
+    );
     // Off: nothing made.
     assert.equal(await takeSceneRoom(night, { ...input({}), oneRoom: false }), null);
     assert.equal(made.length, 3);
+  });
+});
+
+describe('a shot in its scene’s room (sceneRoomFits)', () => {
+  it('only when its place is the scene heading’s — s22’s hotel shots linked to the park', () => {
+    assert.equal(sceneRoomFits('dim hotel suite', 'ext-park-day'), false);
+    assert.equal(sceneRoomFits('park, outdoors', 'ext-park-day'), true);
+    assert.equal(sceneRoomFits('Park, dappled sunlight', 'ext-park-day'), true);
+    assert.equal(sceneRoomFits('quiet city street, outdoors', 'ext-quiet-city-street-night'), true);
+    assert.equal(sceneRoomFits('bright bedroom (bedroom) at home', 'int-bright-bedroom-morning'), true);
+    assert.equal(sceneRoomFits('café', 'int-cafe-night'), true);
+    // An id with no place in it: not checked.
+    assert.equal(sceneRoomFits('anywhere', 'scene-3'), true);
   });
 });
