@@ -215,6 +215,10 @@ export async function takeSceneRoom(
   const link = input.link;
   if (!link?.scriptId || !link.sceneId) return null;
   if (!sceneRoomFits(slot.location, link.sceneId)) return null;
+  // A head-and-shoulders shot goes out on its words: a wide room photo beside a close-up was
+  // dropped for the plate's backdrop — s23 (2026-11-15): 11 of 18 close-ups off the room, against
+  // 3 of 15 waist and full shots; on their words (s19) the same close-ups kept a place behind them.
+  if (slot.poseCamera?.shot === 'head') return null;
   const key = `${link.scriptId}|${link.sceneId}`;
   const known = input.rooms[key];
   if (known) return known;

@@ -78,6 +78,11 @@ describe('one room a scene (takeSceneRoom)', () => {
       await takeSceneRoom({ id: 'afternoon', label: '2A', location: 'dim hotel suite' }, input({}, 'ext-park-day')),
       null
     );
+    // A close-up: on its words, no room photo.
+    assert.equal(
+      await takeSceneRoom({ ...night, poseCamera: { shot: 'head' } }, input(kept)),
+      null
+    );
     // Off: nothing made.
     assert.equal(await takeSceneRoom(night, { ...input({}), oneRoom: false }), null);
     assert.equal(made.length, 3);
