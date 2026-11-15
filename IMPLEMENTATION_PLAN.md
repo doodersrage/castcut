@@ -4505,6 +4505,12 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   place (6E, 4E, 4G; 4G also drew her three times) kept one on their words in s19, and the check
   reads a blurred background as elsewhere. So close-ups go out on their words (af8d3815). Not
   live-run yet; One room a scene stays a choice, off by default.
+- **s24 (2026-11-15, at af8d3815):** 108 min, 43 Scenes, 26 flagged — 21 room, 2 face. By eye
+  every kept take is in its place: no plain backdrop anywhere (s22: 4, s23: 1), the park's
+  close-ups in the park, the mall's in the mall, the night street one street across its four
+  shots. The room notes were still 12 of 18 close-ups — close-ups no longer get the room photo,
+  and their blurred backgrounds read as elsewhere — so close-ups are no longer held against the
+  room nor used as a reference (`roomReferenceFor`); on s24 that leaves 9 notes on 25 shots.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were

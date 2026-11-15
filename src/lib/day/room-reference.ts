@@ -45,7 +45,7 @@ export function roomReferenceFor(
       keptTakeId?: string;
       takes: readonly { id: string; imageUrl: string; tier?: string }[];
       fromScript?: { scriptId: string; sceneId: string };
-      slot?: { location?: string };
+      slot?: { location?: string; poseCamera?: { shot?: string } };
       createdAt?: number;
     }[];
     scriptRooms?: Record<string, string>;
@@ -57,6 +57,9 @@ export function roomReferenceFor(
   if (!link?.scriptId || !link.sceneId) return null;
   // A shot still linked to another place's scene (an earlier draft): nothing to hold it against.
   if (!sceneRoomFits(scene?.slot?.location, link.sceneId)) return null;
+  // A close-up shows too little of the place to judge: s24 (2026-11-15), its close-ups all in
+  // the right place by eye, the check still said 12 of 18 were elsewhere (a blurred background).
+  if (scene?.slot?.poseCamera?.shot === 'head') return null;
   const room = tool.scriptRooms?.[`${link.scriptId}|${link.sceneId}`];
   if (room) return comfyInputViewUrl(room);
   for (const other of tool.scenes ?? []) {
@@ -64,6 +67,7 @@ export function roomReferenceFor(
     if (other.fromScript?.scriptId !== link.scriptId || other.fromScript.sceneId !== link.sceneId)
       continue;
     if (!sceneRoomFits(other.slot?.location, link.sceneId)) continue;
+    if (other.slot?.poseCamera?.shot === 'head') continue;
     const kept = other.takes.find(take => take.id === other.keptTakeId && take.tier !== 'preview');
     if (kept?.imageUrl) return kept.imageUrl;
   }

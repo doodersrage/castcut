@@ -258,7 +258,8 @@ Under the limits, **Episode**:
   café. Close-ups go out on their words alone (a room photo beside a head-and-shoulders shot was
   dropped for a plain backdrop), and a shot whose place isn't its scene's — one still linked from
   an earlier draft of the script — isn't sent it. Each take is also asked whether it shows the
-  same place as the scene's room; a "maybe not the scene's room" note is advice, never a redo.
+  same place as the scene's room (not close-ups: too little of the place shows); a "maybe not the
+  scene's room" note is advice, never a redo.
 
 An episode run renders one Scene at a time with this page open — it can't use **Queue all**,
 since the checks run on the card. A script's Scenes don't count toward the Cast's 60-Scene limit,

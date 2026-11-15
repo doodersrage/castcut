@@ -116,6 +116,18 @@ describe('the same room as the scene’s reference (still/room.ts, advisory)', (
     };
     assert.equal(roomReferenceFor(linked, 'h'), null);
     assert.equal(roomReferenceFor(linked, 'p'), null);
+    // A close-up is not held against the room, nor anyone's reference.
+    const kitchen = { scriptId: 'sc', sceneId: 'int-kitchen' };
+    const close = {
+      scenes: [
+        { id: 'x', keptTakeId: 'x1', takes: [take('x1')], fromScript: kitchen, slot: { poseCamera: { shot: 'head' } } },
+        { id: 'y', keptTakeId: 'y1', takes: [take('y1')], fromScript: kitchen, slot: { poseCamera: { shot: 'waist' } } },
+        { id: 'z', keptTakeId: 'z1', takes: [take('z1')], fromScript: kitchen },
+      ],
+      scriptRooms: {},
+    };
+    assert.equal(roomReferenceFor(close, 'x'), null);
+    assert.equal(roomReferenceFor(close, 'z'), '/y1.png');
   });
 
   it('a different room is said on the take; the same room clears it; no reference, no question', async () => {
