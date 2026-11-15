@@ -735,6 +735,20 @@ export default function CutRoom() {
         description="Put the shots together into a film — watch it, arrange it, add music, then cut."
         headerActions={vm.shots.length > 0 ? cutButton : undefined}
       >
+        {vm.serverRunPending > 0 ? (
+          <p
+            className="mb-3 text-sm text-[var(--warning)]"
+            role="status"
+            data-testid="cut-server-run-pending"
+          >
+            A run rendered on the server has takes this browser hasn&apos;t brought in yet — the
+            Scenes here are as they were before it.{' '}
+            <a className="underline" href={href('/scene')}>
+              Open Scene
+            </a>{' '}
+            to bring them in, then come back to cut.
+          </p>
+        ) : null}
         <div data-testid="cut-sources" role="group" aria-label="What's in it">
           <div className="flex flex-wrap items-center gap-2">
             <span className="type-overline text-[var(--text-muted)]">What&apos;s in it</span>

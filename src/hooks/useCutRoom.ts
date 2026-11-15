@@ -173,6 +173,8 @@ import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { storyboard } from '@/lib/day/storyboard';
+import { normalizeSceneRun } from '@/lib/day/scene-run';
+import { useServerRunPending } from './useServerRunPending';
 import { parseScript } from '@/lib/script/parse';
 import {
   cutAddedSceneList,
@@ -328,6 +330,12 @@ export function useCutRoom() {
     if (record) updateShared(applyCharacterRecord(record));
   }, [mounted, shared.activeCharacterId, updateShared]);
 
+  const sceneRun = useMemo(
+    () => normalizeSceneRun(sceneTool.toolSettings.run),
+    [sceneTool.toolSettings.run]
+  );
+  /** A server run's steps not yet taken in here (the Scene page takes them in). */
+  const serverRunPending = useServerRunPending(sceneRun);
   const savedScenes = useMemo(
     () => normalizeSavedScenes(sceneTool.toolSettings.scenes),
     [sceneTool.toolSettings.scenes]
@@ -3422,6 +3430,7 @@ export function useCutRoom() {
   return {
     mounted,
     shared,
+    serverRunPending,
     sources,
     toggleSource,
     animaticScripts,

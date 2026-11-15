@@ -1685,3 +1685,50 @@ test('autocut: Cut makes the music and cuts the episode by itself', async ({ pag
   await expect(page.getByTestId('cut-autopilot')).toHaveCount(0);
   expect(cut).toBe(posted);
 });
+
+// 2026-11-15: a Final rendered on the server with the page closed, then Cut opened straight away
+// — its takes reach this browser on the Scene page, so Cut cut the Scenes as they were before.
+test('a server run whose takes are not here yet: Cut says so and links to Scene', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: {
+      version: 1,
+      characters: [{ id: CAST, name: 'Rae', version: 1, updatedAt: Date.now() }],
+      removedIds: [],
+    },
+    tools: {
+      scene: {
+        run: {
+          id: 'run-e2e-server',
+          castId: CAST,
+          label: 'Rae’s short',
+          items: [{ sceneId: 'scene-a' }],
+          onServer: true,
+          state: 'done',
+        },
+      },
+    },
+  });
+  let pending = true;
+  await page.route(/\/api\/scene-runs\/server\?/, route =>
+    route.fulfill({
+      json: {
+        active: false,
+        patches: pending
+          ? [{ seq: 1, at: 1, patch: { run: { id: 'run-e2e-server' }, scene: { id: 'scene-a' } } }]
+          : [],
+      },
+    })
+  );
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  const notice = page.getByTestId('cut-server-run-pending');
+  await expect(notice).toContainText('Open Scene', { timeout: 30_000 });
+  await expect(notice.getByRole('link', { name: 'Open Scene' })).toHaveAttribute('href', /\/scene/);
+  // All taken in: no notice.
+  pending = false;
+  await gotoStable(page, '/cut');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('cut-sources')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('cut-server-run-pending')).toHaveCount(0);
+});
