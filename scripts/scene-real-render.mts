@@ -4160,6 +4160,12 @@ const phases: Record<string, Phase> = {
       }
       await attempt(page, `${name}'s voice`, async () => {
         await go(page, `/characters/${person.id}`);
+        // The voice is under the Bible tab: the header's "Add a voice" opens it there.
+        await page
+          .getByTestId('cast-profile-voice')
+          .getByRole('button')
+          .first()
+          .click({ timeout: 120_000 });
         await page.getByTestId('cast-voice-audition').click({ timeout: 120_000 });
         await page.getByTestId('cast-voice-keep-0').waitFor({ timeout: 20 * 60_000 });
         await page.getByTestId('cast-voice-keep-0').click();
