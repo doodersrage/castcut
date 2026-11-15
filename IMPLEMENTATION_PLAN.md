@@ -4513,6 +4513,15 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   room nor used as a reference (`roomReferenceFor`); on s24 that leaves 9 notes on 25 shots.
   The user made One room a scene the Final tier's default (2026-11-15): choosing Final ticks it
   (`withRunTier`), the run panel's switch turns it off.
+- **Flagship film, first attempt (2026-11-15):** s24's 43 kept finals cut by the episode cut
+  (lines read in Slyne's voice, stills widened, six music cues by scene; 10 min) into a 2:11
+  720p film, then packed with its media (532 MB, 252 files) and imported on a second browser
+  with nothing missing. The pipeline holds end to end; the film is not a flagship: 2:11 against
+  3–5 min, stills only (no clips), the lead drawn twice in a few shots, the partner's face not
+  one person, a few shots with the lead missing, and Suggestive-mood shots. Found on the way:
+  Cut opened after a server run with the page closed cut the Scenes as they were before it
+  (now says so and links to Scene, 06621ba6); the real-render phases were updated for Cut's
+  tabs (10b2b168, 66b17884).
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
