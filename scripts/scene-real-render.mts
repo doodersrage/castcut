@@ -2706,6 +2706,8 @@ const phases: Record<string, Phase> = {
       page,
       `/cut?from=scenes&character=${V2_CAST}${only ? `&script=${encodeURIComponent(only)}` : ''}`
     );
+    // The package is behind its own tab now (Films · Versions · Package).
+    await page.getByTestId('cut-tab-package').first().click({ timeout: 180_000 });
     await page.getByTestId('cut-package-full').waitFor({ timeout: 180_000 });
     await page.waitForTimeout(3000);
     const download = page.waitForEvent('download', { timeout: 300_000 });
@@ -2735,9 +2737,11 @@ const phases: Record<string, Phase> = {
       );
       await importCast(
         elsewhere,
-        readdirSync(CASTS).find(name => name.startsWith(V2_CAST.replace(/^cast-/, '')))!
+        (readdirSync(CASTS).find(name => name.startsWith(V2_CAST.replace(/^cast-/, ''))) ??
+          readdirSync(CASTS).find(name => name.endsWith('.castcut.json')))!
       );
       await go(elsewhere, `/cut?from=scenes&character=${V2_CAST}`);
+      await elsewhere.getByTestId('cut-tab-package').first().click({ timeout: 180_000 });
       await elsewhere
         .getByTestId('cut-package-import')
         .waitFor({ state: 'attached', timeout: 180_000 });
@@ -2749,6 +2753,7 @@ const phases: Record<string, Phase> = {
         log('import:', (await status.textContent())?.trim());
       });
       await attempt(elsewhere, 'the imported cut plays with nothing missing', async () => {
+        await elsewhere.getByTestId('cut-tab-versions').first().click();
         await elsewhere.locator('[data-testid^="cut-version-open-Imported"]').first().click();
         await elsewhere.waitForTimeout(4000);
         const blocking = await elsewhere
