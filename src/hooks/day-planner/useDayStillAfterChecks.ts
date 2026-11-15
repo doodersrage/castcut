@@ -33,6 +33,9 @@ import { comfyInputViewUrl, measureStillFaceMatch } from '@/lib/face/match-clien
 import { comfyViewUrlForStill } from '@/lib/comfyui/still-comfy-url';
 import { outfitWearerFor } from '@/lib/still/outfit-check';
 import { checkStillOutfit } from '@/lib/still/outfit-check-client';
+import { checkStillRoom } from '@/lib/still/room-client';
+import { roomReferenceFor } from '@/lib/day/room-reference';
+import type { SceneToolCache } from '@/lib/day/scenes';
 import { reviewOutfitLabel } from '@/lib/play/slot-quality';
 
 /**
@@ -151,6 +154,29 @@ export function useDayStillAfterChecks(
             ? `${target.label}: outfit looks right.`
             : `${target.label}: not the planned outfit — ${verdict.seen}.`
         );
+      }
+    }
+    // The same room as its scene's reference (still/room.ts; advisory): its room photo, else the
+    // kept take of the scene's first shot — whoever is in frame.
+    const sceneTool = toolSettings as Partial<SceneToolCache>;
+    const roomReference = sceneTool.activeSceneId
+      ? roomReferenceFor(
+          { scenes: sceneTool.scenes, scriptRooms: sceneTool.scriptRooms },
+          sceneTool.activeSceneId
+        )
+      : null;
+    if (roomReference && entry && still.promptId && entry.playChecks?.roomMiss === undefined) {
+      setStatus(`Checking ${target.label}'s room…`);
+      const room = await checkStillRoom({
+        imageUrl: comfyStillUrl,
+        referenceUrl: roomReference,
+        shared,
+      });
+      if (room) {
+        recordGalleryPlayChecks(still.promptId, {
+          roomMiss: room.same ? '' : room.note || 'another room',
+        });
+        if (!room.same) setStatus(`${target.label}: maybe not the scene's room — ${room.note}.`);
       }
     }
     if (!solo) return false;

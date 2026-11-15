@@ -3774,7 +3774,8 @@ const phases: Record<string, Phase> = {
    * first take is kept, ComfyUI is restarted (POST /v2/manager/reboot; SRV_REBOOT=0 skips it).
    * Then the run must finish by itself with one take a Scene (redo off) — no duplicates — and the
    * page, opened again, show it done. Writes SCENE_OUT/server-run.json.
-   * SRV_TIER=preview|final runs it at that tier (Phase 5; server-run-<tier>.json).
+   * SRV_TIER=preview|final runs it at that tier (Phase 5; server-run-<tier>.json); SRV_ONE_ROOM=1
+   * ticks One room a scene.
    */
   async srvrun(_ctx, page) {
     const takes = Number(process.env.SRV_TAKES ?? 6);
@@ -3812,6 +3813,8 @@ const phases: Record<string, Phase> = {
     } else {
       await page.getByTestId('scene-run-on-server').check();
     }
+    // SRV_ONE_ROOM=1: one room a scene (each script scene's empty room rendered once).
+    if (process.env.SRV_ONE_ROOM === '1') await page.getByTestId('scene-run-one-room').check();
     log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
     await shot(page, 'server-run-prepared');
     const started = Date.now();

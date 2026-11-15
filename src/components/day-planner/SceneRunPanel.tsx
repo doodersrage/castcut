@@ -308,6 +308,24 @@ export default function SceneRunPanel({
             </select>
           </label>
         </fieldset>
+        {run.auto?.keep ? (
+          <label
+            className="flex items-center gap-1 text-sm"
+            title="The first shot of each script scene renders its empty room, and every shot of that scene is set in that room (the shots stop changing kitchens). The room photo takes the pose map's place: the pose stays in words."
+          >
+            <input
+              type="checkbox"
+              checked={run.auto.oneRoom === true}
+              disabled={disabled || run.state === 'running'}
+              data-testid="scene-run-one-room"
+              onChange={event => {
+                const { oneRoom: _was, ...auto } = run.auto!;
+                set({ auto: { ...auto, ...(event.target.checked ? { oneRoom: true } : {}) } });
+              }}
+            />
+            One room a scene
+          </label>
+        ) : null}
         {reviewGroups.length ? (
           <div className="space-y-1" data-testid="scene-run-flagged">
             <p className="type-caption font-medium">{reviewSummary}</p>

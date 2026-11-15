@@ -4480,7 +4480,10 @@ room"): every server-checked take of a script scene is held beside its scene's r
 the kept take of its first shot (`roomReferenceFor`), and the vision model says whether it is
 the same place (`still/room.ts`, `room-server.ts`). Advisory (`roomMiss`, rule `room-miss`):
 12 of 16 findings right on s19's finals, 18 of 18 clear pairs, one reviewer. The kind-of-place
-check stays as it was (Auto-review). Not yet on the page's own checks (Balanced runs on the page).
+check stays as it was (Auto-review). On the page too (useDayStillAfterChecks → `/api/room-check`,
+own paths only). The run panel's **One room a scene** switch (an episode/Final run): each script
+scene's empty room rendered once and every shot set in it — the room photo takes the pose map's
+place, so it stays a choice until a live run weighs rooms kept against poses.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
