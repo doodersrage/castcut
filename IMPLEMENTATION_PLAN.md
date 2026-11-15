@@ -4484,6 +4484,20 @@ check stays as it was (Auto-review). On the page too (useDayStillAfterChecks →
 own paths only). The run panel's **One room a scene** switch (an episode/Final run): each script
 scene's empty room rendered once and every shot set in it — the room photo takes the pose map's
 place, so it stays a choice until a live run weighs rooms kept against poses.
+- **s22 (2026-11-14, s19's Short again, Final on Edit 2511, One room a scene on, one redo):**
+  112 min (s19: 83), 43 Scenes, 23 flagged — 19 "maybe not the scene's room", 3 face (s19: 9).
+  Side by side with s19's keeps: the café's eight shots and the kitchens now hold one room
+  (s19's café drifted between five), but three faults showed. (1) The scene's room was made
+  from its place words alone: the night street came out daylit, and its night close-ups
+  dropped it for the plate's plain studio wall (9C, 9D; the mall's 6E, 6G too) — the prompt
+  said only "the room shown in Image 2", nothing naming the place. Fixed (caf42e27): the room
+  is made at its shots' time of day (`sceneRoomLight`), and a scene room's words stay beside
+  the photo (`keepWords`). (2) Two hotel-suite Scenes still linked to the park scene from an
+  earlier draft of the script were shot first, so the park's room was a hotel suite and every
+  park shot was sent it (4E, 4G in a hotel). Fixed (308a5e2c, 46e4854e): `sceneRoomFits` — a
+  shot's place words must share one with its scene's heading — for the room and the same-room
+  reference. (3) s19's baseline by the same check (each shot against its scene's first shot):
+  15 of 23 "other room". Not yet the Final default; s23 re-runs s22 with the fixes.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
