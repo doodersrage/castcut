@@ -835,6 +835,63 @@ async function pinSceneEngine(page: Page, castId: string, sceneId: string, engin
   });
 }
 
+/**
+ * The episode kept as a script, its lead's and partner's parts said to be the Cast, and the
+ * recurring parts made Cast members (Make … Cast) — after `episode` writes or imports it.
+ */
+async function episodeKeepAndCast(page: Page) {
+  await page.getByTestId('script-keep').click();
+  await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
+  // Who's who: the lead's and the partner's parts; everyone else stays a stranger.
+  const parts = await page
+    .locator('[data-testid^="script-speaker-"][data-status]')
+    .evaluateAll(list =>
+      list.map(el => (el as HTMLElement).dataset.testid!.replace('script-speaker-', ''))
+    );
+  log('speaking parts:', parts.join(', '));
+  for (const [castId, name] of [
+    [V2_CAST, EP_LEAD_NAME],
+    [EP_PARTNER, EP_PARTNER_NAME],
+  ] as const) {
+    const part = parts.find(entry => entry.toUpperCase() === name.toUpperCase());
+    // No Cast member for them yet (EPISODE_PARTNER unset): Make … Cast below makes them.
+    if (!castId) continue;
+    if (!part) {
+      log('no speaking part named', name);
+      continue;
+    }
+    await attempt(page, `${part} is the Cast`, async () => {
+      const row = page.getByTestId(`script-speaker-${part}`);
+      const confirm = page.getByTestId(`script-speaker-confirm-${part}`);
+      if (await confirm.isVisible().catch(() => false)) await confirm.click();
+      else await row.getByRole('combobox').selectOption(castId);
+      await page.waitForTimeout(800);
+    });
+  }
+  // The recurring minor parts as Cast members, plates and all (script-new-cast.ts), so their
+  // shots show them — EPISODE_NEW_CAST=0 leaves them strangers.
+  const make = page.getByTestId('script-make-cast');
+  if (process.env.EPISODE_NEW_CAST !== '0' && (await make.isEnabled().catch(() => false))) {
+    await attempt(page, 'recurring parts made Cast', async () => {
+      log('making Cast:', (await page.getByTestId('script-recurring').textContent())?.trim());
+      const started = Date.now();
+      await make.click();
+      // One plate at a time; each waits for its render.
+      await page
+        .getByTestId('script-prepare-note')
+        .filter({ hasText: /Cast now|Not cast/ })
+        .waitFor({ timeout: 90 * 60_000 });
+      log(
+        (await page.getByTestId('script-prepare-note').textContent())?.trim(),
+        'in',
+        Math.round((Date.now() - started) / 60_000),
+        'min'
+      );
+    });
+  }
+  await shot(page, 'episode-kept');
+}
+
 function v3ScriptText(castId: string) {
   const name = v3Name(castId);
   const lines = [`Title: ${name} consistency set`, ''];
@@ -3439,6 +3496,24 @@ const phases: Record<string, Phase> = {
    */
   async episode(_ctx, page) {
     await openScene(page, V2_CAST);
+    // EPISODE_SCRIPT_FILE: a screenplay of your own (Fountain) imported instead of written by the
+    // LLM — then Who's who and Make … Cast as below.
+    const own = process.env.EPISODE_SCRIPT_FILE?.trim();
+    if (own) {
+      await page.getByTestId('scene-scripts').waitFor({ timeout: 60_000 });
+      await page.getByTestId('script-import').first().click({ timeout: 60_000 });
+      await page.getByTestId('script-import-text').fill(readFileSync(own, 'utf8'));
+      log(
+        'summary:',
+        (
+          await page
+            .getByTestId('script-summary')
+            .textContent()
+            .catch(() => '')
+        )?.trim()
+      );
+      return await episodeKeepAndCast(page);
+    }
     await openMore(page);
     await page.getByTestId('script-write-episode').click({ timeout: 120_000 });
     const sheet = page.getByTestId('episode-writer');
@@ -3516,54 +3591,7 @@ const phases: Record<string, Phase> = {
           .catch(() => '')
       )?.trim()
     );
-    await page.getByTestId('script-keep').click();
-    await page.getByTestId('script-reading').waitFor({ timeout: 60_000 });
-    // Who's who: the lead's and the partner's parts; everyone else stays a stranger.
-    const parts = await page
-      .locator('[data-testid^="script-speaker-"][data-status]')
-      .evaluateAll(list =>
-        list.map(el => (el as HTMLElement).dataset.testid!.replace('script-speaker-', ''))
-      );
-    log('speaking parts:', parts.join(', '));
-    for (const [castId, name] of [
-      [V2_CAST, EP_LEAD_NAME],
-      [EP_PARTNER, EP_PARTNER_NAME],
-    ] as const) {
-      const part = parts.find(entry => entry.toUpperCase() === name.toUpperCase());
-      if (!part) {
-        log('no speaking part named', name);
-        continue;
-      }
-      await attempt(page, `${part} is the Cast`, async () => {
-        const row = page.getByTestId(`script-speaker-${part}`);
-        const confirm = page.getByTestId(`script-speaker-confirm-${part}`);
-        if (await confirm.isVisible().catch(() => false)) await confirm.click();
-        else await row.getByRole('combobox').selectOption(castId);
-        await page.waitForTimeout(800);
-      });
-    }
-    // The recurring minor parts as Cast members, plates and all (script-new-cast.ts), so their
-    // shots show them — EPISODE_NEW_CAST=0 leaves them strangers.
-    const make = page.getByTestId('script-make-cast');
-    if (process.env.EPISODE_NEW_CAST !== '0' && (await make.isEnabled().catch(() => false))) {
-      await attempt(page, 'recurring parts made Cast', async () => {
-        log('making Cast:', (await page.getByTestId('script-recurring').textContent())?.trim());
-        const started = Date.now();
-        await make.click();
-        // One plate at a time; each waits for its render.
-        await page
-          .getByTestId('script-prepare-note')
-          .filter({ hasText: /Cast now|Not cast/ })
-          .waitFor({ timeout: 90 * 60_000 });
-        log(
-          (await page.getByTestId('script-prepare-note').textContent())?.trim(),
-          'in',
-          Math.round((Date.now() - started) / 60_000),
-          'min'
-        );
-      });
-    }
-    await shot(page, 'episode-kept');
+    await episodeKeepAndCast(page);
   },
 
   /**
@@ -4013,6 +4041,39 @@ const phases: Record<string, Phase> = {
    * cuts that script's Scenes alone (Cut's ?script=; the Cast's other Scenes left out). The Scene
    * page is opened first: a server run's takes reach this browser there (its patches).
    */
+  /**
+   * After a Final rendered on the server: the run's "Animate the kept takes", started on the page
+   * and waited for (EPISODE_HOURS at most) — each kept take made a clip.
+   */
+  async epanimate(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const button = page.getByTestId('scene-run-animate-kept');
+    await button.waitFor({ timeout: 180_000 });
+    log('offered:', (await button.textContent())?.trim());
+    await button.click();
+    await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+    const started = Date.now();
+    await waitForRun(
+      page,
+      run => run.state === 'done' || run.state === 'cancelled' || run.state === 'paused',
+      EP_HOURS * 60
+    );
+    const run = ((await toolSettings(page)).scene as { run?: V2Run } | undefined)?.run;
+    const animated = (run?.log ?? []).filter(entry => entry.event === 'animated').length;
+    log(
+      'animate run',
+      run?.state,
+      '·',
+      animated,
+      'clips in',
+      Math.round((Date.now() - started) / 60_000),
+      'min',
+      run?.stopReason ? `· ${run.stopReason}` : ''
+    );
+    if (run?.state !== 'done') problems.push(`epanimate: the run ended ${run?.state}`);
+    await shot(page, 'animated');
+  },
+
   async epcut(_ctx, page) {
     await openScene(page, V2_CAST);
     await page.waitForTimeout(30_000);
