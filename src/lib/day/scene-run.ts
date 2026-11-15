@@ -6,7 +6,7 @@
  * take: choosing stays the player's. Pure.
  */
 import { parseScript } from '../script/parse';
-import { normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
+import { episodeAnimates, normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
 import { isRunTier, type RunTier } from './run-tier';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
@@ -266,7 +266,7 @@ export function runQueue(
       gone.push(item.sceneId);
       continue;
     }
-    if (run.skipKept && scene.keptTakeId) continue;
+    if (run.skipKept && scene.keptTakeId && !keptTakeNeedsClip(run, scene)) continue;
     const estimateSec = Math.max(5, Math.round(typicalSec));
     const entry: RunQueueEntry = {
       sceneId: scene.id,
@@ -439,6 +439,17 @@ export function runTakesHanded(
   return Object.entries(run.handOff?.handed ?? {}).filter(([sceneId]) => !run.outcomes?.[sceneId]);
 }
 
+/**
+ * A kept Scene this run still has to animate: the run animates its kept takes (Animate each kept
+ * take, on the page), and this one's has no clip yet — a Final rendered on the server, animated
+ * after (animateKeptRun). Counted as work by the progress and the queue, as nextRunStep does.
+ */
+export function keptTakeNeedsClip(run: SceneRun, scene: SavedScene): boolean {
+  if (!run.auto?.keep || !run.auto.animate || run.onServer || scene.slot.placeOnly) return false;
+  const kept = scene.takes.find(take => take.id === scene.keptTakeId);
+  return Boolean(kept && !kept.clipUrl && episodeAnimates(run.auto, scene.slot));
+}
+
 export type RunStep =
   | { kind: 'scene'; sceneId: string }
   /** A kept take with no clip yet, on a run that animates them: animated, no new take. */
@@ -483,9 +494,8 @@ export function nextRunStep(
     if (!scene) continue;
     if (run.skipKept && scene.keptTakeId) {
       const kept = scene.takes.find(take => take.id === scene.keptTakeId);
-      if (kept && !kept.clipUrl && animatesKept?.(scene)) {
-        return { kind: 'animate', sceneId: scene.id };
-      }
+      const animates = animatesKept ? animatesKept(scene) : keptTakeNeedsClip(run, scene);
+      if (kept && !kept.clipUrl && animates) return { kind: 'animate', sceneId: scene.id };
       continue;
     }
     return { kind: 'scene', sceneId: scene.id };
@@ -507,7 +517,8 @@ export function runProgress(
   const open = run.items.filter(item => {
     if (!item.include || run.outcomes?.[item.sceneId]) return false;
     const scene = byId.get(item.sceneId);
-    return Boolean(scene) && !(run.skipKept && scene!.keptTakeId);
+    if (!scene) return false;
+    return !(run.skipKept && scene.keptTakeId) || keptTakeNeedsClip(run, scene);
   }).length;
   return { done, total: done + Math.min(open, Math.max(0, run.maxTakes - runTakesTaken(run))) };
 }

@@ -515,8 +515,17 @@ describe('animating the kept takes after a Final (the page’s Animate, after th
     assert.deepEqual(nextRunStep(afterA, scenes, 8, animates), { kind: 'scene', sceneId: 'c' });
     const afterC = withRunOutcome(afterA, 'c', 'landed', 'c', 9);
     assert.deepEqual(nextRunStep(afterC, scenes, 10, animates), { kind: 'animate', sceneId: 'd' });
+    // Its progress and queue count what it has to animate (Start was greyed out at 0 of 0,
+    // the flagship 2026-11-15): a, c and d.
+    assert.deepEqual(runProgress(running, scenes), { done: 0, total: 3 });
+    assert.deepEqual(
+      runQueue(running, scenes, 60).queued.map(entry => entry.sceneId),
+      ['a', 'c', 'd']
+    );
+    assert.equal(nextRunStep(running, scenes, 6).kind, 'animate', 'the run’s own rule by default');
     // A run that doesn't animate skips kept Scenes, as before.
-    assert.deepEqual(nextRunStep(afterA, scenes, 8), { kind: 'scene', sceneId: 'c' });
-    assert.deepEqual(nextRunStep(afterC, scenes, 10), { kind: 'done', reason: 'finished' });
+    const still = { ...afterC, auto: { ...afterC.auto!, animate: false } };
+    assert.deepEqual(nextRunStep({ ...afterA, auto: still.auto }, scenes, 8), { kind: 'scene', sceneId: 'c' });
+    assert.deepEqual(nextRunStep(still, scenes, 10), { kind: 'done', reason: 'finished' });
   });
 });
