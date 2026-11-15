@@ -25,7 +25,10 @@ import {
   FACE_FINISH_SAVE_NODE,
   LEAD_FACE_PROBE_NODES,
   decideFaceFinish,
+  decidePartnerFinish,
   faceFinishKeeps,
+  PARTNER_FINISH_DENOISE,
+  partnerFinishKeeps,
   FACE_FINISH_SKIP_DISTANCE,
   leadFaceDistance,
   readStillCheckpoint,
@@ -341,4 +344,101 @@ export async function runFaceFinishInComfy(input: {
     },
     finisher: finisher.kind,
   };
+}
+
+export type PartnerFaceFinishResult =
+  | { finished: true; image: ComfyImageRef; before: number; after: number }
+  | { finished: false; reason: string; before?: number };
+
+/**
+ * The partner's face on a two-person still, finished like the lead's (buildFaceFinishGraph with
+ * `partner`): the two largest faces probed against both crops, the partner's re-rendered against
+ * their crop, the result kept only when they came out closer and she no further. The partner sent
+ * as Image 2 alone came out another person on every s24 final (finish.ts decidePartnerFinish).
+ */
+export async function runPartnerFaceFinishInComfy(input: {
+  imageUrl: string;
+  /** The lead's face (her plate or face crop): which face is hers. */
+  leadFaceUrl: string;
+  /** The partner's face crop the take was sent. */
+  partnerFaceUrl: string;
+  noun: 'man' | 'woman';
+  comfyUrl?: string;
+  seed?: number;
+  timeoutMs?: number;
+}): Promise<PartnerFaceFinishResult> {
+  const stillRef = parseComfyViewRef(input.imageUrl);
+  const leadRef = parseComfyViewRef(input.leadFaceUrl);
+  const partnerRef = parseComfyViewRef(input.partnerFaceUrl);
+  if (!stillRef || !leadRef || !partnerRef) {
+    return { finished: false, reason: 'a picture is not a ComfyUI image' };
+  }
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const resolved = await resolveFinisherForStill(baseUrl, stillRef);
+  if ('reason' in resolved) return { finished: false, reason: resolved.reason };
+  const [stillName, leadName, partnerName] = await Promise.all([
+    stageComfyImageAsInput(baseUrl, stillRef, 'partner-finish'),
+    stageComfyImageAsInput(baseUrl, leadRef, 'face-finish-ref'),
+    stageComfyImageAsInput(baseUrl, partnerRef, 'partner-finish-ref'),
+  ]);
+  const probe = async (still: string, face: string) => {
+    const read = await probeLeadFace(baseUrl, still, face);
+    return read === NO_REFERENCE_FACE ? null : read;
+  };
+  const decision = decidePartnerFinish({
+    lead: await probe(stillName, leadName),
+    partner: await probe(stillName, partnerName),
+  });
+  if (!decision.finish) {
+    return {
+      finished: false,
+      reason:
+        decision.reason === 'close'
+          ? 'the partner is already close to their face'
+          : decision.reason === 'twinned'
+            ? 'both faces read as the lead'
+            : 'one face in the still',
+      ...(decision.before !== undefined ? { before: decision.before } : {}),
+    };
+  }
+  const run = await runComfyUtilityGraph({
+    baseUrl,
+    label: 'partner-face-finish',
+    timeoutMs: input.timeoutMs ?? 240_000,
+    prompt: buildFaceFinishGraph({
+      stillName,
+      faceName: partnerName,
+      finisher: resolved.finisher,
+      seed: input.seed,
+      onlyFace: decision.side,
+      partner: { noun: input.noun, denoise: PARTNER_FINISH_DENOISE },
+    }),
+    read: entry => {
+      const image = (
+        entry.outputs?.[FACE_FINISH_SAVE_NODE] as { images?: ComfyImageRef[] } | undefined
+      )?.images?.[0];
+      return image?.filename ? image : undefined;
+    },
+  });
+  if (!run.result)
+    return { finished: false, reason: 'the pass made no image', before: decision.before };
+  const image: ComfyImageRef = {
+    filename: run.result.filename,
+    subfolder: run.result.subfolder ?? '',
+    type: run.result.type ?? 'output',
+  };
+  const finishedName = await stageComfyImageAsInput(baseUrl, image, 'partner-finish-check');
+  const kept = partnerFinishKeeps({
+    decision,
+    lead: await probe(finishedName, leadName),
+    partner: await probe(finishedName, partnerName),
+  });
+  if (!kept.keep || kept.after === null) {
+    return {
+      finished: false,
+      reason: 'the pass did not bring the partner closer',
+      before: decision.before,
+    };
+  }
+  return { finished: true, image, before: decision.before, after: kept.after };
 }

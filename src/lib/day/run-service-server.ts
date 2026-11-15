@@ -21,6 +21,10 @@ import { loadWardrobeGarmentThumbManifest } from '@/lib/wardrobe/garment-thumbs'
 import type { DayDressPlateEntry } from './dress-plate-cache';
 import { normalizeRunBundle, type RunBundle } from './run-bundle';
 import { checkServerTake, roomReferenceFor } from './run-checks-server';
+import { runPartnerFaceFinishInComfy } from '@/lib/face/finish-server';
+import { faceSimilarityFromDistance } from '@/lib/face/match';
+import { comfyInputViewUrl } from '@/lib/face/match-client';
+import { comfyOutputViewUrl } from '@/lib/comfyui/job-wait-server';
 import { decideAdultGate } from '@/lib/adult/adult-appearance-gate';
 import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
 import { parseLlmRequestOptions, sharedLlmRequestBody } from '@/lib/llm/request-options';
@@ -170,6 +174,36 @@ async function renderOnServer(
           clothed,
           coveredTake,
         });
+      },
+      // A two-person take: the partner's face finished against the crop they were sent.
+      finishPartner: async ({ imageUrl, report }) => {
+        const sent = report.partnerFace;
+        const plate = report.plate;
+        const leadFaceUrl = plate?.imageUrl?.includes('/api/comfyui/view?')
+          ? plate.imageUrl
+          : comfyInputViewUrl(plate?.filename);
+        const partnerFaceUrl = comfyInputViewUrl(sent?.filename);
+        if (!sent || !leadFaceUrl || !partnerFaceUrl) return null;
+        const result = await runPartnerFaceFinishInComfy({
+          imageUrl,
+          leadFaceUrl,
+          partnerFaceUrl,
+          noun: sent.noun,
+          comfyUrl,
+        });
+        if (result.finished) {
+          return {
+            imageUrl: comfyOutputViewUrl({ images: [result.image], comfyUrl }) ?? imageUrl,
+            similarity: faceSimilarityFromDistance(result.after, 'cosine'),
+            note: `the partner's face finished (${result.before.toFixed(2)} → ${result.after.toFixed(2)} from their face)`,
+          };
+        }
+        return {
+          ...(result.before !== undefined
+            ? { similarity: faceSimilarityFromDistance(result.before, 'cosine') }
+            : {}),
+          note: `the partner's face left as it landed — ${result.reason}`,
+        };
       },
       checkTake: async ({ imageUrl, report, sceneId, state: now }) =>
         report

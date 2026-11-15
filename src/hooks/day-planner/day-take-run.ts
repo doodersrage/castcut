@@ -385,6 +385,8 @@ export type DayTakeSteps = {
     takeShadow: typeof postTakeShadow;
     draftFields: typeof rememberDraftFields;
     playerSlotRender: typeof recordPlayerSlotRender;
+    /** The partner face the take was sent, and who they are (the server's partner face finish). */
+    partnerFaceSent?: (face: { filename: string; noun: 'man' | 'woman' }) => void;
   };
   /** Picture steps (face crops, uploads, the reference check, the stand-in's wait): the page's when absent. */
   faceOps?: DayFacePlateOps;
@@ -1545,6 +1547,12 @@ export async function runDayTake(
       });
       extraUrls[1] = sent.url;
       extraFilenames[1] = sent.filename;
+      if (sent.filename?.trim()) {
+        steps.record.partnerFaceSent?.({
+          filename: sent.filename.trim(),
+          noun: slotPartner?.noun === 'woman' ? 'woman' : 'man',
+        });
+      }
       if (sent.note) referenceNotes.push(sent.note);
       if (sent.sentFace) partnerSentFace = sent.sentFace;
       if (sent.clearPageStandIn) {

@@ -36,7 +36,9 @@ export type SceneRunLogEntry = {
     | 'redo'
     | 'kept'
     | 'flagged'
-    | 'animated';
+    | 'animated'
+    /** A take's picture finished on the server (the partner's face, partner-finish-server.ts). */
+    | 'finished';
   detail?: string;
 };
 

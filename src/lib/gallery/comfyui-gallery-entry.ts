@@ -5,6 +5,11 @@ import type { ComfyGalleryJobStatus } from './comfyui-gallery-types';
 export type GalleryPlayChecks = {
   pose?: number;
   face?: number;
+  /**
+   * The partner's face on a two-person still, against the face crop they were sent (0–1, as
+   * `face`): after their face finish when it ran (partner-finish-server.ts).
+   */
+  partnerFace?: number;
   poseMiss?: boolean;
   faceMiss?: boolean;
   /** A clip that cuts to another shot partway (seconds in) — clip-check.ts. */

@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildFaceFinishGraph,
+  decidePartnerFinish,
   FACE_FINISH_DENOISE,
+  PARTNER_FINISH_DENOISE,
+  partnerFinishKeeps,
   FACE_FINISH_SAVE_NODE,
   readStillCheckpoint,
   resolveFaceFinisher,
@@ -306,5 +309,129 @@ describe('face finish skin and speed (2026-10-07)', () => {
     const { FACE_FINISH_PROMPT } = await import('./finish');
     assert.match(FACE_FINISH_PROMPT, /clear, even skin/);
     assert.doesNotMatch(FACE_FINISH_PROMPT, /natural skin texture/);
+  });
+});
+
+describe('the partner’s face finish (decidePartnerFinish)', () => {
+  // s24's two-person finals (2026-11-15), the two largest faces probed against her crop and the
+  // partner's: x, then the distance to each.
+  const probe = (faces: Array<[number, number]>) => faces.map(([x, distance]) => ({ x, distance }));
+  it('the face further from hers is the partner’s, finished on its side', () => {
+    // 6D: she is at x 1015 (0.31), he at 488 (0.69 from his crop).
+    const decision = decidePartnerFinish({
+      lead: probe([[488, 0.75], [1015, 0.31]]),
+      partner: probe([[488, 0.69], [1015, 0.66]]),
+    });
+    assert.deepEqual(decision, {
+      finish: true,
+      side: 'leftmost',
+      partnerX: 488,
+      before: 0.69,
+      leadBefore: 0.31,
+    });
+    // 8D: she is on the left, he is on the right.
+    const right = decidePartnerFinish({
+      lead: probe([[408, 0.29], [1291, 0.87]]),
+      partner: probe([[408, 0.92], [1291, 0.73]]),
+    });
+    assert.equal(right.finish && right.side, 'rightmost');
+  });
+
+  it('left alone: her drawn twice, one face, or a partner already close', () => {
+    // 8H: both faces read as her (0.29, 0.40) — finishing one would not make a partner.
+    assert.deepEqual(
+      decidePartnerFinish({
+        lead: probe([[1216, 0.29], [396, 0.4]]),
+        partner: probe([[1216, 0.95], [396, 0.96]]),
+      }),
+      { finish: false, reason: 'twinned' }
+    );
+    // The probe answers one face at both indexes.
+    assert.equal(
+      decidePartnerFinish({
+        lead: probe([[400, 0.3], [400, 0.3]]),
+        partner: probe([[400, 0.9], [400, 0.9]]),
+      }).finish,
+      false
+    );
+    assert.deepEqual(
+      decidePartnerFinish({
+        lead: probe([[341, 0.28], [1135, 0.84]]),
+        partner: probe([[341, 0.92], [1135, 0.3]]),
+      }),
+      { finish: false, reason: 'close', before: 0.3 }
+    );
+    assert.equal(decidePartnerFinish({ lead: null, partner: null }).finish, false);
+  });
+
+  it('kept only when the partner came out closer and she no further', () => {
+    const decision = decidePartnerFinish({
+      lead: probe([[488, 0.75], [1015, 0.31]]),
+      partner: probe([[488, 0.69], [1015, 0.66]]),
+    });
+    assert.ok(decision.finish);
+    // Live: 0.69 → 0.21, her face unchanged.
+    assert.deepEqual(
+      partnerFinishKeeps({
+        decision,
+        lead: probe([[488, 0.8], [1015, 0.31]]),
+        partner: probe([[488, 0.21], [1015, 0.66]]),
+      }),
+      { keep: true, after: 0.21 }
+    );
+    // Her face pulled away by the pass: not kept.
+    assert.equal(
+      partnerFinishKeeps({
+        decision,
+        lead: probe([[488, 0.8], [1015, 0.5]]),
+        partner: probe([[488, 0.21], [1015, 0.66]]),
+      }).keep,
+      false
+    );
+    // No closer: not kept.
+    assert.equal(
+      partnerFinishKeeps({
+        decision,
+        lead: probe([[488, 0.8], [1015, 0.31]]),
+        partner: probe([[488, 0.75], [1015, 0.66]]),
+      }).keep,
+      false
+    );
+  });
+
+  it('the graph finishes the side’s face among the two largest, told who they are', () => {
+    const graph = buildFaceFinishGraph({
+      stillName: 'still.png',
+      faceName: 'jason.png',
+      finisher: {
+        kind: 'qwen-edit',
+        unet: 'qwen_image_edit_2511_fp8mixed.safetensors',
+        lightningLora: 'l.safetensors',
+        clip: 'c.safetensors',
+        vae: 'v.safetensors',
+      },
+      onlyFace: 'rightmost',
+      partner: { noun: 'man', denoise: PARTNER_FINISH_DENOISE },
+    });
+    // s24's 6A: the rightmost face of all was a passer-by — the two largest first.
+    assert.deepEqual(graph['26']?.inputs, {
+      segs: ['24', 0],
+      target: 'area(=w*h)',
+      order: true,
+      take_start: 0,
+      take_count: 2,
+    });
+    assert.deepEqual(graph['25']?.inputs.segs, ['26', 0]);
+    assert.equal(graph['23']?.inputs.denoise, PARTNER_FINISH_DENOISE);
+    assert.match(String(graph['20']?.inputs.prompt), /same man as image 1: his exact face/);
+    // The lead's pass is as it was.
+    const lead = buildFaceFinishGraph({
+      stillName: 'still.png',
+      faceName: 'her.png',
+      finisher: { kind: 'rapid', checkpoint: 'r.safetensors' },
+      onlyFace: 'leftmost',
+    });
+    assert.equal(lead['26'], undefined);
+    assert.match(String(lead['20']?.inputs.prompt), /same woman as image 1/);
   });
 });

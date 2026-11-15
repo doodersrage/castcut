@@ -72,6 +72,14 @@ export type RunPatchTake = {
 };
 
 /** What the page applies from a server run (in order): the Scene, the run, the takes. */
+/** What the partner's face finish did: the finished picture (when kept), their score, a note. */
+export type PartnerFinishOutcome = {
+  imageUrl?: string;
+  /** 0–1, as the lead's face score. */
+  similarity?: number;
+  note?: string;
+} | null;
+
 export type RunPatch = {
   run: SceneRun;
   scene?: SavedScene;
@@ -102,6 +110,14 @@ export type ServerRunDeps = ServerTakeDeps & {
     state: ServerRunState;
     bundle: RunBundle;
   }) => Promise<GalleryPlayChecks | undefined>;
+  /**
+   * The partner's face on a two-person take, finished against the crop they were sent
+   * (partner-finish-server.ts). Unset: the take is left as it landed.
+   */
+  finishPartner?: (input: {
+    imageUrl: string;
+    report: ServerTakeReport;
+  }) => Promise<PartnerFinishOutcome>;
   /**
    * The adult-appearance gate (adult-appearance-gate.ts) on an adult-mood take, as the page runs
    * it (useDayAdultGate). Unset: no vision model here — allowed unchecked, as on the page.
@@ -401,7 +417,7 @@ export async function runSceneRunOnServer(
       emit({ scene: sceneOf(sceneId) });
       return runOf()!;
     }
-    const imageUrl = landed.status === 'completed' ? comfyOutputViewUrl(landed) : null;
+    let imageUrl = landed.status === 'completed' ? comfyOutputViewUrl(landed) : null;
     if (!imageUrl) {
       const why = landed.statusMessage?.trim() || landed.status || 'it timed out';
       markStill(state, promptId, { status: 'error' });
@@ -415,6 +431,27 @@ export async function runSceneRunOnServer(
         takes: [{ promptId, sceneId, status: 'error', comfyUrl: deps.comfyUrl }],
       });
       return runOf()!;
+    }
+
+    // A two-person take: the partner's face finished against the crop they were sent, before the
+    // take is filed (its picture is the finished one). A Preview is a draft: left as it is.
+    let partnerFace: number | undefined;
+    if (deps.finishPartner && report?.partnerFace && runOf()?.tier !== 'preview') {
+      const finished = await deps
+        .finishPartner({ imageUrl, report })
+        .catch((): PartnerFinishOutcome => null);
+      if (finished?.imageUrl) imageUrl = finished.imageUrl;
+      if (finished?.similarity !== undefined) partnerFace = finished.similarity;
+      if (finished?.note) {
+        setRun(
+          withRunLog(runOf()!, {
+            at: now(),
+            sceneId,
+            event: 'finished',
+            detail: `${scene.name}: ${finished.note}`,
+          })
+        );
+      }
     }
 
     // Landed: on the card, filed on its Scene, checked.
@@ -545,6 +582,9 @@ export async function runSceneRunOnServer(
             })
             .catch(() => undefined);
     if (checks) state.checks[promptId] = { ...(state.checks[promptId] ?? {}), ...checks };
+    if (partnerFace !== undefined) {
+      state.checks[promptId] = { ...(state.checks[promptId] ?? { at: now() }), partnerFace };
+    }
     const take: RunPatchTake = {
       promptId,
       sceneId,

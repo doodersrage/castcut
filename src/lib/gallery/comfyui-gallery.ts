@@ -1029,6 +1029,7 @@ export function mergeGalleryPlayChecks(
     merged.face = checks.face;
     merged.faceMiss = checks.faceMiss === true;
   }
+  if (typeof checks.partnerFace === 'number') merged.partnerFace = checks.partnerFace;
   if ('clipCutAt' in checks) merged.clipCutAt = checks.clipCutAt;
   if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
   if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;

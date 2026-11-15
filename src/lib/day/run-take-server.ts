@@ -121,6 +121,8 @@ export type ServerTakeReport = {
   character?: CharacterRecord;
   leadNoun: ReturnType<typeof dayPartnerNoun>;
   plate: { filename?: string; imageUrl?: string } | null;
+  /** The partner's face crop the take was sent (a ComfyUI input filename) and who; none alone. */
+  partnerFace?: { filename: string; noun: 'man' | 'woman' };
   wardrobeLabel: (wardrobeId?: string) => string;
 };
 
@@ -224,6 +226,9 @@ export async function runServerTake(
   };
   const storeToolSettings = (partial: Partial<DayToolCache>) =>
     apply(partial as Partial<SceneToolCache>);
+  // The partner face this take was sent (day-take-run's partnerSentFace): the partner's face
+  // finish and check hold the take against it.
+  let sentPartnerFace: { filename: string; noun: 'man' | 'woman' } | undefined;
   const updateToolSettings = (partial: Partial<DayToolCache>) => {
     const patch = partial.slots
       ? { ...partial, slots: sceneSlotsPatch(partial.slots, state.sceneTool.slots) }
@@ -444,6 +449,9 @@ export async function runServerTake(
         takeShadow: noop,
         draftFields: noop,
         playerSlotRender: noop as DayTakeSteps['record']['playerSlotRender'],
+        partnerFaceSent: face => {
+          sentPartnerFace = face;
+        },
       },
       faceOps: serverFacePlateOps({
         comfyUrl: deps.comfyUrl,
@@ -475,6 +483,7 @@ export async function runServerTake(
       ...(character ? { character } : {}),
       leadNoun,
       plate: plate ? { filename: plate.filename, imageUrl: plate.imageUrl } : null,
+      ...(sentPartnerFace ? { partnerFace: sentPartnerFace } : {}),
       wardrobeLabel: wardrobeLabelFor,
     },
   };

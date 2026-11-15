@@ -14,6 +14,7 @@ export default function GalleryPlayChecksBadge({ entry }: { entry: ComfyGalleryE
   const parts = [
     checks.pose != null ? `pose ${Math.round(checks.pose * 100)}%` : null,
     checks.face != null ? `face ${Math.round(checks.face * 100)}%` : null,
+    checks.partnerFace != null ? `partner ${Math.round(checks.partnerFace * 100)}%` : null,
     typeof checks.clipCutAt === 'number' ? 'cut' : null,
     checks.clipSilent ? 'silent' : null,
     checks.marksMissing ? 'marks' : null,

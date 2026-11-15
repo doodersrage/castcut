@@ -48,6 +48,20 @@ export const FACE_FINISH_PROMPT =
 export const FACE_FINISH_KLEIN_PROMPT =
   'Photorealistic close-up of the same woman as the reference image: her exact face, eyes, nose, lips and hairline, natural skin texture, sharp natural detail.';
 
+/**
+ * The partner's face finish (partner-finish-server.ts): the same pass on the other person, told
+ * who they are. Live (2026-11-15, Edit 2511, four of s24's two-person finals, the partner's face
+ * crop as image 1): his face 0.69–0.86 from the crop before, 0.21–0.25 after at denoise 0.5 (0.33–
+ * 0.40 at 0.75), her face unchanged.
+ */
+export function partnerFaceFinishPrompt(noun: 'man' | 'woman') {
+  const pronoun = noun === 'man' ? 'his' : 'her';
+  return {
+    edit: `Photorealistic close-up of the same ${noun} as image 1: ${pronoun} exact face, eyes, nose, lips and hairline, natural skin.`,
+    klein: `Photorealistic close-up of the same ${noun} as the reference image: ${pronoun} exact face, eyes, nose, lips and hairline, natural skin texture, sharp natural detail.`,
+  };
+}
+
 /** Output node id — the server reads the finished image from here. */
 export const FACE_FINISH_SAVE_NODE = '99';
 
@@ -194,9 +208,30 @@ function detailerNode(input: {
  * The lead-only detailer for a two-person still: detect the faces, keep the one on the lead's
  * side, re-render just that one. Replaces node 23 (and adds 24 / 25).
  */
-function leadOnlyDetailerNodes(all: GraphNode, side: LeadFaceSide): Record<string, GraphNode> {
+function leadOnlyDetailerNodes(
+  all: GraphNode,
+  side: LeadFaceSide,
+  options: { amongTwoLargest?: boolean; denoise?: number } = {}
+): Record<string, GraphNode> {
   const a = all.inputs;
+  // The two largest faces first (the two people in the shot), then the side: a crowd behind them
+  // has faces further left or right (s24's 6A: the rightmost face was a passer-by).
+  const largest: Record<string, GraphNode> = options.amongTwoLargest
+    ? {
+        '26': {
+          class_type: 'ImpactSEGSOrderedFilter',
+          inputs: {
+            segs: ['24', 0],
+            target: 'area(=w*h)',
+            order: true,
+            take_start: 0,
+            take_count: 2,
+          },
+        },
+      }
+    : {};
   return {
+    ...largest,
     '24': {
       class_type: 'BboxDetectorSEGS',
       inputs: {
@@ -214,7 +249,7 @@ function leadOnlyDetailerNodes(all: GraphNode, side: LeadFaceSide): Record<strin
       // order true = descending: the largest x1 is the rightmost face, the largest area the
       // biggest one.
       inputs: {
-        segs: ['24', 0],
+        segs: options.amongTwoLargest ? ['26', 0] : ['24', 0],
         target: side === 'largest' ? 'area(=w*h)' : 'x1',
         order: side !== 'leftmost',
         take_start: 0,
@@ -239,7 +274,7 @@ function leadOnlyDetailerNodes(all: GraphNode, side: LeadFaceSide): Record<strin
         scheduler: a.scheduler,
         positive: a.positive,
         negative: a.negative,
-        denoise: FACE_FINISH_DUO_DENOISE,
+        denoise: options.denoise ?? FACE_FINISH_DUO_DENOISE,
         feather: a.feather,
         noise_mask: a.noise_mask,
         force_inpaint: a.force_inpaint,
@@ -438,7 +473,13 @@ export function buildFaceFinishGraph(input: {
   seed?: number;
   /** Two-person still: re-render only the face on this side (see pickLeadFace). */
   onlyFace?: LeadFaceSide;
+  /**
+   * The partner's face (partner-finish-server.ts): its own words, the side's face among the two
+   * largest only, and a denoise of its own.
+   */
+  partner?: { noun: 'man' | 'woman'; denoise: number };
 }): Record<string, GraphNode> {
+  const partnerPrompt = input.partner ? partnerFaceFinishPrompt(input.partner.noun) : null;
   const seed = input.seed ?? 777;
   const graph: Record<string, GraphNode> = {
     '1': { class_type: 'LoadImage', inputs: { image: input.stillName } },
@@ -461,7 +502,7 @@ export function buildFaceFinishGraph(input: {
       '16': { class_type: 'VAEEncode', inputs: { pixels: ['15', 0], vae: ['14', 0] } },
       '17': {
         class_type: 'CLIPTextEncode',
-        inputs: { text: FACE_FINISH_KLEIN_PROMPT, clip: ['13', 0] },
+        inputs: { text: partnerPrompt?.klein ?? FACE_FINISH_KLEIN_PROMPT, clip: ['13', 0] },
       },
       '20': {
         class_type: 'ReferenceLatent',
@@ -509,7 +550,12 @@ export function buildFaceFinishGraph(input: {
     Object.assign(graph, {
       '20': {
         class_type: 'TextEncodeQwenImageEditPlus',
-        inputs: { clip, prompt: FACE_FINISH_PROMPT, vae, image1: ['2', 0] },
+        inputs: {
+          clip,
+          prompt: partnerPrompt?.edit ?? FACE_FINISH_PROMPT,
+          vae,
+          image1: ['2', 0],
+        },
       },
       '21': { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['20', 0] } },
     });
@@ -525,11 +571,96 @@ export function buildFaceFinishGraph(input: {
     });
   }
   if (input.onlyFace) {
-    Object.assign(graph, leadOnlyDetailerNodes(graph['23']!, input.onlyFace));
+    Object.assign(
+      graph,
+      leadOnlyDetailerNodes(
+        graph['23']!,
+        input.onlyFace,
+        input.partner ? { amongTwoLargest: true, denoise: input.partner.denoise } : {}
+      )
+    );
   }
   graph[FACE_FINISH_SAVE_NODE] = {
     class_type: 'SaveImage',
     inputs: { images: ['23', 0], filename_prefix: 'Castcut-face-finish' },
   };
   return graph;
+}
+
+/** A partner face this close to their crop is left as it is (as the lead's, FACE_FINISH_SKIP_DISTANCE). */
+export const PARTNER_FINISH_SKIP_DISTANCE = 0.35;
+
+/** The partner's pass is stronger than the lead's: their face comes out far from the crop. */
+export const PARTNER_FINISH_DENOISE = 0.5;
+
+/** Both faces this close to the lead's crop: the still drew her twice — no partner to finish. */
+export const TWINNED_LEAD_DISTANCE = 0.45;
+
+export type PartnerFinishDecision =
+  | {
+      finish: true;
+      side: 'leftmost' | 'rightmost';
+      partnerX: number;
+      before: number;
+      leadBefore: number;
+    }
+  | { finish: false; reason: 'one face' | 'twinned' | 'close'; before?: number };
+
+/**
+ * Which face is the partner's, and whether it needs the pass: of the two largest faces (probed
+ * against the lead's crop and against the partner's), the lead's is the one closer to hers; the
+ * other is the partner's. s24 (2026-11-15): the partner sent as Image 2 came out 0.6–1.0 from
+ * their crop on every two-person final — another person each time — while the lead held 0.25–0.35.
+ */
+export function decidePartnerFinish(input: {
+  lead: LeadFaceProbe | null;
+  partner: LeadFaceProbe | null;
+}): PartnerFinishDecision {
+  const faces = (input.lead ?? []).flatMap((face, index) => {
+    const other = input.partner?.[index];
+    return face.x !== null &&
+      face.distance !== null &&
+      other?.distance !== null &&
+      other?.distance !== undefined &&
+      face.distance < 50 &&
+      other.distance < 50
+      ? [{ x: face.x, lead: face.distance, partner: other.distance }]
+      : [];
+  });
+  // The probe answers a single face at both indexes (finish.ts probe_faces).
+  if (faces.length < 2 || faces[0]!.x === faces[1]!.x) return { finish: false, reason: 'one face' };
+  const [her, them] =
+    faces[0]!.lead <= faces[1]!.lead ? [faces[0]!, faces[1]!] : [faces[1]!, faces[0]!];
+  if (them.lead < TWINNED_LEAD_DISTANCE) return { finish: false, reason: 'twinned' };
+  if (them.partner <= PARTNER_FINISH_SKIP_DISTANCE) {
+    return { finish: false, reason: 'close', before: them.partner };
+  }
+  return {
+    finish: true,
+    side: them.x < her.x ? 'leftmost' : 'rightmost',
+    partnerX: them.x,
+    before: them.partner,
+    leadBefore: her.lead,
+  };
+}
+
+/**
+ * The finished still is kept when the partner came out closer to their crop and the lead no
+ * further from hers (a little noise allowed: the pass never touches her face).
+ */
+export function partnerFinishKeeps(input: {
+  decision: Extract<PartnerFinishDecision, { finish: true }>;
+  lead: LeadFaceProbe | null;
+  partner: LeadFaceProbe | null;
+}): { keep: boolean; after: number | null } {
+  const after = decidePartnerFinish({ lead: input.lead, partner: input.partner });
+  const partnerAfter = after.finish || after.reason === 'close' ? (after.before ?? null) : null;
+  const leadAfter = Math.min(
+    ...(input.lead ?? []).map(face => ((face.distance ?? 100) < 50 ? face.distance! : 100))
+  );
+  const keep =
+    partnerAfter !== null &&
+    partnerAfter < input.decision.before &&
+    leadAfter <= input.decision.leadBefore + LEAD_FACE_MARGIN;
+  return { keep, after: partnerAfter };
 }
