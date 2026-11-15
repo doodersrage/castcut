@@ -4113,6 +4113,19 @@ const phases: Record<string, Phase> = {
     const button = page.getByTestId('cut-film').first();
     await button.waitFor({ timeout: 300_000 });
     await page.waitForTimeout(5000);
+    // EPISODE_CUT_TAKE_NEW=1: every shot whose Scene kept a new take since it was cut (a shot
+    // rendered again) uses it — the pinned one was let go.
+    if (process.env.EPISODE_CUT_TAKE_NEW === '1') {
+      let taken = 0;
+      for (let i = 0; i < 80; i += 1) {
+        const use = page.locator('[data-testid^="cut-pin-"][data-testid$="-use"]').first();
+        if (!(await use.isVisible().catch(() => false))) break;
+        await use.click();
+        taken += 1;
+        await page.waitForTimeout(1500);
+      }
+      log('new takes used:', taken);
+    }
     await page.getByTestId('cut-tab-options').click();
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
