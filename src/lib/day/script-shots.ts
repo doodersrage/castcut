@@ -637,6 +637,13 @@ export function withoutOtherPlaces(
  * the camera row, the time of day from the heading, and a second confirmed Cast member as the
  * partner. Only confirmed names are used.
  */
+/**
+ * The lead touching someone named by pronoun only: a hug, a kiss, their hand, a head on their
+ * shoulder. "His/him/them" (the partner of a woman lead, or anyone): "her" would read her own.
+ */
+const PARTNER_CONTACT_RE =
+  /\b(?:hugs?|hugging|kiss(?:es)?|kissing|embraces?|embracing|cuddles?)\s+(?:him|them)\b|\b(?:his|their)\s+(?:hand|hands|shoulder|shoulders|chest|arm|arms|lap|neck|cheek)\b|\b(?:into|in)\s+(?:his|their)\s+arms\b/i;
+
 export function shotSceneDraft(input: {
   shot: PlannedShot;
   scene: ScriptScene;
@@ -671,8 +678,34 @@ export function shotSceneDraft(input: {
   const partner =
     parts.find(part => part.castId !== castId && shot.who.includes(part.speaker)) ??
     parts.find(part => part.castId !== castId);
-  // The lead's own lines and reactions stay on her; any shot that shows the partner has both.
-  const partnerInFrame = Boolean(partner?.castId && shot.who.includes(partner.speaker));
+  // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
+  // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
+  // The first action where someone does something: a scene's opening is often atmosphere ("The
+  // café glows warm under string lights"), and a still posed from it guessed — the overnight
+  // episode's shots on such text missed their pose twice as often (2026-11-08).
+  const actions = scene.elements.filter(element => element.kind === 'action');
+  // A line's own moment (2026-11-11): the action written last before it — every shot of a live
+  // run's kitchen read the scene's opening ("stirs her coffee") while the script had her roll her
+  // eyes, sip, set the mug down between the lines.
+  const at = shotLineAt(shot, scene);
+  const before = at >= 0 ? scene.elements.slice(0, at).reverse() : [];
+  const momentAction = before.find(
+    element => element.kind === 'action' && DOING_RE.test(element.text)
+  );
+  const sceneActionRaw =
+    !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
+      ? (momentAction ?? actions.find(element => DOING_RE.test(element.text)) ?? actions[0])?.text
+      : undefined;
+  // The lead's own lines and reactions stay on her; any shot that shows the partner has both —
+  // and so does one where she touches them ("hugs him", "her head on his shoulder"): drawn as
+  // her alone, the flagship's two such shots put a stranger, or her twice, in his place
+  // (2026-11-15).
+  const touchesPartner = Boolean(
+    partner?.castId && PARTNER_CONTACT_RE.test(shot.action ?? sceneActionRaw ?? '')
+  );
+  const partnerInFrame = Boolean(
+    partner?.castId && (shot.who.includes(partner.speaker) || touchesPartner)
+  );
   const leadName = cast.find(member => member.id === castId)?.name;
   // Seen besides her: any speaker in the shot but her, unless only ever heard here.
   const heardOnly = offscreenOnlySpeakers(scene);
@@ -694,24 +727,6 @@ export function shotSceneDraft(input: {
   const partnerName = partner?.castId
     ? cast.find(member => member.id === partner.castId)?.name
     : undefined;
-  // A line or a reaction happens during the scene's action (M6 D7: with no beat, the still
-  // engine made one up — her phone, while the wide of the same scene had her pouring coffee).
-  // The first action where someone does something: a scene's opening is often atmosphere ("The
-  // café glows warm under string lights"), and a still posed from it guessed — the overnight
-  // episode's shots on such text missed their pose twice as often (2026-11-08).
-  const actions = scene.elements.filter(element => element.kind === 'action');
-  // A line's own moment (2026-11-11): the action written last before it — every shot of a live
-  // run's kitchen read the scene's opening ("stirs her coffee") while the script had her roll her
-  // eyes, sip, set the mug down between the lines.
-  const at = shotLineAt(shot, scene);
-  const before = at >= 0 ? scene.elements.slice(0, at).reverse() : [];
-  const momentAction = before.find(
-    element => element.kind === 'action' && DOING_RE.test(element.text)
-  );
-  const sceneActionRaw =
-    !shot.action && (shot.purpose === 'dialogue' || shot.purpose === 'reaction')
-      ? (momentAction ?? actions.find(element => DOING_RE.test(element.text)) ?? actions[0])?.text
-      : undefined;
   // How it is said ("(teasing)"), for the face of whoever says it on screen.
   const manner =
     at > 0 && scene.elements[at - 1]!.kind === 'parenthetical' && !shot.offscreen

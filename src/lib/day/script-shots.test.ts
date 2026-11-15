@@ -730,3 +730,52 @@ describe('her own line’s manner names no one (2026-11-12, s11 2C twinned)', ()
     assert.doesNotMatch(hints, /Slyne, sighs/);
   });
 });
+
+describe('her line while she touches him (a two-shot)', () => {
+  // The flagship (2026-11-15): "hugs him" and "her head on his shoulder" were drafted as her
+  // alone — the engine drew a stranger from behind, and her twice, in his place.
+  const source = [
+    'INT. JASON\'S APARTMENT - NIGHT',
+    '',
+    'Slyne sets the box down and hugs him.',
+    '',
+    'SLYNE',
+    "Yes. That's my answer. Yes.",
+    '',
+    'JASON',
+    "It's leaning toward you.",
+    '',
+    'Slyne pours herself a glass of water.',
+    '',
+    'SLYNE',
+    'Thirsty.',
+    '',
+  ].join('\n');
+  const scene = parseScript(source).scenes[0]!;
+  const people = [
+    { id: 'slyne', name: 'Slyne' },
+    { id: 'jason', name: 'Jason' },
+  ];
+  const draft = (index: number) =>
+    shotSceneDraft({
+      shot: draftShots(scene)[index]!,
+      scene,
+      sceneIndex: 8,
+      shotIndex: index,
+      castId: 'slyne',
+      cast: people,
+      castMap: { SLYNE: 'slyne', JASON: 'jason' },
+      placeMap: undefined,
+    });
+  it('shows them both; her line stays hers', () => {
+    const shots = draftShots(scene);
+    const yes = shots.findIndex(shot => shot.line?.startsWith('Yes.'));
+    const hug = draft(yes);
+    assert.equal(hug.partnerInFrame, true);
+    assert.match(hug.slot.sceneHints ?? '', /^Slyne and Jason, the two of them together\. .*hugs him/);
+    assert.equal(hug.slot.line, "Yes. That's my answer. Yes.");
+    // Her alone with a glass: still her alone.
+    const water = draft(shots.findIndex(shot => shot.line === 'Thirsty.'));
+    assert.equal(water.partnerInFrame, undefined);
+  });
+});
