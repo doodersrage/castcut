@@ -38,3 +38,21 @@ describe('Edit 2511 Lightning on fp8 when installed', () => {
     assert.equal(unet(g, '2'), 'qwen_2.5_vl_7b.safetensors');
   });
 });
+
+describe('Edit 2511 (not Lightning) when its bf16 file is gone', () => {
+  // 2026-11-15: the bf16 UNET left the install mid-film; every Final take stopped unqueued.
+  it('falls back to the installed fp8; keeps bf16 while it is there or the inventory is unknown', () => {
+    const fp8Only = {
+      availableUnets: ['qwen_image_edit_2511_fp8mixed.safetensors'],
+      availableClips: ['qwen_2.5_vl_7b_fp8_scaled.safetensors'],
+    };
+    const g = preferInstalledFp8ForEdit2511(graph(), 'qwen-image-edit-2511', fp8Only);
+    assert.equal(unet(g, '1'), 'qwen_image_edit_2511_fp8mixed.safetensors');
+    assert.equal(unet(g, '2'), 'qwen_2.5_vl_7b_fp8_scaled.safetensors');
+    const both = {
+      availableUnets: ['qwen_image_edit_2511_bf16.safetensors', 'qwen_image_edit_2511_fp8mixed.safetensors'],
+    };
+    assert.equal(unet(preferInstalledFp8ForEdit2511(graph(), 'qwen-image-edit-2511', both), '1'), 'qwen_image_edit_2511_bf16.safetensors');
+    assert.equal(unet(preferInstalledFp8ForEdit2511(graph(), 'qwen-image-edit-2511', {}), '1'), 'qwen_image_edit_2511_bf16.safetensors');
+  });
+});

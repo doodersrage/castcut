@@ -83,6 +83,17 @@ export function pinnedCutShots(input: {
       states[shot.key] = { state: 'follows' };
       return shot;
     }
+    // The same take, animated since (its clip's still is the pinned still): the take moves now —
+    // played, not offered. A Final's stills cut, then animated, played them still (2026-11-15).
+    if (
+      pin.kind === 'still' &&
+      shot.kind === 'clip' &&
+      shot.thumbUrl &&
+      shot.thumbUrl === pin.url
+    ) {
+      states[shot.key] = { state: 'pinned' };
+      return shot;
+    }
     const offered = shot.url !== pin.url && shot.url !== pin.declinedUrl;
     states[shot.key] = offered
       ? { state: 'new-take', offered: shot }

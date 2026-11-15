@@ -152,3 +152,27 @@ describe('Cut pins its media (R5)', () => {
     assert.deepEqual(unpinned?.shots?.['day:morning'], { volume: 0.3 });
   });
 });
+
+describe('a pinned still whose take was animated since', () => {
+  // The flagship (2026-11-15): a Final's stills were cut (every shot pinned), then each kept
+  // take animated — the next cut still played the stills, held 2.5 s.
+  it('plays the take’s clip; another take’s clip is still only offered', () => {
+    const pinned: CutShotEdits = {
+      shots: {
+        'scenes:s1': { pin: { url: '/still-1.png', kind: 'still', entryId: 'p1', at: 1 } },
+      },
+    };
+    const animated = { ...clip('scenes:s1', '/clip-1.webp'), thumbUrl: '/still-1.png' };
+    const same = pinnedCutShots({ shots: [animated], edits: pinned });
+    assert.equal(same.shots[0]!.url, '/clip-1.webp');
+    assert.equal(same.shots[0]!.kind, 'clip');
+    assert.equal(same.states['scenes:s1']!.state, 'pinned');
+    // Another take, with its own clip: an offer, the pinned still plays.
+    const other = pinnedCutShots({
+      shots: [{ ...clip('scenes:s1', '/clip-2.webp'), thumbUrl: '/still-2.png' }],
+      edits: pinned,
+    });
+    assert.equal(other.shots[0]!.url, '/still-1.png');
+    assert.equal(other.states['scenes:s1']!.state, 'new-take');
+  });
+});

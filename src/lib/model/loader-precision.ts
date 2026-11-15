@@ -203,7 +203,20 @@ export function preferInstalledFp8ForEdit2511(
     availableClips?: readonly string[] | null;
   }
 ): Record<string, unknown> {
-  if (!/^qwen-image-edit-2511-lightning-/i.test(String(model ?? '').trim())) return workflow;
+  const id = String(model ?? '').trim();
+  const lightning = /^qwen-image-edit-2511-lightning-/i.test(id);
+  // Edit 2511 itself keeps bf16 — unless ComfyUI no longer has it: then the fp8 it does have
+  // (2026-11-15: the bf16 file left the install mid-film and every Final take stopped unqueued).
+  if (!lightning && !/^qwen-image-edit-2511$/i.test(id)) return workflow;
+  if (!lightning) {
+    if (!inventory.availableUnets?.length) return workflow;
+    const bf16 = inventory.availableUnets.some(
+      name =>
+        qwenUnetFamilyFromFilename(name) === 'edit-2511' &&
+        precisionHintFromFilename(name) !== 'fp8'
+    );
+    if (bf16) return workflow;
+  }
   const unet = EDIT_2511_FP8_UNETS.map(name => inventoryName(inventory.availableUnets, name)).find(
     Boolean
   );
