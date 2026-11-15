@@ -3602,12 +3602,19 @@ const phases: Record<string, Phase> = {
    */
   async epreset(_ctx, page) {
     await openScene(page, V2_CAST);
-    await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
+    if (process.env.EPISODE_ENGINE !== '-') {
+      await setEngine(page, process.env.EPISODE_ENGINE ?? 'Qwen-Image 2.1 Turbo (8-step)');
+    }
+    // EPISODE_RESET_SCENES="1G,2A": only those shots (their labels) let go, to render again.
+    const only = (process.env.EPISODE_RESET_SCENES ?? '')
+      .split(',')
+      .map(label => label.trim())
+      .filter(Boolean);
     await page.waitForTimeout(3000);
     // Written with no app page open (it would write its own copy back).
     await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
     const counts = await page.evaluate(
-      castId =>
+      ({ castId, labels }) =>
         new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
           const request = indexedDB.open('comfy-prompt-studio-v1');
           request.onerror = () => reject(request.error);
@@ -3640,6 +3647,8 @@ const phases: Record<string, Phase> = {
               let takes = 0;
               scene.scenes = scene.scenes.map((entry, index) => {
                 if (entry.castId !== castId || !entry.fromScript) return entry;
+                const label = (entry as { name?: string }).name?.split(' ')[0] ?? '';
+                if (labels.length && !labels.includes(label)) return entry;
                 scenes += 1;
                 takes += entry.takes.length;
                 const { keptTakeId: _kept, ...rest } = entry;
@@ -3660,7 +3669,7 @@ const phases: Record<string, Phase> = {
             };
           };
         }),
-      V2_CAST
+      { castId: V2_CAST, labels: only }
     );
     log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
     // The run's panel is on Scene.
@@ -3834,7 +3843,9 @@ const phases: Record<string, Phase> = {
     await toRunOnScene(page);
     await page.getByTestId('scene-run-auto-keep').check();
     await page.getByTestId('scene-run-auto-redo').selectOption(process.env.SRV_REDO ?? '0');
-    await page.getByTestId('scene-run-skip-kept').uncheck();
+    // SRV_SKIP_KEPT=1: only the Scenes with no kept take (a few shots rendered again).
+    if (process.env.SRV_SKIP_KEPT === '1') await page.getByTestId('scene-run-skip-kept').check();
+    else await page.getByTestId('scene-run-skip-kept').uncheck();
     await page.getByTestId('scene-run-max-takes').fill(String(takes));
     // Scenes with a kept take were left out when the run was prepared: the first ones put back.
     const items = page.locator('[data-testid^="scene-run-item-"] input[type="checkbox"]');
