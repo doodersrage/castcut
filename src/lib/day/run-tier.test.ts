@@ -70,7 +70,8 @@ describe('run tiers (FINISHING_PLAN Phase 5)', () => {
     const next = withRunTier(run(), 'final', scenes);
     assert.equal(next.tier, 'final');
     assert.equal(next.onServer, true);
-    assert.deepEqual(next.auto, { keep: true, redo: 1, animate: false });
+    // One room a scene on for Final (user, 2026-11-15).
+    assert.deepEqual(next.auto, { keep: true, redo: 1, oneRoom: true, animate: false });
     assert.deepEqual(
       next.items.map(item => [item.sceneId, item.include]),
       [

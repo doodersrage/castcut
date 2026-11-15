@@ -1886,6 +1886,12 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await expect(page.getByTestId('scene-run-summary')).toContainText('Final: ');
   await expect(page.getByTestId('scene-run-summary')).toContainText('Qwen-Image-Edit-2511');
   await expect(page.getByTestId('scene-run-summary')).toContainText('it keeps the best take by its checks');
+  // One room a scene comes on with Final, and can be turned off.
+  await expect(page.getByTestId('scene-run-one-room')).toBeChecked();
+  await page.getByTestId('scene-run-one-room').uncheck();
+  await expect
+    .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.auto?.oneRoom ?? false)
+    .toBe(false);
   await page.getByTestId('scene-run-tier-none').click();
   await expect
     .poll(async () => JSON.parse((await storedSceneTool(page)) || '{}').run?.tier ?? 'none')

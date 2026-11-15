@@ -14,14 +14,14 @@ keeper stand-in plate, the Camera row — applies to a scene too.
 On a desk the shot and its takes sit side by side — edit on the left, the takes (and Make it move)
 on the right, kept in view while the form scrolls.
 
-| Part             | What's in it |
-| ---------------- | ------------ |
-| **Scenes**       | The Cast's saved scenes, each with a dot: green when a take is kept, amber when it still needs one; **New scene** starts one |
+| Part             | What's in it                                                                                                                                                                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scenes**       | The Cast's saved scenes, each with a dot: green when a take is kept, amber when it still needs one; **New scene** starts one                                                                                                                                   |
 | **The shot**     | Name · Time of day · Mood, People, Weather, Quality, Advanced (the clip engine is in there) · the slot editor (Setting, **Location**, Beat, **Story state**, line, narration, pose with the 3D editor and Camera row, look, engine, clothing, setting presets) |
-| **Takes**        | The take on the card (with its ⋯ tools) · every take as a card — **★ Kept** on the one Cut uses; hover a take for **Keep** and **Reject**; **Compare takes** for two side by side |
-| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director), **Continue scene** · **Cut →** |
-| **Action bar**   | Kept at the bottom of the screen: **Another take** · **Redo · same seed** · **Animate** · **Send to Day slot** · **Cut →** |
-| **Run**          | A run's panel and controls, once one is prepared (on [Script](#script)) · **Script →** opens the Script page, on the script this Scene came from |
+| **Takes**        | The take on the card (with its ⋯ tools) · every take as a card — **★ Kept** on the one Cut uses; hover a take for **Keep** and **Reject**; **Compare takes** for two side by side                                                                              |
+| **Make it move** | From the kept take: **Animate**, **Copy moves…**, **Direct a move…** (the Director), **Continue scene** · **Cut →**                                                                                                                                            |
+| **Action bar**   | Kept at the bottom of the screen: **Another take** · **Redo · same seed** · **Animate** · **Send to Day slot** · **Cut →**                                                                                                                                     |
+| **Run**          | A run's panel and controls, once one is prepared (on [Script](#script)) · **Script →** opens the Script page, on the script this Scene came from                                                                                                               |
 
 Keys (not while typing): **← →** the take before / after onto the card, **K** keeps it, **X**
 rejects it, **N** another take, **[ ]** the scene before / after.
@@ -253,7 +253,7 @@ Under the limits, **Episode**:
 - **To check** — a Scene whose best take still missed a check once the redos ran out is kept
   anyway, with a note on the take ("Kept by the run — check it: the pose missed"), and listed
   here with **Open**. That list is the review pass: everything else is in the cut already.
-- **One room a scene** — the first shot of each script scene renders its empty place once, at the
+- **One room a scene** (on when you choose **Final**) — the first shot of each script scene renders its empty place once, at the
   scene's time of day, and the scene's other shots are set in that picture, so a café stays one
   café. Close-ups go out on their words alone (a room photo beside a head-and-shoulders shot was
   dropped for a plain backdrop), and a shot whose place isn't its scene's — one still linked from

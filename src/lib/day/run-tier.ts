@@ -91,6 +91,9 @@ export function withRunTier(
       ...(run.auto ?? {}),
       keep: true,
       redo,
+      // One room a scene, on when Final is chosen (user, 2026-11-15, after s24: every kept take
+      // in its place, each scene one room); the run panel's switch turns it off.
+      oneRoom: true,
       // Animate is the page's (not on the server yet).
       animate: false,
     },

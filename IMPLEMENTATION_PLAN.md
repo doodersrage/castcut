@@ -4511,6 +4511,8 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   shots. The room notes were still 12 of 18 close-ups — close-ups no longer get the room photo,
   and their blurred backgrounds read as elsewhere — so close-ups are no longer held against the
   room nor used as a reference (`roomReferenceFor`); on s24 that leaves 9 notes on 25 shots.
+  The user made One room a scene the Final tier's default (2026-11-15): choosing Final ticks it
+  (`withRunTier`), the run panel's switch turns it off.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
