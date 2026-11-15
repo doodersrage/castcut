@@ -441,6 +441,8 @@ export function runTakesHanded(
 
 export type RunStep =
   | { kind: 'scene'; sceneId: string }
+  /** A kept take with no clip yet, on a run that animates them: animated, no new take. */
+  | { kind: 'animate'; sceneId: string }
   | { kind: 'done'; reason: 'finished' | 'take-limit' | 'time-limit' };
 
 /**
@@ -451,7 +453,12 @@ export type RunStep =
 export function nextRunStep(
   run: SceneRun,
   scenes: readonly SavedScene[],
-  now = Date.now()
+  now = Date.now(),
+  /**
+   * A kept Scene this run animates (Animate each kept take): its kept take with no clip is
+   * animated rather than skipped — a Final rendered on the server, animated on the page after.
+   */
+  animatesKept?: (scene: SavedScene) => boolean
 ): RunStep {
   if (run.current) return { kind: 'scene', sceneId: run.current.sceneId };
   // Queue all: the Scenes fixed at Start (the limits were applied then), each handed once.
@@ -473,7 +480,14 @@ export function nextRunStep(
   for (const item of run.items) {
     if (!item.include || run.outcomes?.[item.sceneId]) continue;
     const scene = byId.get(item.sceneId);
-    if (!scene || (run.skipKept && scene.keptTakeId)) continue;
+    if (!scene) continue;
+    if (run.skipKept && scene.keptTakeId) {
+      const kept = scene.takes.find(take => take.id === scene.keptTakeId);
+      if (kept && !kept.clipUrl && animatesKept?.(scene)) {
+        return { kind: 'animate', sceneId: scene.id };
+      }
+      continue;
+    }
     return { kind: 'scene', sceneId: scene.id };
   }
   return { kind: 'done', reason: 'finished' };
@@ -738,4 +752,49 @@ export function flaggedByScene(
     else groups.push({ group, shots: [shot] });
   }
   return groups;
+}
+
+/** The run's kept takes with no clip yet (what Animate the kept takes would animate). */
+export function keptTakesWithoutClip(run: SceneRun, scenes: readonly SavedScene[]): number {
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  return run.items.filter(item => {
+    const scene = byId.get(item.sceneId);
+    const kept = scene?.takes.find(take => take.id === scene.keptTakeId);
+    return Boolean(kept && !kept.clipUrl && !scene!.slot.placeOnly);
+  }).length;
+}
+
+/**
+ * A finished run made again to animate what it kept (a Final rendered on the server, its clips
+ * made on the page after — the page's Animate is not on the server): every Scene of it, nothing
+ * rendered anew (`skipKept`), each kept take animated (nextRunStep's `animate` step).
+ */
+export function animateKeptRun(run: SceneRun, now = Date.now()): SceneRun {
+  const {
+    tier: _tier,
+    onServer: _onServer,
+    outcomes: _outcomes,
+    attempts: _attempts,
+    flagged: _flagged,
+    current: _current,
+    ahead: _ahead,
+    handOff: _handOff,
+    stopReason: _stopReason,
+    startedAt: _startedAt,
+    ...rest
+  } = run;
+  return withRunLog(
+    {
+      ...rest,
+      state: 'prepared',
+      position: 0,
+      skipKept: true,
+      items: run.items.map(item => ({ ...item, include: true })),
+      auto: { ...(run.auto ?? { redo: 0 }), keep: true, animate: true, redo: run.auto?.redo ?? 0 },
+      maxTakes: Math.max(run.maxTakes, run.items.length),
+      maxMinutes: Math.max(run.maxMinutes, 24 * 60),
+      updatedAt: now,
+    },
+    { at: now, event: 'prepared', detail: 'to animate the kept takes' }
+  );
 }

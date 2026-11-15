@@ -6,6 +6,8 @@ import { parseScript } from '../script/parse';
 import { createScene, SCENE_LIMIT_PER_CAST, type SavedScene } from './scenes';
 import { createScript } from './scene-scripts';
 import {
+  animateKeptRun,
+  keptTakesWithoutClip,
   nextRunStep,
   runEndNotice,
   scriptRunProgress,
@@ -475,5 +477,46 @@ describe('a run’s takes to check, grouped by scene (2026-11-11)', () => {
         ['b', 'the pose missed', false, '/b.png'],
       ]
     );
+  });
+});
+
+describe('animating the kept takes after a Final (the page’s Animate, after the server)', () => {
+  const kept = (id: string, clip = false) =>
+    scene(id, {
+      takes: [{ id: `${id}1`, promptId: `${id}1`, imageUrl: `/${id}.png`, at: 1, ...(clip ? { clipUrl: `/${id}.webp` } : {}) }],
+      keptTakeId: `${id}1`,
+    });
+  const scenes = [kept('a'), kept('b', true), scene('c'), kept('d')];
+  const finished: SceneRun = {
+    ...runFromScript({ script: scriptWith(), scenes: [], now: 1, id: 'r' }),
+    items: ['a', 'b', 'c', 'd'].map(sceneId => ({ sceneId, include: sceneId === 'c' })),
+    state: 'done',
+    tier: 'final',
+    onServer: true,
+    auto: { keep: true, redo: 1, animate: false, oneRoom: true },
+    outcomes: { c: 'landed' },
+    attempts: { c: 1 },
+  };
+
+  it('the run made again: every Scene, nothing rendered anew, each kept take without a clip animated', () => {
+    assert.equal(keptTakesWithoutClip(finished, scenes), 2, 'a and d (b has its clip, c kept nothing)');
+    const again = animateKeptRun(finished, 5);
+    assert.equal(again.state, 'prepared');
+    assert.equal(again.tier, undefined);
+    assert.equal(again.onServer, undefined, 'the page animates');
+    assert.equal(again.outcomes, undefined);
+    assert.ok(again.items.every(item => item.include));
+    assert.deepEqual(again.auto, { keep: true, redo: 1, animate: true, oneRoom: true });
+    const running = { ...again, state: 'running' as const, startedAt: 5 };
+    const animates = () => true;
+    assert.deepEqual(nextRunStep(running, scenes, 6, animates), { kind: 'animate', sceneId: 'a' });
+    const afterA = withRunOutcome(running, 'a', 'landed', 'a: kept take animated', 7);
+    // b has its clip: skipped; c kept nothing: rendered (as any run would); then d animated.
+    assert.deepEqual(nextRunStep(afterA, scenes, 8, animates), { kind: 'scene', sceneId: 'c' });
+    const afterC = withRunOutcome(afterA, 'c', 'landed', 'c', 9);
+    assert.deepEqual(nextRunStep(afterC, scenes, 10, animates), { kind: 'animate', sceneId: 'd' });
+    // A run that doesn't animate skips kept Scenes, as before.
+    assert.deepEqual(nextRunStep(afterA, scenes, 8), { kind: 'scene', sceneId: 'c' });
+    assert.deepEqual(nextRunStep(afterC, scenes, 10), { kind: 'done', reason: 'finished' });
   });
 });

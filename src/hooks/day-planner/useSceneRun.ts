@@ -170,6 +170,72 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
   }, [handedKey, save]);
 
   /**
+   * The kept take animated (the page's own Animate) and its clip waited for: after a take the run
+   * keeps, and for a Scene kept already (a Final rendered on the server, animated here after).
+   * A clip that fails is flagged; the still is used.
+   */
+  const animateKept = useCallback(
+    async (sceneId: string, name: string, keptPromptId: string | undefined) => {
+      // The kept take is on the card once nothing renders there; then the page's Animate.
+      await until(
+        () => !pageRef.current.inFlight && pageRef.current.still?.promptId === keptPromptId,
+        CHECKS_TIMEOUT_MS
+      );
+      const clipBefore = pageRef.current.still?.clipPromptId;
+      await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
+      // The page has the queued clip after its next render (pageRef follows in an effect):
+      // read at once, it was always the still before — every clip of a real run was called
+      // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
+      await until(() => {
+        const still = pageRef.current.still;
+        return (
+          still?.clipStatus === 'error' ||
+          Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
+        );
+      }, OPEN_TIMEOUT_MS);
+      const queued = pageRef.current.still?.clipStatus;
+      const landed =
+        queued === 'queued' || queued === 'running' || queued === 'completed'
+          ? await until(() => {
+              const status = pageRef.current.still?.clipStatus;
+              return status === 'completed' || status === 'error';
+            }, RENDER_TIMEOUT_MS)
+          : false;
+      const ok = landed && pageRef.current.still?.clipStatus === 'completed';
+      // Its clip joins the kept take (the page merges it), which Cut then plays.
+      if (ok) {
+        await until(() => Boolean(pageRef.current.kept?.clipUrl), OPEN_TIMEOUT_MS);
+      }
+      const latest = runRef.current;
+      if (!latest) return;
+      save(
+        withRunLog(
+          ok
+            ? latest
+            : {
+                ...latest,
+                flagged: {
+                  ...(latest.flagged ?? {}),
+                  [sceneId]: [latest.flagged?.[sceneId], 'its clip didn’t render']
+                    .filter(Boolean)
+                    .join('; '),
+                },
+              },
+          {
+            at: Date.now(),
+            sceneId,
+            event: ok ? 'animated' : 'flagged',
+            detail: ok
+              ? `${name}: animated`
+              : `${name}: its clip didn’t render — the still is used`,
+          }
+        )
+      );
+    },
+    [save]
+  );
+
+  /**
    * An episode run's take, landed and checked (Part 19 G1, episode-run.ts): the best of the
    * Scene's takes by their checks is kept — or, when even that one fails them and redos are
    * left, the Scene is rendered again. Out of redos, the least-bad is kept, noted and flagged
@@ -248,65 +314,12 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       save(run);
 
       if (episodeAnimates(auto, pageRef.current.active?.slot ?? {}) && !pick.take.clipUrl) {
-        // The kept take is on the card once nothing renders there; then the page's Animate.
-        await until(
-          () => !pageRef.current.inFlight && pageRef.current.still?.promptId === pick.take.promptId,
-          CHECKS_TIMEOUT_MS
-        );
-        const clipBefore = pageRef.current.still?.clipPromptId;
-        await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
-        // The page has the queued clip after its next render (pageRef follows in an effect):
-        // read at once, it was always the still before — every clip of a real run was called
-        // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
-        await until(() => {
-          const still = pageRef.current.still;
-          return (
-            still?.clipStatus === 'error' ||
-            Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
-          );
-        }, OPEN_TIMEOUT_MS);
-        const queued = pageRef.current.still?.clipStatus;
-        const landed =
-          queued === 'queued' || queued === 'running' || queued === 'completed'
-            ? await until(() => {
-                const status = pageRef.current.still?.clipStatus;
-                return status === 'completed' || status === 'error';
-              }, RENDER_TIMEOUT_MS)
-            : false;
-        const ok = landed && pageRef.current.still?.clipStatus === 'completed';
-        // Its clip joins the kept take (the page merges it), which Cut then plays.
-        if (ok) {
-          await until(() => Boolean(pageRef.current.kept?.clipUrl), OPEN_TIMEOUT_MS);
-        }
-        const latest = runRef.current ?? run;
-        save(
-          withRunLog(
-            ok
-              ? latest
-              : {
-                  ...latest,
-                  flagged: {
-                    ...(latest.flagged ?? {}),
-                    [sceneId]: [latest.flagged?.[sceneId], 'its clip didn’t render']
-                      .filter(Boolean)
-                      .join('; '),
-                  },
-                },
-            {
-              at: Date.now(),
-              sceneId,
-              event: ok ? 'animated' : 'flagged',
-              detail: ok
-                ? `${name}: animated`
-                : `${name}: its clip didn’t render — the still is used`,
-            }
-          )
-        );
+        await animateKept(sceneId, name, pick.take.promptId);
       }
       save(withRunOutcome(runRef.current ?? run, sceneId, 'landed', `${name}: done`));
       return true;
     },
-    [save]
+    [animateKept, save]
   );
 
   const loop = useCallback(async () => {
@@ -359,7 +372,14 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           );
           return;
         }
-        const step = nextRunStep(run, pageRef.current.castScenes);
+        const step = nextRunStep(
+          run,
+          pageRef.current.castScenes,
+          Date.now(),
+          run.auto?.keep && run.auto.animate
+            ? scene => episodeAnimates(run.auto!, scene.slot)
+            : undefined
+        );
         if (step.kind === 'done' && run.handOff) {
           const handed = runTakesHanded(run).length;
           save(
@@ -419,6 +439,21 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
             );
             return;
           }
+        }
+
+        // Kept already, no clip yet (a Final rendered on the server): animated, no new take.
+        if (step.kind === 'animate') {
+          const kept = scene.takes.find(take => take.id === scene.keptTakeId);
+          await animateKept(sceneId, scene.name, kept?.promptId ?? kept?.id);
+          save(
+            withRunOutcome(
+              runRef.current ?? run,
+              sceneId,
+              'landed',
+              `${scene.name}: kept take animated`
+            )
+          );
+          continue;
         }
 
         // Its take: the one in flight (a restart, or one already on the card) — never a second.
@@ -552,7 +587,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       setLooping(false);
       setStopping(null);
     }
-  }, [afterEpisodeTake, me, save]);
+  }, [afterEpisodeTake, animateKept, me, save]);
 
   // A run the server renders: what it did, applied here in order (each patch once), while the
   // page is open — and when it opens again, everything since. Stops asking once it has ended.

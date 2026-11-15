@@ -7,7 +7,9 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SegmentedControl, ToolSection } from '@/components/ui/ToolPageShell';
 import { EPISODE_REDO_MAX } from '@/lib/day/episode-run';
 import {
+  animateKeptRun,
   flaggedByScene,
+  keptTakesWithoutClip,
   RUN_DEFAULT_MAX_MINUTES,
   RUN_DEFAULT_MAX_TAKES,
   RUN_MAX_TAKES,
@@ -59,6 +61,7 @@ export default function SceneRunPanel({
   const queuedIds = new Set(plan.queued.map(entry => entry.sceneId));
   const leftIds = new Set(plan.left.map(entry => entry.sceneId));
   const set = (patch: Partial<SceneRun>) => onChange({ ...run, ...patch, updatedAt: Date.now() });
+  const toAnimate = useMemo(() => keptTakesWithoutClip(run, scenes), [run, scenes]);
   // A Final run holds back the shots whose newest preview you rejected (run-tier.ts).
   const heldCount =
     run.tier === 'final'
@@ -442,6 +445,18 @@ export default function SceneRunPanel({
         </ol>
         <div className="flex flex-wrap items-center gap-2">
           {children}
+          {(run.state === 'done' || run.state === 'cancelled') && toAnimate > 0 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={disabled}
+              data-testid="scene-run-animate-kept"
+              title="The run again on this page, rendering nothing new: each kept take made a clip (a talking clip when its shot has a line)"
+              onClick={() => onChange(animateKeptRun(run))}
+            >
+              Animate the kept takes ({toAnimate})
+            </Button>
+          ) : null}
           <Button
             size="sm"
             variant="ghost"
