@@ -2701,7 +2701,11 @@ const phases: Record<string, Phase> = {
    * cut off (a second machine's browser; the server and its Gallery are still this one).
    */
   async package(ctx, page) {
-    await go(page, `/cut?from=scenes&character=${V2_CAST}`);
+    const only = process.env.EPISODE_CUT_SCRIPT?.trim();
+    await go(
+      page,
+      `/cut?from=scenes&character=${V2_CAST}${only ? `&script=${encodeURIComponent(only)}` : ''}`
+    );
     await page.getByTestId('cut-package-full').waitFor({ timeout: 180_000 });
     await page.waitForTimeout(3000);
     const download = page.waitForEvent('download', { timeout: 300_000 });
@@ -3999,9 +4003,19 @@ const phases: Record<string, Phase> = {
     writeFileSync(join(OUT, 'pair.json'), JSON.stringify(results, null, 1));
   },
 
-  /** Part 19: the episode cut — music by scene, lines read, the long film. */
+  /**
+   * Part 19: the episode cut — music by scene, lines read, the long film. EPISODE_CUT_SCRIPT=<id>
+   * cuts that script's Scenes alone (Cut's ?script=; the Cast's other Scenes left out). The Scene
+   * page is opened first: a server run's takes reach this browser there (its patches).
+   */
   async epcut(_ctx, page) {
-    await go(page, `/cut?from=scenes&character=${V2_CAST}`);
+    await openScene(page, V2_CAST);
+    await page.waitForTimeout(30_000);
+    const only = process.env.EPISODE_CUT_SCRIPT?.trim();
+    await go(
+      page,
+      `/cut?from=scenes&character=${V2_CAST}${only ? `&script=${encodeURIComponent(only)}` : ''}`
+    );
     const button = page.getByTestId('cut-film').first();
     await button.waitFor({ timeout: 300_000 });
     await page.waitForTimeout(5000);
