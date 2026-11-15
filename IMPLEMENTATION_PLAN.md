@@ -4522,6 +4522,23 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   Cut opened after a server run with the page closed cut the Scenes as they were before it
   (now says so and links to Scene, 06621ba6); the real-render phases were updated for Cut's
   tabs (10b2b168, 66b17884).
+- **The flagship film, "The Spare Key" (2026-11-15):** Slyne and Jason, 11 scenes, 51 shots,
+  3:43, 720p, every shot a clip (silent clips 4 s, talking clips ~5 s), lines in their voices,
+  music by scene, -14.6 LUFS; packed with its media (192 MB) and imported elsewhere with nothing
+  missing. Jason is a Cast member made from the script (Make … Cast). Made on a fresh install:
+  Final on the server (146 min), 7 + 3 + 1 shots rendered again, the kept takes animated on the
+  page (51 clips, 46 min), cut. Fixed on the way (all with tests):
+  - the partner's face, finished on the server against their crop (e2a7d180): s24's partner
+    came out another person every shot (0.6–1.0 from the crop); here 25 passes, median 0.81 →
+    0.58, best 0.12;
+  - one everyday outfit for a Cast partner (be8d62d6); a shot where the lead touches the partner
+    is a two-shot (93680185); Animate the kept takes after a server Final (e3549a30, 23117d89);
+  - Cut: a server run's takes not yet in this browser are said (06621ba6, 4e5c9f25); a pinned
+    still plays its take's clip once animated (55a27ec4, 7a5ad175); Edit 2511 falls back to fp8
+    when bf16 is not installed (55a27ec4 — the bf16 file left the install mid-film).
+  Still weak: 9D (an empty room under Jason's line, three tries), 5B indoors, 6A's orange tights;
+  the outfit check read an empty room as "naked" and a dressed lead as "topless" several times.
+  Publishing it is the user's call.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
