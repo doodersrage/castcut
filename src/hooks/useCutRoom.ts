@@ -378,10 +378,14 @@ export function useCutRoom() {
     () => cutAddedScenesFor(scenesAddedAll, scenesScriptId || undefined),
     [scenesAddedAll, scenesScriptId]
   );
+  // The Gallery as it is now: a clip's checks (where it cuts away, a line said twice, talking when
+  // it should not) shape its shot, and they land after the page opens — read once at mount, the
+  // flagship's 5E played its words though marked quiet (2026-11-16).
+  const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
   const sceneShots = useMemo(() => {
     const cutAt = new Map(
       // Where it cuts away, or — a line it says again (the run's hearing) — just after the line.
-      loadComfyGallery().flatMap(entry => {
+      gallery.flatMap(entry => {
         const ends = [
           entry.playChecks?.clipCutAt,
           typeof entry.playChecks?.clipLineEnd === 'number'
@@ -392,7 +396,7 @@ export function useCutRoom() {
       })
     );
     const talks = new Set(
-      loadComfyGallery().flatMap(entry => (entry.playChecks?.clipTalks ? [entry.promptId] : []))
+      gallery.flatMap(entry => (entry.playChecks?.clipTalks ? [entry.promptId] : []))
     );
     return quietTalkingClips(
       trimClipsAtTheirCuts(
@@ -421,7 +425,7 @@ export function useCutRoom() {
       ),
       id => talks.has(id)
     );
-  }, [sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
+  }, [gallery, sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
     [cut.toolSettings.options]
@@ -3146,7 +3150,6 @@ export function useCutRoom() {
   );
 
   // The Cast's films (newest first) — re-cut, export or share them here.
-  const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
   useEffect(() => {
     void initGalleryStore();
   }, []);
