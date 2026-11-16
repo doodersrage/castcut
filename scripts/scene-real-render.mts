@@ -3696,7 +3696,7 @@ const phases: Record<string, Phase> = {
                   updatedAt: now + index,
                 };
               });
-              delete scene.run;
+              if (!clipsOnly) delete scene.run;
               if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
               const put = store.put(record);
               put.onsuccess = () => {
@@ -3718,12 +3718,14 @@ const phases: Record<string, Phase> = {
     // The run's panel is on Scene.
     await openScene(page, V2_CAST);
     await page.waitForTimeout(5000);
-    // A copy synced back from the server can bring the old run back: discard it here too.
+    // A copy synced back from the server can bring the old run back: discard it here too (not
+    // when only clips were let go: Animate the kept takes needs that run).
     if (
-      await page
+      process.env.EPISODE_RESET_CLIPS !== 'lines' &&
+      (await page
         .getByTestId('scene-run')
         .isVisible()
-        .catch(() => false)
+        .catch(() => false))
     ) {
       await page.getByTestId('scene-run-discard').click();
       await page.getByTestId('confirm-dialog-confirm').click();
