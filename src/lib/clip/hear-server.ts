@@ -71,6 +71,8 @@ export type ClipHearing = {
   wrong: boolean;
   /** A one-sentence line said twice: where its first saying ends (seconds in). */
   lineEndSec?: number;
+  /** A clip meant to say nothing that talks: where its talking starts (seconds in). */
+  talksAtSec?: number;
 };
 
 export async function hearClip(input: {
@@ -97,6 +99,7 @@ export async function hearClip(input: {
   let loudest: number | null = null;
   let saidTwice = false;
   let lineEndSec: number | undefined;
+  let talksAtSec: number | undefined;
   if (line) {
     // A one-sentence line said twice can be heard as once by Whisper: its sound says so.
     const ffmpeg = await resolveFfmpegBinary();
@@ -121,6 +124,10 @@ export async function hearClip(input: {
     try {
       await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
       loudest = await loudestDb(ffmpeg, file);
+      // Where any voice starts: a clip that talks can be ended before it (Cut, clipTalksAt).
+      const samples = await monoSamples(ffmpeg, file);
+      const first = samples ? speechBursts(samples, HEAR_RATE)[0] : undefined;
+      if (first) talksAtSec = first.startSec;
     } finally {
       await fs.rm(/* turbopackIgnore: true */ file, { force: true }).catch(() => undefined);
     }
@@ -142,5 +149,6 @@ export async function hearClip(input: {
       ? saidTwice || lineHeardWrong(transcript, line)
       : wordlessSpeaks(transcript, loudest ?? 0),
     ...(lineEndSec !== undefined ? { lineEndSec } : {}),
+    ...(!line && talksAtSec !== undefined ? { talksAtSec } : {}),
   };
 }

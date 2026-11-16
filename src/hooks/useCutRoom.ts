@@ -395,8 +395,10 @@ export function useCutRoom() {
         return ends.length ? [[entry.promptId, Math.min(...ends)] as const] : [];
       })
     );
-    const talks = new Set(
-      gallery.flatMap(entry => (entry.playChecks?.clipTalks ? [entry.promptId] : []))
+    const talks = new Map(
+      gallery.flatMap(entry =>
+        entry.playChecks?.clipTalks ? [[entry.promptId, entry.playChecks.clipTalksAt] as const] : []
+      )
     );
     return quietTalkingClips(
       trimClipsAtTheirCuts(
@@ -423,7 +425,7 @@ export function useCutRoom() {
             ),
         id => cutAt.get(id)
       ),
-      id => talks.has(id)
+      id => ({ talks: talks.has(id), atSec: talks.get(id) })
     );
   }, [gallery, sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
   const options: FilmCutOptionsValue = useMemo(

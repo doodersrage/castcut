@@ -25,6 +25,7 @@ export function entryPlayChecks(
     clipSilent: _silent,
     clipLineEnd: _lineEnd,
     clipTalks: _talks,
+    clipTalksAt: _talksAt,
     ...rest
   } = checks;
   return rest;

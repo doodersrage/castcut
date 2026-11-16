@@ -93,7 +93,12 @@ async function driftOfKeptClip(
 async function hearKeptClip(
   kept: { clipUrl?: string; clipPromptId?: string } | null | undefined,
   line: string
-): Promise<{ wrong: boolean; transcript?: string; lineEndSec?: number } | null> {
+): Promise<{
+  wrong: boolean;
+  transcript?: string;
+  lineEndSec?: number;
+  talksAtSec?: number;
+} | null> {
   const clipUrl = kept?.clipUrl?.trim();
   if (!clipUrl) return null;
   const entry = kept?.clipPromptId
@@ -115,12 +120,14 @@ async function hearKeptClip(
     wrong?: boolean;
     transcript?: string;
     lineEndSec?: number;
+    talksAtSec?: number;
   } | null;
   return json?.heard
     ? {
         wrong: Boolean(json.wrong),
         transcript: json.transcript,
         ...(typeof json.lineEndSec === 'number' ? { lineEndSec: json.lineEndSec } : {}),
+        ...(typeof json.talksAtSec === 'number' ? { talksAtSec: json.talksAtSec } : {}),
       }
     : null;
 }
@@ -360,7 +367,14 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           // Meant to say nothing and still talking: Cut plays it quiet (a reaction's laugh is
           // heard otherwise — its words would be too).
           const clipId = pageRef.current.kept?.clipPromptId;
-          if (!line && clipId) recordGalleryPlayChecks(clipId, { clipTalks: true });
+          if (!line && clipId) {
+            recordGalleryPlayChecks(clipId, {
+              clipTalks: true,
+              ...(typeof hearing.talksAtSec === 'number'
+                ? { clipTalksAt: hearing.talksAtSec }
+                : {}),
+            });
+          }
           break;
         }
         ok = await animateOnce();

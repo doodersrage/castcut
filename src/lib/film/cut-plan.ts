@@ -685,6 +685,9 @@ export function trimClipsAtTheirCuts<T extends KeyedShot>(
   });
 }
 
+/** The shortest a clip is left when it is ended before it starts talking (seconds). */
+export const CLIP_TALK_TRIM_MIN_SEC = 1.2;
+
 /**
  * A clip meant to say nothing that the run heard talking (playChecks.clipTalks) plays quiet: a
  * reaction shot keeps its laugh, but not words (the flagship's 5E, 2026-11-16). A level picked
@@ -692,9 +695,18 @@ export function trimClipsAtTheirCuts<T extends KeyedShot>(
  */
 export function quietTalkingClips<T extends KeyedShot>(
   shots: readonly T[],
-  talksOf: (entryId: string) => boolean
+  talksOf: (entryId: string) => { talks: boolean; atSec?: number }
 ): T[] {
-  return shots.map(shot =>
-    shot.kind === 'clip' && shot.entryId && talksOf(shot.entryId) ? { ...shot, volume: 0 } : shot
-  );
+  return shots.map(shot => {
+    if (shot.kind !== 'clip' || !shot.entryId) return shot;
+    const { talks, atSec } = talksOf(shot.entryId);
+    if (!talks) return shot;
+    // Ended just before it starts talking, when that leaves a shot (the flagship's 5E: a mouth
+    // going with its sound off read as missed speech); else played quiet.
+    const end = typeof atSec === 'number' ? Math.round((atSec - 0.1) * 100) / 100 : 0;
+    if (end >= CLIP_TALK_TRIM_MIN_SEC && (shot.trimEndSec === undefined || shot.trimEndSec > end)) {
+      return { ...shot, trimEndSec: end };
+    }
+    return { ...shot, volume: 0 };
+  });
 }

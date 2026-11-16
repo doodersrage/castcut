@@ -103,17 +103,25 @@ describe('a reaction shot is heard: its laugh is not muted (the flagship, 2026-1
   });
 });
 
-describe('a clip meant to say nothing that still talks plays quiet (the flagship, 2026-11-16)', () => {
-  it('the clip the run heard talking is quiet; the rest keep their sound', async () => {
+describe('a clip meant to say nothing that still talks (the flagship, 2026-11-16)', () => {
+  it('ends just before it starts talking when that leaves a shot; else plays quiet', async () => {
     const { quietTalkingClips } = await import('./cut-plan');
     const shot = (key: string, kind = 'clip') =>
       ({ key, title: key, url: `/${key}.mp4`, kind, entryId: key }) as never;
-    const out = quietTalkingClips([shot('5E'), shot('10D'), shot('5E', 'still')], id => id === '5E') as Array<{
-      volume?: number;
-    }>;
+    const at: Record<string, number | undefined> = { late: 2.4, early: 0.6, unknown: undefined };
+    const out = quietTalkingClips(
+      [shot('late'), shot('early'), shot('unknown'), shot('fine'), shot('late', 'still')],
+      id => ({ talks: id in at, atSec: at[id] })
+    ) as Array<{ volume?: number; trimEndSec?: number }>;
     assert.deepEqual(
-      out.map(entry => entry.volume),
-      [0, undefined, undefined]
+      out.map(entry => [entry.trimEndSec, entry.volume]),
+      [
+        [2.3, undefined],
+        [undefined, 0],
+        [undefined, 0],
+        [undefined, undefined],
+        [undefined, undefined],
+      ]
     );
   });
 });

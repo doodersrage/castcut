@@ -23,6 +23,8 @@ export type GalleryPlayChecks = {
   clipLineEnd?: number;
   /** A clip meant to say nothing that still talks after the run's retries: Cut plays it quiet. */
   clipTalks?: boolean;
+  /** Where that talking starts (seconds in): Cut ends the clip just before when that leaves enough. */
+  clipTalksAt?: number;
   /** The Cast's marks still missing after the repair (what is missing). */
   marksMissing?: string;
   /**

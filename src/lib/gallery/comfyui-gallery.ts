@@ -1034,6 +1034,7 @@ export function mergeGalleryPlayChecks(
   if ('clipSilent' in checks) merged.clipSilent = checks.clipSilent;
   if ('clipLineEnd' in checks) merged.clipLineEnd = checks.clipLineEnd;
   if ('clipTalks' in checks) merged.clipTalks = checks.clipTalks;
+  if ('clipTalksAt' in checks) merged.clipTalksAt = checks.clipTalksAt;
   if ('marksMissing' in checks) merged.marksMissing = checks.marksMissing?.trim() || undefined;
   // Auto-review's verdicts (M7 T2): a check that ran and passed clears an earlier miss.
   if ('outfitMiss' in checks) {
