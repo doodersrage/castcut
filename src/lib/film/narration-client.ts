@@ -15,6 +15,8 @@ type NarrationLineInput = {
   seed?: number;
   /** A line said in a scene: acted, with the scene's sound (narration-server.ts). */
   inScene?: boolean;
+  /** Only the voice engine reads it — no slower LTX read when it isn't running. */
+  engineOnly?: boolean;
 };
 
 /** Read one line (POST /api/film/narration): its ComfyUI audio view URL, and its length when known. */

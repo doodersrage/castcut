@@ -639,6 +639,13 @@ export function withH3VoiceAnchor(
      * like" after its line; told them, the same seed did not, nor 3 that were clean before.
      */
     clipWords?: string;
+    /**
+     * `voiceAudio` is this very line, read in the kept voice by the voice engine (Qwen3-TTS): H3
+     * says it as heard there — same words, pace and delivery — so every clip of a speaker sounds
+     * like the one voice Cut reads their lines in (the flagship, 2026-11-16: "voices do sound a
+     * little inconsistent"). Not with a voice clip.
+     */
+    readLine?: boolean;
     pictures?: ReadonlyArray<{ image: string; shows: string }>;
     look?: string;
     who?: 'She' | 'He';
@@ -684,7 +691,9 @@ export function withH3VoiceAnchor(
   const speaker = said ? '(S1)' : who.toLowerCase();
   const tags = [
     ...pictures.map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`),
-    `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${speaker} speaks in exactly that voice — the same person, pitch, tone, accent and pace. ${voiceWordsLine(input.clipWords, who)}`,
+    !voiceClip && input.readLine
+      ? `<Audio 1> is ${who === 'He' ? 'him' : 'her'} saying this very line: ${speaker} says it exactly as heard in <Audio 1> — the same voice, words, pace, pauses and delivery, in sync with it — and nothing else.`
+      : `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${speaker} speaks in exactly that voice — the same person, pitch, tone, accent and pace. ${voiceWordsLine(input.clipWords, who)}`,
   ].join(' ');
   graph[id] = {
     class_type: H3_REF_NODE,

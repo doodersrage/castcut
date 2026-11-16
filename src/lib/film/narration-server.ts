@@ -50,6 +50,8 @@ export async function renderNarration(input: {
   inScene?: boolean;
   /** One speaker's lines on one seed sound like one person (a new seed is a new voice). */
   seed?: number;
+  /** Only the voice engine's read (a talking clip's voice anchor): no LTX fallback. */
+  engineOnly?: boolean;
   comfyUrl?: string;
 }): Promise<{ url: string; seconds?: number; cutShort?: boolean }> {
   const line = normalizeNarration(input.line);
@@ -87,6 +89,7 @@ export async function renderNarration(input: {
       console.warn('[narration] voice engine failed:', error);
     }
   }
+  if (input.engineOnly) throw new Error('The voice engine is not running.');
   const voiceSample = input.voiceBase ? undefined : input.voiceSample;
   for (const node of NARRATION_REQUIRED_NODES) {
     if (!(await resolveComfyNode(baseUrl, [node]))) {

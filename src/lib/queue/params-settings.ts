@@ -368,6 +368,9 @@ export function resolveQueueParams(
   ] as const) {
     if (base?.[key]?.trim()) merged[key] = base[key].trim();
   }
+  if (base?.videoVoiceRead?.trim()) {
+    merged.videoVoiceRead = base.videoVoiceRead.trim();
+  }
   if (base?.videoVoiceWho === 'He' || base?.videoVoiceWho === 'She') {
     merged.videoVoiceWho = base.videoVoiceWho;
   }

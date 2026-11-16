@@ -291,6 +291,12 @@ export type WorkflowParamValues = {
   videoPartnerVoiceClipWords?: string;
   /** Whose voice videoVoiceClip is (the partner saying their line: 'He'); unset = 'She'. */
   videoVoiceWho?: 'He' | 'She';
+  /**
+   * ComfyUI input audio: the line itself read in the speaker's kept voice by the voice engine.
+   * MiniMax-H3 says it as heard there (withH3VoiceAnchor's readLine), and Cut can lay that reading
+   * over the clip.
+   */
+  videoVoiceRead?: string;
   /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -641,6 +647,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceWho === 'He' || merged.videoVoiceWho === 'She') {
     result.videoVoiceWho = merged.videoVoiceWho;
+  }
+  if (merged.videoVoiceRead?.trim()) {
+    result.videoVoiceRead = merged.videoVoiceRead.trim();
   }
   if (merged.videoVoiceSteer === 'on') {
     result.videoVoiceSteer = 'on';
@@ -2138,7 +2147,9 @@ export function injectPromptsWithFallbacks(
         // takes the voice clip's picture too, and an audition rendered from a base-layer plate put
         // her in a bra and a man in his underwear into the flagship's clips (2026-11-15). The
         // conversation keeps its clips (two voices need telling apart).
-        const sampleOnly = input.params?.videoVoiceSample?.trim();
+        // The line read in the kept voice (the voice engine) anchors before any sample or clip.
+        const voiceRead = input.params?.videoVoiceRead?.trim();
+        const sampleOnly = voiceRead || input.params?.videoVoiceSample?.trim();
         const voiceClip = sampleOnly ? undefined : input.params?.videoVoiceClip?.trim();
         const conversationClip = input.params?.videoVoiceClip?.trim();
         const voiceAudio = voiceClip ? undefined : sampleOnly;
@@ -2181,7 +2192,9 @@ export function injectPromptsWithFallbacks(
                 // like."): named as words never said — two of the flagship's lines came out as it.
                 ...(voiceClip
                   ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
-                  : { voiceAudio, clipWords: input.params?.videoVoiceClipWords?.trim() }),
+                  : voiceRead
+                    ? { voiceAudio: voiceRead, readLine: true }
+                    : { voiceAudio, clipWords: input.params?.videoVoiceClipWords?.trim() }),
                 ...(input.params?.videoVoiceWho === 'He' ? { who: 'He' as const } : {}),
               })
             : null;

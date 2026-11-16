@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     voiceBase?: unknown;
     delivery?: unknown;
     inScene?: unknown;
+    engineOnly?: unknown;
     seed?: unknown;
     comfyUrl?: unknown;
   };
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
           : {}),
         ...(body.voiceBase === true ? { voiceBase: true } : {}),
         ...(body.inScene === true ? { inScene: true } : {}),
+        ...(body.engineOnly === true ? { engineOnly: true } : {}),
         ...(typeof body.delivery === 'string' && body.delivery.trim()
           ? { delivery: body.delivery.trim().slice(0, 100) }
           : {}),

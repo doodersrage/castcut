@@ -97,6 +97,7 @@ import { buildDaySlotClipPrompt, defaultDayClipDirection } from '@/lib/day/clip-
 import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still/clip-prompt';
+import { readLineForClip } from '@/lib/cast/voice-read-client';
 import {
   DAY_CLIP_EXTRA_SECONDS,
   dayClipFrames,
@@ -599,6 +600,18 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           framing !== 'close' &&
           (stillBody?.posture ?? (stillWordsSeated(parentEntry?.prompt) ? 'seated' : null)) ===
             'seated';
+        // On MiniMax-H3 the line is read first in the speaker's kept voice (the voice engine),
+        // and H3 says it as heard there — one voice across the film (2026-11-16).
+        const voiceRead =
+          speaking && !conversation && isH3Model(videoModel)
+            ? await readLineForClip({
+                castId: voiceOf,
+                line: pronounceForCast(spokenLine, voiceOf),
+                speaker:
+                  (partnerSays ? partnerWho : manLead ? 'He' : 'She') === 'He' ? 'man' : 'woman',
+                ...(slot.lineTone ? { delivery: slot.lineTone } : {}),
+              })
+            : undefined;
         // Who the line is said to: the other person in a two-shot (him, or her when he speaks),
         // else the partner just off camera — not the lens (the flagship, 2026-11-16).
         const sceneHasPartner = Boolean(toolSettings.partnerCharacterId?.trim());
@@ -765,6 +778,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                         : {}
                       : {
                           ...castVoiceSampleFor(voiceOf),
+                          ...(voiceRead ? { videoVoiceRead: voiceRead } : {}),
                           ...(partnerSays ? { videoVoiceWho: partnerWho } : {}),
                         }),
                     // Not cropped chest-up: render larger so the small face holds.

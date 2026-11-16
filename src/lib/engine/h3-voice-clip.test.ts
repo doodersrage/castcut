@@ -331,3 +331,20 @@ describe('a clip with no line, on H3 (the flagship, 2026-11-15)', () => {
     assert.ok(prompt.includes(H3_NO_SPEECH_TAIL));
   });
 });
+
+describe('the line read in the kept voice anchors the clip (the flagship, 2026-11-16)', () => {
+  // "Voices do sound a little inconsistent": each clip made its own take on a generic sample.
+  it('H3 says the line as heard in the reading, before any sample or clip', () => {
+    const nodes = talkingClip({
+      videoVoiceRead: 'castcut-line.wav',
+      videoVoiceSample: 'castcut-voice.wav',
+      videoVoiceClip: 'clip.mp4',
+      videoVoiceClipWords: 'This is what I sound like.',
+    });
+    const ref = String(nodes.find(node => node.class_type === H3_REF_NODE)!.inputs.prompt);
+    assert.match(ref, /^<Audio 1> is her saying this very line: \(S1\) says it exactly as heard in <Audio 1>/);
+    assert.doesNotMatch(ref, /This is what I sound like/);
+    assert.ok(nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-line.wav'));
+    assert.ok(!nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
+  });
+});
