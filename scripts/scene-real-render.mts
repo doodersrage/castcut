@@ -4078,14 +4078,40 @@ const phases: Record<string, Phase> = {
     // EPISODE_CLIP_ENGINE=h3 (or wan, ltx): what Animate renders on (Day's and Scene's choice).
     const clipEngine = process.env.EPISODE_CLIP_ENGINE?.trim();
     if (clipEngine) {
-      const select = page.getByTestId('clip-engine-day').first();
-      await select.waitFor({ timeout: 120_000 });
-      await select.selectOption(clipEngine);
-      await page.waitForTimeout(1500);
-      log('clips on:', await select.inputValue());
-      if ((await select.inputValue()) !== clipEngine) {
-        problems.push(`epanimate: clips not on ${clipEngine}`);
-      }
+      // Video → dayClips, the setting the Animate sheet's engine picker writes — written with no
+      // app page open (it would write its own copy back), then the Scene opened again.
+      await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+      const set = await page.evaluate(
+        engine =>
+          new Promise<string>((resolve, reject) => {
+            const request = indexedDB.open('comfy-prompt-studio-v1');
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+              const db = request.result;
+              const store = db.transaction('kv', 'readwrite').objectStore('kv');
+              const get = store.get('comfy-prompt-tool-settings-tools-v1');
+              get.onsuccess = () => {
+                const record = get.result as {
+                  value: { tools: Record<string, Record<string, unknown>>; updatedAt?: number };
+                };
+                record.value.tools.video = {
+                  ...(record.value.tools.video ?? {}),
+                  dayClips: engine,
+                };
+                record.value.updatedAt = Date.now();
+                const put = store.put(record);
+                put.onsuccess = () => {
+                  db.close();
+                  resolve(String(record.value.tools.video.dayClips));
+                };
+                put.onerror = () => reject(put.error);
+              };
+            };
+          }),
+        clipEngine
+      );
+      log('clips on:', set);
+      await openScene(page, V2_CAST);
     }
     const button = page.getByTestId('scene-run-animate-kept');
     await button.waitFor({ timeout: 180_000 });
