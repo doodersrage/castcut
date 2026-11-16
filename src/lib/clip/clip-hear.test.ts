@@ -14,5 +14,8 @@ describe('a talking clip heard against its line', () => {
     assert.equal(lineHeardWrong("Hi, I'm Sline. I say what I sound like.", 'I said yes, Mom.'), true);
     assert.equal(lineHeardWrong("Hi, I'm Slime. I said yes, Mom.", 'I said yes, Mom.'), true);
     assert.equal(lineHeardWrong('Golibe!', "That's a key."), true);
+    // One leaked word from the sample's "Hi, I'm …" — under the three-word bar, still wrong.
+    assert.equal(lineHeardWrong('Hi, Leaning Tower.', 'Leaning Tower.'), true);
+    assert.equal(lineHeardWrong('Hi there.', 'Hi there.'), false);
   });
 });

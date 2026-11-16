@@ -231,7 +231,22 @@ export function wordlessSpeaks(transcript: string, loudestDb: number): boolean {
 
 /** A part that did not say its line as written: said something else, or more than it. */
 export function lineHeardWrong(transcript: string, line: string): boolean {
-  return !saysLine(transcript, line) || saysMoreThanLine(transcript, line);
+  return (
+    !saysLine(transcript, line) ||
+    saysMoreThanLine(transcript, line) ||
+    opensWithSampleGreeting(transcript, line)
+  );
+}
+
+const GREETING_RE = /^\W*(?:hi|hello|hey)\b/i;
+
+/**
+ * The voice sample's opening leaked in front of the line: every kept voice's sample starts "Hi,
+ * I'm …", and MiniMax-H3 put its "Hi," before a line that has none (the flagship's 10C, "Hi,
+ * Leaning Tower.", 2026-11-16) — one word, under saysMoreThanLine's three.
+ */
+function opensWithSampleGreeting(transcript: string, line: string): boolean {
+  return GREETING_RE.test(transcript) && !GREETING_RE.test(line);
 }
 
 function saysMoreThanLineHeard(transcript: string, line: string, extra: number): boolean {
