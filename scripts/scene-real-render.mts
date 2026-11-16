@@ -3704,6 +3704,23 @@ const phases: Record<string, Phase> = {
                   };
                 });
                 if (!clipsOnly) delete scene.run;
+                // The page opens on its active Scene and gives that one its clip back as it loads
+                // (11D, 11E, then 5E were never animated again): open on one not let go of.
+                if (clipsOnly && labels.length) {
+                  const withActive = scene as { activeSceneId?: string };
+                  const labelOf = (entry: { name?: string }) => entry.name?.split(' ')[0] ?? '';
+                  const active = scene.scenes.find(
+                    entry => (entry as { id?: string }).id === withActive.activeSceneId
+                  );
+                  if (active && labels.includes(labelOf(active as { name?: string }))) {
+                    const other = scene.scenes.find(
+                      entry =>
+                        entry.castId === castId &&
+                        !labels.includes(labelOf(entry as { name?: string }))
+                    );
+                    if (other) withActive.activeSceneId = (other as { id?: string }).id;
+                  }
+                }
                 if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
                 const put = store.put(record);
                 put.onsuccess = () => {
