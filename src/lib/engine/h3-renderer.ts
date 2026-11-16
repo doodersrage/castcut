@@ -691,8 +691,11 @@ export function withH3VoiceAnchor(
   const speaker = said ? '(S1)' : who.toLowerCase();
   const tags = [
     ...pictures.map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`),
+    // The reading anchors as a voice, its words unnamed: told to say it "exactly as heard in
+    // <Audio 1>", H3 said those very words aloud before the line on 5 of the flagship's 30 clips,
+    // three tries each; as a voice, 7 of 8 on those clips said the line alone (2026-11-16).
     !voiceClip && input.readLine
-      ? `<Audio 1> is ${who === 'He' ? 'him' : 'her'} saying this very line: ${speaker} says it exactly as heard in <Audio 1> — the same voice, words, pace, pauses and delivery, in sync with it — and nothing else.`
+      ? `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice: ${speaker} speaks in exactly that voice — the same person, pitch, tone, accent and pace.`
       : `${voiceClip ? `<Video 1> with its sound <Audio 1> is ${them}, speaking` : `<Audio 1> is ${who === 'He' ? 'his' : 'her'} voice`}: ${speaker} speaks in exactly that voice — the same person, pitch, tone, accent and pace. ${voiceWordsLine(input.clipWords, who)}`,
   ].join(' ');
   graph[id] = {

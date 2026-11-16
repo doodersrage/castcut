@@ -342,7 +342,10 @@ describe('the line read in the kept voice anchors the clip (the flagship, 2026-1
       videoVoiceClipWords: 'This is what I sound like.',
     });
     const ref = String(nodes.find(node => node.class_type === H3_REF_NODE)!.inputs.prompt);
-    assert.match(ref, /^<Audio 1> is her saying this very line: \(S1\) says it exactly as heard in <Audio 1>/);
+    assert.match(ref, /^<Audio 1> is her voice: \(S1\) speaks in exactly that voice/);
+    // Never told to say "exactly as heard in <Audio 1>": H3 said those words aloud.
+    assert.doesNotMatch(ref, /as heard in/);
+    assert.doesNotMatch(ref, /not what she says|never says them/);
     assert.doesNotMatch(ref, /This is what I sound like/);
     assert.ok(nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-line.wav'));
     assert.ok(!nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
