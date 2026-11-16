@@ -4539,6 +4539,24 @@ place, so it stays a choice until a live run weighs rooms kept against poses.
   Still weak: 9D (an empty room under Jason's line, three tries), 5B indoors, 6A's orange tights;
   the outfit check read an empty room as "naked" and a dressed lead as "topless" several times.
   Publishing it is the user's call.
+- **The Spare Key, take three (2026-11-15, after the user's review: "body distortions, talking
+  without voice, bad lipsyncing, harsh scene jumps"):** Qwen-Image 2.1 Turbo stills (the user's
+  own engine — every 2.1 still in their backup was Turbo), MiniMax-H3 clips with kept voices,
+  0.3 s crossfades and a dip to black at each of the 10 scene changes; 4:06, -14.1 LUFS, packed
+  and imported elsewhere with nothing missing. Causes found and fixed on the way:
+  - pose guides cut to a shot size kept hips and knees on the bottom edge of seated two-shots —
+    long neck-to-hip lines over knee stubs — and every engine drew a person twice, a figure from
+    behind or a leg up (a993811e; A/B on the same seeds: map as drawn 0/3 clean on base and
+    Turbo, no map 3/3, fixed map 3/3); close-ups lost the leg stance words and "she is She…"
+    (bb24f994);
+  - the partner speaks his own lines in his kept voice (partnerLine, 91c1a9fe);
+  - H3 talking clips anchor on the voice's sound, never the voice clip's picture: the clips were
+    auditions rendered from base-layer plates, and put her in a bra and a man in his underwear
+    into two shots (940e786c);
+  - Cut: Dip to black between scenes (91c1a9fe).
+  Left: one late-night shot draws Jason twice for a moment; the voice auditions themselves are
+  rendered from the base-layer plate (a topless hello clip on the Cast page) — they should be
+  rendered dressed; the two-voice conversation path still anchors on clips.
 
 **Phase 6 — prove it and prune it.** Copy that defaulted to "her" is neutral (4bb1d67f; prompts
 unchanged; lines that already pick he/she from the Cast kept). The other two pruning items were
