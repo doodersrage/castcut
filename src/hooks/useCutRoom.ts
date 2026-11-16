@@ -141,6 +141,7 @@ import {
   type CutShotProblem,
   type KeyedShot,
   trimClipsAtTheirCuts,
+  CLIP_LINE_END_PAUSE_SEC,
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine, renderSpokenLine } from '@/lib/film/narration-client';
 import { stillIsWide, widenStillForFilm } from '@/lib/film/widen-client';
@@ -378,11 +379,16 @@ export function useCutRoom() {
   );
   const sceneShots = useMemo(() => {
     const cutAt = new Map(
-      loadComfyGallery().flatMap(entry =>
-        typeof entry.playChecks?.clipCutAt === 'number'
-          ? [[entry.promptId, entry.playChecks.clipCutAt] as const]
-          : []
-      )
+      // Where it cuts away, or — a line it says again (the run's hearing) — just after the line.
+      loadComfyGallery().flatMap(entry => {
+        const ends = [
+          entry.playChecks?.clipCutAt,
+          typeof entry.playChecks?.clipLineEnd === 'number'
+            ? entry.playChecks.clipLineEnd + CLIP_LINE_END_PAUSE_SEC
+            : undefined,
+        ].filter((value): value is number => typeof value === 'number');
+        return ends.length ? [[entry.promptId, Math.min(...ends)] as const] : [];
+      })
     );
     return trimClipsAtTheirCuts(
       scenesScript

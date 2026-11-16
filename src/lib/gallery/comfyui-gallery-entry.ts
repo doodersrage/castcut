@@ -16,6 +16,11 @@ export type GalleryPlayChecks = {
   clipCutAt?: number;
   /** A clip that should have sound and has none. */
   clipSilent?: boolean;
+  /**
+   * Where a one-sentence line ends (seconds in) in a clip that says it again after (the run's
+   * hearing, line-fit.ts): Cut plays it up to just after, the repeat left out.
+   */
+  clipLineEnd?: number;
   /** The Cast's marks still missing after the repair (what is missing). */
   marksMissing?: string;
   /**

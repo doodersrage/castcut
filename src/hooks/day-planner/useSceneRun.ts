@@ -26,7 +26,11 @@ import { notifyDesktop } from '@/lib/app/desktop-notify';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
-import { COMFYUI_GALLERY_UPDATED_EVENT, loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
+import {
+  COMFYUI_GALLERY_UPDATED_EVENT,
+  loadComfyGallery,
+  recordGalleryPlayChecks,
+} from '@/lib/gallery/comfyui-gallery';
 import { scheduleComfyGalleryPoll } from '@/lib/gallery/comfyui-gallery-poller';
 import { cancelComfyGalleryJob } from '@/lib/comfyui/queue-cancel';
 import { typicalRenderMs } from '@/lib/queue/eta';
@@ -57,7 +61,7 @@ const CLIP_HEAR_RETRIES = 2;
 async function hearKeptClip(
   kept: { clipUrl?: string; clipPromptId?: string } | null | undefined,
   line: string
-): Promise<{ wrong: boolean; transcript?: string } | null> {
+): Promise<{ wrong: boolean; transcript?: string; lineEndSec?: number } | null> {
   const clipUrl = kept?.clipUrl?.trim();
   if (!clipUrl) return null;
   const entry = kept?.clipPromptId
@@ -78,8 +82,15 @@ async function hearKeptClip(
     heard?: boolean;
     wrong?: boolean;
     transcript?: string;
+    lineEndSec?: number;
   } | null;
-  return json?.heard ? { wrong: Boolean(json.wrong), transcript: json.transcript } : null;
+  return json?.heard
+    ? {
+        wrong: Boolean(json.wrong),
+        transcript: json.transcript,
+        ...(typeof json.lineEndSec === 'number' ? { lineEndSec: json.lineEndSec } : {}),
+      }
+    : null;
 }
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
@@ -266,6 +277,24 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           break;
         }
         heardWrong = hearing.transcript?.trim() || '(nothing)';
+        // Said twice and out of retries: Cut plays it up to just after the line (clipLineEnd).
+        if (attempt === CLIP_HEAR_RETRIES && line && typeof hearing.lineEndSec === 'number') {
+          const clipId = pageRef.current.kept?.clipPromptId;
+          if (clipId) recordGalleryPlayChecks(clipId, { clipLineEnd: hearing.lineEndSec });
+          heardWrong = '';
+          const current = runRef.current;
+          if (current) {
+            save(
+              withRunLog(current, {
+                at: Date.now(),
+                sceneId,
+                event: 'animated',
+                detail: `${name}: says its line again after — Cut ends it just after the line`,
+              })
+            );
+          }
+          break;
+        }
         const current = runRef.current;
         if (current && attempt < CLIP_HEAR_RETRIES) {
           save(

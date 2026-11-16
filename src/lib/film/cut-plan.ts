@@ -669,6 +669,9 @@ export function cutShotProblems(
  * the cut: MiniMax-H3 ended the flagship's clips on a new close-up or new people (2026-11-15), and
  * Cut played them whole. Not a clip trimmed already, nor a cut in its first second.
  */
+/** A beat left after a line before a clip that says it again is cut (seconds). */
+export const CLIP_LINE_END_PAUSE_SEC = 0.7;
+
 export function trimClipsAtTheirCuts<T extends KeyedShot>(
   shots: readonly T[],
   cutAtOf: (entryId: string) => number | undefined

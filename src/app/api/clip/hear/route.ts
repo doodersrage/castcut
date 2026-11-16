@@ -11,7 +11,7 @@ export async function GET() {
 }
 
 /**
- * POST { clipUrl, entryId?, line?, comfyUrl? } → { heard, transcript?, wrong }: whether a clip
+ * POST { clipUrl, entryId?, line?, comfyUrl? } → { heard, transcript?, wrong, lineEndSec? }: whether a clip
  * said its line as written (or, with no line, kept quiet) — Whisper on ComfyUI.
  */
 export async function POST(request: Request) {
