@@ -28,6 +28,7 @@ import {
 } from './planner';
 import { normalizeDayWeather, type DayWeather } from './weather';
 import { parseScript } from '../script/parse';
+import { slotReactor } from './clip-direction';
 
 /** One render of a scene. */
 export type SceneTake = {
@@ -1458,7 +1459,8 @@ export function sceneCutShots(
               // A script's shot with no line comes in quiet: MiniMax-H3 makes up words for a clip
               // with nothing to say (19 of the flagship's 19, Whisper, 2026-11-15) — the film's
               // music and room sound carry it. The shot's level can be raised in Cut.
-              ...(scene.fromScript && !spoken ? { volume: 0 } : {}),
+              // …but a reaction is heard: it reacts out loud without words (a laugh).
+              ...(scene.fromScript && !spoken && !slotReactor(scene.slot) ? { volume: 0 } : {}),
               ...(take.promptId ? { stillEntryId: take.promptId } : {}),
               ...sceneGroupOf(scene),
               ...(spoken ? { spoken } : {}),

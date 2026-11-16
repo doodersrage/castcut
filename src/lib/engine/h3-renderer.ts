@@ -183,6 +183,8 @@ export function convertVideoWorkflowToH3(
     endImage?: string;
     /** The clip has a spoken line (videoSpeech); undefined keeps the old always-sound graph. */
     speech?: boolean;
+    /** No line, but a reaction heard (videoReaction): said in place of "Nobody speaks". */
+    reaction?: string;
   } = {}
 ): H3ConvertResult {
   const workflow = input as Workflow;
@@ -217,7 +219,11 @@ export function convertVideoWorkflowToH3(
   const prompt = [
     h3CameraWords(positive.trim()),
     options.speech === true && frames > H3_MIN_FRAMES ? H3_LONG_TALK_TAIL : '',
-    sound && options.speech === false ? H3_NO_SPEECH_TAIL : '',
+    sound && options.speech === false
+      ? options.reaction?.trim()
+        ? `${options.reaction.trim()} overall_soundscape: the quiet sound of the place under the reaction. non_diegetic_music: N/A`
+        : H3_NO_SPEECH_TAIL
+      : '',
   ]
     .filter(Boolean)
     .join(' ');

@@ -371,6 +371,9 @@ export function resolveQueueParams(
   if (base?.videoVoiceRead?.trim()) {
     merged.videoVoiceRead = base.videoVoiceRead.trim();
   }
+  if (base?.videoReaction?.trim()) {
+    merged.videoReaction = base.videoReaction.trim();
+  }
   if (base?.videoVoiceWho === 'He' || base?.videoVoiceWho === 'She') {
     merged.videoVoiceWho = base.videoVoiceWho;
   }

@@ -98,6 +98,7 @@ import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still/clip-prompt';
 import { readLineForClip } from '@/lib/cast/voice-read-client';
+import { reactionSoundLine, slotReactor } from '@/lib/day/clip-direction';
 import { requestLineDeliveries } from '@/lib/film/line-delivery';
 import {
   DAY_CLIP_EXTRA_SECONDS,
@@ -636,6 +637,17 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                   : {}),
               })
             : undefined;
+        // A reaction shot (no line): it reacts out loud without words — a laugh — on MiniMax-H3.
+        const reactor = !speaking && isH3Model(videoModel) ? slotReactor(slot) : null;
+        const reactorWho: 'He' | 'She' =
+          reactor && reactor === character?.name?.trim()
+            ? manLead
+              ? 'He'
+              : 'She'
+            : dayPartnerNoun(getCharacter(toolSettings.partnerCharacterId ?? '') ?? {}) === 'woman'
+              ? 'She'
+              : 'He';
+        const videoReaction = reactor ? reactionSoundLine(slot, reactor, reactorWho) : '';
         // Who the line is said to: the other person in a two-shot (him, or her when he speaks),
         // else the partner just off camera — not the lens (the flagship, 2026-11-16).
         const sceneHasPartner = Boolean(toolSettings.partnerCharacterId?.trim());
@@ -735,6 +747,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           !endImageFilename &&
           !speaking &&
           slot.poseCamera?.shot === 'head' &&
+          // One face: a two-shot framed "head" (4D, the two holding up boxes) froze under the pin.
+          stillPromptPeople(parentEntry?.prompt) === 1 &&
           isH3Model(videoModel)
         ) {
           const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
@@ -783,6 +797,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 : {}),
               videoFps: 16,
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
+              ...(videoReaction ? { videoReaction } : {}),
               ...(speaking
                 ? {
                     videoSpeech: 'on',

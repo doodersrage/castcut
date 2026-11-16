@@ -82,3 +82,17 @@ describe('a close-up clip holds only what a close-up shows (the flagship, 2026-1
     assert.match(wide, /pours the coffee/);
   });
 });
+
+describe('a reaction shot reacts out loud, without words (the flagship, 2026-11-16)', () => {
+  it('its reactor from the shot text; a laugh the script asks for is laughter', async () => {
+    const { slotReactor, reactionSoundLine } = await import('./clip-direction');
+    assert.equal(slotReactor({ sceneHints: 'Slyne and Jason sit on a bench. Jason reacts.' }), 'Jason');
+    assert.equal(slotReactor({ sceneHints: 'Jason reacts.', line: 'Hi.' }), null, 'a line is not a reaction');
+    assert.equal(slotReactor({ sceneHints: 'Jason waits at a table.' }), null);
+    assert.match(
+      reactionSoundLine({ sceneHints: 'Slyne laughs so hard she nearly drops her noodles. Slyne reacts.' }, 'Slyne', 'She'),
+      /real, happy laughter — no words at all/
+    );
+    assert.match(reactionSoundLine({ sceneHints: 'Jason reacts.' }, 'Jason', 'He'), /he smiles and gives a short, quiet laugh/);
+  });
+});

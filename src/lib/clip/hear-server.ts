@@ -21,6 +21,7 @@ import {
 import { fetchFilmShotBytes } from '../video/shot-fetch';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 import { lineHeardWrong, loudestWindow, WORDLESS_SPEECH_DB, wordlessSpeaks } from './extend';
+import { singleLineSaidTwice, speechBursts } from '../audio/line-fit';
 
 /** The loudest 50 ms of a file's sound (dBFS); null without sound. */
 export async function loudestDb(ffmpeg: string, file: string): Promise<number | null> {
@@ -39,6 +40,26 @@ export async function loudestDb(ffmpeg: string, file: string): Promise<number | 
   if (pcm.length < rate / 10) return null;
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
   return loudestWindow(samples, rate, 0.05, 0.05).db;
+}
+
+const HEAR_RATE = 16000;
+
+/** A file's sound as mono samples (−1…1); null without sound. */
+async function monoSamples(ffmpeg: string, file: string): Promise<Float32Array | null> {
+  const pcm = await new Promise<Buffer>(resolve => {
+    const child = spawn(
+      ffmpeg,
+      ['-v', 'error', '-i', file, '-vn', '-ac', '1', '-ar', String(HEAR_RATE), '-f', 's16le', '-'],
+      { stdio: ['ignore', 'pipe', 'ignore'] }
+    );
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
+    child.on('error', () => resolve(Buffer.alloc(0)));
+    child.on('close', () => resolve(Buffer.concat(chunks)));
+  });
+  if (pcm.length < HEAR_RATE / 10) return null;
+  const ints = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
+  return Float32Array.from(ints, value => value / 32768);
 }
 
 export type ClipHearing = {
@@ -72,6 +93,21 @@ export async function hearClip(input: {
   if (!fetched?.buffer.byteLength) return { heard: false, wrong: false };
   const line = input.line.trim();
   let loudest: number | null = null;
+  let saidTwice = false;
+  if (line) {
+    // A one-sentence line said twice can be heard as once by Whisper: its sound says so.
+    const ffmpeg = await resolveFfmpegBinary();
+    if (ffmpeg) {
+      const file = path.join(filmTempOsDir(), `castcut-hear-${randomUUID()}.mp4`);
+      try {
+        await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
+        const samples = await monoSamples(ffmpeg, file);
+        saidTwice = samples ? singleLineSaidTwice(speechBursts(samples, HEAR_RATE), line) : false;
+      } finally {
+        await fs.rm(/* turbopackIgnore: true */ file, { force: true }).catch(() => undefined);
+      }
+    }
+  }
   if (!line) {
     // Loudness first: a quiet clip holds no voice and needs no ComfyUI call.
     const ffmpeg = await resolveFfmpegBinary();
@@ -97,6 +133,8 @@ export async function hearClip(input: {
   return {
     heard: true,
     transcript,
-    wrong: line ? lineHeardWrong(transcript, line) : wordlessSpeaks(transcript, loudest ?? 0),
+    wrong: line
+      ? saidTwice || lineHeardWrong(transcript, line)
+      : wordlessSpeaks(transcript, loudest ?? 0),
   };
 }

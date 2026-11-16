@@ -72,3 +72,32 @@ export function buildDaySlotClipPrompt(input: {
   );
   return input.manLead ? swapDayPromptGender(clip) : clip;
 }
+
+/**
+ * A script shot that is someone's reaction (script-shots.ts ends its text "Jason reacts."): who
+ * reacts, else null. Its clip reacts without words — a smile, a laugh — out loud (the flagship,
+ * 2026-11-16: muted, its made-up words left mouths going with no voice; told to react without
+ * words, 5 of 6 laughed and none spoke).
+ */
+export function slotReactor(
+  slot: Pick<DaySlot, 'sceneHints' | 'line' | 'partnerLine'>
+): string | null {
+  if (slot.line?.trim() || slot.partnerLine?.trim()) return null;
+  const match = /(?:^|[.!?]\s+)([A-Z][\w'’-]*(?: [A-Z][\w'’-]*)?) reacts\.\s*$/.exec(
+    slot.sceneHints?.trim() ?? ''
+  );
+  return match?.[1] ?? null;
+}
+
+/** How a reaction shot's clip reacts, out loud and without words (H3's sound line). */
+export function reactionSoundLine(
+  slot: Pick<DaySlot, 'sceneHints'>,
+  reactor: string,
+  who: 'She' | 'He'
+): string {
+  const he = who === 'He' ? 'he' : 'she';
+  const laughs = /\blaugh/i.test(slot.sceneHints ?? '');
+  return laughs
+    ? `${reactor} reacts without words: real, happy laughter — no words at all.`
+    : `${reactor} reacts without words: ${he} smiles and gives a short, quiet laugh — a laugh and a breath are the only sounds ${he} makes, never a word.`;
+}

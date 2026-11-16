@@ -351,3 +351,19 @@ describe('the line read in the kept voice anchors the clip (the flagship, 2026-1
     assert.ok(!nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
   });
 });
+
+describe('a reaction shot on H3 says how it reacts in place of "Nobody speaks"', () => {
+  it('the reaction and its sound; no reaction keeps the no-speech tail', () => {
+    const prompt = (params: Record<string, unknown>) =>
+      String(
+        talkingClip({ videoSpeech: undefined, ...params }, undefined, 'She sits on a bench.').find(
+          node => node.class_type === H3_REQUIRED_NODE
+        )!.inputs.prompt
+      );
+    const reaction = 'Jason reacts without words: he smiles and gives a short, quiet laugh — a laugh and a breath are the only sounds he makes, never a word.';
+    const heard = prompt({ videoReaction: reaction });
+    assert.match(heard, /Jason reacts without words/);
+    assert.doesNotMatch(heard, /Nobody speaks in this shot/);
+    assert.match(prompt({}), /Nobody speaks in this shot/);
+  });
+});

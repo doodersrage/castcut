@@ -57,3 +57,54 @@ export function lineFitPlan(
   );
   return { delaySec: Math.max(0, clipSpan.startSec), tempo: Math.round(tempo * 1000) / 1000 };
 }
+
+/** Speech stretches closer than this (seconds) are one burst: a breath inside a sentence. */
+const BURST_GAP_SEC = 0.45;
+/** Shorter stretches are clicks or breaths, not words. */
+const BURST_MIN_SEC = 0.3;
+
+/** The stretches of speech in mono samples (−1…1), above the room as speechSpan reads it. */
+export function speechBursts(
+  samples: ArrayLike<number>,
+  rate: number
+): Array<{ startSec: number; endSec: number }> {
+  const size = Math.max(1, Math.round(rate * WINDOW_SEC));
+  const levels: number[] = [];
+  for (let at = 0; at + size <= samples.length; at += size) {
+    let sum = 0;
+    for (let i = at; i < at + size; i += 1) sum += samples[i]! * samples[i]!;
+    levels.push(10 * Math.log10(sum / size + 1e-12));
+  }
+  if (!levels.length) return [];
+  const peak = Math.max(...levels);
+  if (peak < SPEECH_FLOOR_DB) return [];
+  const threshold = Math.max(SPEECH_FLOOR_DB, peak - SPEECH_BELOW_PEAK_DB);
+  const bursts: Array<{ startSec: number; endSec: number }> = [];
+  levels.forEach((level, index) => {
+    if (level <= threshold) return;
+    const startSec = index * WINDOW_SEC;
+    const last = bursts.at(-1);
+    if (last && startSec - last.endSec < BURST_GAP_SEC) last.endSec = startSec + WINDOW_SEC;
+    else bursts.push({ startSec, endSec: startSec + WINDOW_SEC });
+  });
+  return bursts.filter(burst => burst.endSec - burst.startSec >= BURST_MIN_SEC);
+}
+
+/**
+ * A one-sentence line said twice, by its sound: two bursts of speech of about its length. Whisper
+ * heard the flagship's 3D ("You can't build a shelf.", said again quieter 1.4 s later) as one
+ * line; the user heard it twice (2026-11-16). A line of more than one sentence pauses between
+ * them, so it isn't read this way.
+ */
+export function singleLineSaidTwice(
+  bursts: ReadonlyArray<{ startSec: number; endSec: number }>,
+  line: string
+): boolean {
+  const sentences = line
+    .trim()
+    .split(/(?<=[.!?…])\s+(?=\S)/)
+    .filter(part => /\w/.test(part));
+  if (sentences.length !== 1 || bursts.length < 2) return false;
+  const first = bursts[0]!.endSec - bursts[0]!.startSec;
+  return bursts.slice(1).some(burst => burst.endSec - burst.startSec >= first * 0.5);
+}

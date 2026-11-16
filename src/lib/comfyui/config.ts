@@ -297,6 +297,8 @@ export type WorkflowParamValues = {
    * over the clip.
    */
   videoVoiceRead?: string;
+  /** A reaction shot with no line: how it reacts out loud, without words (clip-direction.ts). */
+  videoReaction?: string;
   /** Steer is on for the kept voice: LTX-2.5's ID-LoRA path instead of reference tokens. */
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
@@ -650,6 +652,9 @@ export function resolveQueueParams(
   }
   if (merged.videoVoiceRead?.trim()) {
     result.videoVoiceRead = merged.videoVoiceRead.trim();
+  }
+  if (merged.videoReaction?.trim()) {
+    result.videoReaction = merged.videoReaction.trim();
   }
   if (merged.videoVoiceSteer === 'on') {
     result.videoVoiceSteer = 'on';
@@ -2138,6 +2143,9 @@ export function injectPromptsWithFallbacks(
       const converted = convertVideoWorkflowToH3(injected.workflow, {
         ...(endImage ? { endImage } : {}),
         speech: input.params?.videoSpeech === 'on',
+        ...(input.params?.videoReaction?.trim()
+          ? { reaction: input.params.videoReaction.trim() }
+          : {}),
       });
       if (converted.converted) {
         // A talking clip speaks in the Cast's kept voice (M11 T16) when this ComfyUI has the

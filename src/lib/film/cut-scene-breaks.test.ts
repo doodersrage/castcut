@@ -80,3 +80,25 @@ describe('a clip that cuts away plays up to its cut (the flagship, 2026-11-15)',
     );
   });
 });
+
+describe('a reaction shot is heard: its laugh is not muted (the flagship, 2026-11-16)', () => {
+  it('a no-line reaction keeps its sound; a no-line shot that is not a reaction comes in quiet', () => {
+    const base = createScene({ castId: 'slyne', name: '5E', id: 'r', now: 1 });
+    const clip = (id: string, sceneHints: string) => ({
+      ...base,
+      id,
+      slot: { ...base.slot, sceneHints },
+      takes: [{ id: `${id}1`, promptId: `${id}1`, imageUrl: `/${id}.png`, clipUrl: `/${id}.mp4`, at: 1 }],
+      keptTakeId: `${id}1`,
+      fromScript: { scriptId: 'sk', sceneId: 'park', shotId: `park~${id}` },
+    });
+    const [reaction, establishing] = sceneCutShots(
+      [clip('r', 'They sit on a bench. Jason reacts.'), clip('e', 'A park in the afternoon.')],
+      'slyne',
+      3,
+      true
+    );
+    assert.equal(reaction!.volume, undefined);
+    assert.equal(establishing!.volume, 0);
+  });
+});

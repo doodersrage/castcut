@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { LINE_FIT_MAX_STRETCH, lineFitPlan, speechSpan } from './line-fit';
+import {
+  LINE_FIT_MAX_STRETCH,
+  lineFitPlan,
+  singleLineSaidTwice,
+  speechBursts,
+  speechSpan,
+} from './line-fit';
 
 const RATE = 1000;
 /** Quiet room tone with a loud stretch from `from` to `to` seconds. */
@@ -27,5 +33,26 @@ describe('a read line fitted to a talking clip', () => {
     assert.equal(lineFitPlan({ startSec: 0, endSec: 1 }, 3)!.tempo, LINE_FIT_MAX_STRETCH);
     assert.equal(lineFitPlan(null, 2), null);
     assert.equal(lineFitPlan({ startSec: 1, endSec: 1.1 }, 2), null, 'a blip is not a line');
+  });
+});
+
+describe('a one-sentence line said twice, by its sound (the flagship, 2026-11-16)', () => {
+  // Bursts as read off the flagship's clips: 3D and 1C said twice (the user heard both), the rest not.
+  it('two bursts of about the line’s length; a line of two sentences pauses between them', () => {
+    const b = (...spans: Array<[number, number]>) => spans.map(([startSec, endSec]) => ({ startSec, endSec }));
+    assert.equal(singleLineSaidTwice(b([0.3, 1.7], [3.2, 4.5]), "You can't build a shelf."), true);
+    assert.equal(singleLineSaidTwice(b([0.8, 1.4], [1.9, 2.7]), "That's a key."), true);
+    assert.equal(singleLineSaidTwice(b([1.4, 2.3], [3.2, 4.5]), 'To my place. Our place, maybe.'), false);
+    assert.equal(singleLineSaidTwice(b([0.5, 2.3]), 'I had one cut. For you.'), false);
+    assert.equal(singleLineSaidTwice(b([0.4, 1.9]), 'How many books do you own?'), false);
+  });
+
+  it('reads bursts off the sound: a breath inside a sentence is one, a gap is two', () => {
+    const s = clip(5, 0.5, 1.5);
+    for (let i = Math.round(1.7 * RATE); i < 1.9 * RATE; i += 1) s[i] = 0.3 * Math.sin(i * 0.7);
+    for (let i = Math.round(3 * RATE); i < 4 * RATE; i += 1) s[i] = 0.3 * Math.sin(i * 0.7);
+    const bursts = speechBursts(s, RATE);
+    assert.equal(bursts.length, 2);
+    assert.ok(Math.abs(bursts[0]!.endSec - 1.9) < 0.05 && Math.abs(bursts[1]!.startSec - 3) < 0.05);
   });
 });
