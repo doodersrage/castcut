@@ -63,3 +63,20 @@ describe('a script shot with no line comes in quiet (the flagship, 2026-11-15)',
     assert.equal(applyCutShotEdits(keyed, {})[0]!.volume, 0);
   });
 });
+
+describe('a clip that cuts away plays up to its cut (the flagship, 2026-11-15)', () => {
+  it('trimmed at the cut its check found; a trim of your own, a still or an early cut left alone', async () => {
+    const { trimClipsAtTheirCuts } = await import('./cut-plan');
+    const shot = (key: string, extra: Record<string, unknown> = {}) =>
+      ({ key, title: key, url: `/${key}.mp4`, kind: 'clip', entryId: key, ...extra }) as never;
+    const cuts: Record<string, number> = { a: 2.7, b: 2.7, d: 0.6 };
+    const out = trimClipsAtTheirCuts(
+      [shot('a'), shot('b', { trimEndSec: 4 }), shot('c'), shot('d'), shot('e', { kind: 'still' })],
+      id => cuts[id]
+    ) as Array<{ trimEndSec?: number }>;
+    assert.deepEqual(
+      out.map(entry => entry.trimEndSec),
+      [2.65, 4, undefined, undefined, undefined]
+    );
+  });
+});

@@ -139,6 +139,7 @@ import {
   type CutShotEdit,
   type CutShotProblem,
   type KeyedShot,
+  trimClipsAtTheirCuts,
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine, renderSpokenLine } from '@/lib/film/narration-client';
 import { stillIsWide, widenStillForFilm } from '@/lib/film/widen-client';
@@ -374,8 +375,15 @@ export function useCutRoom() {
     () => cutAddedScenesFor(scenesAddedAll, scenesScriptId || undefined),
     [scenesAddedAll, scenesScriptId]
   );
-  const sceneShots = useMemo(
-    () =>
+  const sceneShots = useMemo(() => {
+    const cutAt = new Map(
+      loadComfyGallery().flatMap(entry =>
+        typeof entry.playChecks?.clipCutAt === 'number'
+          ? [[entry.promptId, entry.playChecks.clipCutAt] as const]
+          : []
+      )
+    );
+    return trimClipsAtTheirCuts(
       scenesScript
         ? sceneCutShots(
             [
@@ -397,8 +405,9 @@ export function useCutRoom() {
               : savedScenes,
             sceneCastId
           ),
-    [sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]
-  );
+      id => cutAt.get(id)
+    );
+  }, [sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
     [cut.toolSettings.options]

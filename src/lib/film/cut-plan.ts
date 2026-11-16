@@ -663,3 +663,21 @@ export function cutShotProblems(
       : [];
   });
 }
+
+/**
+ * A clip that cuts to another shot partway (its check's clipCutAt, ClipCheckWatcher) plays up to
+ * the cut: MiniMax-H3 ended the flagship's clips on a new close-up or new people (2026-11-15), and
+ * Cut played them whole. Not a clip trimmed already, nor a cut in its first second.
+ */
+export function trimClipsAtTheirCuts<T extends KeyedShot>(
+  shots: readonly T[],
+  cutAtOf: (entryId: string) => number | undefined
+): T[] {
+  return shots.map(shot => {
+    if (shot.kind !== 'clip' || !shot.entryId || shot.trimEndSec !== undefined) return shot;
+    const cutAt = cutAtOf(shot.entryId);
+    return typeof cutAt === 'number' && cutAt > 1
+      ? { ...shot, trimEndSec: Math.round((cutAt - 0.05) * 100) / 100 }
+      : shot;
+  });
+}
