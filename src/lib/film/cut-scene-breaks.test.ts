@@ -39,3 +39,27 @@ describe('a dip to black between a script’s scenes', () => {
     assert.equal(shots[1]!.sceneGroup, undefined, 'made by hand: no scene');
   });
 });
+
+describe('a script shot with no line comes in quiet (the flagship, 2026-11-15)', () => {
+  // MiniMax-H3 made up words for every clip with nothing to say.
+  it('its clip at no volume; a line keeps its sound; a level picked in Cut wins', async () => {
+    const { applyCutShotEdits } = await import('./cut-plan');
+    const base = createScene({ castId: 'slyne', name: '1A', id: 'a', now: 1 });
+    const clip = (id: string, line?: string) => ({
+      ...base,
+      id,
+      slot: { ...base.slot, ...(line ? { line } : {}) },
+      takes: [
+        { id: `${id}1`, promptId: `${id}1`, imageUrl: `/${id}.png`, clipUrl: `/${id}.mp4`, at: 1 },
+      ],
+      keptTakeId: `${id}1`,
+      fromScript: { scriptId: 'sk', sceneId: 'int-kitchen', shotId: `int-kitchen~${id}` },
+    });
+    const [quiet, talking] = sceneCutShots([clip('a'), clip('b', "That's a key.")], 'slyne', 3, true);
+    assert.equal(quiet!.volume, 0);
+    assert.equal(talking!.volume, undefined);
+    const keyed = [{ ...quiet!, key: 'scenes:a' }];
+    assert.equal(applyCutShotEdits(keyed, { shots: { 'scenes:a': { volume: 1 } } })[0]!.volume, 1);
+    assert.equal(applyCutShotEdits(keyed, {})[0]!.volume, 0);
+  });
+});

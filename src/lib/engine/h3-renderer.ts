@@ -154,6 +154,14 @@ export const H3_LONG_TALK_TAIL =
   'room sound is heard until the end of the clip.';
 
 /**
+ * A clip with no line, in H3's own sound syntax: nobody speaks. With nothing said about its sound,
+ * every one of the flagship's 19 such clips spoke made-up words ("Coral Yacht, Raqqed…", "I'll see
+ * you in the next video. Bye!" — Whisper, 2026-11-15).
+ */
+export const H3_NO_SPEECH_TAIL =
+  'Nobody speaks in this shot — no words, no voices, no murmuring; mouths closed or smiling. overall_soundscape: only the quiet natural sound of the place — soft room tone and the small sounds of what is happening, no voices. non_diegetic_music: N/A';
+
+/**
  * Whether H3 renders sound for this clip. Its sound is made in the same pass as the picture and
  * nothing in a motion prompt steers it: at the default length it stayed room sound, but a longer
  * clip without a spoken line drifted into music. Past the default a clip with no line is silent,
@@ -209,6 +217,7 @@ export function convertVideoWorkflowToH3(
   const prompt = [
     h3CameraWords(positive.trim()),
     options.speech === true && frames > H3_MIN_FRAMES ? H3_LONG_TALK_TAIL : '',
+    sound && options.speech === false ? H3_NO_SPEECH_TAIL : '',
   ]
     .filter(Boolean)
     .join(' ');

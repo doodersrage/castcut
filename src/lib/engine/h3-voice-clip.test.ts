@@ -11,6 +11,7 @@ import { conversationClipPrompt, conversationSpeakers } from '../video/ltx25-ren
 import {
   H3_GUIDE_NODE,
   H3_REF_NODE,
+  H3_NO_SPEECH_TAIL,
   H3_REQUIRED_NODE,
   h3OneSpeaks,
   h3ReplaySource,
@@ -300,5 +301,33 @@ describe('the partner saying his line in his own voice (a script two-shot)', () 
     assert.match(prompt, /The woman beside him listens and does not speak\./);
     assert.match(prompt, /He says it once/);
     assert.doesNotMatch(prompt, /She says it once/);
+  });
+});
+
+describe('the voice sample’s own words are never said either (the flagship, 2026-11-15)', () => {
+  // Anchored on the sound alone, two of its lines came out as the sample's "Hi, I'm Sline. This
+  // is what I sound like."
+  it('names them on the sound anchor too', () => {
+    const prompt = String(
+      talkingClip({
+        videoVoiceSample: 'castcut-voice.wav',
+        videoVoiceClip: 'clip.mp4',
+        videoVoiceClipWords: "Hi, I'm Slyne. This is what I sound like.",
+      }).find(node => node.class_type === H3_REF_NODE)!.inputs.prompt
+    );
+    assert.match(prompt, /^<Audio 1> is her voice/);
+    assert.match(prompt, /its words \("Hi, I'm Slyne\. This is what I sound like\."\) are not hers to say/);
+  });
+});
+
+describe('a clip with no line, on H3 (the flagship, 2026-11-15)', () => {
+  // With nothing said about its sound, every such clip spoke made-up words.
+  it('is told nobody speaks', () => {
+    const prompt = String(
+      talkingClip({ videoSpeech: undefined }, undefined, 'She pours two coffees at the counter.').find(
+        node => node.class_type === H3_REQUIRED_NODE
+      )!.inputs.prompt
+    );
+    assert.ok(prompt.includes(H3_NO_SPEECH_TAIL));
   });
 });

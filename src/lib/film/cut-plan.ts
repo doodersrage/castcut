@@ -323,7 +323,11 @@ export function applyCutShotEdits(shots: KeyedShot[], edits?: CutShotEdits | nul
         // "As shot" over a source's own framing (a Scene planned as a close-up): no crop.
         ...(shot.kind === 'still' && edit?.framing === 'full' ? { framing: undefined } : {}),
         ...(trim && trim.end != null ? { trimEndSec: trim.end } : {}),
-        ...(shot.kind === 'clip' && typeof edit?.volume === 'number' && edit.volume !== 1
+        // A level picked by hand wins — 1 too, over a source's own (a script shot with no line
+        // comes in quiet).
+        ...(shot.kind === 'clip' &&
+        typeof edit?.volume === 'number' &&
+        (edit.volume !== 1 || shot.volume !== undefined)
           ? { volume: Math.min(2, Math.max(0, edit.volume)) }
           : {}),
         ...(shot.kind === 'clip' && clipSpeed(edit?.speed) !== 1

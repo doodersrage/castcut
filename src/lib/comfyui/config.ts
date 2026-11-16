@@ -2177,9 +2177,11 @@ export function injectPromptsWithFallbacks(
           input.params?.videoSpeech === 'on' &&
           refModel
             ? withH3VoiceAnchor(converted.workflow, {
+                // The sample says what the voice clip says ("Hi, I'm Slyne. This is what I sound
+                // like."): named as words never said — two of the flagship's lines came out as it.
                 ...(voiceClip
                   ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
-                  : { voiceAudio }),
+                  : { voiceAudio, clipWords: input.params?.videoVoiceClipWords?.trim() }),
                 ...(input.params?.videoVoiceWho === 'He' ? { who: 'He' as const } : {}),
               })
             : null;
