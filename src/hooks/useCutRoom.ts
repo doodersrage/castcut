@@ -142,6 +142,7 @@ import {
   type KeyedShot,
   trimClipsAtTheirCuts,
   CLIP_LINE_END_PAUSE_SEC,
+  quietTalkingClips,
 } from '@/lib/film/cut-plan';
 import { renderNarrationLine, renderSpokenLine } from '@/lib/film/narration-client';
 import { stillIsWide, widenStillForFilm } from '@/lib/film/widen-client';
@@ -390,29 +391,35 @@ export function useCutRoom() {
         return ends.length ? [[entry.promptId, Math.min(...ends)] as const] : [];
       })
     );
-    return trimClipsAtTheirCuts(
-      scenesScript
-        ? sceneCutShots(
-            [
-              ...scriptScenesInOrder(savedScenes, scenesScript),
-              ...cutAddedSceneList({
-                added: scenesAdded,
-                scenes: savedScenes,
-                scripts: storedScripts,
-                ownScriptId: scenesScript.id,
-              }),
-            ],
-            sceneCastId,
-            3,
-            true
-          )
-        : sceneCutShots(
-            shortInByDay
-              ? savedScenes.filter(scene => scene.fromScript?.scriptId !== shortInByDay)
-              : savedScenes,
-            sceneCastId
-          ),
-      id => cutAt.get(id)
+    const talks = new Set(
+      loadComfyGallery().flatMap(entry => (entry.playChecks?.clipTalks ? [entry.promptId] : []))
+    );
+    return quietTalkingClips(
+      trimClipsAtTheirCuts(
+        scenesScript
+          ? sceneCutShots(
+              [
+                ...scriptScenesInOrder(savedScenes, scenesScript),
+                ...cutAddedSceneList({
+                  added: scenesAdded,
+                  scenes: savedScenes,
+                  scripts: storedScripts,
+                  ownScriptId: scenesScript.id,
+                }),
+              ],
+              sceneCastId,
+              3,
+              true
+            )
+          : sceneCutShots(
+              shortInByDay
+                ? savedScenes.filter(scene => scene.fromScript?.scriptId !== shortInByDay)
+                : savedScenes,
+              sceneCastId
+            ),
+        id => cutAt.get(id)
+      ),
+      id => talks.has(id)
     );
   }, [sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
   const options: FilmCutOptionsValue = useMemo(

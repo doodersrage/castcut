@@ -102,3 +102,18 @@ describe('a reaction shot is heard: its laugh is not muted (the flagship, 2026-1
     assert.equal(establishing!.volume, 0);
   });
 });
+
+describe('a clip meant to say nothing that still talks plays quiet (the flagship, 2026-11-16)', () => {
+  it('the clip the run heard talking is quiet; the rest keep their sound', async () => {
+    const { quietTalkingClips } = await import('./cut-plan');
+    const shot = (key: string, kind = 'clip') =>
+      ({ key, title: key, url: `/${key}.mp4`, kind, entryId: key }) as never;
+    const out = quietTalkingClips([shot('5E'), shot('10D'), shot('5E', 'still')], id => id === '5E') as Array<{
+      volume?: number;
+    }>;
+    assert.deepEqual(
+      out.map(entry => entry.volume),
+      [0, undefined, undefined]
+    );
+  });
+});

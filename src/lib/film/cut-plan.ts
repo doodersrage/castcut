@@ -684,3 +684,17 @@ export function trimClipsAtTheirCuts<T extends KeyedShot>(
       : shot;
   });
 }
+
+/**
+ * A clip meant to say nothing that the run heard talking (playChecks.clipTalks) plays quiet: a
+ * reaction shot keeps its laugh, but not words (the flagship's 5E, 2026-11-16). A level picked
+ * in Cut is applied after and wins.
+ */
+export function quietTalkingClips<T extends KeyedShot>(
+  shots: readonly T[],
+  talksOf: (entryId: string) => boolean
+): T[] {
+  return shots.map(shot =>
+    shot.kind === 'clip' && shot.entryId && talksOf(shot.entryId) ? { ...shot, volume: 0 } : shot
+  );
+}

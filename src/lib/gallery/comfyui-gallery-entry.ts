@@ -21,6 +21,8 @@ export type GalleryPlayChecks = {
    * hearing, line-fit.ts): Cut plays it up to just after, the repeat left out.
    */
   clipLineEnd?: number;
+  /** A clip meant to say nothing that still talks after the run's retries: Cut plays it quiet. */
+  clipTalks?: boolean;
   /** The Cast's marks still missing after the repair (what is missing). */
   marksMissing?: string;
   /**

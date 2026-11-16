@@ -306,7 +306,13 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
             })
           );
         }
-        if (attempt === CLIP_HEAR_RETRIES) break;
+        if (attempt === CLIP_HEAR_RETRIES) {
+          // Meant to say nothing and still talking: Cut plays it quiet (a reaction's laugh is
+          // heard otherwise — its words would be too).
+          const clipId = pageRef.current.kept?.clipPromptId;
+          if (!line && clipId) recordGalleryPlayChecks(clipId, { clipTalks: true });
+          break;
+        }
         ok = await animateOnce();
       }
       const latest = runRef.current;

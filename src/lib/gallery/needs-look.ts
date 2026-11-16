@@ -20,7 +20,13 @@ export function entryPlayChecks(
 ): ComfyGalleryEntry['playChecks'] {
   const checks = entry.playChecks;
   if (!checks || clipCheckApplies(entry)) return checks;
-  const { clipCutAt: _cut, clipSilent: _silent, clipLineEnd: _lineEnd, ...rest } = checks;
+  const {
+    clipCutAt: _cut,
+    clipSilent: _silent,
+    clipLineEnd: _lineEnd,
+    clipTalks: _talks,
+    ...rest
+  } = checks;
   return rest;
 }
 
