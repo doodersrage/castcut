@@ -4251,6 +4251,10 @@ const phases: Record<string, Phase> = {
     // EPISODE_CUT_TAKE_NEW=1: every shot whose Scene kept a new take since it was cut (a shot
     // rendered again) uses it — the pinned one was let go.
     if (process.env.EPISODE_CUT_TAKE_NEW === '1') {
+      // The offers are on the Shots tab — Cut reopens the tab it was left on (Options, after the
+      // last epcut), and none were found ("new takes used: 0", 2026-11-16).
+      await page.getByTestId('cut-tab-shots').click();
+      await page.waitForTimeout(1500);
       let taken = 0;
       for (let i = 0; i < 80; i += 1) {
         const use = page.locator('[data-testid^="cut-pin-"][data-testid$="-use"]').first();
