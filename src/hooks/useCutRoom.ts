@@ -173,6 +173,7 @@ import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
 import { storyboard } from '@/lib/day/storyboard';
+import { TEMP_MUSIC_CUE_PREFIX } from '@/lib/film/temp-music-client';
 import { normalizeSceneRun } from '@/lib/day/scene-run';
 import { useServerRunPending } from './day-planner/useServerRunPending';
 import { parseScript } from '@/lib/script/parse';
@@ -2036,6 +2037,14 @@ export function useCutRoom() {
     },
     [commitEdit]
   );
+  /** Music by scene's earlier cues taken off (they are made again, not stacked). */
+  const clearTempMusicCues = useCallback(() => {
+    const now = stateRef.current.options;
+    const effects = now.sound?.effects ?? [];
+    const kept = effects.filter(effect => !effect.id.startsWith(TEMP_MUSIC_CUE_PREFIX));
+    if (kept.length === effects.length) return;
+    commitEdit({ options: { ...now, sound: { ...now.sound, effects: kept } } }, true, false);
+  }, [commitEdit]);
   /**
    * Package the cut (M4 F7): every shot pinned to what it plays first (as a version is), then
    * the cut, its versions and — full — its media, in one .zip to import elsewhere.
@@ -3483,6 +3492,7 @@ export function useCutRoom() {
     relinkFromGallery,
     setTrackMuted,
     setEffect,
+    clearTempMusicCues,
     packaging,
     packageCut,
     importPackage,

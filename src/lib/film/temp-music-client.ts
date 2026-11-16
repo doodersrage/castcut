@@ -10,6 +10,9 @@ import { requestFilmScore } from './score';
 import { tempMusicCues, type TempCue } from './temp-music';
 import type { CutEffect } from '../video/cut-sound';
 
+/** Music by scene's cues are the cut's effects with ids that start so. */
+export const TEMP_MUSIC_CUE_PREFIX = 'fx-cue-';
+
 /** The cues for the cut as the monitor laid it out: a stretch per feeling. */
 export function cutTempMusicCues(
   loaded: CutPreviewLoaded,
@@ -42,14 +45,21 @@ export function cutTempMusicCues(
 export async function makeTempMusic(
   cues: readonly TempCue[],
   onAdd: (id: string, effect: Partial<CutEffect>) => void,
-  onProgress?: (label: string) => void
+  onProgress?: (label: string) => void,
+  /**
+   * The cues made before (ids starting `TEMP_MUSIC_CUE_PREFIX`) taken off, once the first new one
+   * is ready: made again, they stacked — the flagship's music was three tracks over each other
+   * after three cuts (2026-11-15).
+   */
+  onReplace?: () => void
 ): Promise<{ made: number; error?: string }> {
   let made = 0;
   for (const [index, cue] of cues.entries()) {
     onProgress?.(`Cue ${index + 1} of ${cues.length}: ${cue.tone}…`);
     try {
       const score = await requestFilmScore({ brief: { tone: cue.tone }, cutSeconds: cue.seconds });
-      onAdd(`fx-cue-${Date.now().toString(36)}${index}`, {
+      if (made === 0) onReplace?.();
+      onAdd(`${TEMP_MUSIC_CUE_PREFIX}${Date.now().toString(36)}${index}`, {
         url: score.url,
         name: `Music · ${cue.tone}`,
         atSec: cue.atSec,

@@ -57,3 +57,15 @@ describe('temp music by scene', () => {
     assert.deepEqual(tempMusicCues(shots.slice(0, 10)), []);
   });
 });
+
+describe('a feeling read from whole words (the flagship, 2026-11-15)', () => {
+  it('a window is not a win; a team is not tea', async () => {
+    const { feelingTone } = await import('./temp-music');
+    assert.equal(feelingTone('A small cafe with plants in the window.'), '');
+    assert.equal(feelingTone('A narrow stairwell with a tall window.'), '');
+    assert.equal(feelingTone('Her team wins the final.'), 'epic');
+    assert.equal(feelingTone('The team warms up.'), '');
+    assert.equal(feelingTone('A cup of tea by the fire.'), 'cozy');
+    assert.equal(feelingTone('She soars over the bar.'), 'epic');
+  });
+});

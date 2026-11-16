@@ -17,12 +17,15 @@ export default function CutTempMusic({
   feelingOf,
   disabled,
   onAdd,
+  onReplace,
 }: {
   loaded: CutPreviewLoaded | null;
   /** A shot's feeling in words: its story state's emotion, else its beat. */
   feelingOf: (key: string) => string;
   disabled?: boolean;
   onAdd: (id: string, effect: Partial<CutEffect>) => void;
+  /** The cues made before taken off, once the first new one is ready. */
+  onReplace?: () => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +36,7 @@ export default function CutTempMusic({
   if (!loaded || !cues.length) return null;
   const makeAll = async () => {
     setError(null);
-    const result = await makeTempMusic(cues, onAdd, setBusy);
+    const result = await makeTempMusic(cues, onAdd, setBusy, onReplace);
     if (result.error) setError(result.error);
     setBusy(null);
   };

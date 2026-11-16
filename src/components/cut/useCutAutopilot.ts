@@ -50,7 +50,7 @@ export function useCutAutopilot(input: {
   }, [mounted, options, params, pathname, router, setOptions, shots.length, wanted]);
 
   // 2. Music by scene once the monitor has the cut laid out, then Cut film.
-  const { setEffect, cutFilm } = vm;
+  const { setEffect, clearTempMusicCues, cutFilm } = vm;
   useEffect(() => {
     if (stage.current !== 'options' || !loaded) return;
     stage.current = 'music';
@@ -60,14 +60,15 @@ export function useCutAutopilot(input: {
         const made = await makeTempMusic(
           cues,
           (id, effect) => setEffect(id, effect, true),
-          label => setNote(`Autopilot: music by scene — ${label}`)
+          label => setNote(`Autopilot: music by scene — ${label}`),
+          clearTempMusicCues
         );
         if (made.error)
           setNote(`Autopilot: music stopped (${made.error}) — cutting without the rest.`);
       }
       setReadyToCut(true);
     })();
-  }, [feelingOf, loaded, setEffect]);
+  }, [clearTempMusicCues, feelingOf, loaded, setEffect]);
 
   // 2b. Cut film — from the render after the music: the cutFilm this effect started with had
   // the options from before the cues (the film went out with no music, CI 2026-11-07).

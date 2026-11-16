@@ -1945,6 +1945,7 @@ export default function CutRoom() {
                     feelingOf={feelingOf}
                     disabled={busy}
                     onAdd={(id, effect) => vm.setEffect(id, effect, true)}
+                    onReplace={vm.clearTempMusicCues}
                   />
                 </div>
                 <details className="mt-2" data-testid="cut-keys">

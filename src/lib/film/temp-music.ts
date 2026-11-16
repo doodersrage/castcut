@@ -26,10 +26,11 @@ const TONES: ReadonlyArray<[RegExp, string]> = [
   [/\b(angry|furious|fight|argu|rage|storms? off)/i, 'gritty'],
   [/\b(love|romantic|kiss|tender|flirt|date|longing|close to)/i, 'romantic'],
   [/\b(dream|hazy|float|memory|remember|nostalg)/i, 'dreamy'],
-  [/\b(triumph|victor|wins?|hero|epic|soar)/i, 'epic'],
+  // Whole words: "\bwins?" took "window", and the flagship's café and stairwell scored epic.
+  [/\b(triumph\w*|victor(?:y|ies|ious)|wins?\b|won\b|hero(?:es|ic)?\b|epic\b|soar\w*)/i, 'epic'],
   [/\b(party|dance|celebrat|festival|excited|thrill)/i, 'festival'],
   [/\b(silly|goofy|laughs?|laughing|funny|clumsy|prank)/i, 'silly'],
-  [/\b(calm|cozy|relax|quiet|peaceful|sleepy|tea|blanket|content)/i, 'cozy'],
+  [/\b(calm|cozy|relax|quiet|peaceful|sleepy|tea\b|blanket|content(?:ed|ment)?\b)/i, 'cozy'],
   [/\b(happy|joy|cheer|smil|sunny|bright)/i, 'everyday'],
 ];
 
