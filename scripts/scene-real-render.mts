@@ -3620,7 +3620,7 @@ const phases: Record<string, Phase> = {
     // Written with no app page open (it would write its own copy back).
     await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
     const counts = await page.evaluate(
-      ({ castId, labels, edits }) =>
+      ({ castId, labels, edits, clipsOnly }) =>
         new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
           const request = indexedDB.open('comfy-prompt-studio-v1');
           request.onerror = () => reject(request.error);
@@ -3654,6 +3654,28 @@ const phases: Record<string, Phase> = {
               scene.scenes = scene.scenes.map((entry, index) => {
                 if (entry.castId !== castId || !entry.fromScript) return entry;
                 const label = (entry as { name?: string }).name?.split(' ')[0] ?? '';
+                // EPISODE_RESET_CLIPS=lines: the clips of the shots with a line let go (their
+                // stills kept) — animated again by epanimate.
+                if (clipsOnly) {
+                  const slot = (
+                    entry as unknown as { slot: { line?: string; partnerLine?: string } }
+                  ).slot;
+                  if (!slot.line?.trim() && !slot.partnerLine?.trim()) return entry;
+                  scenes += 1;
+                  return {
+                    ...entry,
+                    takes: entry.takes.map(take => {
+                      const {
+                        clipUrl: _clip,
+                        clipPromptId: _clipId,
+                        ...still
+                      } = take as Record<string, unknown>;
+                      if (_clip) takes += 1;
+                      return still as typeof take;
+                    }),
+                    updatedAt: now + index,
+                  };
+                }
                 if (labels.length && !labels.includes(label)) return entry;
                 scenes += 1;
                 takes += entry.takes.length;
@@ -3685,7 +3707,12 @@ const phases: Record<string, Phase> = {
             };
           };
         }),
-      { castId: V2_CAST, labels: only, edits }
+      {
+        castId: V2_CAST,
+        labels: only,
+        edits,
+        clipsOnly: process.env.EPISODE_RESET_CLIPS === 'lines',
+      }
     );
     log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
     // The run's panel is on Scene.
