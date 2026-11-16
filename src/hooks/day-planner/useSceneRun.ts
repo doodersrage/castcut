@@ -53,9 +53,41 @@ import {
 import { bestSceneTake, episodeAnimates, episodeRedosFor } from '@/lib/day/episode-run';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
 import { normalizeSpokenLine } from '@/lib/video/ltx25-renderer';
+import { sharedLlmRequestBody } from '@/lib/llm/request-options';
+import { loadSettingsCache } from '@/lib/settings/cache';
 
 /** Times a talking clip heard saying the wrong thing is animated again (Make longer's two). */
 const CLIP_HEAR_RETRIES = 2;
+
+/** Whether the kept take's clip held its shot (/api/clip/drift); null when not looked at. */
+async function driftOfKeptClip(
+  kept: { clipUrl?: string; clipPromptId?: string } | null | undefined
+): Promise<{ drifted: boolean; reasons: string[] } | null> {
+  const clipUrl = kept?.clipUrl?.trim();
+  if (!clipUrl) return null;
+  const entry = kept?.clipPromptId
+    ? loadComfyGallery().find(item => item.promptId === kept.clipPromptId)
+    : undefined;
+  const response = await fetch('/api/clip/drift', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      clipUrl,
+      ...(entry ? { entryId: entry.id } : {}),
+      ...sharedLlmRequestBody(loadSettingsCache().shared),
+    }),
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  const json = (await response.json().catch(() => null)) as {
+    checked?: boolean;
+    drifted?: boolean;
+    reasons?: string[];
+  } | null;
+  return json?.checked
+    ? { drifted: Boolean(json.drifted), reasons: Array.isArray(json.reasons) ? json.reasons : [] }
+    : null;
+}
 
 /** What the kept take's clip says against its line (/api/clip/hear); null when not heard. */
 async function hearKeptClip(
@@ -274,7 +306,25 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         const hearing = await hearKeptClip(pageRef.current.kept, line);
         if (!hearing?.wrong) {
           heardWrong = '';
-          break;
+          // Said right (or nothing to say): did it hold its shot? A clip that flew in close,
+          // brought someone in or ended on another shot is animated again (the flagship's 4A,
+          // 2A, 8C, 10A, 7A, 7D, 3A, 2026-11-16). Out of retries, it is kept.
+          const drift = await driftOfKeptClip(pageRef.current.kept);
+          if (!drift?.drifted) break;
+          const current = runRef.current;
+          if (current) {
+            save(
+              withRunLog(current, {
+                at: Date.now(),
+                sceneId,
+                event: attempt < CLIP_HEAR_RETRIES ? 'redo' : 'animated',
+                detail: `${name}: its clip drifts — ${drift.reasons.join(', ')}${attempt < CLIP_HEAR_RETRIES ? ' — animated again' : ' — kept, no retries left'}`,
+              })
+            );
+          }
+          if (attempt === CLIP_HEAR_RETRIES) break;
+          ok = await animateOnce();
+          continue;
         }
         heardWrong = hearing.transcript?.trim() || '(nothing)';
         // Said twice and out of retries: Cut plays it up to just after the line (clipLineEnd).
