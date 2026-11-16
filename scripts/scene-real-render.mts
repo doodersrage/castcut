@@ -3660,7 +3660,13 @@ const phases: Record<string, Phase> = {
                   const slot = (
                     entry as unknown as { slot: { line?: string; partnerLine?: string } }
                   ).slot;
-                  if (!slot.line?.trim() && !slot.partnerLine?.trim()) return entry;
+                  // With EPISODE_RESET_SCENES, those shots' clips (a line or not); else every line's.
+                  if (
+                    labels.length
+                      ? !labels.includes(label)
+                      : !slot.line?.trim() && !slot.partnerLine?.trim()
+                  )
+                    return entry;
                   scenes += 1;
                   return {
                     ...entry,
