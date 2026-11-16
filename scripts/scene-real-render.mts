@@ -4283,6 +4283,14 @@ const phases: Record<string, Phase> = {
       }
       log('timing:', (await timing.locator('summary').first().textContent())?.trim());
     }
+    // The Sound group remembers being closed (its switches then can't be clicked: the kept-voices
+    // cut timed out on 2026-11-16): opened first.
+    const soundGroup = page.getByTestId('cut-options-sound');
+    await soundGroup.waitFor({ state: 'attached', timeout: 60_000 });
+    if ((await soundGroup.getAttribute('open')) === null) {
+      await soundGroup.locator('summary').first().click();
+      await page.waitForTimeout(500);
+    }
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
