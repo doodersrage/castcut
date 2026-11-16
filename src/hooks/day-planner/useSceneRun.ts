@@ -256,7 +256,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         normalizeSpokenLine(pageRef.current.slot.line) ||
         normalizeSpokenLine(pageRef.current.slot.partnerLine);
       let heardWrong = '';
-      for (let attempt = 0; ok && line && attempt <= CLIP_HEAR_RETRIES; attempt += 1) {
+      // A clip with no line is heard too: one that talks (loud as a voice, real words) is animated
+      // again — the cut plays it quiet, and a mouth going with no voice read as missing vocals
+      // (8 of the flagship's 20, 2026-11-16). Still talking after its retries, it is kept as it is.
+      for (let attempt = 0; ok && attempt <= CLIP_HEAR_RETRIES; attempt += 1) {
         const hearing = await hearKeptClip(pageRef.current.kept, line);
         if (!hearing?.wrong) {
           heardWrong = '';
@@ -264,7 +267,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         }
         heardWrong = hearing.transcript?.trim() || '(nothing)';
         const current = runRef.current;
-        if (current) {
+        if (current && attempt < CLIP_HEAR_RETRIES) {
           save(
             withRunLog(current, {
               at: Date.now(),
@@ -279,7 +282,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       }
       const latest = runRef.current;
       if (!latest) return;
-      if (ok && heardWrong) {
+      if (ok && heardWrong && line) {
         save(
           withRunLog(
             {

@@ -52,12 +52,15 @@ export async function renderNarration(input: {
   seed?: number;
   /** Only the voice engine's read (a talking clip's voice anchor): no LTX fallback. */
   engineOnly?: boolean;
+  /** Read as acting (sceneLineInstruct) without the scene's sound — a talking clip's anchor. */
+  acted?: boolean;
   comfyUrl?: string;
 }): Promise<{ url: string; seconds?: number; cutShort?: boolean }> {
   const line = normalizeNarration(input.line);
   if (!line) throw new Error('Write the narration line first.');
   const baseUrl = comfyBaseUrl(input.comfyUrl);
-  const delivery = input.inScene ? sceneLineInstruct(input.delivery) : input.delivery;
+  const delivery =
+    input.inScene || input.acted ? sceneLineInstruct(input.delivery) : input.delivery;
   // A kept voice: the voice engine reads in it when it's running (seconds a line, voice-engine-
   // server.ts) — else LTX, as below.
   // It exits when idle: a line that meets it going is tried once more after it's started again.

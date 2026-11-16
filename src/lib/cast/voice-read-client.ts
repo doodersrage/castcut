@@ -43,6 +43,9 @@ export async function readLineForClip(input: {
     ...(castVoiceIsBase(voice) ? { voiceBase: true } : {}),
     ...(input.delivery?.trim() ? { delivery: input.delivery.trim() } : {}),
     engineOnly: true,
+    // Framed as acting, as Cut's read lines are: read plain it was an audiobook voice, and H3
+    // copied its cadence ("robotic at times", the flagship, 2026-11-16).
+    acted: true,
   }).catch(() => null);
   return comfyInputFileOfViewUrl(read?.url) ?? undefined;
 }

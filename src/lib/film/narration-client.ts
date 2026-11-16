@@ -17,6 +17,8 @@ type NarrationLineInput = {
   inScene?: boolean;
   /** Only the voice engine reads it — no slower LTX read when it isn't running. */
   engineOnly?: boolean;
+  /** Read as acting, without the scene's sound (a talking clip's voice anchor). */
+  acted?: boolean;
 };
 
 /** Read one line (POST /api/film/narration): its ComfyUI audio view URL, and its length when known. */

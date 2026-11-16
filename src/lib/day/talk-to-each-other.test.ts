@@ -53,3 +53,16 @@ describe('two people in a scene talk to each other, not to the lens', () => {
     assert.match(alone, /looks into the camera/);
   });
 });
+
+// "Very stiff with just the head or mouth moving" (the flagship, 2026-11-16).
+describe('a talking clip on MiniMax-H3 moves the way people talk', () => {
+  it('lively: hands, head, shoulders and weight; LTX keeps its held-still hold', () => {
+    for (const framing of ['close', 'wide'] as const) {
+      const lively = talkingClipPrompt({ line: 'Found one.', framing, lively: true });
+      assert.match(lively, /hands gesture with the words/);
+      assert.doesNotMatch(lively, /only small natural head and hand movements|body stays still/);
+      assert.match(lively, /does not walk away/);
+      assert.match(talkingClipPrompt({ line: 'Found one.', framing }), /only small natural head and hand movements/);
+    }
+  });
+});

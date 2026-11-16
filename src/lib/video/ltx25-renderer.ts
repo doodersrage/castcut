@@ -1334,6 +1334,13 @@ export function talkingClipPrompt(input: {
    * flagship, 2026-11-16: "can we have them talking to each other instead of just the camera?").
    */
   listener?: { noun: string; inFrame: boolean };
+  /**
+   * Talking the way people do — hands, shoulders, head and face moving with the words — instead of
+   * LTX's held-still hold (it walked her off when let move). MiniMax-H3 holds its place without
+   * it; held still, the flagship's talking shots were "very stiff with just the head or mouth
+   * moving" (2026-11-16).
+   */
+  lively?: boolean;
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
@@ -1362,6 +1369,10 @@ export function talkingClipPrompt(input: {
         ? `${her} raised arm`
         : '';
   const says = `${spokenLineVerb(input.tone, who)} "${line}"`;
+  // How the body moves while talking: held still for LTX, alive for H3 (lively).
+  const moves = input.lively
+    ? `${she} talks the way people really do — ${her} hands gesture with the words, ${her} head, shoulders and face move with what ${she} says, ${she} shifts ${her} weight —`
+    : 'only small natural head and hand movements —';
   // Mid (seated / knees-up) stills take the wide wording too: replaying the user's park-bench
   // still (angry line, 4 seeds, 2026-10-11) the wide wording held the frame in 2 of 4 — 4 of 4
   // once it keeps her pose — and a "medium-wide, same distance" wording in 0 of 4.
@@ -1404,8 +1415,10 @@ export function talkingClipPrompt(input: {
         ? `${who} says it to ${input.listener.inFrame ? input.listener.noun : `${input.listener.noun}, just off camera`}, looking at them, not into the lens.`
         : '',
       seated
-        ? `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
-        : `${Her} lips move with every word; only small natural head and hand movements — ${her} body stays still, ${she} keeps facing the same way, and ${she} does not walk away, turn around or step toward the camera.`,
+        ? `${Her} lips move with every word; ${moves} ${she} stays in place, and does not stand up, walk away or turn around.`
+        : input.lively
+          ? `${Her} lips move with every word; ${moves} but ${she} keeps ${her} spot and does not walk away, turn around or step toward the camera.`
+          : `${Her} lips move with every word; ${moves} ${her} body stays still, ${she} keeps facing the same way, and ${she} does not walk away, turn around or step toward the camera.`,
       placeLine,
       `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${her} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
     ]
@@ -1426,8 +1439,8 @@ export function talkingClipPrompt(input: {
       ? `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks at ${to} and ${says} to them`
       : `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks into the camera and ${says}`,
     listener
-      ? `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, turned toward ${listener.noun}, not looking into the lens, and does not walk away; when ${she} finishes speaking ${she} keeps looking at ${listener.noun}, exactly where ${she} is, until the shot ends.`
-      : `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, facing the camera, and does not walk away or turn around; when ${she} finishes speaking ${she} keeps looking at the camera, exactly where ${she} is, until the shot ends.`,
+      ? `${Her} lips move with every word; ${moves} ${she} stays in place, turned toward ${listener.noun}, not looking into the lens, and does not walk away; when ${she} finishes speaking ${she} keeps looking at ${listener.noun}, exactly where ${she} is, until the shot ends.`
+      : `${Her} lips move with every word; ${moves} ${she} stays in place, facing the camera, and does not walk away or turn around; when ${she} finishes speaking ${she} keeps looking at the camera, exactly where ${she} is, until the shot ends.`,
     placeLine,
     'Camera: locked-off, framing stays as the first frame; the camera does not move or zoom.',
   ].join(' ');

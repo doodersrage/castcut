@@ -14,6 +14,7 @@ export async function POST(request: Request) {
     delivery?: unknown;
     inScene?: unknown;
     engineOnly?: unknown;
+    acted?: unknown;
     seed?: unknown;
     comfyUrl?: unknown;
   };
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
         ...(body.voiceBase === true ? { voiceBase: true } : {}),
         ...(body.inScene === true ? { inScene: true } : {}),
         ...(body.engineOnly === true ? { engineOnly: true } : {}),
+        ...(body.acted === true ? { acted: true } : {}),
         ...(typeof body.delivery === 'string' && body.delivery.trim()
           ? { delivery: body.delivery.trim().slice(0, 100) }
           : {}),

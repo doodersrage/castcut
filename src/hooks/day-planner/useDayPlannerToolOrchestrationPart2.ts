@@ -98,6 +98,7 @@ import { RAPID_DUO_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { getComfyModelDefinition } from '@/lib/comfy-models/client';
 import { stillPromptPeople } from '@/lib/still/clip-prompt';
 import { readLineForClip } from '@/lib/cast/voice-read-client';
+import { requestLineDeliveries } from '@/lib/film/line-delivery';
 import {
   DAY_CLIP_EXTRA_SECONDS,
   dayClipFrames,
@@ -602,6 +603,27 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
             'seated';
         // On MiniMax-H3 the line is read first in the speaker's kept voice (the voice engine),
         // and H3 says it as heard there — one voice across the film (2026-11-16).
+        // Directed as Cut directs its read lines (line-delivery.ts): the shot's moment turned into
+        // a short delivery by the LLM — a line read with none came out flat (2026-11-16).
+        const readDelivery =
+          speaking && !conversation && isH3Model(videoModel) && !slot.lineTone
+            ? (
+                await requestLineDeliveries(
+                  [
+                    {
+                      id: 'line',
+                      speaker:
+                        (partnerSays
+                          ? getCharacter(toolSettings.partnerCharacterId ?? '')?.name
+                          : character?.name) || (partnerSays ? partnerWho : manLead ? 'He' : 'She'),
+                      text: spokenLine,
+                      context: (slot.sceneHints ?? '').replace(/\S+ says: “[^”]*”/g, '').trim(),
+                    },
+                  ],
+                  sharedLlmRequestBody(loadSettingsCache().shared)
+                ).catch(() => ({}) as Record<string, string>)
+              ).line
+            : undefined;
         const voiceRead =
           speaking && !conversation && isH3Model(videoModel)
             ? await readLineForClip({
@@ -609,7 +631,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 line: pronounceForCast(spokenLine, voiceOf),
                 speaker:
                   (partnerSays ? partnerWho : manLead ? 'He' : 'She') === 'He' ? 'man' : 'woman',
-                ...(slot.lineTone ? { delivery: slot.lineTone } : {}),
+                ...(slot.lineTone || readDelivery
+                  ? { delivery: slot.lineTone || readDelivery }
+                  : {}),
               })
             : undefined;
         // Who the line is said to: the other person in a two-shot (him, or her when he speaks),
@@ -661,10 +685,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     heldGesture: stillHeldGesture(parentEntry?.prompt),
                     ...(stillBody ? { limbs: stillBody.limbs } : {}),
                     ...(talkingListener ? { listener: talkingListener } : {}),
+                    ...(isH3Model(videoModel) ? { lively: true } : {}),
                   }),
             // He speaks; she, beside him, listens (her mouth stays shut — one voice).
-            partnerSays
-              ? `The ${manLead ? 'man' : 'woman'} beside ${partnerWho === 'He' ? 'him' : 'her'} listens and does not speak.`
+            // The other one in the shot listens — and is seen to: nodding, small expressions
+            // (held still, the flagship's two-shots read stiff, 2026-11-16) — never speaking.
+            talkingListener?.inFrame && !conversation
+              ? `${talkingListener.noun.charAt(0).toUpperCase()}${talkingListener.noun.slice(1)} listens and reacts — nods, small smiles and expressions — and does not speak.`
               : '',
             ageLine,
           ]
