@@ -671,6 +671,10 @@ const POSE_LOOK_LINES: Record<string, string> = {
 /** Prompt line for a Look choice (partner falls back to away when there's no one else). */
 export function poseLookLine(look: string | null | undefined, people = 1): string {
   if (!look) return '';
+  // Two people talking: both turned to each other, not to the audience (the flagship, 2026-11-16).
+  if (look === 'partner' && people >= 2) {
+    return "GAZE: the two of them turned toward each other mid-conversation, each looking at the other one's face, not at the camera — seen from a slight angle, faces in three-quarter view.";
+  }
   const key = look === 'partner' && people < 2 ? 'away' : look;
   return POSE_LOOK_LINES[key] ?? '';
 }

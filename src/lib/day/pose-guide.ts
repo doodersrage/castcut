@@ -36,6 +36,7 @@ import {
   resolvePoseCameraAngle,
   resolvePoseLeadPosition,
   stickToOpenPosePerson,
+  inferPoseFacing,
   DEFAULT_POSE_CANVAS,
   type OpenPosePerson,
   type PoseCameraAngle,
@@ -5521,7 +5522,50 @@ function leadGaze(figures: StickSkeleton[], look: PoseLookChoice): StickGaze {
 
 function applyLook(figures: StickSkeleton[], look: PoseLookChoice | undefined): StickSkeleton[] {
   if (!look || figures.length === 0) return figures;
+  if (look === 'partner' && figures.length > 1) return turnTowardEachOther(figures);
   return [{ ...figures[0]!, gaze: leadGaze(figures, look) }, ...figures.slice(1)];
+}
+
+/** How much of its width a front-on body keeps turned three-quarters to the side. */
+const THREE_QUARTER_WIDTH = 0.8;
+
+/**
+ * Two people talking: each face turned to the nearest other person, and each upright body that
+ * stands apart from them turned a little their way (narrower shoulders and hips, still drawn
+ * front-on). Drawn square to the lens with faces front, the flagship's two-shots were two people
+ * addressing the audience (2026-11-16). Figures in contact (a hug, holding hands) keep their bodies.
+ */
+export function turnTowardEachOther(figures: StickSkeleton[]): StickSkeleton[] {
+  return figures.map((figure, index) => {
+    const others = figures.filter((_, other) => other !== index);
+    const nearest = others.reduce((best, other) =>
+      Math.abs(other.pelvis.x - figure.pelvis.x) < Math.abs(best.pelvis.x - figure.pelvis.x)
+        ? other
+        : best
+    );
+    const gap = nearest.pelvis.x - figure.pelvis.x;
+    if (Math.abs(gap) < 0.04) return figure;
+    const gaze: StickGaze = gap < 0 ? 'left' : 'right';
+    const facing = figure.facing ?? inferPoseFacing(figure);
+    const upright =
+      Math.abs(figure.pelvis.y - figure.neck.y) > Math.abs(figure.pelvis.x - figure.neck.x);
+    if (facing !== 'front' || !upright || Math.abs(gap) < 0.18) return { ...figure, gaze };
+    const narrow = (joint: StickSkeleton['lShoulder'], center: number) => ({
+      ...joint,
+      x: center + (joint.x - center) * THREE_QUARTER_WIDTH,
+    });
+    const cx = figure.neck.x;
+    const hx = figure.pelvis.x;
+    return {
+      ...figure,
+      facing: 'front' as const,
+      gaze,
+      lShoulder: narrow(figure.lShoulder, cx),
+      rShoulder: narrow(figure.rShoulder, cx),
+      lHip: narrow(figure.lHip, hx),
+      rHip: narrow(figure.rHip, hx),
+    };
+  });
 }
 
 /** Mirror a multi-person drawing when the lead stands on the other side from `side`. */

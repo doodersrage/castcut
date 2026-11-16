@@ -1328,6 +1328,12 @@ export function talkingClipPrompt(input: {
    * step or a wall already left out (stillFootSupported).
    */
   limbs?: StillLimbHolds;
+  /**
+   * Who the line is said to: the other person in the shot (inFrame), or someone just off camera.
+   * Said into the lens, a scene's dialogue read as two people talking to the audience (the
+   * flagship, 2026-11-16: "can we have them talking to each other instead of just the camera?").
+   */
+  listener?: { noun: string; inFrame: boolean };
 }): string {
   const who = input.speaker ?? 'She';
   const line = normalizeSpokenLine(input.line);
@@ -1394,19 +1400,34 @@ export function talkingClipPrompt(input: {
       seated
         ? `${who} stays where ${she} is, in the same pose as the first frame — sitting or lying, ${she} stays that way —${except ? except.slice(1) : ''} and ${says}`
         : `${who} keeps exactly the pose and position of the first frame${except} and ${says}`,
+      input.listener
+        ? `${who} says it to ${input.listener.inFrame ? input.listener.noun : `${input.listener.noun}, just off camera`}, looking at them, not into the lens.`
+        : '',
       seated
         ? `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, and does not stand up, walk away or turn around.`
         : `${Her} lips move with every word; only small natural head and hand movements — ${her} body stays still, ${she} keeps facing the same way, and ${she} does not walk away, turn around or step toward the camera.`,
       placeLine,
       `Camera: locked-off wide shot — the framing stays exactly as the first frame, ${her} whole body in view from head to feet; the camera does not move, zoom or push in, and there is no close-up.`,
-    ].join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
   // Close (a chest-up crop): a raised arm is lowered — kept, the camera stayed at her eye for the
   // whole line — and after the line she keeps looking at the camera (she turned away at the end).
+  const listener = input.listener;
+  const to = listener
+    ? listener.inFrame
+      ? listener.noun
+      : `${listener.noun}, just off camera beside the lens`
+    : '';
   return [
     'One continuous shot that starts on the first frame.',
-    `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks into the camera and ${says}`,
-    `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, facing the camera, and does not walk away or turn around; when ${she} finishes speaking ${she} keeps looking at the camera, exactly where ${she} is, until the shot ends.`,
+    listener
+      ? `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks at ${to} and ${says} to them`
+      : `${who} stops where ${she} is, ${raisedArm ? `lowers ${raisedArm} naturally, ` : ''}looks into the camera and ${says}`,
+    listener
+      ? `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, turned toward ${listener.noun}, not looking into the lens, and does not walk away; when ${she} finishes speaking ${she} keeps looking at ${listener.noun}, exactly where ${she} is, until the shot ends.`
+      : `${Her} lips move with every word; only small natural head and hand movements — ${she} stays in place, facing the camera, and does not walk away or turn around; when ${she} finishes speaking ${she} keeps looking at the camera, exactly where ${she} is, until the shot ends.`,
     placeLine,
     'Camera: locked-off, framing stays as the first frame; the camera does not move or zoom.',
   ].join(' ');

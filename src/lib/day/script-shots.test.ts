@@ -783,5 +783,8 @@ describe('her line while she touches him (a two-shot)', () => {
     // Her alone with a glass: still her alone.
     const water = draft(shots.findIndex(shot => shot.line === 'Thirsty.'));
     assert.equal(water.partnerInFrame, undefined);
+    // The two of them talk to each other, not to the lens (2026-11-16); her alone keeps no look.
+    assert.equal(his.slot.poseLook, 'partner');
+    assert.equal(water.slot.poseLook, undefined);
   });
 });

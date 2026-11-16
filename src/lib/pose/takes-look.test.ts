@@ -110,15 +110,16 @@ describe('Story best take', () => {
 describe('Look', () => {
   const text = 'walking hand in hand with a friend along the pier';
 
-  it('turns only the lead face, toward the partner or off frame', () => {
+  it('turns the two of them toward each other; away turns the lead off frame', () => {
+    // Both faces, since 2026-11-16: the flagship's two-shots talked to the lens.
     const [lead, partner] = synthesizeSceneStickFigures(text, 0, {
       forcePeople: 2,
       look: 'partner',
     }).figures;
     assert.equal(lead!.gaze, partner!.pelvis.x > lead!.pelvis.x ? 'right' : 'left');
-    assert.equal(partner!.gaze, undefined);
+    assert.equal(partner!.gaze, partner!.pelvis.x > lead!.pelvis.x ? 'left' : 'right');
     const plain = synthesizeSceneStickFigures(text, 0, { forcePeople: 2 }).figures[0]!;
-    assert.deepEqual({ ...lead, gaze: undefined }, { ...plain, gaze: undefined }, 'body unchanged');
+    assert.equal(lead!.neck.y, plain.neck.y, 'same place and height');
 
     const solo = synthesizeSceneStickFigures('standing on the corner', 0, {
       forcePeople: 1,
@@ -147,7 +148,7 @@ describe('Look', () => {
 
   it('says it in the prompt (partner means away when solo)', () => {
     assert.match(poseLookLine('camera'), /camera lens/);
-    assert.match(poseLookLine('partner', 2), /other person/);
+    assert.match(poseLookLine('partner', 2), /turned toward each other/);
     assert.equal(poseLookLine('partner', 1), poseLookLine('away'));
     assert.equal(poseLookLine(undefined), '');
   });

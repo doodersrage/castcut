@@ -791,6 +791,11 @@ export function shotSceneDraft(input: {
       ...(locationId ? { locationId } : {}),
       ...(beat ? { sceneHints: beat, sceneHintsTyped: beat } : {}),
       poseCamera: { shot: shot.framing },
+      // Two people in a scene's shot talk to each other, not to the lens (the flagship,
+      // 2026-11-16) — all but the establishing shot, which shows the place.
+      ...((partnerInFrame || othersInFrame) && shot.purpose !== 'establishing'
+        ? { poseLook: 'partner' as const }
+        : {}),
       ...(shotShowsNobody(shot, [
         ...scene.speakers.flatMap(speaker => [speaker, nameOf(speaker)]),
         ...(leadName ? [leadName] : []),

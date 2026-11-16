@@ -599,6 +599,21 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           framing !== 'close' &&
           (stillBody?.posture ?? (stillWordsSeated(parentEntry?.prompt) ? 'seated' : null)) ===
             'seated';
+        // Who the line is said to: the other person in a two-shot (him, or her when he speaks),
+        // else the partner just off camera — not the lens (the flagship, 2026-11-16).
+        const sceneHasPartner = Boolean(toolSettings.partnerCharacterId?.trim());
+        const twoShot = stillPromptPeople(parentEntry?.prompt) >= 2;
+        const talkingListener =
+          twoShot || partnerSays
+            ? {
+                noun: partnerSays
+                  ? `the ${manLead ? 'man' : 'woman'} beside ${partnerWho === 'He' ? 'him' : 'her'}`
+                  : `the ${manLead ? 'woman' : 'man'} beside ${manLead ? 'him' : 'her'}`,
+                inFrame: true,
+              }
+            : sceneHasPartner
+              ? { noun: 'the person they are talking to', inFrame: false }
+              : undefined;
         if (speaking) {
           // Talking: she stays put facing the camera (the beat's motion walked her out of frame
           // mid-line). An adult still's age sentence stays with the clip.
@@ -632,6 +647,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                     inMotion: stillInMotion(parentEntry?.prompt),
                     heldGesture: stillHeldGesture(parentEntry?.prompt),
                     ...(stillBody ? { limbs: stillBody.limbs } : {}),
+                    ...(talkingListener ? { listener: talkingListener } : {}),
                   }),
             // He speaks; she, beside him, listens (her mouth stays shut — one voice).
             partnerSays
@@ -671,10 +687,16 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           const wide = await wideStillUrl(slot.id, imageUrl);
           if (wide) startUrl = wide;
         }
-        // A clip with no line on MiniMax-H3 ends on its own still: left free it flew to her hands
-        // or brought new people in for the beat's action (the flagship's 12 of 19, 2026-11-15);
-        // pinned, it moves and comes back to the shot as planned.
-        if (!endImageFilename && !speaking && isH3Model(videoModel)) {
+        // A close-up with no line on MiniMax-H3 ends on its own still: left free it flew to her
+        // hands or brought new people in for the beat's action (the flagship, 2026-11-15). Only a
+        // close-up, where her face still moves: a pinned wide shot froze into a still, or kept
+        // still while a second her walked about behind (the flagship's 1A, 2026-11-16).
+        if (
+          !endImageFilename &&
+          !speaking &&
+          slot.poseCamera?.shot === 'head' &&
+          isH3Model(videoModel)
+        ) {
           const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
           if (dayEndPoseSupported(videoModel, nodeTypes)) {
             endImageFilename = await resolveQueueInputImageFilename({
