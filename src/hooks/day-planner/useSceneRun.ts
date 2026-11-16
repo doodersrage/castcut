@@ -48,6 +48,39 @@ import {
 } from '@/lib/day/scene-run';
 import { bestSceneTake, episodeAnimates, episodeRedosFor } from '@/lib/day/episode-run';
 import { SCENE_TAKE_NOTE_MAX } from '@/lib/day/scenes';
+import { normalizeSpokenLine } from '@/lib/video/ltx25-renderer';
+
+/** Times a talking clip heard saying the wrong thing is animated again (Make longer's two). */
+const CLIP_HEAR_RETRIES = 2;
+
+/** What the kept take's clip says against its line (/api/clip/hear); null when not heard. */
+async function hearKeptClip(
+  kept: { clipUrl?: string; clipPromptId?: string } | null | undefined,
+  line: string
+): Promise<{ wrong: boolean; transcript?: string } | null> {
+  const clipUrl = kept?.clipUrl?.trim();
+  if (!clipUrl) return null;
+  const entry = kept?.clipPromptId
+    ? loadComfyGallery().find(item => item.promptId === kept.clipPromptId)
+    : undefined;
+  const response = await fetch('/api/clip/hear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      clipUrl,
+      line,
+      ...(entry ? { entryId: entry.id, comfyUrl: entry.comfyUrl } : {}),
+    }),
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  const json = (await response.json().catch(() => null)) as {
+    heard?: boolean;
+    wrong?: boolean;
+    transcript?: string;
+  } | null;
+  return json?.heard ? { wrong: Boolean(json.wrong), transcript: json.transcript } : null;
+}
 
 type DayEngineView = ReturnType<typeof useDayPlannerToolOrchestration>;
 type ScenePage = ReturnType<typeof useScenePage>;
@@ -181,33 +214,93 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         () => !pageRef.current.inFlight && pageRef.current.still?.promptId === keptPromptId,
         CHECKS_TIMEOUT_MS
       );
-      const clipBefore = pageRef.current.still?.clipPromptId;
-      await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
-      // The page has the queued clip after its next render (pageRef follows in an effect):
-      // read at once, it was always the still before — every clip of a real run was called
-      // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
-      await until(() => {
-        const still = pageRef.current.still;
-        return (
-          still?.clipStatus === 'error' ||
-          Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
-        );
-      }, OPEN_TIMEOUT_MS);
-      const queued = pageRef.current.still?.clipStatus;
-      const landed =
-        queued === 'queued' || queued === 'running' || queued === 'completed'
-          ? await until(() => {
-              const status = pageRef.current.still?.clipStatus;
-              return status === 'completed' || status === 'error';
-            }, RENDER_TIMEOUT_MS)
-          : false;
-      const ok = landed && pageRef.current.still?.clipStatus === 'completed';
-      // Its clip joins the kept take (the page merges it), which Cut then plays.
-      if (ok) {
-        await until(() => Boolean(pageRef.current.kept?.clipUrl), OPEN_TIMEOUT_MS);
+      const animateOnce = async (): Promise<boolean> => {
+        const clipBefore = pageRef.current.still?.clipPromptId;
+        await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
+        // The page has the queued clip after its next render (pageRef follows in an effect):
+        // read at once, it was always the still before — every clip of a real run was called
+        // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
+        await until(() => {
+          const still = pageRef.current.still;
+          return (
+            still?.clipStatus === 'error' ||
+            Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
+          );
+        }, OPEN_TIMEOUT_MS);
+        const queued = pageRef.current.still?.clipStatus;
+        const landed =
+          queued === 'queued' || queued === 'running' || queued === 'completed'
+            ? await until(() => {
+                const status = pageRef.current.still?.clipStatus;
+                return status === 'completed' || status === 'error';
+              }, RENDER_TIMEOUT_MS)
+            : false;
+        const ok = landed && pageRef.current.still?.clipStatus === 'completed';
+        // Its clip joins the kept take (the page merges it), which Cut then plays.
+        if (ok) {
+          await until(
+            () =>
+              Boolean(pageRef.current.kept?.clipUrl) &&
+              pageRef.current.kept?.clipPromptId === pageRef.current.still?.clipPromptId,
+            OPEN_TIMEOUT_MS
+          );
+        }
+        return ok;
+      };
+      let ok = await animateOnce();
+      // A talking clip is heard (Whisper on ComfyUI): one that didn't say its line as written —
+      // MiniMax-H3's made-up words, or the line and then more — is animated again, up to twice,
+      // as Make longer has done for its parts since 2026-10-30. The flagship film's talking
+      // shots kept their gibberish without it (2026-11-16).
+      const line =
+        normalizeSpokenLine(pageRef.current.slot.line) ||
+        normalizeSpokenLine(pageRef.current.slot.partnerLine);
+      let heardWrong = '';
+      for (let attempt = 0; ok && line && attempt <= CLIP_HEAR_RETRIES; attempt += 1) {
+        const hearing = await hearKeptClip(pageRef.current.kept, line);
+        if (!hearing?.wrong) {
+          heardWrong = '';
+          break;
+        }
+        heardWrong = hearing.transcript?.trim() || '(nothing)';
+        const current = runRef.current;
+        if (current) {
+          save(
+            withRunLog(current, {
+              at: Date.now(),
+              sceneId,
+              event: 'redo',
+              detail: `${name}: its clip said “${heardWrong.slice(0, 80)}” — animated again`,
+            })
+          );
+        }
+        if (attempt === CLIP_HEAR_RETRIES) break;
+        ok = await animateOnce();
       }
       const latest = runRef.current;
       if (!latest) return;
+      if (ok && heardWrong) {
+        save(
+          withRunLog(
+            {
+              ...latest,
+              flagged: {
+                ...(latest.flagged ?? {}),
+                [sceneId]: [latest.flagged?.[sceneId], `its clip says “${heardWrong.slice(0, 80)}”`]
+                  .filter(Boolean)
+                  .join('; '),
+              },
+            },
+            {
+              at: Date.now(),
+              sceneId,
+              event: 'flagged',
+              detail: `${name}: its clip still doesn’t say its line — kept for review`,
+            }
+          )
+        );
+        return;
+      }
       save(
         withRunLog(
           ok

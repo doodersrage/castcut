@@ -17,6 +17,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { uploadComfyInputContent } from '../comfyui/comfy-input-upload-server';
+import { loudestDb } from './hear-server';
 import {
   comfyBaseUrl,
   COMFY_TRANSCRIBE_NODE,
@@ -1013,25 +1014,6 @@ async function hearPart(baseUrl: string, file: string): Promise<string | null> {
     mimeType: 'video/mp4',
   });
   return transcribeInComfy(baseUrl, uploaded.name);
-}
-
-/** The loudest 50 ms of a file's sound (dBFS); null without sound. */
-async function loudestDb(ffmpeg: string, file: string): Promise<number | null> {
-  const rate = 16000;
-  const pcm = await new Promise<Buffer>(resolve => {
-    const child = spawn(
-      ffmpeg,
-      ['-v', 'error', '-i', file, '-vn', '-ac', '1', '-ar', String(rate), '-f', 's16le', '-'],
-      { stdio: ['ignore', 'pipe', 'ignore'] }
-    );
-    const chunks: Buffer[] = [];
-    child.stdout.on('data', chunk => chunks.push(chunk as Buffer));
-    child.on('error', () => resolve(Buffer.alloc(0)));
-    child.on('close', () => resolve(Buffer.concat(chunks)));
-  });
-  if (pcm.length < rate / 10) return null;
-  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, Math.floor(pcm.length / 2));
-  return loudestWindow(samples, rate, 0.05, 0.05).db;
 }
 
 /**
