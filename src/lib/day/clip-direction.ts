@@ -55,10 +55,20 @@ export function buildDaySlotClipPrompt(input: {
     }
     return prompt;
   }
-  const clip = buildStillClipPrompt(beat || buildDaySlotMotionSubject(slot, input.characterName), {
-    durationSec,
-    people: stillPromptPeople(stillPrompt),
-    ...(input.endPoseWords ? { endPoseWords: input.endPoseWords } : {}),
-  });
+  // A head-and-shoulders shot with no direction typed: only what a close-up holds. Its beat's
+  // action ("Slyne pours the coffee") had MiniMax-H3 fly the camera to her hands or put a second
+  // her behind her to do it (the flagship, 2026-11-15).
+  const people = stillPromptPeople(stillPrompt);
+  const closeUp = !direction && slot.poseCamera?.shot === 'head' && people <= 1;
+  const who = input.characterName?.trim() || 'She';
+  const closeBeat = `${who} in a close shot of her face and shoulders: she listens and reacts with small, natural expressions and head movements. Nothing else happens, nobody else appears and nothing is picked up, poured or carried.`;
+  const clip = buildStillClipPrompt(
+    closeUp ? closeBeat : beat || buildDaySlotMotionSubject(slot, input.characterName),
+    {
+      durationSec,
+      people,
+      ...(input.endPoseWords ? { endPoseWords: input.endPoseWords } : {}),
+    }
+  );
   return input.manLead ? swapDayPromptGender(clip) : clip;
 }

@@ -59,3 +59,26 @@ describe('Day clip direction', () => {
     );
   });
 });
+
+describe('a close-up clip holds only what a close-up shows (the flagship, 2026-11-15)', () => {
+  // "Slyne pours the coffee" on her face's close-up: MiniMax-H3 flew to her hands, or put a
+  // second her behind her to pour.
+  it('her face and small reactions; a typed direction or a wider shot keep the beat', () => {
+    const slot = {
+      id: 'morning',
+      label: '11E',
+      sceneHints: 'Morning light in a small kitchen. Slyne pours the coffee this time. Slyne reacts.',
+      poseCamera: { shot: 'head' },
+    } as never;
+    const close = buildDaySlotClipPrompt({ slot, characterName: 'Slyne', stillPrompt: 'One woman alone.' });
+    assert.match(close, /Slyne in a close shot of her face and shoulders/);
+    assert.doesNotMatch(close, /pours the coffee/);
+    const typed = buildDaySlotClipPrompt({ slot, direction: 'she sips her coffee', characterName: 'Slyne' });
+    assert.match(typed, /sips her coffee/);
+    const wide = buildDaySlotClipPrompt({
+      slot: { ...(slot as object), poseCamera: { shot: 'waist' } } as never,
+      characterName: 'Slyne',
+    });
+    assert.match(wide, /pours the coffee/);
+  });
+});

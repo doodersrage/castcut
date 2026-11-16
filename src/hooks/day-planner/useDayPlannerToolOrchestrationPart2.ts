@@ -671,6 +671,19 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           const wide = await wideStillUrl(slot.id, imageUrl);
           if (wide) startUrl = wide;
         }
+        // A clip with no line on MiniMax-H3 ends on its own still: left free it flew to her hands
+        // or brought new people in for the beat's action (the flagship's 12 of 19, 2026-11-15);
+        // pinned, it moves and comes back to the shot as planned.
+        if (!endImageFilename && !speaking && isH3Model(videoModel)) {
+          const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
+          if (dayEndPoseSupported(videoModel, nodeTypes)) {
+            endImageFilename = await resolveQueueInputImageFilename({
+              imageUrl: startUrl,
+              filename: `ffab-day-hold-${slot.id}-${Date.now()}.png`,
+              model: videoModel,
+            }).catch(() => undefined);
+          }
+        }
         // A voice kept before voice clips were cut gets its clip now, once (MiniMax-H3 speaks in it).
         if (speaking && !conversation) {
           await ensureCastVoiceClip(shared.activeCharacterId).catch(() => null);
