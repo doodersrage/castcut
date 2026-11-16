@@ -20,6 +20,9 @@ describe('a clip that drifts from its shot, as the vision model reads it', () =>
       parseClipDrift('{"new_people": false, "people_gone": false, "framing": "same", "place": true}'),
       { drifted: false, reasons: [] }
     );
+    // A move of its own (another angle) or a passer-by on the street (someone new, same shot).
+    assert.equal(parseClipDrift('{"new_people": false, "people_gone": false, "framing": "other", "place": true}')!.drifted, false);
+    assert.equal(parseClipDrift('{"new_people":true,"people_gone":false,"framing":"same","place":true}')!.drifted, false);
     assert.equal(parseClipDrift('I cannot tell.'), null);
     assert.equal(parseClipDrift(null), null);
   });

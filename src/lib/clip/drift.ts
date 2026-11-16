@@ -32,11 +32,16 @@ export function parseClipDrift(reply: string | null | undefined): ClipDrift | nu
   }
   const framing = typeof parsed.framing === 'string' ? parsed.framing.trim().toLowerCase() : '';
   if (!framing && typeof parsed.new_people !== 'boolean') return null;
+  // A different angle alone is a move of its own (she turns, walks a step: 8A, 8B, 9C), and
+  // someone new alone is a passer-by on a busy street (2C) — read on all 51 of the flagship's
+  // clips, those flagged 9 good ones. Drift is a closer shot, someone gone, someone new on
+  // another shot, or another place: 7 flagged, 6 of them the ones that went wrong.
+  const newOnAnotherShot = parsed.new_people === true && framing !== 'same';
   const reasons = [
-    parsed.new_people === true ? 'someone new comes in' : '',
+    newOnAnotherShot ? 'someone new comes in' : '',
     parsed.people_gone === true ? 'someone leaves the shot' : '',
     framing === 'closer' ? 'the camera moves in close' : '',
-    framing === 'other' ? 'it ends on a different shot' : '',
+    newOnAnotherShot && framing === 'other' ? 'it ends on a different shot' : '',
     parsed.place === false ? 'it ends somewhere else' : '',
   ].filter(Boolean);
   return { drifted: reasons.length > 0, reasons };
