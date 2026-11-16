@@ -524,8 +524,16 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         const manLead = dayPartnerNoun(character ?? {}) === 'man';
         // The slot's beat, or the direction the player gave in the Animate sheet — formatted by
         // the same templates either way (day-clip-direction.ts).
+        // A shot framed "head" whose still came out wide (10D: her on the floor) is no close-up:
+        // told it was, H3 zoomed in on her face, and pinned to the still it snapped back out
+        // (2026-11-16). Its still's face size says which it is.
+        const stillCloseUp =
+          slot.poseCamera?.shot === 'head' && !spokenLine && imageUrl
+            ? (await talkingStillFraming(imageUrl)) === 'close'
+            : undefined;
         let prompt = buildDaySlotClipPrompt({
           slot,
+          ...(stillCloseUp === false ? { stillNotCloseUp: true } : {}),
           direction: options?.direction,
           characterName: character?.name,
           dayMood: toolSettings.dayMood,
@@ -749,6 +757,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           slot.poseCamera?.shot === 'head' &&
           // One face: a two-shot framed "head" (4D, the two holding up boxes) froze under the pin.
           stillPromptPeople(parentEntry?.prompt) === 1 &&
+          // And a close-up still: a wide one zoomed in and snapped back (10D).
+          stillCloseUp === true &&
           isH3Model(videoModel)
         ) {
           const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);

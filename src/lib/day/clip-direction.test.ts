@@ -96,3 +96,22 @@ describe('a reaction shot reacts out loud, without words (the flagship, 2026-11-
     assert.match(reactionSoundLine({ sceneHints: 'Jason reacts.' }, 'Jason', 'He'), /he smiles and gives a short, quiet laugh/);
   });
 });
+
+describe('a shot framed "head" whose still came out wide is no close-up (the flagship, 2026-11-16)', () => {
+  // 10D: her on the floor with noodles, told "a close shot of her face" — H3 zoomed in on it.
+  it('keeps its beat when the still is wider', () => {
+    const slot = {
+      id: 'night',
+      label: '10D',
+      sceneHints: 'Lamplight. Slyne sits on the floor among boxes, eating noodles. Slyne reacts.',
+      poseCamera: { shot: 'head' },
+    } as never;
+    const wide = buildDaySlotClipPrompt({ slot, characterName: 'Slyne', stillPrompt: 'One woman alone.', stillNotCloseUp: true });
+    assert.doesNotMatch(wide, /close shot of her face/);
+    assert.match(wide, /eating noodles/);
+    assert.match(
+      buildDaySlotClipPrompt({ slot, characterName: 'Slyne', stillPrompt: 'One woman alone.' }),
+      /close shot of her face/
+    );
+  });
+});

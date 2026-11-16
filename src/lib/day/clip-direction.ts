@@ -33,6 +33,8 @@ export function buildDaySlotClipPrompt(input: {
   endPoseWords?: string;
   /** Clip length the prompt names (default 4; the Animate sheet's Length adds to it). */
   durationSec?: number;
+  /** The still of a shot framed "head" came out wider: not told it is a close-up. */
+  stillNotCloseUp?: boolean;
 }): string {
   const { slot } = input;
   const durationSec = input.durationSec && input.durationSec > 0 ? input.durationSec : 4;
@@ -59,7 +61,8 @@ export function buildDaySlotClipPrompt(input: {
   // action ("Slyne pours the coffee") had MiniMax-H3 fly the camera to her hands or put a second
   // her behind her to do it (the flagship, 2026-11-15).
   const people = stillPromptPeople(stillPrompt);
-  const closeUp = !direction && slot.poseCamera?.shot === 'head' && people <= 1;
+  const closeUp =
+    !direction && slot.poseCamera?.shot === 'head' && people <= 1 && !input.stillNotCloseUp;
   const who = input.characterName?.trim() || 'She';
   const closeBeat = `${who} in a close shot of her face and shoulders: she listens and reacts with small, natural expressions and head movements. Nothing else happens, nobody else appears and nothing is picked up, poured or carried.`;
   const clip = buildStillClipPrompt(

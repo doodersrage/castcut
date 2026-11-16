@@ -17,14 +17,19 @@ import { fetchFilmShotBytes } from '../video/shot-fetch';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 import { CLIP_DRIFT_PROMPT, CLIP_DRIFT_SYSTEM, parseClipDrift, type ClipDrift } from './drift';
 
-function frameJpeg(ffmpeg: string, file: string, fromEnd: boolean): Promise<Buffer> {
+/** The middle look: a clip pinned to end on its still can drift and snap back (10D). */
+const DRIFT_MIDDLE_SEC = 2.2;
+
+function frameJpeg(ffmpeg: string, file: string, at: 'first' | 'middle' | 'last'): Promise<Buffer> {
   return new Promise(resolve => {
     const child = spawn(
       ffmpeg,
       [
         '-v',
         'error',
-        ...(fromEnd ? ['-sseof', '-0.2'] : ['-ss', '0']),
+        ...(at === 'last'
+          ? ['-sseof', '-0.2']
+          : ['-ss', at === 'middle' ? String(DRIFT_MIDDLE_SEC) : '0']),
         '-i',
         file,
         '-frames:v',
@@ -68,23 +73,32 @@ export async function clipDrift(input: {
   const file = path.join(filmTempOsDir(), `castcut-drift-${randomUUID()}.mp4`);
   try {
     await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
-    const [first, last] = await Promise.all([
-      frameJpeg(ffmpeg, file, false),
-      frameJpeg(ffmpeg, file, true),
+    const [first, middle, last] = await Promise.all([
+      frameJpeg(ffmpeg, file, 'first'),
+      frameJpeg(ffmpeg, file, 'middle'),
+      frameJpeg(ffmpeg, file, 'last'),
     ]);
     if (!first.length || !last.length) return null;
     const dataUrl = (bytes: Buffer) => `data:image/jpeg;base64,${bytes.toString('base64')}`;
-    const reply = await visionCompletion({
-      systemPrompt: CLIP_DRIFT_SYSTEM,
-      textPrompt: CLIP_DRIFT_PROMPT,
-      imageDataUrl: dataUrl(first),
-      extraImageDataUrls: [dataUrl(last)],
-      maxTokens: 400,
-      temperature: 0,
-      model,
-      endpoint: resolveRequestLlmEndpoint(input.llm),
-    }).catch(() => null);
-    return parseClipDrift(reply);
+    const ask = (later: Buffer) =>
+      visionCompletion({
+        systemPrompt: CLIP_DRIFT_SYSTEM,
+        textPrompt: CLIP_DRIFT_PROMPT,
+        imageDataUrl: dataUrl(first),
+        extraImageDataUrls: [dataUrl(later)],
+        maxTokens: 400,
+        temperature: 0,
+        model,
+        endpoint: resolveRequestLlmEndpoint(input.llm),
+      })
+        .then(parseClipDrift)
+        .catch(() => null);
+    // The end against the start, then the middle (a zoom in that snapped back to the still).
+    const atEnd = await ask(last);
+    if (atEnd?.drifted || !middle.length) return atEnd;
+    const atMiddle = await ask(middle);
+    if (atMiddle?.drifted) return atMiddle;
+    return atEnd ?? atMiddle;
   } finally {
     await fs.rm(/* turbopackIgnore: true */ file, { force: true }).catch(() => undefined);
   }
