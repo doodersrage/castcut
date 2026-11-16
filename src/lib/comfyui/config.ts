@@ -2134,8 +2134,14 @@ export function injectPromptsWithFallbacks(
         // A talking clip speaks in the Cast's kept voice (M11 T16) when this ComfyUI has the
         // reference model and its guide node; otherwise the clip invents one, as before.
         // The kept voice's clip, else its sample alone (a voice from the player's recording).
-        const voiceClip = input.params?.videoVoiceClip?.trim();
-        const voiceAudio = voiceClip ? undefined : input.params?.videoVoiceSample?.trim();
+        // One speaker anchors on the voice's sound alone when there is one: the reference model
+        // takes the voice clip's picture too, and an audition rendered from a base-layer plate put
+        // her in a bra and a man in his underwear into the flagship's clips (2026-11-15). The
+        // conversation keeps its clips (two voices need telling apart).
+        const sampleOnly = input.params?.videoVoiceSample?.trim();
+        const voiceClip = sampleOnly ? undefined : input.params?.videoVoiceClip?.trim();
+        const conversationClip = input.params?.videoVoiceClip?.trim();
+        const voiceAudio = voiceClip ? undefined : sampleOnly;
         const refModel = !nodeTypes || (nodeTypes.has(H3_REF_NODE) && nodeTypes.has(H3_GUIDE_NODE));
         // Two people talking (M11 T21): the line in the lead's voice, the reply in the partner's.
         const speakers = input.params?.videoConversation?.split('|').map(noun => noun.trim());
@@ -2145,8 +2151,11 @@ export function injectPromptsWithFallbacks(
                 first: {
                   noun: speakers[0]!,
                   who: /\bman\b/.test(speakers[0]!) ? 'He' : 'She',
-                  ...(voiceClip
-                    ? { voiceClip, clipWords: input.params?.videoVoiceClipWords?.trim() }
+                  ...(conversationClip
+                    ? {
+                        voiceClip: conversationClip,
+                        clipWords: input.params?.videoVoiceClipWords?.trim(),
+                      }
                     : {}),
                 },
                 second: {

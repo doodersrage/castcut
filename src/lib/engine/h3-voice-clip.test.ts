@@ -107,16 +107,18 @@ describe('LTX talking clips speak in the kept voice (M11 T17)', () => {
 });
 
 describe('a recorded voice (sound only) on MiniMax-H3', () => {
-  it('anchors on the sample when there is no voice clip; the clip wins when there is one', () => {
+  it('anchors on the sample; with a voice clip too, still the sample — never the clip’s picture', () => {
     const nodes = talkingClip({ videoVoiceSample: 'castcut-voice.wav' });
     const ref = nodes.find(node => node.class_type === H3_REF_NODE);
     assert.ok(ref);
     assert.match(String(ref.inputs.prompt), /^<Audio 1> is her voice: \(S1\) speaks in exactly that voice/);
     assert.ok(nodes.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
     assert.ok(!nodes.some(node => node.class_type === 'LoadVideo'));
+    // The flagship (2026-11-15): the voice clips, auditions rendered from base-layer plates, put
+    // her in a bra and a man in his underwear into the clips. The sound alone carries the voice.
     const both = talkingClip({ videoVoiceSample: 'castcut-voice.wav', videoVoiceClip: 'clip.mp4' });
-    assert.ok(both.some(node => node.class_type === 'LoadVideo' && node.inputs.file === 'clip.mp4'));
-    assert.ok(!both.some(node => node.class_type === 'LoadAudio'));
+    assert.ok(!both.some(node => node.class_type === 'LoadVideo'));
+    assert.ok(both.some(node => node.class_type === 'LoadAudio' && node.inputs.audio === 'castcut-voice.wav'));
   });
 });
 
