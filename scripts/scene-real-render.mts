@@ -4286,6 +4286,15 @@ const phases: Record<string, Phase> = {
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    // EPISODE_CUT_CLIP_VOICES=1 / 0: talking clips play their line in the kept voice (or not).
+    const clipVoices = process.env.EPISODE_CUT_CLIP_VOICES;
+    if (clipVoices === '1' || clipVoices === '0') {
+      const toggle = page.getByTestId('cut-clip-voices');
+      if ((await toggle.getAttribute('aria-checked')) !== String(clipVoices === '1')) {
+        await toggle.click();
+      }
+      log('kept voices on clips:', clipVoices === '1' ? 'on' : 'off');
+    }
     // Portrait stills filled out to 16:9 (no black sides); EPISODE_WIDEN=0 leaves them boxed.
     if (process.env.EPISODE_WIDEN !== '0') {
       const widen = page.getByTestId('cut-widen');

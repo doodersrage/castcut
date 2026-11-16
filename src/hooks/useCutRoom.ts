@@ -128,6 +128,7 @@ import {
   type DaySlotStill,
 } from '@/lib/day/planner';
 import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
+import { fitLineToClip } from '@/lib/audio/line-fit-client';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
@@ -2677,6 +2678,35 @@ export function useCutRoom() {
                 narrationText: said.text,
               };
             }
+          }
+        }
+        // The kept voice on talking clips: a MiniMax-H3 clip said its line as the voice engine
+        // read it (videoVoiceRead); that reading, fitted to where the clip says it, takes the
+        // clip's own voice's place — one voice for each speaker across the film (2026-11-16).
+        if (cutOptions.clipVoices === true) {
+          const gallery = loadComfyGallery();
+          for (const [index, shot] of picked.entries()) {
+            const spoken = shot.spoken?.trim();
+            if (shot.kind !== 'clip' || shot.narrationUrl || !spoken || !shot.entryId) continue;
+            const entry = gallery.find(
+              item => item.id === shot.entryId || item.promptId === shot.entryId
+            );
+            const readFile = entry?.queueParams?.videoVoiceRead?.trim();
+            if (!readFile) continue;
+            const fitKey = `fit:${shot.url}:${readFile}`;
+            let url = readLineBefore(fitKey);
+            if (!url) {
+              setStatus(`Fitting ${shot.title}’s line in its kept voice…`);
+              url = await fitLineToClip({
+                clipUrl: shot.url,
+                entryId: entry?.id,
+                readFile,
+                comfyUrl: entry?.comfyUrl,
+              });
+              if (url) keepReadLine(fitKey, url);
+            }
+            if (url)
+              picked[index] = { ...shot, narrationUrl: url, narrationText: spoken, volume: 0 };
           }
         }
         // An audio-described version (Part 18 R7): every shot with nothing said gets a short

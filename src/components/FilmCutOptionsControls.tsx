@@ -119,6 +119,11 @@ export type FilmCutOptionsValue = {
   credits?: string;
   /** Read each still's line in its speaker's voice, the still held for it (a stills animatic). */
   readLines?: boolean;
+  /**
+   * Talking clips play their line in the speaker's kept voice: the voice engine's reading the
+   * clip copied (MiniMax-H3), fitted to where the clip says it, in place of the clip's own voice.
+   */
+  clipVoices?: boolean;
   /** Describe what each silent shot shows, in a narrator's voice (an audio-described version). */
   audioDescription?: boolean;
   /** "REVIEW" and the running timecode burned into the picture (a review copy). */
@@ -484,7 +489,8 @@ export default function FilmCutOptionsControls({
         summary={join(
           hasBed ? `music: ${bedLabel || 'a track'}` : 'no music',
           value.sound?.ambienceUrl?.trim() && 'ambience',
-          value.readLines === true && 'lines read'
+          value.readLines === true && 'lines read',
+          value.clipVoices === true && 'kept voices'
         )}
         defaultOpen
         persistKey={groupKey('sound')}
@@ -497,6 +503,14 @@ export default function FilmCutOptionsControls({
           disabled={disabled}
           onChange={next => onChange({ ...value, readLines: next })}
           testId={`${testIdPrefix}-read-lines`}
+        />
+        <OptionSwitch
+          label="Kept voices on talking clips"
+          note="A talking clip's line as its speaker's kept voice reads it, fitted to their lips — one voice for each person"
+          checked={value.clipVoices === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, clipVoices: next })}
+          testId={`${testIdPrefix}-clip-voices`}
         />
         <OptionRow label="Music">
           <span
