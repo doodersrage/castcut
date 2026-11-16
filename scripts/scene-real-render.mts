@@ -3619,111 +3619,122 @@ const phases: Record<string, Phase> = {
     await page.waitForTimeout(3000);
     // Written with no app page open (it would write its own copy back).
     await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
-    const counts = await page.evaluate(
-      ({ castId, labels, edits, clipsOnly }) =>
-        new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
-          const request = indexedDB.open('comfy-prompt-studio-v1');
-          request.onerror = () => reject(request.error);
-          request.onsuccess = () => {
-            const db = request.result;
-            const store = db.transaction('kv', 'readwrite').objectStore('kv');
-            const get = store.get('comfy-prompt-tool-settings-tools-v1');
-            get.onsuccess = () => {
-              const record = get.result as {
-                value: {
-                  tools: {
-                    scene?: {
-                      scenes?: Array<{
-                        castId: string;
-                        fromScript?: unknown;
-                        keptTakeId?: string;
-                        takes: Array<{ review?: string }>;
-                        updatedAt: number;
-                      }>;
-                      run?: unknown;
+    const reset = () =>
+      page.evaluate(
+        ({ castId, labels, edits, clipsOnly }) =>
+          new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
+            const request = indexedDB.open('comfy-prompt-studio-v1');
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+              const db = request.result;
+              const store = db.transaction('kv', 'readwrite').objectStore('kv');
+              const get = store.get('comfy-prompt-tool-settings-tools-v1');
+              get.onsuccess = () => {
+                const record = get.result as {
+                  value: {
+                    tools: {
+                      scene?: {
+                        scenes?: Array<{
+                          castId: string;
+                          fromScript?: unknown;
+                          keptTakeId?: string;
+                          takes: Array<{ review?: string }>;
+                          updatedAt: number;
+                        }>;
+                        run?: unknown;
+                      };
                     };
+                    updatedAt?: number;
                   };
-                  updatedAt?: number;
                 };
-              };
-              const scene = record.value.tools.scene;
-              if (!scene?.scenes) return reject(new Error('no stored Scenes'));
-              const now = Date.now();
-              let scenes = 0;
-              let takes = 0;
-              scene.scenes = scene.scenes.map((entry, index) => {
-                if (entry.castId !== castId || !entry.fromScript) return entry;
-                const label = (entry as { name?: string }).name?.split(' ')[0] ?? '';
-                // EPISODE_RESET_CLIPS=lines: the clips of the shots with a line let go (their
-                // stills kept) — animated again by epanimate.
-                if (clipsOnly) {
-                  const slot = (
-                    entry as unknown as { slot: { line?: string; partnerLine?: string } }
-                  ).slot;
-                  // With EPISODE_RESET_SCENES, those shots' clips (a line or not); else every line's.
-                  if (
-                    labels.length
-                      ? !labels.includes(label)
-                      : !slot.line?.trim() && !slot.partnerLine?.trim()
-                  )
-                    return entry;
+                const scene = record.value.tools.scene;
+                if (!scene?.scenes) return reject(new Error('no stored Scenes'));
+                const now = Date.now();
+                let scenes = 0;
+                let takes = 0;
+                scene.scenes = scene.scenes.map((entry, index) => {
+                  if (entry.castId !== castId || !entry.fromScript) return entry;
+                  const label = (entry as { name?: string }).name?.split(' ')[0] ?? '';
+                  // EPISODE_RESET_CLIPS=lines: the clips of the shots with a line let go (their
+                  // stills kept) — animated again by epanimate.
+                  if (clipsOnly) {
+                    const slot = (
+                      entry as unknown as { slot: { line?: string; partnerLine?: string } }
+                    ).slot;
+                    // With EPISODE_RESET_SCENES, those shots' clips (a line or not); else every line's.
+                    if (
+                      labels.length
+                        ? !labels.includes(label)
+                        : !slot.line?.trim() && !slot.partnerLine?.trim()
+                    )
+                      return entry;
+                    scenes += 1;
+                    return {
+                      ...entry,
+                      takes: entry.takes.map(take => {
+                        const {
+                          clipUrl: _clip,
+                          clipPromptId: _clipId,
+                          ...still
+                        } = take as Record<string, unknown>;
+                        if (_clip) takes += 1;
+                        return still as typeof take;
+                      }),
+                      updatedAt: now + index,
+                    };
+                  }
+                  if (labels.length && !labels.includes(label)) return entry;
                   scenes += 1;
+                  takes += entry.takes.length;
+                  const { keptTakeId: _kept, ...rest } = entry;
+                  const edit = edits[label];
                   return {
-                    ...entry,
-                    takes: entry.takes.map(take => {
-                      const {
-                        clipUrl: _clip,
-                        clipPromptId: _clipId,
-                        ...still
-                      } = take as Record<string, unknown>;
-                      if (_clip) takes += 1;
-                      return still as typeof take;
-                    }),
+                    ...rest,
+                    ...(edit ?? {}),
+                    ...(edit?.slot
+                      ? {
+                          slot: {
+                            ...(entry as unknown as { slot: Record<string, unknown> }).slot,
+                            ...edit.slot,
+                          },
+                        }
+                      : {}),
+                    takes: entry.takes.map(take => ({ ...take, review: 'rejected' })),
                     updatedAt: now + index,
                   };
-                }
-                if (labels.length && !labels.includes(label)) return entry;
-                scenes += 1;
-                takes += entry.takes.length;
-                const { keptTakeId: _kept, ...rest } = entry;
-                const edit = edits[label];
-                return {
-                  ...rest,
-                  ...(edit ?? {}),
-                  ...(edit?.slot
-                    ? {
-                        slot: {
-                          ...(entry as unknown as { slot: Record<string, unknown> }).slot,
-                          ...edit.slot,
-                        },
-                      }
-                    : {}),
-                  takes: entry.takes.map(take => ({ ...take, review: 'rejected' })),
-                  updatedAt: now + index,
+                });
+                if (!clipsOnly) delete scene.run;
+                if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
+                const put = store.put(record);
+                put.onsuccess = () => {
+                  db.close();
+                  resolve({ scenes, takes });
                 };
-              });
-              if (!clipsOnly) delete scene.run;
-              if (typeof record.value.updatedAt === 'number') record.value.updatedAt = now;
-              const put = store.put(record);
-              put.onsuccess = () => {
-                db.close();
-                resolve({ scenes, takes });
+                put.onerror = () => reject(put.error);
               };
-              put.onerror = () => reject(put.error);
             };
-          };
-        }),
-      {
-        castId: V2_CAST,
-        labels: only,
-        edits,
-        clipsOnly: process.env.EPISODE_RESET_CLIPS === 'lines',
-      }
-    );
+          }),
+        {
+          castId: V2_CAST,
+          labels: only,
+          edits,
+          clipsOnly: process.env.EPISODE_RESET_CLIPS === 'lines',
+        }
+      );
+    const counts = await reset();
     log('reset', counts.scenes, 'Scenes ·', counts.takes, 'takes marked rejected · run discarded');
     // The run's panel is on Scene.
     await openScene(page, V2_CAST);
     await page.waitForTimeout(5000);
+    // The Scene the page had open last (the last one animated) got its clip back from the page as
+    // it loaded — 11D, then 11E, were never animated again (2026-11-16): let go of once more.
+    if (process.env.EPISODE_RESET_CLIPS === 'lines') {
+      await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+      const again = await reset();
+      if (again.takes) log('clips back after the page opened, let go again:', again.takes);
+      await openScene(page, V2_CAST);
+      await page.waitForTimeout(5000);
+    }
     // A copy synced back from the server can bring the old run back: discard it here too (not
     // when only clips were let go: Animate the kept takes needs that run).
     if (
