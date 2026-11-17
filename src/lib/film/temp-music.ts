@@ -27,17 +27,15 @@ const TONES: ReadonlyArray<[RegExp, string]> = [
   [/\b(love|romantic|kiss|tender|flirt|date|longing|close to)/i, 'romantic'],
   [/\b(dream|hazy|float|memory|remember|nostalg)/i, 'dreamy'],
   // Whole words: "\bwins?" took "window", and the flagship's café and stairwell scored epic.
-  // Not "triumphantly": a spoon held up in a kitchen scored as trailer music (the flagship).
-  [
-    /\b(triumph(?:s|ed)?\b|victor(?:y|ies|ious)|wins?\b|won\b|hero(?:es|ic)?\b|epic\b|soar\w*)/i,
-    'epic',
-  ],
+  // Not "triumph": a spoon held up "in triumph" in a kitchen scored as trailer music (the
+  // flagship, 2026-11-16) — a small happy gesture, read below.
+  [/\b(victor(?:y|ies|ious)|wins?\b|won\b|hero(?:es|ic)?\b|epic\b|soar\w*)/i, 'epic'],
   [/\b(party|dance|celebrat|festival|excited|thrill)/i, 'festival'],
   // A laugh is not slapstick: "she laughs at something on the call" scored as tuba and whistles,
   // which the user heard as cheesy (2026-11-16). Laughing reads as happy, below.
   [/\b(silly|goofy|clumsy|prank|slapstick)/i, 'silly'],
   [/\b(calm|cozy|relax|quiet|peaceful|sleepy|tea\b|blanket|content(?:ed|ment)?\b)/i, 'cozy'],
-  [/\b(happy|joy|cheer|smil|sunny|bright|laughs?|laughing|funny)/i, 'everyday'],
+  [/\b(happy|joy|cheer|smil|sunny|bright|laughs?|laughing|funny|triumph\w*)/i, 'everyday'],
 ];
 
 export const MIN_CUE_SEC = 8;
