@@ -2842,14 +2842,15 @@ export function useCutRoom() {
           captions: cutOptions.titles === true,
           subtitles: cutOptions.subtitles !== false,
           subtitleStyle: cutOptions.subtitleStyle,
-          titleCard: cutOptions.titles
-            ? {
-                ...(withDay && cast
-                  ? nextDayFilmTitleCard(loadPlaySeriesStore(), cast.id, name)
-                  : { title: name, subtitle: 'A Castcut story' }),
-                ...(recap.length ? { afterShots: recap.length } : {}),
-              }
-            : null,
+          titleCard:
+            cutOptions.titles || cutOptions.openingTitle
+              ? {
+                  ...(withDay && cast
+                    ? nextDayFilmTitleCard(loadPlaySeriesStore(), cast.id, name)
+                    : { title: name, subtitle: 'A Castcut story' }),
+                  ...(recap.length ? { afterShots: recap.length } : {}),
+                }
+              : null,
           length: cutOptions.length,
           beatSnap: cutOptions.beatSnap,
           // Chapter markers (Notes → Your markers), moved past the recap on the server.

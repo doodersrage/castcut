@@ -4324,6 +4324,27 @@ const phases: Record<string, Phase> = {
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    // EPISODE_CUT_TITLE=1: an opening title card (no captions on the shots); EPISODE_CUT_CREDITS:
+    // end credits, lines split on "|". Both in Text & logo, opened first.
+    const titleCard = process.env.EPISODE_CUT_TITLE === '1';
+    const credits = process.env.EPISODE_CUT_CREDITS?.trim();
+    if (titleCard || credits) {
+      const textGroup = page.getByTestId('cut-options-text');
+      await textGroup.waitFor({ state: 'attached', timeout: 60_000 });
+      if ((await textGroup.getAttribute('open')) === null) {
+        await textGroup.locator('summary').first().click();
+        await page.waitForTimeout(500);
+      }
+      if (titleCard) {
+        const toggle = page.getByTestId('cut-opening-title');
+        if ((await toggle.getAttribute('aria-checked')) !== 'true') await toggle.click();
+        log('opening title card: on');
+      }
+      if (credits) {
+        await page.getByTestId('cut-credits').fill(credits.split('|').join('\n'));
+        log('credits:', credits.split('|').length, 'lines');
+      }
+    }
     // EPISODE_CUT_TIGHT=1 / 0: talking clips from just before their line to just after (or not).
     const tight = process.env.EPISODE_CUT_TIGHT;
     if (tight === '1' || tight === '0') {

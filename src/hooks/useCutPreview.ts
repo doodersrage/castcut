@@ -243,6 +243,8 @@ export function useCutPreview(input: {
   const shape = filmShapeOf(value);
   const size = CUT_PREVIEW_CANVAS[shape];
   const titles = value.titles === true;
+  // The title card alone (Opening title card) shifts every shot as the render does.
+  const titleCardOn = titles || value.openingTitle === true;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loaded, setLoaded] = useState<CutPreviewLoaded | null>(null);
   const [building, setBuilding] = useState(true);
@@ -277,7 +279,10 @@ export function useCutPreview(input: {
   /** The effects track (M10 T4): a player per placed sound, by id. */
   const effectsRef = useRef(new Map<string, HTMLAudioElement>());
 
-  const signature = useMemo(() => buildSignature(shots, value, titles), [shots, value, titles]);
+  const signature = useMemo(
+    () => buildSignature(shots, value, titleCardOn),
+    [shots, value, titleCardOn]
+  );
   const builtOnce = useRef(false);
 
   useEffect(() => {
@@ -294,7 +299,7 @@ export function useCutPreview(input: {
           beatSnap: value.beatSnap,
           audioBedUrl: value.audioBedUrl,
           crossfadeSec: value.crossfadeSec,
-          titleCard: titles,
+          titleCard: titleCardOn,
           captions: titles,
         });
         const framed = await frameCutStills(
@@ -347,7 +352,7 @@ export function useCutPreview(input: {
           shots: framed.shots,
           clipSecs,
           crossfadeSec: value.crossfadeSec,
-          titleCard: titles,
+          titleCard: titleCardOn,
           captions: titles,
           creditsSec: creditsDurationSec(normalizeFilmCredits(value.credits)),
         });

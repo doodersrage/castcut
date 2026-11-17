@@ -66,6 +66,8 @@ export type FilmCutOptionsValue = {
   stillMotion?: boolean;
   /** Opening title card plus a short caption per shot. */
   titles?: boolean;
+  /** The opening title card alone, no captions on the shots (a show's open, not a slideshow). */
+  openingTitle?: boolean;
   /** What is said in each clip (else its narration) burned in at the bottom — default on. */
   subtitles?: boolean;
   /** How the subtitles look (subtitle-style.ts); classic when unset. */
@@ -656,7 +658,7 @@ export default function FilmCutOptionsControls({
         summary={
           join(
             value.subtitles !== false && 'subtitles',
-            value.titles && 'title & captions',
+            value.titles ? 'title & captions' : value.openingTitle && 'title card',
             value.logoUrl?.trim() && 'logo'
           ) || 'none'
         }
@@ -722,6 +724,14 @@ export default function FilmCutOptionsControls({
           disabled={disabled}
           onChange={next => onChange({ ...value, titles: next })}
           testId={`${testIdPrefix}-titles`}
+        />
+        <OptionSwitch
+          label="Opening title card"
+          note="The film's title at the start, nothing written on the shots"
+          checked={value.openingTitle === true || value.titles === true}
+          disabled={disabled || value.titles === true}
+          onChange={next => onChange({ ...value, openingTitle: next })}
+          testId={`${testIdPrefix}-opening-title`}
         />
         <label className="grid gap-1">
           <span className="type-caption text-[var(--text-muted)]">
@@ -964,7 +974,7 @@ function SoundMixControls({
         shots: applyCutShotEdits(shots ?? [], value.shotEdits),
         audioBedUrl: value.audioBedUrl,
         crossfadeSec: value.crossfadeSec,
-        titleCard: value.titles === true,
+        titleCard: value.titles === true || value.openingTitle === true,
         musicLevel: value.musicLevel,
         voiceLevel: value.voiceLevel,
         muteMusic: value.sound?.mutedTracks?.includes('music'),
