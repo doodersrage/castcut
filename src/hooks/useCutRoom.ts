@@ -129,7 +129,8 @@ import {
 } from '@/lib/day/planner';
 import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { fitLineToClip } from '@/lib/audio/line-fit-client';
-import { tightLineTrim } from '@/lib/audio/line-fit';
+import { roomForSceneBreaks, tightLineTrim } from '@/lib/audio/line-fit';
+import { SCENE_BREAK_SEC } from '@/lib/film/cut-media';
 import { requestSpeechSpans } from '@/lib/film/speech-span-client';
 import { ROOM_TONE_PREFIX } from '@/lib/film/room-tone';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
@@ -396,6 +397,7 @@ export function useCutRoom() {
   // music and room tone placed from it) ran 4:20 against a 2:55 film (2026-11-17). Each talking
   // clip's speech, found once (remembered with the read lines).
   const tightLinesOn = cut.toolSettings.options?.tightLines === true;
+  const sceneBreaksOn = cut.toolSettings.options?.sceneBreaks === true;
   const [speechSpanMap, setSpeechSpanMap] = useState<
     Record<string, { startSec: number; endSec: number } | null>
   >({});
@@ -446,7 +448,8 @@ export function useCutRoom() {
     );
     if (!tightLinesOn) return shots;
     const remembered = loadReadLines();
-    return shots.map(shot => {
+    const tightened = new Set<string>();
+    const tight = shots.map(shot => {
       if (shot.kind !== 'clip' || !shot.spoken?.trim() || !shot.url) return shot;
       const kept = remembered[`span:${shot.url}`];
       const span =
@@ -456,9 +459,14 @@ export function useCutRoom() {
             ? (JSON.parse(kept) as { startSec: number; endSec: number })
             : null;
       const trim = tightLineTrim(span, shot);
+      if (trim) tightened.add(shot.key);
       return trim ? { ...shot, ...trim } : shot;
     });
+    return sceneBreaksOn
+      ? roomForSceneBreaks(tight, SCENE_BREAK_SEC, shot => tightened.has(shot.key))
+      : tight;
   }, [
+    sceneBreaksOn,
     gallery,
     sceneCastId,
     savedScenes,

@@ -24,6 +24,11 @@ describe('a clip that drifts from its shot, as the vision model reads it', () =>
     assert.equal(parseClipDrift('{"new_people": false, "people_gone": false, "framing": "other", "place": true}')!.drifted, false);
     assert.equal(parseClipDrift('{"new_people":true,"people_gone":false,"framing":"same","place":true}')!.drifted, false);
     assert.equal(parseClipDrift('I cannot tell.'), null);
+    // Boxes that appear on an empty floor (10A, 2026-11-17).
+    assert.deepEqual(
+      parseClipDrift('{"new_people":false,"people_gone":false,"new_objects":true,"framing":"same","place":true}'),
+      { drifted: true, reasons: ['something appears from nowhere'] }
+    );
     assert.equal(parseClipDrift(null), null);
   });
 });

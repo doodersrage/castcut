@@ -111,8 +111,34 @@ export function singleLineSaidTwice(
 
 /** Kept before a line when a talking shot is tightened (seconds). */
 export const TIGHT_LINE_LEAD_SEC = 0.35;
-/** Kept after it. */
-export const TIGHT_LINE_TAIL_SEC = 0.6;
+/**
+ * Kept after it: a beat for the line to land — and room for a quieter last word the level
+ * reading may have ended before (0.6 s cut some of the flagship's lines short, 2026-11-17).
+ */
+export const TIGHT_LINE_TAIL_SEC = 0.8;
+
+/**
+ * A tightened shot that ends a scene, given the scene change's dip as well: the dip fades out
+ * over the shot's last second, and without it the fade began while she was still talking.
+ * Pure.
+ */
+export function roomForSceneBreaks<
+  T extends { kind?: string; trimEndSec?: number; sceneGroup?: string },
+>(shots: readonly T[], breakSec: number, tightened: (shot: T) => boolean): T[] {
+  return shots.map((shot, index) => {
+    const next = shots[index + 1];
+    if (
+      shot.kind !== 'clip' ||
+      typeof shot.trimEndSec !== 'number' ||
+      !tightened(shot) ||
+      !next?.sceneGroup ||
+      !shot.sceneGroup ||
+      next.sceneGroup === shot.sceneGroup
+    )
+      return shot;
+    return { ...shot, trimEndSec: Math.round((shot.trimEndSec + breakSec) * 100) / 100 };
+  });
+}
 /** The shortest a tightened talking shot plays. */
 export const TIGHT_LINE_MIN_SEC = 1.6;
 

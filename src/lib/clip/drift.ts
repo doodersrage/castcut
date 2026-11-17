@@ -13,9 +13,10 @@ export const CLIP_DRIFT_PROMPT = [
   'Picture 1 is the first frame of a clip, picture 2 its last frame. Compare them.',
   'new_people: does picture 2 show anyone who is not in picture 1 (a stranger, an extra person, a second copy of someone)? true/false',
   'people_gone: is someone from picture 1 missing in picture 2? true/false',
+  'new_objects: does picture 2 show large objects that are not in picture 1 — furniture, boxes, a lamp, things that simply appeared (not something already held or moved)? true/false',
   "framing: compared with picture 1, is picture 2 'same' (about the same distance and angle), 'closer' (clearly a closer shot, e.g. a face or an object fills more of the frame), or 'other' (a different angle or a different shot)?",
   'place: is picture 2 the same room or place? true/false',
-  'Reply: {"new_people":…,"people_gone":…,"framing":"…","place":…}',
+  'Reply: {"new_people":…,"people_gone":…,"new_objects":…,"framing":"…","place":…}',
 ].join('\n');
 
 export type ClipDrift = { drifted: boolean; reasons: string[] };
@@ -40,6 +41,8 @@ export function parseClipDrift(reply: string | null | undefined): ClipDrift | nu
   const reasons = [
     newOnAnotherShot ? 'someone new comes in' : '',
     parsed.people_gone === true ? 'someone leaves the shot' : '',
+    // Boxes on an empty floor, a lamp in her hands (the flagship's 10A and 7A, 2026-11-17).
+    parsed.new_objects === true ? 'something appears from nowhere' : '',
     framing === 'closer' ? 'the camera moves in close' : '',
     newOnAnotherShot && framing === 'other' ? 'it ends on a different shot' : '',
     parsed.place === false ? 'it ends somewhere else' : '',

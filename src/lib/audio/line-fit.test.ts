@@ -61,7 +61,7 @@ describe('a talking shot tightened to its line (the flagship, 2026-11-16)', () =
   it('from just before the line to just after; a trim already there only narrows it', async () => {
     const { tightLineTrim } = await import('./line-fit');
     // 7B: "How many books do you own?" spoken 0.4–1.9 s of a 5.2 s clip.
-    assert.deepEqual(tightLineTrim({ startSec: 0.4, endSec: 1.9 }), { trimStartSec: 0.05, trimEndSec: 2.5 });
+    assert.deepEqual(tightLineTrim({ startSec: 0.4, endSec: 1.9 }), { trimStartSec: 0.05, trimEndSec: 2.7 });
     // A short line keeps 1.6 s.
     assert.deepEqual(tightLineTrim({ startSec: 3.7, endSec: 4.0 }), { trimStartSec: 3.35, trimEndSec: 4.95 });
     // 1C: ended just after its line (said twice) — the repeat stays out.
@@ -70,5 +70,21 @@ describe('a talking shot tightened to its line (the flagship, 2026-11-16)', () =
       trimEndSec: 1.8,
     });
     assert.equal(tightLineTrim(null), null);
+  });
+});
+
+describe('the shot that ends a scene keeps room for its dip (2026-11-17)', () => {
+  it('a tightened last shot of a scene runs on by the dip; others, and untightened ones, do not', async () => {
+    const { roomForSceneBreaks } = await import('./line-fit');
+    const shot = (key: string, sceneGroup: string, trimEndSec?: number) => ({ key, kind: 'clip', sceneGroup, trimEndSec });
+    const out = roomForSceneBreaks(
+      [shot('a', 's|1', 2.5), shot('b', 's|1', 3), shot('c', 's|2', 2), shot('d', 's|2')],
+      1,
+      s => s.key !== 'c'
+    );
+    assert.deepEqual(
+      out.map(s => s.trimEndSec),
+      [2.5, 4, 2, undefined]
+    );
   });
 });
