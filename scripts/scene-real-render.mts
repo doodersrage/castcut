@@ -3770,6 +3770,36 @@ const phases: Record<string, Phase> = {
     log('engine now:', (await page.getByTestId('tool-engine-chip').textContent())?.trim());
   },
 
+  /**
+   * Shoot from the masters (scene-master.ts): every script scene's shots cut from its kept wide
+   * master and kept — run after the masters are kept (srvrun), before epanimate.
+   */
+  async epmasters(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const shoot = page.getByTestId('scene-shoot-from-masters');
+    await shoot.waitFor({ timeout: 120_000 });
+    log('offered:', (await shoot.textContent())?.trim());
+    const started = Date.now();
+    await shoot.click();
+    let said = '';
+    const until = Date.now() + 180 * 60_000;
+    while (Date.now() < until) {
+      const done = page.getByTestId('scene-shoot-from-masters-done');
+      if (await done.isVisible().catch(() => false)) {
+        log('✓', (await done.textContent())?.trim());
+        break;
+      }
+      const now = ((await shoot.textContent().catch(() => '')) ?? '').trim();
+      if (now && now !== said) {
+        said = now;
+        log('  ', now.slice(0, 120));
+      }
+      await page.waitForTimeout(15_000);
+    }
+    log('shot from the masters in', Math.round((Date.now() - started) / 60_000), 'min');
+    await page.waitForTimeout(5000);
+  },
+
   /** Part 19: every scene's shots drafted (the LLM, else the rules). */
   async epshots(_ctx, page) {
     await openScene(page, V2_CAST);
