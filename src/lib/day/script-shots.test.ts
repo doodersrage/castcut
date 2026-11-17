@@ -125,6 +125,8 @@ describe('shot lists from a script (M3 S4)', () => {
       sceneHints: 'Nora pours coffee.',
       sceneHintsTyped: 'Nora pours coffee.',
       poseCamera: { shot: 'waist' },
+      // Her alone, Tomas in the scene: turned to him just off frame (2026-11-16).
+      poseLook: 'partner',
       line: 'Coffee first.',
     });
     assert.equal(lead.partnerCharacterId, 'tomas');
@@ -783,8 +785,9 @@ describe('her line while she touches him (a two-shot)', () => {
     // Her alone with a glass: still her alone.
     const water = draft(shots.findIndex(shot => shot.line === 'Thirsty.'));
     assert.equal(water.partnerInFrame, undefined);
-    // The two of them talk to each other, not to the lens (2026-11-16); her alone keeps no look.
+    // The two of them talk to each other, not to the lens; her alone is turned to him just off
+    // frame (2026-11-16).
     assert.equal(his.slot.poseLook, 'partner');
-    assert.equal(water.slot.poseLook, undefined);
+    assert.equal(water.slot.poseLook, 'partner');
   });
 });

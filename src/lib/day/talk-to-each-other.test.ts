@@ -31,7 +31,7 @@ describe('two people in a scene talk to each other, not to the lens', () => {
 
   it('the still prompt says so for two; one alone looks away', () => {
     assert.match(poseLookLine('partner', 2), /turned toward each other mid-conversation/);
-    assert.match(poseLookLine('partner', 1), /looking off to the side/);
+    assert.match(poseLookLine('partner', 1), /turned three-quarters toward the person they are talking to/);
   });
 
   it('a talking clip says the line to the listener, not into the lens', () => {
@@ -64,5 +64,18 @@ describe('a talking clip on MiniMax-H3 moves the way people talk', () => {
       assert.match(lively, /does not walk away/);
       assert.match(talkingClipPrompt({ line: 'Found one.', framing }), /only small natural head and hand movements/);
     }
+  });
+});
+
+describe('alone in a conversation, turned to the one just off frame (the flagship, 2026-11-16)', () => {
+  it('the pose map turns her face and body three-quarters to a side', () => {
+    const plain = synthesizeSceneStickFigures('Slyne stands by the window.', 0, { forcePeople: 1 } as never).figures[0]!;
+    const turned = synthesizeSceneStickFigures('Slyne stands by the window.', 0, {
+      forcePeople: 1,
+      look: 'partner',
+    } as never).figures[0]!;
+    assert.ok(turned.gaze === 'left' || turned.gaze === 'right');
+    const span = (f: typeof plain) => Math.abs(f.rShoulder.x - f.lShoulder.x);
+    assert.ok(span(turned) < span(plain));
   });
 });

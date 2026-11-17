@@ -52,7 +52,8 @@ describe('Story outline', () => {
       ['everyday', 1],
       ['everyday', 1],
       ['melancholy', -2],
-      ['silly', 1.5],
+      // A laugh reads as happy, not slapstick (temp-music.ts, 2026-11-16).
+      ['everyday', 1],
     ]);
   });
 });

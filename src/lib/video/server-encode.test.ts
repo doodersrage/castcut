@@ -170,3 +170,25 @@ describe('clip sound from its own input (M6 D17)', () => {
     assert.match(before.filter, /\[0:a\][^;]*\[s0\]/);
   });
 });
+
+describe('a clip’s sound eases across a soft join (the flagship, 2026-11-16)', () => {
+  it('fades over the crossfade into and out of it; a hard cut keeps its few milliseconds', async () => {
+    const { buildFilterComplex } = await import('./server-encode');
+    const graph = (crossfadeSec: number) =>
+      buildFilterComplex({
+        shotCount: 3,
+        kinds: ['clip', 'clip', 'clip'],
+        holdSecs: [4, 4, 4],
+        width: 1280,
+        height: 720,
+        crossfadeSec,
+        hasAudioBed: false,
+        speech: [true, true, true],
+      }).filter;
+    const soft = graph(0.3);
+    // The middle clip: in over the join before it, out over the one after.
+    assert.match(soft, /\[1:a\][^;]*afade=t=in:st=0:d=0\.3,afade=t=out:st=3\.700:d=0\.3,/);
+    assert.match(soft, /\[0:a\][^;]*afade=t=in:st=0:d=0\.008,afade=t=out:st=3\.700:d=0\.3,/);
+    assert.match(graph(0), /\[1:a\][^;]*afade=t=in:st=0:d=0\.008,afade=t=out:st=3\.992:d=0\.008,/);
+  });
+});

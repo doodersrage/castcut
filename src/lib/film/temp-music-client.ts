@@ -11,6 +11,9 @@ import { tempMusicCues, type TempCue } from './temp-music';
 import type { CutEffect } from '../video/cut-sound';
 
 /** Music by scene's cues are the cut's effects with ids that start so. */
+/** A temp cue's level in the mix (it also ducks under the lines). */
+export const TEMP_MUSIC_CUE_LEVEL = 0.4;
+
 export const TEMP_MUSIC_CUE_PREFIX = 'fx-cue-';
 
 /** The cues for the cut as the monitor laid it out: a stretch per feeling. */
@@ -63,7 +66,8 @@ export async function makeTempMusic(
         url: score.url,
         name: `Music · ${cue.tone}`,
         atSec: cue.atSec,
-        level: 0.6,
+        // Under the scene, not over it: at 0.6 the flagship's cues sat on top of it (2026-11-16).
+        level: TEMP_MUSIC_CUE_LEVEL,
         // Music, not a sound: it joins the bed and ducks under the lines.
         duck: true,
         // Stops where the next stretch starts (a score renders a few seconds long).

@@ -5523,11 +5523,36 @@ function leadGaze(figures: StickSkeleton[], look: PoseLookChoice): StickGaze {
 function applyLook(figures: StickSkeleton[], look: PoseLookChoice | undefined): StickSkeleton[] {
   if (!look || figures.length === 0) return figures;
   if (look === 'partner' && figures.length > 1) return turnTowardEachOther(figures);
+  // Alone, talking to someone just off frame: turned their way (a single in a conversation).
+  if (look === 'partner')
+    return [turnToward(figures[0]!, leadGaze(figures, look)), ...figures.slice(1)];
   return [{ ...figures[0]!, gaze: leadGaze(figures, look) }, ...figures.slice(1)];
 }
 
 /** How much of its width a front-on body keeps turned three-quarters to the side. */
 const THREE_QUARTER_WIDTH = 0.8;
+
+/** An upright front-on figure turned three-quarters toward `gaze` (narrower, face that way). */
+function turnToward(figure: StickSkeleton, gaze: StickGaze): StickSkeleton {
+  const facing = figure.facing ?? inferPoseFacing(figure);
+  const upright =
+    Math.abs(figure.pelvis.y - figure.neck.y) > Math.abs(figure.pelvis.x - figure.neck.x);
+  if (gaze !== 'left' && gaze !== 'right') return { ...figure, gaze };
+  if (facing !== 'front' || !upright) return { ...figure, gaze };
+  const narrow = (joint: StickSkeleton['lShoulder'], center: number) => ({
+    ...joint,
+    x: center + (joint.x - center) * THREE_QUARTER_WIDTH,
+  });
+  return {
+    ...figure,
+    facing: 'front' as const,
+    gaze,
+    lShoulder: narrow(figure.lShoulder, figure.neck.x),
+    rShoulder: narrow(figure.rShoulder, figure.neck.x),
+    lHip: narrow(figure.lHip, figure.pelvis.x),
+    rHip: narrow(figure.rHip, figure.pelvis.x),
+  };
+}
 
 /**
  * Two people talking: each face turned to the nearest other person, and each upright body that

@@ -503,6 +503,8 @@ export type FilmGraphText = {
  */
 /** The fade at each end of a clip's piece of sound (s): too short to hear, long enough not to click. */
 const EDGE_FADE_SEC = 0.008;
+/** The longest a clip's sound fades across a soft join (seconds). */
+const SOFT_JOIN_MAX_SEC = 0.4;
 
 function q(value: string): string {
   return `'${value}'`;
@@ -885,6 +887,12 @@ export function buildFilterComplex(input: {
   // The music's level points: a volume that follows the line through the film (film seconds).
   const musicKeysExpr = levelKeysExpr(normalizeCutLevelKeys(input.sound?.musicKeys));
   const musicKeys = musicKeysExpr ? `,volume=${q(musicKeysExpr)}:eval=frame` : '';
+  // Each join's overlap (the crossfade or dip into shot i): a clip's sound eases across it.
+  const joinOverlaps = cutJoins({
+    count: kinds.length,
+    crossfadeSec,
+    transitions: input.transitions,
+  }).overlaps;
   for (const { index, startSec, holdSec } of voiced) {
     const delayMs = Math.round(startSec * 1000);
     const from = input.trimStarts?.[index] ?? 0;
@@ -904,12 +912,18 @@ export function buildFilterComplex(input: {
       }))
     );
     const keyed = keyExpr ? `volume=${q(keyExpr)}:eval=frame,` : '';
-    // A few milliseconds faded in and out at the piece's edges: a hard cut lands mid-waveform,
-    // and without them it clicks.
+    // Faded in and out at the piece's edges: a few milliseconds at a hard cut (it lands
+    // mid-waveform and clicks without them); over the join where the picture crossfades or dips,
+    // so the room's sound eases across with it — cut hard under a 0.3 s crossfade, the
+    // flagship's transitions sounded harsh (2026-11-16). Never more than a third of the piece.
     const pieceSec = holdSec + (lead + tail) / speed;
+    const edge = (overlap: number | undefined) =>
+      Math.min(pieceSec / 3, Math.max(EDGE_FADE_SEC, Math.min(SOFT_JOIN_MAX_SEC, overlap ?? 0)));
+    const fadeInSec = edge(lead > 0 ? 0 : joinOverlaps[index]);
+    const fadeOutSec = edge(tail > 0 ? 0 : joinOverlaps[index + 1]);
     const edgeFades =
       pieceSec > 4 * EDGE_FADE_SEC
-        ? `afade=t=in:st=0:d=${EDGE_FADE_SEC},afade=t=out:st=${(pieceSec - EDGE_FADE_SEC).toFixed(3)}:d=${EDGE_FADE_SEC},`
+        ? `afade=t=in:st=0:d=${Number(fadeInSec.toFixed(3))},afade=t=out:st=${(pieceSec - fadeOutSec).toFixed(3)}:d=${Number(fadeOutSec.toFixed(3))},`
         : '';
     // The clip's own level (Cut's shot list) on top of the Lines level.
     const own = input.volumes?.[index];

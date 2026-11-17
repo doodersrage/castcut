@@ -146,10 +146,11 @@ describe('Look', () => {
     assert.ok((away.nose.x - away.neck.x) * dir > 0.005, 'turned nose sits to that side');
   });
 
-  it('says it in the prompt (partner means away when solo)', () => {
+  it('says it in the prompt (partner alone: toward the one just off frame)', () => {
     assert.match(poseLookLine('camera'), /camera lens/);
     assert.match(poseLookLine('partner', 2), /turned toward each other/);
-    assert.equal(poseLookLine('partner', 1), poseLookLine('away'));
+    // Alone, partner is the one they're talking to just off frame — not just away (2026-11-16).
+    assert.match(poseLookLine('partner', 1), /toward the person they are talking to/);
     assert.equal(poseLookLine(undefined), '');
   });
 

@@ -668,13 +668,19 @@ const POSE_LOOK_LINES: Record<string, string> = {
   partner: 'GAZE: looking at the other person in the frame, not at the camera.',
 };
 
-/** Prompt line for a Look choice (partner falls back to away when there's no one else). */
+/**
+ * Prompt line for a Look choice. Partner with no one else in the shot: turned to the one they're
+ * talking to, just past the frame's side (a single in a conversation), not into the lens.
+ */
 export function poseLookLine(look: string | null | undefined, people = 1): string {
   if (!look) return '';
   // Two people talking: both turned to each other, not to the audience (the flagship, 2026-11-16).
   if (look === 'partner' && people >= 2) {
     return "GAZE: the two of them turned toward each other mid-conversation, each looking at the other one's face, not at the camera — seen from a slight angle, faces in three-quarter view.";
   }
-  const key = look === 'partner' && people < 2 ? 'away' : look;
+  if (look === 'partner' && people < 2) {
+    return "GAZE: turned three-quarters toward the person they are talking to, who stands just outside the frame's edge — looking at them, not into the camera; face in three-quarter view.";
+  }
+  const key = look;
   return POSE_LOOK_LINES[key] ?? '';
 }

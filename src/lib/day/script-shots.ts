@@ -793,7 +793,11 @@ export function shotSceneDraft(input: {
       poseCamera: { shot: shot.framing },
       // Two people in a scene's shot talk to each other, not to the lens (the flagship,
       // 2026-11-16) — all but the establishing shot, which shows the place.
-      ...((partnerInFrame || othersInFrame) && shot.purpose !== 'establishing'
+      // Her alone in a scene with him: turned to him just off frame, not to the lens ("she
+      // responds alone facing the camera rather than to him", 2026-11-16).
+      ...((partnerInFrame || othersInFrame || partner?.castId) &&
+      shot.purpose !== 'establishing' &&
+      shot.purpose !== 'insert'
         ? { poseLook: 'partner' as const }
         : {}),
       ...(shotShowsNobody(shot, [

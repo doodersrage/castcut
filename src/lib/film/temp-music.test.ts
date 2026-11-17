@@ -69,3 +69,12 @@ describe('a feeling read from whole words (the flagship, 2026-11-15)', () => {
     assert.equal(feelingTone('She soars over the bar.'), 'epic');
   });
 });
+
+describe('a laugh and a small triumph are not cheesy cues (the flagship, 2026-11-16)', () => {
+  it('laughing reads as happy; "triumphantly" is no epic', () => {
+    assert.equal(feelingTone('She stops at a crosswalk and laughs at something on the call.'), 'everyday');
+    assert.equal(feelingTone('Jason holds up a spoon triumphantly.'), '');
+    assert.equal(feelingTone('A clumsy prank in the hallway.'), 'silly');
+    assert.equal(feelingTone('The team triumphs at last.'), 'epic');
+  });
+});
