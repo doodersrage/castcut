@@ -385,6 +385,13 @@ export function useCutRoom() {
   // it should not) shape its shot, and they land after the page opens — read once at mount, the
   // flagship's 5E played its words though marked quiet (2026-11-16).
   const gallery = useSyncExternalStore(subscribeGallery, getGalleryCache, () => EMPTY_GALLERY);
+  // Tighten talking shots, in the shot list itself: applied only at render, the preview (and the
+  // music and room tone placed from it) ran 4:20 against a 2:55 film (2026-11-17). Each talking
+  // clip's speech, found once (remembered with the read lines).
+  const tightLinesOn = cut.toolSettings.options?.tightLines === true;
+  const [speechSpanMap, setSpeechSpanMap] = useState<
+    Record<string, { startSec: number; endSec: number } | null>
+  >({});
   const sceneShots = useMemo(() => {
     const cutAt = new Map(
       // Where it cuts away, or — a line it says again (the run's hearing) — just after the line.
@@ -403,7 +410,7 @@ export function useCutRoom() {
         entry.playChecks?.clipTalks ? [[entry.promptId, entry.playChecks.clipTalksAt] as const] : []
       )
     );
-    return quietTalkingClips(
+    const shots = quietTalkingClips(
       trimClipsAtTheirCuts(
         scenesScript
           ? sceneCutShots(
@@ -430,7 +437,66 @@ export function useCutRoom() {
       ),
       id => ({ talks: talks.has(id), atSec: talks.get(id) })
     );
-  }, [gallery, sceneCastId, savedScenes, scenesAdded, scenesScript, shortInByDay, storedScripts]);
+    if (!tightLinesOn) return shots;
+    const remembered = loadReadLines();
+    return shots.map(shot => {
+      if (shot.kind !== 'clip' || !shot.spoken?.trim() || !shot.url) return shot;
+      const kept = remembered[`span:${shot.url}`];
+      const span =
+        shot.url in speechSpanMap
+          ? speechSpanMap[shot.url]!
+          : kept && kept !== 'none'
+            ? (JSON.parse(kept) as { startSec: number; endSec: number })
+            : null;
+      const trim = tightLineTrim(span, shot);
+      return trim ? { ...shot, ...trim } : shot;
+    });
+  }, [
+    gallery,
+    sceneCastId,
+    savedScenes,
+    scenesAdded,
+    scenesScript,
+    shortInByDay,
+    speechSpanMap,
+    storedScripts,
+    tightLinesOn,
+  ]);
+  // The talking clips whose speech isn't known yet: found (POST /api/film/speech-spans), kept.
+  useEffect(() => {
+    if (!tightLinesOn) return;
+    const remembered = loadReadLines();
+    const unknown = sceneShots.filter(
+      shot =>
+        shot.kind === 'clip' &&
+        shot.spoken?.trim() &&
+        shot.url &&
+        !(shot.url in speechSpanMap) &&
+        !remembered[`span:${shot.url}`]
+    );
+    if (!unknown.length) return;
+    let cancelled = false;
+    void requestSpeechSpans(
+      unknown.map(shot => ({
+        key: shot.url,
+        url: shot.url,
+        ...(shot.entryId ? { entryId: shot.entryId } : {}),
+      }))
+    ).then(spans => {
+      if (cancelled) return;
+      for (const shot of unknown) {
+        const span = spans[shot.url] ?? null;
+        rememberReadLine(`span:${shot.url}`, span ? JSON.stringify(span) : 'none');
+      }
+      setSpeechSpanMap(current => ({
+        ...current,
+        ...Object.fromEntries(unknown.map(shot => [shot.url, spans[shot.url] ?? null])),
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sceneShots, speechSpanMap, tightLinesOn]);
   const options: FilmCutOptionsValue = useMemo(
     () => ({ ...DEFAULT_FILM_CUT_OPTIONS, ...cut.toolSettings.options }),
     [cut.toolSettings.options]
