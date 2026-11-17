@@ -564,6 +564,18 @@ export function useCutRoom() {
     [bySource, cut.toolSettings.sources]
   );
   const extras = useMemo(() => cut.toolSettings.extras ?? [], [cut.toolSettings.extras]);
+  // The script a Scenes-only cut is all from (its shots' sceneGroup is "scriptId|sceneId"): its
+  // title is the film's, not the Cast's name ("Slyne" opened The Spare Key, 2026-11-17).
+  const filmScriptName = useMemo(() => {
+    if (scenesScript?.name?.trim()) return scenesScript.name.trim();
+    if (sources.length !== 1 || sources[0] !== 'scenes') return undefined;
+    const ids = new Set(
+      sceneShots.flatMap(shot => (shot.sceneGroup ? [shot.sceneGroup.split('|')[0]!] : []))
+    );
+    if (ids.size !== 1) return undefined;
+    const [id] = [...ids];
+    return storedScripts.find(script => script.id === id)?.name?.trim() || undefined;
+  }, [sceneShots, scenesScript, sources, storedScripts]);
   const added = useMemo(
     () =>
       cutExtraShots(
@@ -2914,7 +2926,7 @@ export function useCutRoom() {
                   ...(withDay && cast
                     ? nextDayFilmTitleCard(loadPlaySeriesStore(), cast.id, name)
                     : // A script's own title ("The Spare Key"), not the Cast's (2026-11-17).
-                      { title: scenesScript?.name?.trim() || name, subtitle: 'A Castcut story' }),
+                      { title: filmScriptName || name, subtitle: 'A Castcut story' }),
                   ...(recap.length ? { afterShots: recap.length } : {}),
                 }
               : null,
@@ -3109,7 +3121,7 @@ export function useCutRoom() {
       readEncodeServer,
       recordDayNarration,
       sceneCast,
-      scenesScript?.name,
+      filmScriptName,
       shared.activeLookId,
       shared.model,
       shots,
