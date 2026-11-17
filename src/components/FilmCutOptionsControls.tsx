@@ -124,6 +124,8 @@ export type FilmCutOptionsValue = {
    * clip copied (MiniMax-H3), fitted to where the clip says it, in place of the clip's own voice.
    */
   clipVoices?: boolean;
+  /** Each talking clip plays from just before its line to just after it (line-fit.ts). */
+  tightLines?: boolean;
   /** Describe what each silent shot shows, in a narrator's voice (an audio-described version). */
   audioDescription?: boolean;
   /** "REVIEW" and the running timecode burned into the picture (a review copy). */
@@ -511,6 +513,14 @@ export default function FilmCutOptionsControls({
           disabled={disabled}
           onChange={next => onChange({ ...value, clipVoices: next })}
           testId={`${testIdPrefix}-clip-voices`}
+        />
+        <OptionSwitch
+          label="Tighten talking shots"
+          note="Each talking clip from just before its line to just after — no standing about between lines"
+          checked={value.tightLines === true}
+          disabled={disabled}
+          onChange={next => onChange({ ...value, tightLines: next })}
+          testId={`${testIdPrefix}-tight-lines`}
         />
         <OptionRow label="Music">
           <span

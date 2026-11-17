@@ -56,3 +56,19 @@ describe('a one-sentence line said twice, by its sound (the flagship, 2026-11-16
     assert.ok(Math.abs(bursts[0]!.endSec - 1.9) < 0.05 && Math.abs(bursts[1]!.startSec - 3) < 0.05);
   });
 });
+
+describe('a talking shot tightened to its line (the flagship, 2026-11-16)', () => {
+  it('from just before the line to just after; a trim already there only narrows it', async () => {
+    const { tightLineTrim } = await import('./line-fit');
+    // 7B: "How many books do you own?" spoken 0.4–1.9 s of a 5.2 s clip.
+    assert.deepEqual(tightLineTrim({ startSec: 0.4, endSec: 1.9 }), { trimStartSec: 0.05, trimEndSec: 2.5 });
+    // A short line keeps 1.6 s.
+    assert.deepEqual(tightLineTrim({ startSec: 3.7, endSec: 4.0 }), { trimStartSec: 3.35, trimEndSec: 4.95 });
+    // 1C: ended just after its line (said twice) — the repeat stays out.
+    assert.deepEqual(tightLineTrim({ startSec: 0.4, endSec: 5.0 }, { trimEndSec: 1.8 }), {
+      trimStartSec: 0.05,
+      trimEndSec: 1.8,
+    });
+    assert.equal(tightLineTrim(null), null);
+  });
+});

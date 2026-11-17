@@ -108,3 +108,33 @@ export function singleLineSaidTwice(
   const first = bursts[0]!.endSec - bursts[0]!.startSec;
   return bursts.slice(1).some(burst => burst.endSec - burst.startSec >= first * 0.5);
 }
+
+/** Kept before a line when a talking shot is tightened (seconds). */
+export const TIGHT_LINE_LEAD_SEC = 0.35;
+/** Kept after it. */
+export const TIGHT_LINE_TAIL_SEC = 0.6;
+/** The shortest a tightened talking shot plays. */
+export const TIGHT_LINE_MIN_SEC = 1.6;
+
+/**
+ * A talking clip tightened to its line (Cut's "Tighten talking shots"): from just before its
+ * speech to just after. The flagship's talking clips ran ~5 s for a 1–2 s line — two to three
+ * seconds of standing about in every exchange (2026-11-16). A trim already there (a cut away, a
+ * line said twice) is kept: the window only ever narrows. Null when it can't be tightened.
+ */
+export function tightLineTrim(
+  span: { startSec: number; endSec: number } | null,
+  current: { trimStartSec?: number; trimEndSec?: number } = {}
+): { trimStartSec: number; trimEndSec: number } | null {
+  if (!span || !(span.endSec > span.startSec)) return null;
+  const floor = current.trimStartSec ?? 0;
+  const ceiling = current.trimEndSec ?? Number.POSITIVE_INFINITY;
+  const start = Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
+  let end = Math.min(ceiling, span.endSec + TIGHT_LINE_TAIL_SEC);
+  if (end - start < TIGHT_LINE_MIN_SEC) end = Math.min(ceiling, start + TIGHT_LINE_MIN_SEC);
+  if (!(end - start >= 1)) return null;
+  return {
+    trimStartSec: Math.round(start * 100) / 100,
+    trimEndSec: Math.round(end * 100) / 100,
+  };
+}

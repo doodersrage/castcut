@@ -12,7 +12,6 @@ import {
 } from './cut-plan';
 import { locateFaceOnPlateBlob } from '../face/locate-client';
 import type { FilmPlaylistShot } from './character-film';
-import { CUT_TRANSITION_SEC } from '../video/cut-timeline';
 
 const PROBE_TIMEOUT_MS = 8_000;
 
@@ -79,9 +78,15 @@ export function withSceneBreaks(shots: FilmPlaylistShot[]): FilmPlaylistShot[] {
     const before = shots[index - 1];
     if (!before || shot.transitionIn || !shot.sceneGroup || !before.sceneGroup) return shot;
     if (shot.sceneGroup === before.sceneGroup) return shot;
-    return { ...shot, transitionIn: { kind: 'black', sec: CUT_TRANSITION_SEC } };
+    return { ...shot, transitionIn: { kind: 'black', sec: SCENE_BREAK_SEC } };
   });
 }
+
+/**
+ * A scene change's dip, out and in (seconds): a beat longer than a shot's own transition, so a
+ * new place arrives unhurried — at 0.6 s the flagship's scene changes still felt abrupt.
+ */
+export const SCENE_BREAK_SEC = 1;
 
 export type PreparedCut = {
   shots: FilmPlaylistShot[];

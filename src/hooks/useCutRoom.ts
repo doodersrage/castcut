@@ -129,6 +129,8 @@ import {
 } from '@/lib/day/planner';
 import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { fitLineToClip } from '@/lib/audio/line-fit-client';
+import { tightLineTrim } from '@/lib/audio/line-fit';
+import { requestSpeechSpans } from '@/lib/film/speech-span-client';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
@@ -2697,6 +2699,42 @@ export function useCutRoom() {
                 narrationText: said.text,
               };
             }
+          }
+        }
+        // Tightened talking shots: each talking clip from just before its line to just after it —
+        // ~5 s clips round a 1–2 s line left the flagship's exchanges standing about (2026-11-16).
+        if (cutOptions.tightLines === true) {
+          const talking = picked.flatMap((shot, index) =>
+            shot.kind === 'clip' && shot.spoken?.trim() && shot.url
+              ? [{ index, key: `${index}`, url: shot.url, entryId: shot.entryId }]
+              : []
+          );
+          const unknown = talking.filter(entry => !readLineBefore(`span:${entry.url}`));
+          if (unknown.length) {
+            setStatus(
+              `Finding the lines in ${unknown.length} talking clip${unknown.length === 1 ? '' : 's'}…`
+            );
+            const spans = await requestSpeechSpans(
+              unknown.map(({ key, url, entryId }) => ({
+                key,
+                url,
+                ...(entryId ? { entryId } : {}),
+              }))
+            );
+            for (const entry of unknown) {
+              const span = spans[entry.key];
+              keepReadLine(`span:${entry.url}`, span ? JSON.stringify(span) : 'none');
+            }
+          }
+          for (const entry of talking) {
+            const kept = readLineBefore(`span:${entry.url}`);
+            const span =
+              kept && kept !== 'none'
+                ? (JSON.parse(kept) as { startSec: number; endSec: number })
+                : null;
+            const shot = picked[entry.index]!;
+            const trim = tightLineTrim(span, shot);
+            if (trim) picked[entry.index] = { ...shot, ...trim };
           }
         }
         // The kept voice on talking clips: a MiniMax-H3 clip said its line as the voice engine

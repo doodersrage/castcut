@@ -4324,6 +4324,14 @@ const phases: Record<string, Phase> = {
     const read = page.getByTestId('cut-read-lines');
     await read.waitFor({ timeout: 60_000 });
     if ((await read.getAttribute('aria-checked')) !== 'true') await read.click();
+    // EPISODE_CUT_TIGHT=1 / 0: talking clips from just before their line to just after (or not).
+    const tight = process.env.EPISODE_CUT_TIGHT;
+    if (tight === '1' || tight === '0') {
+      const toggle = page.getByTestId('cut-tight-lines');
+      if ((await toggle.getAttribute('aria-checked')) !== String(tight === '1'))
+        await toggle.click();
+      log('tighten talking shots:', tight === '1' ? 'on' : 'off');
+    }
     // EPISODE_CUT_CLIP_VOICES=1 / 0: talking clips play their line in the kept voice (or not).
     const clipVoices = process.env.EPISODE_CUT_CLIP_VOICES;
     if (clipVoices === '1' || clipVoices === '0') {

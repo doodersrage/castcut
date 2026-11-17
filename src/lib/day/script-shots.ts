@@ -703,9 +703,6 @@ export function shotSceneDraft(input: {
   const touchesPartner = Boolean(
     partner?.castId && PARTNER_CONTACT_RE.test(shot.action ?? sceneActionRaw ?? '')
   );
-  const partnerInFrame = Boolean(
-    partner?.castId && (shot.who.includes(partner.speaker) || touchesPartner)
-  );
   const leadName = cast.find(member => member.id === castId)?.name;
   // Seen besides her: any speaker in the shot but her, unless only ever heard here.
   const heardOnly = offscreenOnlySpeakers(scene);
@@ -714,6 +711,21 @@ export function shotSceneDraft(input: {
   );
   const isLead = (speaker: string) =>
     castOf(speaker) === castId || leadCues.has(speakerKey(speaker));
+  // Her line to him, with him there in the scene: a two-shot, as his lines to her are. Shot on
+  // her alone, she answered the lens while he answered her ("it is weird Jason responds to her
+  // while she responds to the camera", the flagship, 2026-11-16). A call (he isn't in the
+  // scene) or a voice only heard keeps her alone.
+  const answersPartner = Boolean(
+    partner?.castId &&
+    shot.purpose === 'dialogue' &&
+    !shot.offscreen &&
+    shot.who.length > 0 &&
+    shot.who.every(isLead) &&
+    !heardOnly.has(speakerKey(partner.speaker))
+  );
+  const partnerInFrame = Boolean(
+    partner?.castId && (shot.who.includes(partner.speaker) || touchesPartner || answersPartner)
+  );
   const others = shot.who.filter(
     speaker => !isLead(speaker) && !heardOnly.has(speakerKey(speaker)) && !isTagOnlyCue(speaker)
   );
@@ -790,7 +802,8 @@ export function shotSceneDraft(input: {
       ...(location ? { location } : {}),
       ...(locationId ? { locationId } : {}),
       ...(beat ? { sceneHints: beat, sceneHintsTyped: beat } : {}),
-      poseCamera: { shot: shot.framing },
+      // Two in a head shot don't fit: her line to him is framed waist up.
+      poseCamera: { shot: answersPartner && shot.framing === 'head' ? 'waist' : shot.framing },
       // Two people in a scene's shot talk to each other, not to the lens (the flagship,
       // 2026-11-16) — all but the establishing shot, which shows the place.
       // Her alone in a scene with him: turned to him just off frame, not to the lens ("she

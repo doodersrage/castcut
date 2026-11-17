@@ -122,10 +122,10 @@ describe('shot lists from a script (M3 S4)', () => {
       id: 'morning',
       label: '1B',
       location: 'kitchen at home',
-      sceneHints: 'Nora pours coffee.',
-      sceneHintsTyped: 'Nora pours coffee.',
+      // Her line to him, with him in the scene: a two-shot, as his are (2026-11-16).
+      sceneHints: `Nora Ortiz and Tomás Ruiz, the two of them together. ${action}`,
+      sceneHintsTyped: `Nora Ortiz and Tomás Ruiz, the two of them together. ${action}`,
       poseCamera: { shot: 'waist' },
-      // Her alone, Tomas in the scene: turned to him just off frame (2026-11-16).
       poseLook: 'partner',
       line: 'Coffee first.',
     });
@@ -149,8 +149,8 @@ describe('shot lists from a script (M3 S4)', () => {
     );
     assert.equal(his.slot.line, undefined);
     assert.equal(his.partnerInFrame, true);
-    // Her own line stays on her alone.
-    assert.equal(lead.partnerInFrame, undefined);
+    // Her own line to him, him in the scene: a two-shot as well (2026-11-16).
+    assert.equal(lead.partnerInFrame, true);
 
     // Unconfirmed names are not used: no partner, the cue as written.
     const unsure = shotSceneDraft({
@@ -188,13 +188,13 @@ describe('shot lists from a script (M3 S4)', () => {
         placeMap: undefined,
       });
     const inFrame = shots.map((_, index) => draft(index).partnerInFrame === true);
-    // The wide (everyone), her line, his line, her line again, his reaction — and a two-person
-    // headcount exactly where he is shown.
+    // The wide (everyone), her line, his line, her line again, his reaction — him in every one:
+    // her lines to him are two-shots too (2026-11-16) — and a two-person headcount where shown.
     assert.deepEqual(
       shots.map(shot => shot.purpose),
       ['establishing', 'dialogue', 'dialogue', 'dialogue', 'reaction']
     );
-    assert.deepEqual(inFrame, [true, false, true, false, true]);
+    assert.deepEqual(inFrame, [true, true, true, true, true]);
     assert.equal(
       resolveDayPoseHeadcount({
         haystack: draft(0).slot.sceneHints!,
@@ -782,12 +782,46 @@ describe('her line while she touches him (a two-shot)', () => {
     assert.equal(his.slot.partnerLine, "It's leaning toward you.");
     assert.equal(his.slot.line, undefined);
     assert.equal(hug.slot.partnerLine, undefined);
-    // Her alone with a glass: still her alone.
+    // Her line with a glass, him in the scene: a two-shot too (2026-11-16).
     const water = draft(shots.findIndex(shot => shot.line === 'Thirsty.'));
-    assert.equal(water.partnerInFrame, undefined);
+    assert.equal(water.partnerInFrame, true);
     // The two of them talk to each other, not to the lens; her alone is turned to him just off
     // frame (2026-11-16).
     assert.equal(his.slot.poseLook, 'partner');
     assert.equal(water.slot.poseLook, 'partner');
+  });
+});
+
+describe('her line to him is a two-shot only when he is there (the flagship, 2026-11-16)', () => {
+  it('heard only (O.S.): her line stays on her alone', () => {
+    const source = [
+      'INT. HALLWAY - NIGHT',
+      '',
+      'Slyne stands at the door.',
+      '',
+      'JASON (O.S.)',
+      'Are you coming?',
+      '',
+      'SLYNE',
+      'In a minute.',
+      '',
+    ].join('\n');
+    const scene = parseScript(source).scenes[0]!;
+    const shots = draftShots(scene);
+    const index = shots.findIndex(shot => shot.line === 'In a minute.');
+    const her = shotSceneDraft({
+      shot: shots[index]!,
+      scene,
+      sceneIndex: 0,
+      shotIndex: index,
+      castId: 'slyne',
+      cast: [
+        { id: 'slyne', name: 'Slyne' },
+        { id: 'jason', name: 'Jason' },
+      ],
+      castMap: { SLYNE: 'slyne', JASON: 'jason' },
+      placeMap: undefined,
+    });
+    assert.notEqual(her.partnerInFrame, true);
   });
 });
