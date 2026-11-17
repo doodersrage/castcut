@@ -972,7 +972,11 @@ export function buildFilterComplex(input: {
     const speechLabels =
       voiced.map(({ index }) => `[s${index}]`).join('') + narrationLabels.join('');
     parts.push(
-      `${speechLabels}${speechCount > 1 ? `amix=inputs=${speechCount}:duration=longest:normalize=0` : 'anull'},${input.sound?.evenVoices === true ? EVEN_VOICES_FILTERS : ''}apad=whole_dur=${end}${input.stems ? '[speech0]' : '[speech]'}`
+      // From 0, filled with silence before the first line (first_pts=0): when the film opens on
+      // shots with nothing said (a title card, a quiet establishing shot) the mix began at the
+      // first line with a timestamp offset, which a piece's join dropped — every line then played
+      // seconds early (the flagship's straight cut, 2026-11-17).
+      `${speechLabels}${speechCount > 1 ? `amix=inputs=${speechCount}:duration=longest:normalize=0` : 'anull'},aresample=async=1:first_pts=0,${input.sound?.evenVoices === true ? EVEN_VOICES_FILTERS : ''}apad=whole_dur=${end}${input.stems ? '[speech0]' : '[speech]'}`
     );
     if (input.stems) stemTap('speech0', 'speech', 'dialogue', true);
   }

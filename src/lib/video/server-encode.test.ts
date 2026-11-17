@@ -42,7 +42,7 @@ describe('narration in the cut', async () => {
       narration: [{ input: 4, shot: 1 }],
     });
     assert.match(out.filter, /\[4:a\][^;]*adelay=3000:all=1\[n1\]/);
-    assert.match(out.filter, /\[n1\]anull,apad=whole_dur=10\[speech\]/);
+    assert.match(out.filter, /\[n1\]anull,aresample=async=1:first_pts=0,apad=whole_dur=10\[speech\]/);
     assert.match(out.filter, /sidechaincompress/);
     assert.equal(out.audioLabel, 'aout');
   });
@@ -208,5 +208,25 @@ describe('hard cuts among dips (2026-11-17)', () => {
     });
     assert.match(filter, /concat=n=2:v=1:a=0,fps=30\[xf1\]/);
     assert.match(filter, /\[xf1\]\[v2\]xfade=transition=fadeblack/);
+  });
+});
+
+describe('the lines start from 0, silence before the first (2026-11-17)', () => {
+  it('a film opening on shots with nothing said: the speech mix is filled from the start', async () => {
+    const { buildFilterComplex } = await import('./server-encode');
+    const { filter } = buildFilterComplex({
+      shotCount: 3,
+      kinds: ['title', 'clip', 'clip'],
+      holdSecs: [2.4, 5, 3],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      hasAudioBed: false,
+      speech: [false, false, true],
+      text: [{ titleFile: null, subtitleFile: null }],
+    } as never);
+    // Without it the mix began at the first line (7.4 s) and a long film's join dropped the
+    // offset: every line played seconds early.
+    assert.match(filter, /aresample=async=1:first_pts=0,[^;]*\[speech\]/);
   });
 });

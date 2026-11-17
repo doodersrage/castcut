@@ -151,6 +151,6 @@ describe('clip moves, the review timecode and evened voices', () => {
       speech: [true],
       sound: { evenVoices: true },
     });
-    assert.match(graph.filter, /anull,acompressor=threshold=0\.08:ratio=3[^;]*,apad=whole_dur=4\[speech\]/);
+    assert.match(graph.filter, /anull,aresample=async=1:first_pts=0,acompressor=threshold=0\.08:ratio=3[^;]*,apad=whole_dur=4\[speech\]/);
   });
 });

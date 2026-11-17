@@ -249,7 +249,7 @@ describe('talking clips in the cut', () => {
       speech: [true, false],
     });
     assert.equal(audioLabel, 'aout');
-    assert.match(filter, /\[s0\]anull,apad=whole_dur=8\[speech\]/);
+    assert.match(filter, /\[s0\]anull,aresample=async=1:first_pts=0,apad=whole_dur=8\[speech\]/);
     assert.doesNotMatch(filter, /sidechaincompress/);
   });
 });
