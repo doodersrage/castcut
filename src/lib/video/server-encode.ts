@@ -735,6 +735,13 @@ export function buildFilterComplex(input: {
             // Slow motion: frames made in between (motion-compensated), not each one held.
             (speed < 1 ? `,minterpolate=fps=${STILL_MOTION_FPS}:mi_mode=mci:mc_mode=aobmc` : '');
       chain = `[${i}:v]trim=start=${start.toFixed(3)}:end=${(start + hold * speed).toFixed(3)},setpts=PTS-STARTPTS${reverse},${scalePad}${paced}`;
+    } else if (kind === 'clip' && hold > 0) {
+      // Exactly its hold, as its sound and the timeline count it (its last frame held if the
+      // picture runs short). Uncut, a clip played its whole video stream — H3's runs a little
+      // longer than its sound — and joined by hard cuts each one pushed the picture later: the
+      // flagship's straight-cut film drifted seconds out of sync (2026-11-17). Crossfades hid it
+      // (each xfade cuts the shot before at its planned point).
+      chain = `[${i}:v]${scalePad},tpad=stop_mode=clone:stop_duration=${hold.toFixed(3)},trim=duration=${hold.toFixed(3)},setpts=PTS-STARTPTS`;
     } else {
       chain = `[${i}:v]${scalePad},setpts=PTS-STARTPTS`;
     }

@@ -279,6 +279,17 @@ async function runJob(id: string, input: StartFilmAssembleInput): Promise<void> 
   job.updatedAt = Date.now();
 
   try {
+    // CASTCUT_DEBUG_CUT=1: the shots and options as received, beside the films (a sync or order
+    // problem is read off what the encode was given, not guessed from the film).
+    if (process.env.CASTCUT_DEBUG_CUT === '1') {
+      const { writeFile } = await import('node:fs/promises');
+      const { join } = await import('node:path');
+      const { resolvePromptDataDir } = await import('../prompt/data-paths');
+      await writeFile(
+        join(/* turbopackIgnore: true */ resolvePromptDataDir(), `cut-debug-${id}.json`),
+        JSON.stringify(input, null, 1)
+      ).catch(() => undefined);
+    }
     // A long film (a half-hour episode) is rendered in pieces and joined (server-encode.ts).
     const encode =
       input.shots.length > LONG_FORM_MIN_SHOTS
