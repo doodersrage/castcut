@@ -175,7 +175,10 @@ import {
 } from '@/lib/day/scenes';
 import { previewTakeOf } from '@/lib/day/run-tier';
 import { normalizeDayShortLink } from '@/lib/day/scene-links';
-import { loadSceneScriptStore } from '@/lib/day/scene-script-store-client';
+import {
+  loadSceneScriptStore,
+  syncSceneScriptsWithServer,
+} from '@/lib/day/scene-script-store-client';
 import { SCENE_SCRIPTS_CHANGED_EVENT } from '@/lib/day/scene-script-store';
 import type { SavedScript } from '@/lib/day/scene-scripts';
 import { coverageSummary, sceneCoverage } from '@/lib/day/script-coverage';
@@ -354,6 +357,10 @@ export function useCutRoom() {
   useEffect(() => {
     const read = () => setStoredScripts(loadSceneScriptStore().scripts);
     read();
+    // Read again once the server's scripts are merged in: opened straight onto Cut, the
+    // browser's copy could be empty at first, and the film opened on the Cast's name, not its
+    // script's title (2026-11-17).
+    void syncSceneScriptsWithServer().then(read);
     window.addEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
     return () => window.removeEventListener(SCENE_SCRIPTS_CHANGED_EVENT, read);
   }, []);
