@@ -19,3 +19,14 @@ describe('a talking clip heard against its line', () => {
     assert.equal(lineHeardWrong('Hi there.', 'Hi there.'), false);
   });
 });
+
+describe('part of a line said again (the flagship, 2026-11-16)', () => {
+  it('"Keep going. Keep going." is heard wrong; the line said once, or a word misheard, is not', async () => {
+    const { saysPartAgain } = await import('./extend');
+    assert.equal(lineHeardWrong('Not enough. Keep going. Keep going.', 'Not enough. Keep going.'), true);
+    assert.equal(saysPartAgain('Not enough. Keep going. Keep going.', 'Not enough. Keep going.'), true);
+    assert.equal(saysPartAgain('Not enough. Keep going.', 'Not enough. Keep going.'), false);
+    assert.equal(saysPartAgain('Yes. That’s my answer. Yes.', 'Yes. That’s my answer. Yes.'), false);
+    assert.equal(saysPartAgain('Then I’ll lose, every time.', 'Then I’ll lose. Every time.'), false);
+  });
+});

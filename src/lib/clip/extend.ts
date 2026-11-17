@@ -234,8 +234,25 @@ export function lineHeardWrong(transcript: string, line: string): boolean {
   return (
     !saysLine(transcript, line) ||
     saysMoreThanLine(transcript, line) ||
+    saysPartAgain(transcript, line) ||
     opensWithSampleGreeting(transcript, line)
   );
+}
+
+/**
+ * Part of the line said again after it: the words left once the line's are taken out are two or
+ * more, all the line's own. "Not enough. Keep going. Keep going." (the flagship's 7C, 2026-11-16)
+ * — two words, under saysMoreThanLine's three, and not the whole line again.
+ */
+export function saysPartAgain(transcript: string, line: string): boolean {
+  const said = spokenWords(line);
+  if (!said.length || !saysLine(transcript, line)) return false;
+  const left = spokenWords(transcript);
+  for (const word of said) {
+    const at = left.indexOf(word);
+    if (at >= 0) left.splice(at, 1);
+  }
+  return left.length >= 2 && left.every(word => said.includes(word));
 }
 
 const GREETING_RE = /^\W*(?:hi|hello|hey)\b/i;

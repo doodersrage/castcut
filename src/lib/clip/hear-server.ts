@@ -20,7 +20,13 @@ import {
 } from '../comfyui/comfy-utility-graph-server';
 import { fetchFilmShotBytes } from '../video/shot-fetch';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
-import { lineHeardWrong, loudestWindow, WORDLESS_SPEECH_DB, wordlessSpeaks } from './extend';
+import {
+  lineHeardWrong,
+  loudestWindow,
+  saysPartAgain,
+  WORDLESS_SPEECH_DB,
+  wordlessSpeaks,
+} from './extend';
 import { singleLineSaidTwice, speechBursts } from '../audio/line-fit';
 
 /** The loudest 50 ms of a file's sound (dBFS); null without sound. */
@@ -99,6 +105,7 @@ export async function hearClip(input: {
   let loudest: number | null = null;
   let saidTwice = false;
   let lineEndSec: number | undefined;
+  let lineBursts: Array<{ startSec: number; endSec: number }> = [];
   let talksAtSec: number | undefined;
   if (line) {
     // A one-sentence line said twice can be heard as once by Whisper: its sound says so.
@@ -108,9 +115,9 @@ export async function hearClip(input: {
       try {
         await fs.writeFile(/* turbopackIgnore: true */ file, fetched.buffer);
         const samples = await monoSamples(ffmpeg, file);
-        const bursts = samples ? speechBursts(samples, HEAR_RATE) : [];
-        saidTwice = singleLineSaidTwice(bursts, line);
-        if (saidTwice) lineEndSec = bursts[0]!.endSec;
+        lineBursts = samples ? speechBursts(samples, HEAR_RATE) : [];
+        saidTwice = singleLineSaidTwice(lineBursts, line);
+        if (saidTwice) lineEndSec = lineBursts[0]!.endSec;
       } finally {
         await fs.rm(/* turbopackIgnore: true */ file, { force: true }).catch(() => undefined);
       }
@@ -149,6 +156,13 @@ export async function hearClip(input: {
       ? saidTwice || lineHeardWrong(transcript, line)
       : wordlessSpeaks(transcript, loudest ?? 0),
     ...(lineEndSec !== undefined ? { lineEndSec } : {}),
+    // Part of it said again (7C): the line ends with the burst before the last.
+    ...(lineEndSec === undefined &&
+    line &&
+    saysPartAgain(transcript, line) &&
+    lineBursts.length >= 2
+      ? { lineEndSec: lineBursts[lineBursts.length - 2]!.endSec }
+      : {}),
     ...(!line && talksAtSec !== undefined ? { talksAtSec } : {}),
   };
 }
