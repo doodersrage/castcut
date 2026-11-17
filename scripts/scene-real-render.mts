@@ -4387,6 +4387,20 @@ const phases: Record<string, Phase> = {
     } else {
       problems.push('epcut: Music by scene was never offered — the film has no music');
       log('✗ no Music by scene offered');
+      // What the page showed instead (the monitor still loading, an error…).
+      await shot(page, 'epcut-no-music');
+      log(
+        '  monitor:',
+        (
+          (await page
+            .locator('[data-testid^="cut-preview"]')
+            .first()
+            .textContent()
+            .catch(() => '')) ?? ''
+        )
+          .trim()
+          .slice(0, 200)
+      );
     }
     // EPISODE_CUT_ROOM_TONE=1: each script scene's own sound looped under it (room-tone.ts).
     if (process.env.EPISODE_CUT_ROOM_TONE === '1') {
