@@ -2913,7 +2913,8 @@ export function useCutRoom() {
               ? {
                   ...(withDay && cast
                     ? nextDayFilmTitleCard(loadPlaySeriesStore(), cast.id, name)
-                    : { title: name, subtitle: 'A Castcut story' }),
+                    : // A script's own title ("The Spare Key"), not the Cast's (2026-11-17).
+                      { title: scenesScript?.name?.trim() || name, subtitle: 'A Castcut story' }),
                   ...(recap.length ? { afterShots: recap.length } : {}),
                 }
               : null,
@@ -3108,6 +3109,7 @@ export function useCutRoom() {
       readEncodeServer,
       recordDayNarration,
       sceneCast,
+      scenesScript?.name,
       shared.activeLookId,
       shared.model,
       shots,
