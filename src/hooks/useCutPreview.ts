@@ -163,16 +163,62 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-function loadVideoOnce(url: string): Promise<HTMLVideoElement> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.preload = 'auto';
-    video.playsInline = true;
-    video.onloadeddata = () => resolve(video);
-    video.onerror = () => reject(new Error('Could not load a clip.'));
-    video.src = url;
+/** Clips loading at once: the browser's few connections a host are held by buffering media. */
+const VIDEO_LOADS_AT_ONCE = 4;
+/** A clip that hasn't loaded by then has failed (rather than leaving the preview building). */
+const VIDEO_LOAD_TIMEOUT_MS = 60_000;
+let videoLoadsRunning = 0;
+const videoLoadQueue: Array<() => void> = [];
+
+/** One slot of VIDEO_LOADS_AT_ONCE: its release lets the next waiting load start. */
+function videoLoadSlot(): Promise<() => void> {
+  return new Promise(resolve => {
+    const take = () => {
+      videoLoadsRunning += 1;
+      let released = false;
+      resolve(() => {
+        if (released) return;
+        released = true;
+        videoLoadsRunning -= 1;
+        videoLoadQueue.shift()?.();
+      });
+    };
+    if (videoLoadsRunning < VIDEO_LOADS_AT_ONCE) take();
+    else videoLoadQueue.push(take);
   });
+}
+
+/**
+ * A clip in a <video>, a few at a time and never forever. All of a cut's clips loading at once
+ * (51 in the flagship's) starved the connections: some never fired loadeddata or error, and the
+ * monitor stayed "Building the cut…" — Music and Room tone by scene never came (2026-11-17).
+ */
+async function loadVideoOnce(url: string): Promise<HTMLVideoElement> {
+  const release = await videoLoadSlot();
+  try {
+    return await new Promise<HTMLVideoElement>((resolve, reject) => {
+      const video = document.createElement('video');
+      const timer = window.setTimeout(() => {
+        video.removeAttribute('src');
+        video.load();
+        reject(new Error('A clip took too long to load.'));
+      }, VIDEO_LOAD_TIMEOUT_MS);
+      video.crossOrigin = 'anonymous';
+      video.preload = 'auto';
+      video.playsInline = true;
+      video.onloadeddata = () => {
+        window.clearTimeout(timer);
+        resolve(video);
+      };
+      video.onerror = () => {
+        window.clearTimeout(timer);
+        reject(new Error('Could not load a clip.'));
+      };
+      video.src = url;
+    });
+  } finally {
+    release();
+  }
 }
 
 /**
