@@ -389,7 +389,9 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           }
           break;
         }
-        ok = await animateOnce();
+        // A clip with no line that talked: again with the shot held, too (10A spent its retries
+        // talking, so the drift it had was never tried away).
+        ok = await animateOnce(line ? undefined : HOLD_THE_SHOT_DIRECTION);
       }
       const latest = runRef.current;
       if (!latest) return;
