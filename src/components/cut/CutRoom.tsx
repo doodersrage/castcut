@@ -12,6 +12,7 @@ import CutPartRender from '@/components/cut/CutPartRender';
 import CutFoley from '@/components/cut/CutFoley';
 import { cutChangesSince } from '@/lib/film/cut-changes';
 import CutTempMusic from '@/components/cut/CutTempMusic';
+import CutRoomTone from '@/components/cut/CutRoomTone';
 import CutColourScript from '@/components/cut/CutColourScript';
 import { CONTINUITY_RULE_LABELS } from '@/lib/checks/check-quality';
 import { continuityReportSections } from '@/lib/film/continuity-report';
@@ -1946,6 +1947,12 @@ export default function CutRoom() {
                     disabled={busy}
                     onAdd={(id, effect) => vm.setEffect(id, effect, true)}
                     onReplace={vm.clearTempMusicCues}
+                  />
+                  <CutRoomTone
+                    loaded={preview.loaded}
+                    disabled={busy}
+                    onAdd={(id, effect) => vm.setEffect(id, effect, true)}
+                    onReplace={vm.clearRoomTones}
                   />
                 </div>
                 <details className="mt-2" data-testid="cut-keys">

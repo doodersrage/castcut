@@ -4367,6 +4367,27 @@ const phases: Record<string, Phase> = {
       problems.push('epcut: Music by scene was never offered — the film has no music');
       log('✗ no Music by scene offered');
     }
+    // EPISODE_CUT_ROOM_TONE=1: each script scene's own sound looped under it (room-tone.ts).
+    if (process.env.EPISODE_CUT_ROOM_TONE === '1') {
+      const tones = page.getByTestId('cut-room-tone-make');
+      if (await tones.isVisible().catch(() => false)) {
+        const started = Date.now();
+        await tones.click();
+        const done = await page
+          .getByTestId('cut-room-tone-done')
+          .waitFor({ timeout: 60 * 60_000 })
+          .then(() => true)
+          .catch(() => false);
+        log(
+          done ? 'room tones made in' : '✗ room tones not made after',
+          Math.round((Date.now() - started) / 60_000),
+          'min'
+        );
+        if (!done) problems.push('epcut: Room tone by scene did not finish');
+      } else {
+        problems.push('epcut: Room tone by scene was never offered');
+      }
+    }
     await shot(page, 'episode-cut-ready');
     const filmsBefore = await page.getByTestId('cut-film-entry').count();
     const started = Date.now();

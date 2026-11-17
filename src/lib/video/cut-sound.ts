@@ -131,6 +131,11 @@ export type CutEffect = {
    * as the music track does (a temp-music cue). Unset: a sound effect on top of everything.
    */
   duck?: boolean;
+  /**
+   * Played over and over up to `lengthSec` (a scene's room tone from a few seconds of it); only
+   * with a length.
+   */
+  loop?: boolean;
 };
 
 export const CUT_EFFECTS_MAX = 60;
@@ -263,6 +268,9 @@ export function normalizeCutEffects(raw: unknown): CutEffect[] {
         ? { lengthSec: Math.round(Math.min(600, e.lengthSec) * 10) / 10 }
         : {}),
       ...(e.duck === true ? { duck: true } : {}),
+      ...(e.loop === true && typeof e.lengthSec === 'number' && e.lengthSec >= 1
+        ? { loop: true }
+        : {}),
     });
   }
   return out.sort((a, b) => a.atSec - b.atSec).slice(0, CUT_EFFECTS_MAX);

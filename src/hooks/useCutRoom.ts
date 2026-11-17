@@ -131,6 +131,7 @@ import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { fitLineToClip } from '@/lib/audio/line-fit-client';
 import { tightLineTrim } from '@/lib/audio/line-fit';
 import { requestSpeechSpans } from '@/lib/film/speech-span-client';
+import { ROOM_TONE_PREFIX } from '@/lib/film/room-tone';
 import { checkCutDelivery } from '@/lib/film/delivery-check-client';
 import {
   applyCutShotEdits,
@@ -2069,6 +2070,14 @@ export function useCutRoom() {
     [commitEdit]
   );
   /** Music by scene's earlier cues taken off (they are made again, not stacked). */
+  // Room tone by scene's beds (room-tone.ts), made again: the old ones go.
+  const clearRoomTones = useCallback(() => {
+    const now = stateRef.current.options;
+    const effects = now.sound?.effects ?? [];
+    const kept = effects.filter(effect => !effect.id.startsWith(ROOM_TONE_PREFIX));
+    if (kept.length === effects.length) return;
+    commitEdit({ options: { ...now, sound: { ...now.sound, effects: kept } } }, true, false);
+  }, [commitEdit]);
   const clearTempMusicCues = useCallback(() => {
     const now = stateRef.current.options;
     const effects = now.sound?.effects ?? [];
@@ -3588,6 +3597,7 @@ export function useCutRoom() {
     setTrackMuted,
     setEffect,
     clearTempMusicCues,
+    clearRoomTones,
     packaging,
     packageCut,
     importPackage,

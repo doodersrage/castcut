@@ -575,6 +575,8 @@ export function buildFilterComplex(input: {
     lengthSec?: number;
     /** A music cue: it joins the music bed and ducks under the lines (Part 19 G4). */
     duck?: boolean;
+    /** Read looped (its input is -stream_loop'd), cut at its length: a scene's room tone. */
+    loop?: boolean;
   }>;
   /**
    * Per shot: the input to read a clip's sound from (its own sound-only input), else the clip's
@@ -1317,6 +1319,7 @@ export async function encodeFilmPlaylistServer(
       level?: number;
       lengthSec?: number;
       duck?: boolean;
+      loop?: boolean;
     }> = [];
     for (const [k, effect] of heardEffects(options.sound).entries()) {
       try {
@@ -1329,6 +1332,7 @@ export async function encodeFilmPlaylistServer(
           level: effect.level,
           ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
           ...(effect.duck ? { duck: true } : {}),
+          ...(effect.loop && effect.lengthSec ? { loop: true } : {}),
         });
       } catch {
         options.onProgress?.(
@@ -1823,6 +1827,7 @@ export async function encodeFilmPlaylistServer(
         level: effect.level,
         ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
         ...(effect.duck ? { duck: true } : {}),
+        ...(effect.loop && effect.lengthSec ? { loop: true } : {}),
       })),
       musicLevel: options.musicLevel,
       voiceLevel: options.voiceLevel,
@@ -1860,7 +1865,9 @@ export async function encodeFilmPlaylistServer(
       if (kinds[i] === 'clip') args.push('-vn', '-i', file);
     }
     // The effects, after them (as effectInputs said).
-    for (const effect of effectFiles) args.push('-vn', '-i', effect.path);
+    for (const effect of effectFiles) {
+      args.push('-vn', ...(effect.loop ? ['-stream_loop', '-1'] : []), '-i', effect.path);
+    }
     args.push('-filter_complex', filter, '-map', `[${videoLabel}]`);
     if (audioLabel) {
       args.push('-map', `[${audioLabel}]`, ...codec.audio);
@@ -2330,6 +2337,7 @@ export async function encodeFilmLongFormServer(
       level?: number;
       lengthSec?: number;
       duck?: boolean;
+      loop?: boolean;
     }> = [];
     for (const [k, effect] of heardEffects(options.sound).entries()) {
       const file = await fetchTo(effect.url, `effect-${k}.audio`).catch(() => null);
@@ -2340,6 +2348,7 @@ export async function encodeFilmLongFormServer(
           level: effect.level,
           ...(effect.lengthSec ? { lengthSec: effect.lengthSec } : {}),
           ...(effect.duck ? { duck: true } : {}),
+          ...(effect.loop && effect.lengthSec ? { loop: true } : {}),
         });
       }
     }
@@ -2358,7 +2367,7 @@ export async function encodeFilmLongFormServer(
       ? (inputs.push('-stream_loop', '-1', '-i', ambience), next++)
       : null;
     const placed = effects.map(effect => {
-      inputs.push('-vn', '-i', effect.path);
+      inputs.push('-vn', ...(effect.loop ? ['-stream_loop', '-1'] : []), '-i', effect.path);
       return {
         input: next++,
         atSec: effect.atSec,
