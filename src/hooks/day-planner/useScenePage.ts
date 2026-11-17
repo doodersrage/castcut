@@ -14,6 +14,7 @@ import {
   createScene,
   deleteScenePatch,
   keepSceneTake,
+  withKeptNewTake,
   keptTakeOf,
   nextSceneName,
   normalizeSavedScenes,
@@ -470,6 +471,19 @@ export function useScenePage(vm: DayEngineView) {
     [active, inFlight, scenes, slot.id, stillPromptId, write]
   );
 
+  /** Takes made outside a render (cut from their scene's master), each added and kept. */
+  const keepNewTakes = useCallback(
+    (made: ReadonlyArray<{ sceneId: string; take: { id: string; imageUrl: string } }>) => {
+      let next = scenes;
+      for (const { sceneId, take } of made) {
+        const scene = next.find(entry => entry.id === sceneId);
+        if (scene) next = upsertScene(next, withKeptNewTake(scene, take));
+      }
+      if (next !== scenes) write({ scenes: next });
+    },
+    [scenes, write]
+  );
+
   /** Approve or reject a take, or make it a candidate again (M7 T3). Cut is untouched. */
   const reviewTake = useCallback(
     (takeId: string, review: SceneTakeReview | null) => {
@@ -623,6 +637,7 @@ export function useScenePage(vm: DayEngineView) {
     setTimeOfDay,
     showTake,
     keepTake,
+    keepNewTakes,
     reviewTake,
     noteTake,
     removeTake,

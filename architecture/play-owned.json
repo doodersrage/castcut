@@ -30,6 +30,7 @@
   "src/app/api/review/[token]/route.ts",
   "src/app/api/review/[token]/video/route.ts",
   "src/app/api/roleplay/route.ts",
+  "src/app/api/scene-master/route.ts",
   "src/app/api/scene-runs/bundle/route.ts",
   "src/app/api/scene-runs/server/resume/route.ts",
   "src/app/api/scene-runs/server/route.ts",

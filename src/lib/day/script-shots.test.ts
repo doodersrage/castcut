@@ -127,6 +127,8 @@ describe('shot lists from a script (M3 S4)', () => {
       sceneHintsTyped: `Nora Ortiz and Tomás Ruiz, the two of them together. ${action}`,
       poseCamera: { shot: 'waist' },
       poseLook: 'partner',
+      // She keeps the left through the scene (2026-11-17).
+      poseLead: 'left',
       line: 'Coffee first.',
     });
     assert.equal(lead.partnerCharacterId, 'tomas');

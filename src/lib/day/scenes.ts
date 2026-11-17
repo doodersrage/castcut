@@ -789,6 +789,22 @@ export function recordSceneFromWorking(
 }
 
 /** Keep `takeId` (Cut uses it, Make it move starts from it); keeping it again lets it go. */
+/**
+ * A take made outside a render (a shot cut from its scene's master, scene-master.ts) added and
+ * kept: the takes before stay, as any newer take leaves them.
+ */
+export function withKeptNewTake(
+  scene: SavedScene,
+  take: { id: string; imageUrl: string },
+  now = Date.now()
+): SavedScene {
+  const added = {
+    ...scene,
+    takes: [...scene.takes, { id: take.id, imageUrl: take.imageUrl, at: now }],
+  };
+  return keepSceneTake(added, take.id, now);
+}
+
 export function keepSceneTake(scene: SavedScene, takeId: string, now = Date.now()): SavedScene {
   if (!scene.takes.some(take => take.id === takeId)) return scene;
   const { keptTakeId: _kept, ...rest } = scene;

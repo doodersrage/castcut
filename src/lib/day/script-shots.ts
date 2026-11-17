@@ -809,10 +809,15 @@ export function shotSceneDraft(input: {
       // Her alone in a scene with him: turned to him just off frame, not to the lens ("she
       // responds alone facing the camera rather than to him", 2026-11-16).
       ...((partnerInFrame || othersInFrame || partner?.castId) &&
-      shot.purpose !== 'establishing' &&
-      shot.purpose !== 'insert'
+      shot.purpose !== 'insert' &&
+      // The opening wide too, when it shows the two of them: it's the scene's master, the shot
+      // its closer ones are cut from (scene-master.ts), and they talk to each other in it.
+      (shot.purpose !== 'establishing' || partnerInFrame)
         ? { poseLook: 'partner' as const }
         : {}),
+      // One side each through the scene: she on the left, the other on the right — cut between,
+      // the flagship's stairwell swapped them (7D) and read as a jump (2026-11-17).
+      ...(partnerInFrame ? { poseLead: 'left' as const } : {}),
       ...(shotShowsNobody(shot, [
         ...scene.speakers.flatMap(speaker => [speaker, nameOf(speaker)]),
         ...(leadName ? [leadName] : []),

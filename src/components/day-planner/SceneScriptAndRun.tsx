@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { SceneScriptsSection } from '@/components/day-planner/SceneScripts';
 import SceneRunControls from '@/components/day-planner/SceneRunControls';
 import SceneRunPanel from '@/components/day-planner/SceneRunPanel';
+import SceneShootFromMasters from '@/components/day-planner/SceneShootFromMasters';
+import { getCharacter } from '@/lib/character/os';
 import LocationsSection from '@/components/location/LocationsSection';
 import { emptyPlacePhoto } from '@/lib/location/empty-photo-client';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
@@ -129,10 +131,27 @@ export function SceneScriptPart({
 /** The Cast's run and its controls, where it renders (Scene). */
 export function SceneRunPart({ vm, page, runner }: { vm: Vm; page: Page; runner: Runner }) {
   useSceneRunStart(vm, page, runner);
-  return <SceneRunPanelOf page={page} runner={runner} model={vm.shared.model} />;
+  return (
+    <SceneRunPanelOf
+      page={page}
+      runner={runner}
+      model={vm.shared.model}
+      leadName={getCharacter(vm.shared.activeCharacterId ?? '')?.name}
+    />
+  );
 }
 
-function SceneRunPanelOf({ page, runner, model }: { page: Page; runner: Runner; model?: string }) {
+function SceneRunPanelOf({
+  page,
+  runner,
+  model,
+  leadName,
+}: {
+  page: Page;
+  runner: Runner;
+  model?: string;
+  leadName?: string;
+}) {
   return (
     <>
       {page.run ? (
@@ -154,6 +173,13 @@ function SceneRunPanelOf({ page, runner, model }: { page: Page; runner: Runner; 
             onQueueAll={runner.queueAll}
             onStop={runner.stop}
           />
+          {page.run.state === 'done' || page.run.state === 'cancelled' ? (
+            <SceneShootFromMasters
+              page={page}
+              {...(leadName ? { leadName } : {})}
+              disabled={page.inFlight || runner.looping}
+            />
+          ) : null}
         </SceneRunPanel>
       ) : null}
     </>
@@ -186,7 +212,12 @@ export default function SceneScriptAndRun({
           page.updateRun(next);
         }}
       />
-      <SceneRunPanelOf page={page} runner={runner} model={vm.shared.model} />
+      <SceneRunPanelOf
+        page={page}
+        runner={runner}
+        model={vm.shared.model}
+        leadName={getCharacter(vm.shared.activeCharacterId ?? '')?.name}
+      />
     </>
   );
 }
