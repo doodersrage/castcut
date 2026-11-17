@@ -4435,6 +4435,7 @@ const phases: Record<string, Phase> = {
     }
     const until = Date.now() + 720 * 60_000;
     let said = '';
+    let saidAt = Date.now();
     while (Date.now() < until) {
       if ((await page.getByTestId('cut-film-entry').count()) > filmsBefore) break;
       const now =
@@ -4446,7 +4447,14 @@ const phases: Record<string, Phase> = {
         )?.trim() ?? '';
       if (now && now !== said) {
         said = now;
+        saidAt = Date.now();
         log('  ', now.slice(0, 160));
+      }
+      // The render failed (ffmpeg's error in the status), or nothing has moved in half an hour:
+      // stop, said — a failed straight-cut render was waited on all night (2026-11-17).
+      if (/\[Parsed_|\bError\b|failed|could not/i.test(said) || Date.now() - saidAt > 30 * 60_000) {
+        problems.push(`epcut: the cut stopped — ${said.slice(0, 160) || 'no word for 30 min'}`);
+        break;
       }
       await page.waitForTimeout(15_000);
     }

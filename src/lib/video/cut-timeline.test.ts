@@ -46,7 +46,7 @@ describe('cut joins (transitions)', () => {
       transitions: [undefined, { kind: 'black', sec: 0.6 }, { kind: 'cut', sec: 0 }],
     });
     assert.match(graph.filter, /\[v0\]\[v1\]xfade=transition=fadeblack:duration=0\.6:offset=1\.4\[xf1\]/);
-    assert.match(graph.filter, /\[xf1\]\[v2\]concat=n=2:v=1:a=0\[vout\]/);
+    assert.match(graph.filter, /\[xf1\]\[v2\]concat=n=2:v=1:a=0,fps=30\[vout\]/);
     assert.equal(graph.durationSec, 5.4);
   });
 

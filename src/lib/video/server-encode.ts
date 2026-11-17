@@ -844,7 +844,11 @@ export function buildFilterComplex(input: {
       parts.push(
         overlap > 0
           ? `[${prev}][v${i}]xfade=transition=${xfadeTransitionName(joins.kinds[i] ?? 'fade')}:duration=${overlap}:offset=${Math.max(0, placed.starts[i]!)}[${out}]`
-          : `[${prev}][v${i}]concat=n=2:v=1:a=0[${out}]`
+          : // A hard cut among crossfades and dips: concat's output keeps the microsecond
+            // timebase, and the next xfade refused it ("First input link main timebase
+            // (1/1000000) do not match … (1/30)") — hard cuts with dips between scenes never
+            // rendered (2026-11-17). Back on the shots' frame rate.
+            `[${prev}][v${i}]concat=n=2:v=1:a=0,fps=${STILL_MOTION_FPS}[${out}]`
       );
       prev = out;
     }

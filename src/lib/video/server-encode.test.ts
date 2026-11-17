@@ -192,3 +192,21 @@ describe('a clip’s sound eases across a soft join (the flagship, 2026-11-16)',
     assert.match(graph(0), /\[1:a\][^;]*afade=t=in:st=0:d=0\.008,afade=t=out:st=3\.992:d=0\.008,/);
   });
 });
+
+describe('hard cuts among dips (2026-11-17)', () => {
+  it('a hard cut before a dip comes back on the frame rate the dip’s xfade needs', async () => {
+    const { buildFilterComplex } = await import('./server-encode');
+    const { filter } = buildFilterComplex({
+      shotCount: 3,
+      kinds: ['clip', 'clip', 'clip'],
+      holdSecs: [3, 3, 3],
+      width: 1280,
+      height: 720,
+      crossfadeSec: 0,
+      transitions: [undefined, undefined, { kind: 'black', sec: 1 }],
+      hasAudioBed: false,
+    });
+    assert.match(filter, /concat=n=2:v=1:a=0,fps=30\[xf1\]/);
+    assert.match(filter, /\[xf1\]\[v2\]xfade=transition=fadeblack/);
+  });
+});
