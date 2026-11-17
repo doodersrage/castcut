@@ -56,6 +56,13 @@ import { normalizeSpokenLine } from '@/lib/video/ltx25-renderer';
 import { sharedLlmRequestBody } from '@/lib/llm/request-options';
 import { loadSettingsCache } from '@/lib/settings/cache';
 
+/**
+ * A drifted clip with no line, animated again: only the shot as it stands, so nothing the still
+ * lacks is asked for.
+ */
+const HOLD_THE_SHOT_DIRECTION =
+  'They stay where they are with small natural movements — a glance, a breath, a small smile. The room stays exactly as it is in the first frame: nothing is added, nothing is taken away, nobody comes or goes, and the camera holds the same framing.';
+
 /** Times a talking clip heard saying the wrong thing is animated again (Make longer's two). */
 const CLIP_HEAR_RETRIES = 2;
 
@@ -264,9 +271,12 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         () => !pageRef.current.inFlight && pageRef.current.still?.promptId === keptPromptId,
         CHECKS_TIMEOUT_MS
       );
-      const animateOnce = async (): Promise<boolean> => {
+      const animateOnce = async (direction?: string): Promise<boolean> => {
         const clipBefore = pageRef.current.still?.clipPromptId;
-        await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false });
+        await vmRef.current.animateSlot(pageRef.current.slot, {
+          manageBusy: false,
+          ...(direction ? { direction } : {}),
+        });
         // The page has the queued clip after its next render (pageRef follows in an effect):
         // read at once, it was always the still before — every clip of a real run was called
         // "didn't render" while ComfyUI rendered all 16 (2026-11-09), and none joined its take.
@@ -330,7 +340,9 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
             );
           }
           if (attempt === CLIP_HEAR_RETRIES) break;
-          ok = await animateOnce();
+          // Again with the shot held as it is: its beat asked for what the still doesn't have
+          // ("among boxes" on an empty floor) and H3 kept adding it (the flagship's 10A).
+          ok = await animateOnce(line ? undefined : HOLD_THE_SHOT_DIRECTION);
           continue;
         }
         heardWrong = hearing.transcript?.trim() || '(nothing)';
