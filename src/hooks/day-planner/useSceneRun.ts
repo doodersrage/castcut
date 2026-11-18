@@ -23,6 +23,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 import { chainStartFor } from '@/lib/day/continuous-take-client';
+import { keptClipNeeded } from '@/lib/day/continuous-take';
 import { notifyDesktop } from '@/lib/app/desktop-notify';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
@@ -664,12 +665,20 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         if (step.kind === 'animate') {
           const kept = scene.takes.find(take => take.id === scene.keptTakeId);
           await animateKept(sceneId, scene.name, kept?.promptId ?? kept?.id);
+          // Landed only when its kept take has the clip it needs now: a clip ComfyUI lost in a
+          // restart was called landed with none, and the film used the still (the flagship's
+          // 4D after a power cut, 2026-11-18). Not landed, Animate the kept takes offers it again.
+          const after = pageRef.current.castScenes;
+          const now = after.find(entry => entry.id === sceneId);
+          const needs = now ? keptClipNeeded(now, after) : true;
           save(
             withRunOutcome(
               runRef.current ?? run,
               sceneId,
-              'landed',
-              `${scene.name}: kept take animated`
+              needs ? 'failed' : 'landed',
+              needs
+                ? `${scene.name}: its clip didn’t land — Animate the kept takes tries it again`
+                : `${scene.name}: kept take animated`
             )
           );
           continue;
