@@ -3621,7 +3621,7 @@ const phases: Record<string, Phase> = {
     await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
     const reset = () =>
       page.evaluate(
-        ({ castId, labels, edits, clipsOnly }) =>
+        ({ castId, labels, edits, clipsOnly, marksOnly }) =>
           new Promise<{ scenes: number; takes: number }>((resolve, reject) => {
             const request = indexedDB.open('comfy-prompt-studio-v1');
             request.onerror = () => reject(request.error);
@@ -3655,6 +3655,13 @@ const phases: Record<string, Phase> = {
                 scene.scenes = scene.scenes.map((entry, index) => {
                   if (entry.castId !== castId || !entry.fromScript) return entry;
                   const label = (entry as { name?: string }).name?.split(' ')[0] ?? '';
+                  // EPISODE_RESET_MARKS=1: those shots' edits only (a continuous take marked):
+                  // their takes, clips and the run stay.
+                  if (marksOnly) {
+                    if (!labels.includes(label)) return entry;
+                    scenes += 1;
+                    return { ...entry, ...(edits[label] ?? {}), updatedAt: now + index };
+                  }
                   // EPISODE_RESET_CLIPS=lines: the clips of the shots with a line let go (their
                   // stills kept) — animated again by epanimate.
                   if (clipsOnly) {
@@ -3703,7 +3710,7 @@ const phases: Record<string, Phase> = {
                     updatedAt: now + index,
                   };
                 });
-                if (!clipsOnly) delete scene.run;
+                if (!clipsOnly && !marksOnly) delete scene.run;
                 // The page opens on its active Scene and gives that one its clip back as it loads
                 // (11D, 11E, then 5E were never animated again): open on one not let go of.
                 // (No named helpers in here: tsx's __name helper doesn't exist in the page.)
@@ -3738,6 +3745,7 @@ const phases: Record<string, Phase> = {
           labels: only,
           edits,
           clipsOnly: process.env.EPISODE_RESET_CLIPS === 'lines',
+          marksOnly: process.env.EPISODE_RESET_MARKS === '1',
         }
       );
     const counts = await reset();
@@ -3758,6 +3766,7 @@ const phases: Record<string, Phase> = {
     // when only clips were let go: Animate the kept takes needs that run).
     if (
       process.env.EPISODE_RESET_CLIPS !== 'lines' &&
+      process.env.EPISODE_RESET_MARKS !== '1' &&
       (await page
         .getByTestId('scene-run')
         .isVisible()
