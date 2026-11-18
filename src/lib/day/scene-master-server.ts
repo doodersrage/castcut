@@ -22,7 +22,7 @@ import { fetchFilmShotBytes } from '../video/shot-fetch';
 import { buildMasterCutDetailGraph, type MasterCut } from './scene-master';
 
 export type MasterCutResult =
-  { available: true; image: ComfyImageRef } | { available: false; reason: string };
+  { available: true; image: ComfyImageRef; plain?: true } | { available: false; reason: string };
 
 const firstImage = (entry: { outputs?: Record<string, unknown> }) => {
   for (const output of Object.values(entry.outputs ?? {})) {
@@ -75,6 +75,7 @@ export async function cutShotFromMaster(input: {
         : null
       : shotReframeRect(source.size, face, input.cut.shot);
   let cutName = stagedName;
+  let plainCut: ComfyImageRef | undefined;
   if (rect) {
     const cropped = await runComfyUtilityGraph({
       baseUrl,
@@ -87,6 +88,7 @@ export async function cutShotFromMaster(input: {
     });
     const image = cropped.result;
     if (!image?.filename) return { available: false, reason: 'The cut made no picture.' };
+    plainCut = image;
     // The crop, as an input the detail pass loads.
     const view = new URLSearchParams({
       filename: image.filename,
@@ -106,7 +108,13 @@ export async function cutShotFromMaster(input: {
     cutName = up.subfolder ? `${up.subfolder}/${up.name}` : up.name;
   }
   const detail = buildMasterCutDetailGraph(graph, cutName, randomInt(1, 2 ** 31 - 1));
-  if (!detail) return { available: false, reason: 'The master is not a Qwen-Image 2.1 still.' };
+  if (!detail) {
+    // A master last finished on another model (Edit 2511's face finish) has no Qwen-Image 2.1
+    // graph to give the detail back with: the plain cut — softer, but the same room and people.
+    return plainCut
+      ? { available: true, image: plainCut, plain: true }
+      : { available: false, reason: 'The master is not a Qwen-Image 2.1 still.' };
+  }
   const run = await runComfyUtilityGraph({
     baseUrl,
     label: 'scene-master-detail',
