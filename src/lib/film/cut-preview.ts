@@ -156,7 +156,7 @@ export function previewFrameAt(
 }
 
 /**
- * Timecode at the film's frame rate (30 fps, the render's): hours:minutes:seconds:frames — what
+ * Timecode at the film's frame rate (video/film-fps.ts, the render's): hours:minutes:seconds:frames — what
  * `,` and `.` step through.
  */
 export function formatCutTimecode(sec: number, fps = STILL_MOTION_FPS): string {

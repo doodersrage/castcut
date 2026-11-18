@@ -4,6 +4,8 @@
  * square ones a 1:1 canvas for feed posts.
  */
 
+import { FILM_FPS } from './film-fps';
+
 export const FILM_RESOLUTION_PRESETS = [
   '720p',
   '1080p',
@@ -97,7 +99,7 @@ export function filmShapeOf(options?: { vertical?: boolean; shape?: FilmShape })
  * and square presets fill the frame (crop) because a padded still in them is mostly black bars.
  */
 export function buildFilmScaleFilter(width: number, height: number): string {
-  const common = 'setsar=1,fps=30,format=yuv420p';
+  const common = `setsar=1,fps=${FILM_FPS},format=yuv420p`;
   if (height >= width) {
     return `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},${common}`;
   }

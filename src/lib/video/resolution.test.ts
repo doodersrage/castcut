@@ -60,6 +60,6 @@ describe('video-resolution', () => {
     assert.match(vertical, /force_original_aspect_ratio=increase/);
     assert.match(vertical, /crop=720:1280/);
     assert.doesNotMatch(vertical, /pad=/);
-    assert.match(vertical, /fps=30,format=yuv420p$/);
+    assert.match(vertical, /fps=24,format=yuv420p$/);
   });
 });

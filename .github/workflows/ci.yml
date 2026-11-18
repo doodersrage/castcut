@@ -20,7 +20,11 @@ jobs:
         env:
           ONNXRUNTIME_NODE_INSTALL: skip
       - run: npm run lint
+      # The film assembly test renders synthetic sources with ffmpeg (video/film-assembly.test.ts).
+      - run: command -v ffmpeg >/dev/null || (sudo apt-get update && sudo apt-get install -y ffmpeg)
       - run: npm test
+        env:
+          CASTCUT_REQUIRE_FFMPEG: '1'
       - run: npm run build
       - run: npm run size
 

@@ -106,8 +106,8 @@ describe('ffmpeg cut graph', () => {
       kinds: ['still', 'clip'],
       holdSecs: [3, 4],
     });
-    assert.match(filter, /setpts=PTS-STARTPTS,fps=30\[v0\]/);
-    assert.match(filter, /setpts=PTS-STARTPTS,fps=30\[v1\]/);
+    assert.match(filter, /setpts=PTS-STARTPTS,fps=24\[v0\]/);
+    assert.match(filter, /setpts=PTS-STARTPTS,fps=24\[v1\]/);
     assert.match(filter, /xfade=transition=fade:duration=0\.5:offset=2\.5\[vout\]/);
   });
 
@@ -126,7 +126,7 @@ describe('ffmpeg cut graph', () => {
     });
     assert.match(filter, /\[0:v\]format=yuv420p,setsar=1,drawtext=fontfile='\/fonts\/Sans\.ttf':textfile='\/w\/title\.txt'/);
     assert.match(filter, /textfile='\/w\/subtitle\.txt'/);
-    assert.match(filter, /zoompan=z='1\.1-0\.1\*on\/90'/);
+    assert.match(filter, /zoompan=z='1\.1-0\.1\*on\/72'/);
     assert.match(filter, /textfile='\/w\/caption-0\.txt'.*:alpha='if\(lt\(t,0\.40\)/);
     assert.ok(Math.abs(durationSec - (2.4 + 3 - 0.5)) < 1e-9);
   });

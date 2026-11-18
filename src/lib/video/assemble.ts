@@ -45,9 +45,11 @@ import {
   readAnimatedImageLoopDurationMs,
   sniffAnimatedImageMime,
 } from './animated-image-timeline';
+import { FILM_FPS } from './film-fps';
 
 const MAX_EDGE = 1280;
-const FRAME_RATE = 30;
+/** The browser fallback records at the film's one rate (film-fps.ts), as the server renders. */
+const FRAME_RATE = FILM_FPS;
 const VIDEO_BITS_PER_SECOND = 3_000_000;
 
 /** How long status asks may keep failing before the encode is given up on. */

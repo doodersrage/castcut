@@ -4,6 +4,8 @@
  * Client-safe — no Node imports.
  */
 
+import { FILM_FPS } from './film-fps';
+
 /** Opening title card: film title plus an optional second line. */
 export type FilmTitleCard = {
   title: string;
@@ -17,8 +19,8 @@ export const TITLE_CARD_SEC = 2.4;
 /** How far a still zooms over its hold (1 → 1.1). Subtle on purpose. */
 export const STILL_MOTION_ZOOM = 0.1;
 
-/** Output frame rate the ffmpeg zoom is rendered at (matches `buildFilmScaleFilter`). */
-export const STILL_MOTION_FPS = 30;
+/** Output frame rate the ffmpeg zoom is rendered at: the film's one rate (film-fps.ts). */
+export const STILL_MOTION_FPS = FILM_FPS;
 
 /** Captions fade in, hold, and fade out within the first few seconds of a shot. */
 const CAPTION_FADE_IN = 0.4;

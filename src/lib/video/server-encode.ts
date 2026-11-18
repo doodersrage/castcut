@@ -156,7 +156,7 @@ export type FilmServerEncodeOptions = {
   followFaces?: boolean;
   /** A logo / watermark over the whole film (cut-overlay.ts). */
   logo?: { url: string; corner?: OverlayCorner } | null;
-  /** Clips under 25 fps get RIFE in-between frames first (cut-smooth-server.ts). */
+  /** Clips under the film's rate get RIFE in-between frames first (cut-smooth-server.ts). */
   smoothMotion?: boolean;
   /** A light sharpen over the finished picture. */
   sharpen?: boolean;
@@ -1424,7 +1424,7 @@ export async function encodeFilmPlaylistServer(
     const graphLeads: number[] = [];
     const graphTails: number[] = [];
     const inputArgs: string[][] = [];
-    // Smooth motion: each clip under 25 fps gets RIFE's in-between frames (same length).
+    // Smooth motion: each clip under the film's rate gets RIFE's in-between frames (same length).
     if (options.smoothMotion) {
       const { smoothClipFile } = await import('./cut-smooth-server');
       for (const [i, file] of localFiles.entries()) {

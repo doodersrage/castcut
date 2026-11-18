@@ -132,7 +132,7 @@ describe('clip moves, the review timecode and evened voices', () => {
       reviewBurnIn: true,
     });
     assert.match(graph.filter, /drawtext=fontfile='\/f\.ttf':text='REVIEW':/);
-    assert.match(graph.filter, /drawtext=fontfile='\/f\.ttf':timecode='00\\:00\\:00\\:00':timecode_rate=30/);
+    assert.match(graph.filter, /drawtext=fontfile='\/f\.ttf':timecode='00\\:00\\:00\\:00':timecode_rate=24/);
     assert.equal(graph.videoLabel, 'vreview');
     assert.equal(applyExportProfile(DEFAULT_FILM_CUT_OPTIONS, 'review').reviewBurnIn, true);
     assert.equal(applyExportProfile({ ...DEFAULT_FILM_CUT_OPTIONS, reviewBurnIn: true }, 'master').reviewBurnIn, undefined);

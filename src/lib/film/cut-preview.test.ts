@@ -80,12 +80,12 @@ describe('preview timeline with clip speed', () => {
 });
 
 describe('formatCutTimecode', () => {
-  it('reads hours:minutes:seconds:frames at 30 fps', () => {
+  it('reads hours:minutes:seconds:frames at the film rate (24 fps)', () => {
     assert.equal(formatCutTimecode(0), '00:00:00:00');
     assert.equal(formatCutTimecode(1), '00:00:01:00');
-    assert.equal(formatCutTimecode(83.4), '00:01:23:12');
-    assert.equal(formatCutTimecode(3725.5), '01:02:05:15');
-    assert.equal(formatCutTimecode(1 / 30), '00:00:00:01');
+    assert.equal(formatCutTimecode(83.4), '00:01:23:10');
+    assert.equal(formatCutTimecode(3725.5), '01:02:05:12');
+    assert.equal(formatCutTimecode(1 / 24), '00:00:00:01');
     assert.equal(formatCutTimecode(-2), '00:00:00:00');
   });
 });

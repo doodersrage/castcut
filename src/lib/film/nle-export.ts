@@ -7,7 +7,10 @@
  * their own way, so the README says how to add them. Client-safe: no Node imports.
  */
 
-export const NLE_FPS = 24;
+import { FILM_FPS } from '../video/film-fps';
+
+/** The editor timeline's rate: the film's own (video/film-fps.ts). */
+export const NLE_FPS = FILM_FPS;
 
 export type NleShot = {
   /** File name inside the export's media folder ("03-park-bench.mp4"). */

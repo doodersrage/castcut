@@ -5,6 +5,8 @@
  * the face finding is in video-server-encode.ts.
  */
 
+import { FILM_FPS } from './film-fps';
+
 /** One look at the shot: `t` seconds into what plays, the face centre (0–1 of the width) or null. */
 export type ReframeSample = { t: number; cx: number | null };
 
@@ -86,7 +88,7 @@ export function reframeScaleFilter(
 ): string {
   return (
     `scale=-2:${output.height},crop=${output.width}:${output.height}:'min(iw-ow,max(0,${reframeCropX(path)}))':0,` +
-    'setsar=1,fps=30,format=yuv420p'
+    `setsar=1,fps=${FILM_FPS},format=yuv420p`
   );
 }
 

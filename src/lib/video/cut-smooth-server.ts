@@ -2,7 +2,7 @@ import 'server-only';
 /**
  * Smooth motion for a cut: a clip made at 16 / 24 fps gets the frames in between drawn by RIFE
  * (ComfyUI core FrameInterpolate, rife_v4.26) — twice the frames, the same length — so the 30 fps
- * film moves smoothly instead of repeating frames. Clips at 25 fps or more are left as they are.
+ * film moves smoothly instead of repeating frames. Clips at the film's rate or more are left as they are.
  */
 
 import { execFile } from 'node:child_process';
@@ -15,11 +15,13 @@ import {
   type ComfyHistoryEntry,
   type ComfyImageRef,
 } from '../comfyui/comfy-utility-graph-server';
+import { FILM_FPS } from './film-fps';
 
 export const RIFE_MODEL = 'rife_v4.26.safetensors';
 const SAVE_NODE = '6';
 /** At or above this frame rate a clip already moves smoothly enough. */
-const SMOOTH_ENOUGH_FPS = 25;
+/** Clips at the film's rate or more are left as they are: in-between frames only fill a slower clip. */
+const SMOOTH_ENOUGH_FPS = FILM_FPS;
 
 const stderrOf = (bin: string, args: string[]) =>
   new Promise<string>(resolve => {
@@ -77,7 +79,7 @@ function savedVideo(entry: ComfyHistoryEntry): ComfyImageRef | undefined {
 
 /**
  * The clip at `file` (an MP4) smoothed to twice its frames, written to `out`; false when it
- * already runs at 25 fps or more (nothing written).
+ * already runs at the film's rate or more (nothing written).
  */
 export async function smoothClipFile(input: {
   ffmpeg: string;

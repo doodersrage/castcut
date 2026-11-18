@@ -128,7 +128,7 @@ describe('face-following reframe in the graph', () => {
       height: 1280,
       crossfadeSec: 0,
       hasAudioBed: false,
-      reframes: ["scale=-2:1280,crop=720:1280:'min(iw-ow,max(0,iw*0.3))':0,setsar=1,fps=30,format=yuv420p", null],
+      reframes: ["scale=-2:1280,crop=720:1280:'min(iw-ow,max(0,iw*0.3))':0,setsar=1,fps=24,format=yuv420p", null],
     });
     assert.match(graph.filter, /\[0:v\]scale=-2:1280,crop=720:1280:'min\(iw-ow,max\(0,iw\*0\.3\)\)'/);
     assert.match(graph.filter, /\[1:v\]scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280/);
@@ -206,7 +206,7 @@ describe('hard cuts among dips (2026-11-17)', () => {
       transitions: [undefined, undefined, { kind: 'black', sec: 1 }],
       hasAudioBed: false,
     });
-    assert.match(filter, /concat=n=2:v=1:a=0,fps=30\[xf1\]/);
+    assert.match(filter, /concat=n=2:v=1:a=0,fps=24\[xf1\]/);
     assert.match(filter, /\[xf1\]\[v2\]xfade=transition=fadeblack/);
   });
 });
