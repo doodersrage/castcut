@@ -129,7 +129,7 @@ import {
 } from '@/lib/day/planner';
 import { mergeDeliveryProblems } from '@/lib/film/delivery-check';
 import { fitLineToClip } from '@/lib/audio/line-fit-client';
-import { roomForSceneBreaks, tightLineTrim } from '@/lib/audio/line-fit';
+import { lineSpanCap, roomForSceneBreaks, tightLineTrim } from '@/lib/audio/line-fit';
 import { SCENE_BREAK_SEC } from '@/lib/film/cut-media';
 import { requestSpeechSpans } from '@/lib/film/speech-span-client';
 import { ROOM_TONE_PREFIX } from '@/lib/film/room-tone';
@@ -449,6 +449,7 @@ export function useCutRoom() {
     if (!tightLinesOn) return shots;
     const remembered = loadReadLines();
     const tightened = new Set<string>();
+    const caps = new Map<string, number>();
     const tight = shots.map(shot => {
       if (shot.kind !== 'clip' || !shot.spoken?.trim() || !shot.url) return shot;
       const kept = remembered[`line-span-v4:${shot.url}`];
@@ -460,10 +461,17 @@ export function useCutRoom() {
             : null;
       const trim = tightLineTrim(span, shot);
       if (trim) tightened.add(shot.key);
+      const cap = lineSpanCap(span);
+      if (cap !== undefined) caps.set(shot.key, cap);
       return trim ? { ...shot, ...trim } : shot;
     });
     return sceneBreaksOn
-      ? roomForSceneBreaks(tight, SCENE_BREAK_SEC, shot => tightened.has(shot.key))
+      ? roomForSceneBreaks(
+          tight,
+          SCENE_BREAK_SEC,
+          shot => tightened.has(shot.key),
+          shot => caps.get(shot.key)
+        )
       : tight;
   }, [
     sceneBreaksOn,
@@ -2807,6 +2815,8 @@ export function useCutRoom() {
         // Tightened talking shots: each talking clip from just before its line to just after it —
         // ~5 s clips round a 1–2 s line left the flagship's exchanges standing about (2026-11-16).
         if (cutOptions.tightLines === true) {
+          const tightenedKeys = new Set<string>();
+          const capOfKey = new Map<string, number>();
           const talking = picked.flatMap((shot, index) =>
             shot.kind === 'clip' && shot.spoken?.trim() && shot.url
               ? [
@@ -2846,7 +2856,26 @@ export function useCutRoom() {
                 : null;
             const shot = picked[entry.index]!;
             const trim = tightLineTrim(span, shot);
-            if (trim) picked[entry.index] = { ...shot, ...trim };
+            if (trim) {
+              picked[entry.index] = { ...shot, ...trim };
+              tightenedKeys.add(shot.key);
+            }
+            const cap = lineSpanCap(span);
+            if (cap !== undefined) capOfKey.set(shot.key, cap);
+          }
+          // A scene's last line is given the dip as well, as the preview gives it: rendered
+          // without it, the dip's fade took the flagship's "I'm thinking." and "It's the wind."
+          // (2026-11-18).
+          if (cutOptions.sceneBreaks === true) {
+            const roomy = roomForSceneBreaks(
+              picked,
+              SCENE_BREAK_SEC,
+              shot => tightenedKeys.has(shot.key),
+              shot => capOfKey.get(shot.key)
+            );
+            roomy.forEach((shot, index) => {
+              picked[index] = shot;
+            });
           }
         }
         // The kept voice on talking clips: a MiniMax-H3 clip said its line as the voice engine

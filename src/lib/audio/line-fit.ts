@@ -235,7 +235,13 @@ export const TIGHT_LINE_TAIL_SEC = 0.8;
  */
 export function roomForSceneBreaks<
   T extends { kind?: string; trimEndSec?: number; sceneGroup?: string },
->(shots: readonly T[], breakSec: number, tightened: (shot: T) => boolean): T[] {
+>(
+  shots: readonly T[],
+  breakSec: number,
+  tightened: (shot: T) => boolean,
+  /** Where the shot must end by (lineSpanCap: speech starting again after its line). */
+  capOf?: (shot: T) => number | undefined
+): T[] {
   return shots.map((shot, index) => {
     const next = shots[index + 1];
     if (
@@ -247,7 +253,9 @@ export function roomForSceneBreaks<
       next.sceneGroup === shot.sceneGroup
     )
       return shot;
-    return { ...shot, trimEndSec: Math.round((shot.trimEndSec + breakSec) * 100) / 100 };
+    const cap = capOf?.(shot) ?? Number.POSITIVE_INFINITY;
+    const end = Math.min(cap, shot.trimEndSec + breakSec);
+    return end > shot.trimEndSec ? { ...shot, trimEndSec: Math.round(end * 100) / 100 } : shot;
   });
 }
 /** The shortest a tightened talking shot plays. */
@@ -258,6 +266,20 @@ export const RESUME_GAP_SEC = 0.2;
 
 /** A clip's line, and where speech starts again after it (H3 talking on, unasked). */
 export type LineSpan = { startSec: number; endSec: number; resumeSec?: number };
+
+/**
+ * Where a talking shot must end by: before speech that starts again after a real gap (H3 talking
+ * on). Sound straight after the heard end is the line's own last word going on (a dip inside
+ * "books go" heard as the end) — capping there cut fifteen of the flagship's lines short
+ * (2026-11-18). Undefined: no such speech.
+ */
+export function lineSpanCap(span: LineSpan | null | undefined): number | undefined {
+  return span &&
+    typeof span.resumeSec === 'number' &&
+    span.resumeSec - span.endSec >= RESUME_GAP_SEC
+    ? Math.round((span.resumeSec - 0.05) * 100) / 100
+    : undefined;
+}
 
 /**
  * A talking clip tightened to its line (Cut's "Tighten talking shots"): from just before its
@@ -276,12 +298,7 @@ export function tightLineTrim(
   const floor = current.trimStartSec ?? 0;
   const ceiling = Math.min(
     current.trimEndSec ?? Number.POSITIVE_INFINITY,
-    // Speech again only after a real gap: sound straight after the heard end is the line's own
-    // last word going on (a dip inside "books go" heard as the end), and capping there cut
-    // fifteen of the flagship's lines short (2026-11-18).
-    typeof span.resumeSec === 'number' && span.resumeSec - span.endSec >= RESUME_GAP_SEC
-      ? span.resumeSec - 0.05
-      : Number.POSITIVE_INFINITY
+    lineSpanCap(span) ?? Number.POSITIVE_INFINITY
   );
   let start = Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
   let end = Math.min(ceiling, span.endSec + TIGHT_LINE_TAIL_SEC);

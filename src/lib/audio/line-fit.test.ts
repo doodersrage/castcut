@@ -86,6 +86,14 @@ describe('the shot that ends a scene keeps room for its dip (2026-11-17)', () =>
       out.map(s => s.trimEndSec),
       [2.5, 4, 2, undefined]
     );
+    // Run on no further than speech starting again after the line (H3 talking on).
+    const capped = roomForSceneBreaks(
+      [shot('a', 's|1', 3), shot('b', 's|2', 2)],
+      1,
+      () => true,
+      s => (s.key === 'a' ? 3.4 : undefined)
+    );
+    assert.deepEqual(capped.map(s => s.trimEndSec), [3.4, 2]);
   });
 });
 
