@@ -69,7 +69,9 @@ export default function SceneShootFromMasters({
       });
     });
   }, [leadName, page.castScenes]);
-  if (!targets.length) return null;
+  // Nothing left to cut: only what the last press did, if anything (every shot cut leaves none —
+  // the note went with the button, 2026-11-18).
+  if (!targets.length && !note) return null;
   const run = async () => {
     setNote(null);
     const made: Array<{ sceneId: string; take: { id: string; imageUrl: string } }> = [];
@@ -110,16 +112,18 @@ export default function SceneShootFromMasters({
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={disabled || busy !== null}
-        data-testid="scene-shoot-from-masters"
-        title="Each script scene's shots cut from its wide shot (the master) and given their detail back — the same room, light and places in every shot"
-        onClick={() => void run()}
-      >
-        {busy ?? `Shoot from the masters (${targets.length})`}
-      </Button>
+      {targets.length ? (
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={disabled || busy !== null}
+          data-testid="scene-shoot-from-masters"
+          title="Each script scene's shots cut from its wide shot (the master) and given their detail back — the same room, light and places in every shot"
+          onClick={() => void run()}
+        >
+          {busy ?? `Shoot from the masters (${targets.length})`}
+        </Button>
+      ) : null}
       {note ? (
         <span
           className="type-caption text-[var(--text-muted)]"
