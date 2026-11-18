@@ -18,6 +18,7 @@ import { filmTempOsDir, resolveFfmpegBinary } from '@/lib/video/server-encode';
 import { writeClipSource } from './clip-source-server';
 import { frameStats, grabFrame, normalizePiece, probe } from './clip-pieces-server';
 import { colorMatchFilter, colorMatchGains } from './extend';
+import { CHAIN_FRAME_WINDOW, sharpestFrameIndex } from './end-frame';
 
 function run(bin: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -47,6 +48,72 @@ export async function clipLastFrame(
 }
 
 /**
+ * The sharpest of the clip's last frames as a PNG (decoded, so lossless), and its time: what a
+ * continuous take starts on (day/continuous-take.ts) — the clip is cut just after it. H3's last
+ * frames can blur as it eases out; the last frame alone is not always the best one.
+ */
+export async function clipSharpestEndFrame(
+  ffmpeg: string,
+  clip: Buffer,
+  dir: string,
+  window = CHAIN_FRAME_WINDOW
+): Promise<{ png: string; atSec: number }> {
+  const source = path.join(/* turbopackIgnore: true */ dir, 'clip.bin');
+  await writeClipSource(ffmpeg, clip, source);
+  // How many frames it has (a counting pass), then its last `window` with their times.
+  const counted = await run(ffmpeg, [
+    '-v',
+    'info',
+    '-i',
+    source,
+    '-map',
+    '0:v:0',
+    '-f',
+    'null',
+    '-',
+  ]);
+  const total = Number([...counted.matchAll(/frame=\s*(\d+)/g)].at(-1)?.[1] ?? 0);
+  if (!(total > 0)) throw new Error('The clip has no frames to read.');
+  const first = Math.max(0, total - window);
+  const log = await run(ffmpeg, [
+    '-v',
+    'info',
+    '-y',
+    '-i',
+    source,
+    '-map',
+    '0:v:0',
+    '-vf',
+    `select='gte(n\\,${first})',showinfo`,
+    '-fps_mode',
+    'passthrough',
+    path.join(/* turbopackIgnore: true */ dir, 'end-%03d.png'),
+  ]);
+  const times = [...log.matchAll(/\bpts_time:\s*([\d.]+)/g)].map(match => Number(match[1]));
+  const sharp = (await import('sharp')).default;
+  const scores: number[] = [];
+  for (let index = 0; index < times.length; index += 1) {
+    const file = path.join(
+      /* turbopackIgnore: true */ dir,
+      `end-${String(index + 1).padStart(3, '0')}.png`
+    );
+    // Sharpness: the spread of a Laplacian (edges), on grey, offset so its negatives survive.
+    const stats = await sharp(file)
+      .greyscale()
+      .convolve({ width: 3, height: 3, kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0], offset: 128 })
+      .stats()
+      .catch(() => null);
+    scores.push(stats?.channels[0]?.stdev ?? Number.NaN);
+  }
+  const best = sharpestFrameIndex(scores);
+  if (best < 0) throw new Error('The clip’s last frames could not be read.');
+  return {
+    png: path.join(/* turbopackIgnore: true */ dir, `end-${String(best + 1).padStart(3, '0')}.png`),
+    atSec: Math.round(times[best]! * 1000) / 1000,
+  };
+}
+
+/**
  * The clip's last frame in ComfyUI's input, as a view URL: the still the Director reads her pose
  * and framing from to continue the clip.
  */
@@ -56,6 +123,20 @@ export async function clipLastFrameUrl(input: {
   requestOrigin?: string;
   userId?: string | null;
 }): Promise<string> {
+  return (await clipEndFrameUrl(input)).url;
+}
+
+/**
+ * The clip's last frame — or, with `sharpest`, the sharpest of its last few and its time (a
+ * continuous take's start) — in ComfyUI's input, as a view URL.
+ */
+export async function clipEndFrameUrl(input: {
+  clipUrl: string;
+  comfyUrl?: string;
+  requestOrigin?: string;
+  userId?: string | null;
+  sharpest?: boolean;
+}): Promise<{ url: string; atSec?: number }> {
   const ffmpeg = await resolveFfmpegBinary();
   if (!ffmpeg) throw new Error('ffmpeg is not available on this server.');
   const { fetchFilmShotBytes } = await import('@/lib/video/shot-fetch');
@@ -67,14 +148,17 @@ export async function clipLastFrameUrl(input: {
   const dir = path.join(/* turbopackIgnore: true */ filmTempOsDir(), `clip-frame-${randomUUID()}`);
   await fs.mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
   try {
-    const { png } = await clipLastFrame(ffmpeg, clip.buffer, dir);
+    const frame = input.sharpest
+      ? await clipSharpestEndFrame(ffmpeg, clip.buffer, dir)
+      : { ...(await clipLastFrame(ffmpeg, clip.buffer, dir)), atSec: undefined };
     const kept = await uploadComfyInputContent({
       baseUrl: comfyBaseUrl(input.comfyUrl),
-      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ png)),
+      bytes: new Uint8Array(await fs.readFile(/* turbopackIgnore: true */ frame.png)),
       filename: 'castcut-clip-last-frame.png',
       mimeType: 'image/png',
     });
-    return `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`;
+    const url = `/api/comfyui/view?${new URLSearchParams({ filename: kept.name, type: 'input' }).toString()}`;
+    return { url, ...(frame.atSec !== undefined ? { atSec: frame.atSec } : {}) };
   } finally {
     await fs
       .rm(/* turbopackIgnore: true */ dir, { recursive: true, force: true })

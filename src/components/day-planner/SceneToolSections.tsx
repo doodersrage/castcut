@@ -33,6 +33,7 @@ import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOr
 import { DAY_PARTS, slotDayPart } from '@/lib/day/parts';
 import { isDayAdultMood, type DaySlotId } from '@/lib/day/planner';
 import { sceneSummary } from '@/lib/day/scenes';
+import { chainIsStale, previousShotOf } from '@/lib/day/continuous-take';
 
 const ACCENT = SCENE_ACCENT;
 const PART_LABELS: Record<(typeof DAY_PARTS)[number], string> = {
@@ -135,6 +136,9 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const takeCount = active?.takes.length ?? 0;
+  // A continuous take (continuous-take.ts): offered when there's a shot before it in its scene.
+  const chainBefore = active ? previousShotOf(active, castScenes) : undefined;
+  const chainStale = active ? chainIsStale(active, castScenes) : false;
   // A moment's chosen time (from Short) shows until it's changed here.
   const timeOfDay = slotDayPart(slot);
   const scenesInOrder = [...castScenes].sort((a, b) => a.createdAt - b.createdAt);
@@ -652,6 +656,39 @@ export default function SceneToolSections({ vm, page, runner }: Props) {
                       Cut →
                     </ButtonLink>
                   </ToolActionRow>
+                  {chainBefore ? (
+                    <div className="mt-2 space-y-1" data-testid="scene-continuous-take">
+                      <label className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 accent-[var(--accent)]"
+                          checked={active.continuousTake === true}
+                          disabled={rendering}
+                          data-testid="scene-continuous-take-toggle"
+                          onChange={event =>
+                            page.setContinuousTake(active.id, event.target.checked)
+                          }
+                        />
+                        <span>
+                          Continuous take from {chainBefore.name.split(' ')[0]}
+                          <span className="type-caption block text-[var(--text-muted)]">
+                            Its clip starts on the last frame of {chainBefore.name}’s clip and ends
+                            on this still — one unbroken moment across the cut. Off: it starts from
+                            its own still.
+                          </span>
+                        </span>
+                      </label>
+                      {chainStale ? (
+                        <p
+                          className="type-caption text-[var(--warning-text,var(--text-secondary))]"
+                          data-testid="scene-continuous-take-stale"
+                        >
+                          {chainBefore.name.split(' ')[0]}’s clip has changed since this one was
+                          animated — Animate it again so it starts where that clip ends.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {views.moveNote ? (
                     <p
                       className="type-caption mt-2 text-[var(--text-muted)]"

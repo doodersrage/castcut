@@ -411,6 +411,23 @@ export function useScenePage(vm: DayEngineView) {
     [scenes, write]
   );
 
+  /** A continuous take or not (continuous-take.ts): its clip starts on the shot before's. */
+  const setContinuousTake = useCallback(
+    (sceneId: string, on: boolean) => {
+      const scene = scenes.find(entry => entry.id === sceneId);
+      if (!scene || (scene.continuousTake === true) === on) return;
+      const { continuousTake: _was, ...rest } = scene;
+      write({
+        scenes: upsertScene(scenes, {
+          ...rest,
+          ...(on ? { continuousTake: true } : {}),
+          updatedAt: Date.now(),
+        }),
+      });
+    },
+    [scenes, write]
+  );
+
   const deleteScene = useCallback(
     (sceneId: string) => {
       // A moment of the open Short it holds stays on the board (stored slim, it is this Scene's).
@@ -633,6 +650,7 @@ export function useScenePage(vm: DayEngineView) {
     run: cache.run && cache.run.castId === castId ? normalizeSceneRun(cache.run) : undefined,
     openScene,
     renameScene,
+    setContinuousTake,
     deleteScene,
     setTimeOfDay,
     showTake,

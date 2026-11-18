@@ -22,6 +22,7 @@ import {
 } from '@/lib/day/run-lease-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { chainStartFor } from '@/lib/day/continuous-take-client';
 import { notifyDesktop } from '@/lib/app/desktop-notify';
 import type { useDayPlannerToolOrchestration } from '@/hooks/useDayPlannerToolOrchestration';
 import type { useScenePage } from '@/hooks/day-planner/useScenePage';
@@ -273,9 +274,18 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       );
       const animateOnce = async (direction?: string): Promise<boolean> => {
         const clipBefore = pageRef.current.still?.clipPromptId;
+        // A continuous take starts on the shot before's last frame (continuous-take.ts); the run
+        // animates in script order, so that shot's clip is there first.
+        const scenes = pageRef.current.castScenes;
+        const chain = await chainStartFor(
+          scenes.find(scene => scene.id === sceneId),
+          scenes,
+          note => pushSystemTrayMessage({ text: note, tone: 'info' })
+        );
         await vmRef.current.animateSlot(pageRef.current.slot, {
           manageBusy: false,
           ...(direction ? { direction } : {}),
+          ...(chain ? { chain } : {}),
         });
         // The page has the queued clip after its next render (pageRef follows in an effect):
         // read at once, it was always the still before — every clip of a real run was called

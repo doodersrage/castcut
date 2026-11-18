@@ -1,5 +1,7 @@
 'use client';
 
+import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { chainStartFor } from '@/lib/day/continuous-take-client';
 import dynamic from 'next/dynamic';
 import { useState, type ReactNode } from 'react';
 import ClipEngineNote from '@/components/ClipEngineNote';
@@ -245,7 +247,12 @@ export function useSceneToolViews(vm: Vm, page: Page) {
           setAnimateOpen(false);
           const remember = dayAnimateSettingsPatch(choice, toolSettings);
           if (remember) updateToolSettings(remember);
-          void vm.animateSlot(target, dayAnimateOptions(choice));
+          // A continuous take starts on the shot before's last frame (continuous-take.ts).
+          void chainStartFor(page.active ?? undefined, page.castScenes, note =>
+            pushSystemTrayMessage({ text: note, tone: 'info' })
+          ).then(chain =>
+            vm.animateSlot(target, { ...dayAnimateOptions(choice), ...(chain ? { chain } : {}) })
+          );
         }}
       />
       <SlotMediaSheet

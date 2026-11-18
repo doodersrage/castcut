@@ -5,6 +5,7 @@
  * it (planned shots become Scenes, the list and its estimate); W4 runs it. A run never keeps a
  * take: choosing stays the player's. Pure.
  */
+import { keptClipNeeded } from './continuous-take';
 import { parseScript } from '../script/parse';
 import { episodeAnimates, normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
 import { isRunTier, type RunTier } from './run-tier';
@@ -266,7 +267,8 @@ export function runQueue(
       gone.push(item.sceneId);
       continue;
     }
-    if (run.skipKept && scene.keptTakeId && !keptTakeNeedsClip(run, scene)) continue;
+    if (run.skipKept && scene.keptTakeId && !keptTakeNeedsClip(run, scene, [...byId.values()]))
+      continue;
     const estimateSec = Math.max(5, Math.round(typicalSec));
     const entry: RunQueueEntry = {
       sceneId: scene.id,
@@ -444,10 +446,14 @@ export function runTakesHanded(
  * take, on the page), and this one's has no clip yet — a Final rendered on the server, animated
  * after (animateKeptRun). Counted as work by the progress and the queue, as nextRunStep does.
  */
-export function keptTakeNeedsClip(run: SceneRun, scene: SavedScene): boolean {
+export function keptTakeNeedsClip(
+  run: SceneRun,
+  scene: SavedScene,
+  /** The Cast's Scenes: a continuous take whose clip is stale needs one again (continuous-take.ts). */
+  scenes: readonly SavedScene[] = [scene]
+): boolean {
   if (!run.auto?.keep || !run.auto.animate || run.onServer || scene.slot.placeOnly) return false;
-  const kept = scene.takes.find(take => take.id === scene.keptTakeId);
-  return Boolean(kept && !kept.clipUrl && episodeAnimates(run.auto, scene.slot));
+  return keptClipNeeded(scene, scenes) && episodeAnimates(run.auto, scene.slot);
 }
 
 export type RunStep =
@@ -493,9 +499,8 @@ export function nextRunStep(
     const scene = byId.get(item.sceneId);
     if (!scene) continue;
     if (run.skipKept && scene.keptTakeId) {
-      const kept = scene.takes.find(take => take.id === scene.keptTakeId);
-      const animates = animatesKept ? animatesKept(scene) : keptTakeNeedsClip(run, scene);
-      if (kept && !kept.clipUrl && animates) return { kind: 'animate', sceneId: scene.id };
+      const animates = animatesKept ? animatesKept(scene) : keptTakeNeedsClip(run, scene, scenes);
+      if (keptClipNeeded(scene, scenes) && animates) return { kind: 'animate', sceneId: scene.id };
       continue;
     }
     return { kind: 'scene', sceneId: scene.id };
@@ -518,7 +523,7 @@ export function runProgress(
     if (!item.include || run.outcomes?.[item.sceneId]) return false;
     const scene = byId.get(item.sceneId);
     if (!scene) return false;
-    return !(run.skipKept && scene.keptTakeId) || keptTakeNeedsClip(run, scene);
+    return !(run.skipKept && scene.keptTakeId) || keptTakeNeedsClip(run, scene, [...byId.values()]);
   }).length;
   return { done, total: done + Math.min(open, Math.max(0, run.maxTakes - runTakesTaken(run))) };
 }
@@ -770,8 +775,7 @@ export function keptTakesWithoutClip(run: SceneRun, scenes: readonly SavedScene[
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   return run.items.filter(item => {
     const scene = byId.get(item.sceneId);
-    const kept = scene?.takes.find(take => take.id === scene.keptTakeId);
-    return Boolean(kept && !kept.clipUrl && !scene!.slot.placeOnly);
+    return Boolean(scene && !scene.slot.placeOnly && keptClipNeeded(scene, scenes));
   }).length;
 }
 

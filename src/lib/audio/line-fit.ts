@@ -292,18 +292,33 @@ export function lineSpanCap(span: LineSpan | null | undefined): number | undefin
  */
 export function tightLineTrim(
   span: LineSpan | null,
-  current: { trimStartSec?: number; trimEndSec?: number } = {}
+  current: {
+    trimStartSec?: number;
+    trimEndSec?: number;
+    /** A continuous take's join (media/kind.ts): that edge stays where it is. */
+    chainIn?: boolean;
+    chainOut?: boolean;
+  } = {}
 ): { trimStartSec: number; trimEndSec: number } | null {
   if (!span || !(span.endSec > span.startSec)) return null;
+  // Both edges joined: nothing to tighten.
+  if (current.chainIn && current.chainOut) return null;
   const floor = current.trimStartSec ?? 0;
   const ceiling = Math.min(
     current.trimEndSec ?? Number.POSITIVE_INFINITY,
     lineSpanCap(span) ?? Number.POSITIVE_INFINITY
   );
-  let start = Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
-  let end = Math.min(ceiling, span.endSec + TIGHT_LINE_TAIL_SEC);
-  if (end - start < TIGHT_LINE_MIN_SEC) end = Math.min(ceiling, start + TIGHT_LINE_MIN_SEC);
-  if (end - start < TIGHT_LINE_MIN_SEC) start = Math.max(floor, end - TIGHT_LINE_MIN_SEC);
+  let start = current.chainIn ? floor : Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
+  let end =
+    current.chainOut && typeof current.trimEndSec === 'number'
+      ? current.trimEndSec
+      : Math.min(ceiling, span.endSec + TIGHT_LINE_TAIL_SEC);
+  if (end - start < TIGHT_LINE_MIN_SEC && !current.chainOut) {
+    end = Math.min(ceiling, start + TIGHT_LINE_MIN_SEC);
+  }
+  if (end - start < TIGHT_LINE_MIN_SEC && !current.chainIn) {
+    start = Math.max(floor, end - TIGHT_LINE_MIN_SEC);
+  }
   if (!(end - start >= 1)) return null;
   return {
     trimStartSec: Math.round(start * 100) / 100,

@@ -8,6 +8,7 @@
  * module moves a scene in and out of those fields, records the takes that land, and links scenes
  * with Day (Open as Scene, Send to Day slot) and Cut (the kept takes). Pure.
  */
+import { chainCutSec, chainIsStale } from './continuous-take';
 import type { DayToolCache } from '../play/settings';
 import type { KeyedShot } from '../film/cut-plan';
 import { migrateDayMoodFields } from './mood-flavor';
@@ -47,6 +48,8 @@ export type SceneTake = {
   /** Its clip (Animate, Copy moves, the Director), once one landed. */
   clipUrl?: string;
   clipPromptId?: string;
+  /** Its clip started on the shot before's last frame (a continuous take): which, and where. */
+  chainFrom?: SceneTakeChain;
   /**
    * Your verdict on it, without rendering again (M7 T3): approved — a good alternative to the
    * kept take — or rejected: hidden from the strip until you restore it. Unset: a candidate.
@@ -70,6 +73,12 @@ export const SCENE_TAKE_NOTE_MAX = 200;
 export type SceneTakeReview = 'approved' | 'rejected';
 
 export type SceneContinuation = { sceneId: string; takeId: string };
+
+/**
+ * Where a continuous take's clip started (continuous-take.ts): the shot before it, that shot's
+ * clip, and the frame (seconds in) — the clip it was chained to, so a changed one reads stale.
+ */
+export type SceneTakeChain = { sceneId: string; clipUrl: string; atSec: number };
 
 export type SavedScene = {
   id: string;
@@ -108,6 +117,11 @@ export type SavedScene = {
   fromScript?: SceneScriptLink;
   /** "Continue scene": the scene and take whose clip's last frame this scene starts from. */
   continuesFrom?: SceneContinuation;
+  /**
+   * A continuous take (continuous-take.ts): its clip starts on the last frame of the shot before
+   * it in its script scene, and ends on its own still. Unset: a shot from its own keyframe.
+   */
+  continuousTake?: boolean;
   /**
    * Takes that had rendered but were still at the adult check when another scene was opened
    * (their prompt ids). The verdict lands on their gallery entry: a pass adds the take here
@@ -328,6 +342,17 @@ export function sceneSlotAt(slot: DaySlot, id: DaySlotId): DaySlot {
   return { ...slot, id, label: relabel ? daySlotDefaultLabel(id) : slot.label };
 }
 
+/** A take's chain as stored: dropped unless whole. */
+export function normalizeTakeChain(raw: unknown): SceneTakeChain | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const { sceneId, clipUrl, atSec } = raw as Partial<SceneTakeChain>;
+  const id = text(sceneId, 80);
+  const clip = storableUrl(clipUrl);
+  if (!id || !clip) return undefined;
+  if (typeof atSec !== 'number' || !Number.isFinite(atSec) || atSec < 0) return undefined;
+  return { sceneId: id, clipUrl: clip, atSec: Math.round(atSec * 1000) / 1000 };
+}
+
 function normalizeTake(raw: unknown, now: number): SceneTake | null {
   if (!raw || typeof raw !== 'object') return null;
   const take = raw as Partial<SceneTake>;
@@ -341,6 +366,7 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
   // Saved before 2026-11-18 without one, it gets it here.
   const promptId = text(take.promptId, 160) || (id.startsWith('master-') ? id : '');
   const clipPromptId = text(take.clipPromptId, 160);
+  const chainFrom = clipUrl ? normalizeTakeChain(take.chainFrom) : undefined;
   return {
     id,
     ...(promptId ? { promptId } : {}),
@@ -349,6 +375,7 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
     ...(framedUrl ? { framedUrl } : {}),
     ...(clipUrl ? { clipUrl } : {}),
     ...(clipUrl && clipPromptId ? { clipPromptId } : {}),
+    ...(chainFrom ? { chainFrom } : {}),
     ...(take.review === 'approved' || take.review === 'rejected' ? { review: take.review } : {}),
     ...(typeof take.stars === 'number' && take.stars >= 1 && take.stars <= 5
       ? { stars: Math.round(take.stars) }
@@ -464,6 +491,7 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
       : {}),
     ...scriptLinkField(scene.fromScript),
     ...continuationField(scene.continuesFrom),
+    ...(scene.continuousTake === true ? { continuousTake: true } : {}),
     ...checkingIdsField(scene.checkingTakeIds),
     ...renderingIdsField(scene.renderingTakeIds),
     ...removedTakesField(scene.removedTakeIds),
@@ -628,6 +656,7 @@ export function takeAsStill(slotId: DaySlotId, take: SceneTake): DaySlotStill {
           clipUrl: take.clipUrl,
           clipStatus: 'completed' as const,
           ...(take.clipPromptId ? { clipPromptId: take.clipPromptId } : {}),
+          ...(take.chainFrom ? { clipChain: take.chainFrom } : {}),
         }
       : {}),
   };
@@ -710,6 +739,7 @@ function takesOfStill(still: DaySlotStill | undefined, now: number): SceneTake[]
       ...(framed ? { framedUrl: framed } : {}),
       ...(clipUrl ? { clipUrl } : {}),
       ...(clipUrl && still.clipPromptId ? { clipPromptId: still.clipPromptId } : {}),
+      ...(clipUrl && still.clipChain ? { chainFrom: still.clipChain } : {}),
       at: now,
     });
   }
@@ -756,6 +786,10 @@ export function recordSceneFromWorking(
       if (!take.clipUrl && takes[index]!.clipUrl) {
         merged.clipUrl = takes[index]!.clipUrl;
         if (takes[index]!.clipPromptId) merged.clipPromptId = takes[index]!.clipPromptId;
+        if (takes[index]!.chainFrom) merged.chainFrom = takes[index]!.chainFrom;
+      } else if (take.clipUrl && !take.chainFrom) {
+        // A clip of its own (not chained): an older clip's chain doesn't stay on the take.
+        delete merged.chainFrom;
       }
       if (!sameJson(merged, takes[index])) {
         takes = takes.map((entry, at) => (at === index ? merged : entry));
@@ -1465,6 +1499,12 @@ export function sceneCutShots(
           ? `${scene.slot.line.trim()} — ${scene.slot.replyLine.trim()}`
           : scene.slot.line.trim()
         : scene.slot.partnerLine?.trim() || '';
+      // A continuous take's join (continuous-take.ts): the shot before is cut on the frame this
+      // one starts on, and neither edge is moved by later trims.
+      const chainCut = take.clipUrl ? chainCutSec(scene, mine) : undefined;
+      const chainedIn =
+        Boolean(take.clipUrl && take.chainFrom && scene.continuousTake === true) &&
+        !chainIsStale(scene, mine);
       return take.clipUrl
         ? [
             {
@@ -1473,6 +1513,8 @@ export function sceneCutShots(
               caption,
               url: take.clipUrl,
               kind: 'clip',
+              ...(chainCut !== undefined ? { trimEndSec: chainCut, chainOut: true as const } : {}),
+              ...(chainedIn ? { chainIn: true as const } : {}),
               thumbUrl: take.imageUrl,
               entryId: take.clipPromptId || `${scene.id}-clip`,
               // A script's shot with no line comes in quiet: MiniMax-H3 makes up words for a clip

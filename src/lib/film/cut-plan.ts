@@ -701,6 +701,9 @@ export function quietTalkingClips<T extends KeyedShot>(
     if (shot.kind !== 'clip' || !shot.entryId) return shot;
     const { talks, atSec } = talksOf(shot.entryId);
     if (!talks) return shot;
+    // A continuous take's join ends this clip on the next one's first frame: played quiet,
+    // not ended early (day/continuous-take.ts).
+    if (shot.chainOut) return { ...shot, volume: 0 };
     // Ended just before it starts talking, when that leaves a shot (the flagship's 5E: a mouth
     // going with its sound off read as missed speech); else played quiet.
     const end = typeof atSec === 'number' ? Math.round((atSec - 0.1) * 100) / 100 : 0;

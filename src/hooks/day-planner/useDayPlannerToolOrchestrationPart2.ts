@@ -55,7 +55,7 @@ import {
 } from '@/lib/day/event';
 import { waitForGalleryPromptIds } from '@/lib/best-of-n/vision-queue';
 import { resolveDayClipEngine } from '@/hooks/day-planner/useDayEndPose';
-import { activeDayEndPose, dayEndPoseSupported } from '@/lib/day/end-pose';
+import { activeDayEndPose, dayEndPoseSupported, type DayEndPose } from '@/lib/day/end-pose';
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { resolveQueueInputImageFilename } from '@/lib/queue/input-image';
 import { dayPartnerNoun } from '@/lib/day/partner';
@@ -440,6 +440,11 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           DayPendingDialogue,
           'targetSec' | 'lines' | 'beats' | 'partSeconds' | 'tones' | 'speakers' | 'scene'
         >;
+        /**
+         * A continuous take (day/continuous-take.ts): the clip starts on this frame of the shot
+         * before's clip (`frameUrl`, a ComfyUI input) and ends on this slot's own still.
+         */
+        chain?: { frameUrl: string; sceneId: string; clipUrl: string; atSec: number };
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -505,7 +510,12 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 poseWords: dayEventMomentWords(landOn),
               }
             : undefined;
-        const endPose = activeDayEndPose(still) ?? eventEndPose;
+        // A continuous take ends on its own still: it starts on the shot before's last frame, and
+        // lands back on the keyframe approved for it (first and last frame).
+        const chainEndPose = options?.chain
+          ? ({ imageUrl, source: 'still', fromSlotId: slot.id } as DayEndPose)
+          : undefined;
+        const endPose = chainEndPose ?? activeDayEndPose(still) ?? eventEndPose;
         let endImageFilename: string | undefined;
         let endPoseNote = '';
         if (endPose) {
@@ -742,8 +752,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         }
         const castLoras = castLoraSessionIds(character);
         // Widescreen film: the clip starts from the still widened to 16:9 (kept on the still).
-        let startUrl = imageUrl;
-        if (toolSettings.widescreenFilm === true && !framed) {
+        // A continuous take starts on the shot before's frame (already the film's framing).
+        let startUrl = options?.chain?.frameUrl || imageUrl;
+        if (toolSettings.widescreenFilm === true && !framed && !options?.chain) {
           const wide = await wideStillUrl(slot.id, imageUrl);
           if (wide) startUrl = wide;
         }
@@ -898,6 +909,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
           clipStatus: promptId ? 'queued' : 'error',
           clipUrl: undefined,
           pendingDialogue: dialogue,
+          // Which clip it continues (its take keeps it): none for a clip from its own still.
+          clipChain:
+            options?.chain && promptId
+              ? {
+                  sceneId: options.chain.sceneId,
+                  clipUrl: options.chain.clipUrl,
+                  atSec: options.chain.atSec,
+                }
+              : undefined,
         });
         stillsRef.current = nextStills;
         updateToolSettings(dayStillsCachePatch(nextStills, shared.activeCharacterId));

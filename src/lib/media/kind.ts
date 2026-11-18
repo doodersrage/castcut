@@ -135,6 +135,13 @@ export type FilmPlaylistShot = {
    * with "Dip to black between scenes" dips (cut-media.ts withSceneBreaks).
    */
   sceneGroup?: string;
+  /**
+   * A continuous take's join (day/continuous-take.ts): this clip ends on the frame the next one
+   * starts on (`chainOut`), or starts on the last one's (`chainIn`). Trims that narrow a clip
+   * (talking shots tightened) leave that edge where it is — moved, the join jumps.
+   */
+  chainOut?: true;
+  chainIn?: true;
   /** A picture of the shot for the editor (a clip's still) — not used by the encodes. */
   thumbUrl?: string;
   /** The voice-over heard over this shot — subtitled when there is no spoken line. */

@@ -580,6 +580,11 @@ export type DaySlotStill = {
   clipPromptId?: string;
   clipUrl?: string;
   clipStatus?: DaySlotClipStatus;
+  /**
+   * The clip (`clipPromptId`) started on the shot before's last frame — a continuous take
+   * (day/continuous-take.ts): that shot, its clip, the frame. Goes to the take with the clip.
+   */
+  clipChain?: { sceneId: string; clipUrl: string; atSec: number };
   /** A "Make it 30 s" job still running for this clip (picked up again after a reload). */
   extendJobId?: string;
   /**
@@ -4802,6 +4807,16 @@ function readFixHistory(value: unknown): Pick<DaySlotStill, 'fixHistory'> {
 }
 
 /** Pending longer dialogue: a target, up to 8 parts' lines (the extend job's cap), its clip. */
+/** A still's clip chain as stored (DaySlotStill.clipChain): dropped unless whole. */
+function readClipChain(value: unknown): Pick<DaySlotStill, 'clipChain'> {
+  if (!value || typeof value !== 'object') return {};
+  const { sceneId, clipUrl, atSec } = value as Record<string, unknown>;
+  const id = readText(sceneId, 80);
+  const clip = readText(clipUrl, 2048);
+  if (!id || !clip || typeof atSec !== 'number' || !Number.isFinite(atSec) || atSec < 0) return {};
+  return { clipChain: { sceneId: id, clipUrl: clip, atSec } };
+}
+
 function readPendingDialogue(value: unknown): Pick<DaySlotStill, 'pendingDialogue'> {
   const record = value as {
     targetSec?: unknown;
@@ -4871,6 +4886,7 @@ export function normalizeDaySlotStills(
       clipPromptId: readText(still.clipPromptId, 160) || undefined,
       clipUrl: readText(still.clipUrl, 2048) || undefined,
       clipStatus: readClipStatus(still.clipStatus),
+      ...readClipChain(still.clipChain),
       ...(readText(still.extendJobId, 80) ? { extendJobId: readText(still.extendJobId, 80) } : {}),
       ...readPendingDialogue(still.pendingDialogue),
       ...(readText(still.clipRenderPromptId, 160)
@@ -4978,6 +4994,13 @@ export function upsertDaySlotStill(
         'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : still.clipPromptId,
       clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : still.clipUrl,
       clipStatus: 'clipStatus' in patch ? patch.clipStatus : still.clipStatus,
+      // A chain belongs to its clip: another clip (or none) without one drops it.
+      clipChain:
+        'clipChain' in patch
+          ? patch.clipChain
+          : 'clipPromptId' in patch && patch.clipPromptId?.trim() !== still.clipPromptId
+            ? undefined
+            : still.clipChain,
     };
   });
   return next;
