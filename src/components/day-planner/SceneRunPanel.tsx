@@ -445,7 +445,8 @@ export default function SceneRunPanel({
         </ol>
         <div className="flex flex-wrap items-center gap-2">
           {children}
-          {(run.state === 'done' || run.state === 'cancelled') && toAnimate > 0 ? (
+          {(run.state === 'done' || run.state === 'cancelled' || run.state === 'paused') &&
+          toAnimate > 0 ? (
             <Button
               size="sm"
               variant="secondary"

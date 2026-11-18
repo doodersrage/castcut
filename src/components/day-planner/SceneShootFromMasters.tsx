@@ -6,6 +6,9 @@ import type { ScenePageState } from '@/hooks/day-planner/useScenePage';
 import { keptTakeOf, type SavedScene } from '@/lib/day/scenes';
 import { masterCutsInOrder, sceneMasterGroup, sceneMasters } from '@/lib/day/scene-master';
 
+/** A take cut from a master says which cut: master-both-waist-… */
+const masterTakePrefix = (cut: { who: string; shot: string }) => `master-${cut.who}-${cut.shot}-`;
+
 type CutAnswer = {
   available?: boolean;
   image?: { filename: string; subfolder?: string; type?: string };
@@ -56,9 +59,10 @@ export default function SceneShootFromMasters({
       const cuts = masterCutsInOrder(shots, leadName);
       return shots.flatMap(scene => {
         const cut = cuts.get(scene.id);
-        // Already cut from this master: done (a newer master cuts it again).
+        // Already cut this way from this master: done (a newer master, or a new cut, cuts it again).
         const kept = keptTakeOf(scene);
-        if (!cut || (kept?.id.startsWith('master-') && kept.at >= masterTake.at)) return [];
+        if (!cut) return [];
+        if (kept?.id.startsWith(masterTakePrefix(cut)) && kept.at >= masterTake.at) return [];
         return [{ scene, cut, masterUrl: masterTake.imageUrl }];
       });
     });
@@ -87,7 +91,7 @@ export default function SceneShootFromMasters({
       made.push({
         sceneId: target.scene.id,
         take: {
-          id: `master-${Date.now().toString(36)}-${index}`,
+          id: `${masterTakePrefix(target.cut)}${Date.now().toString(36)}-${index}`,
           imageUrl: `/api/comfyui/view?${view.toString()}`,
         },
       });
