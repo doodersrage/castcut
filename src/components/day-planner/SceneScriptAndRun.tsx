@@ -173,7 +173,8 @@ function SceneRunPanelOf({
             onQueueAll={runner.queueAll}
             onStop={runner.stop}
           />
-          {page.run.state === 'done' || page.run.state === 'cancelled' ? (
+          {/* Not while a run is rendering (here or on the server): a paused run can wait. */}
+          {page.run.state !== 'running' && page.run.state !== 'handed' ? (
             <SceneShootFromMasters
               page={page}
               {...(leadName ? { leadName } : {})}
