@@ -93,7 +93,10 @@ test("a removed render is in Recently deleted and Restore brings it back", async
   await gotoStable(page, "/gallery");
   await dismissBlockingOverlays(page);
   // The fixture's card (the Gallery may also list the server's assembled films).
-  const card = page.getByRole("article").filter({ hasText: "e2e gallery fixture" });
+  // Not "e2e gallery fixture b" (the lightbox tests' second fixture), which server storage keeps
+  // between tests — matched on "fixture" too, it made two cards (CI, 2026-11-18).
+  const ours = { hasText: "e2e gallery fixture", hasNotText: "e2e gallery fixture b" };
+  const card = page.getByRole("article").filter(ours);
   await expect(card).toHaveCount(1, { timeout: 15_000 });
   // The Gallery's store loads after the first paint; a delete before then is undone by it.
   await page.waitForLoadState("networkidle");
@@ -106,7 +109,7 @@ test("a removed render is in Recently deleted and Restore brings it back", async
   const trash = page.getByTestId("gallery-trash");
   await expect(trash).toContainText("Recently deleted renders");
   await trash.locator("summary").click();
-  const item = trash.getByRole("listitem").filter({ hasText: "e2e gallery fixture" });
+  const item = trash.getByRole("listitem").filter(ours);
   await expect(item).toHaveCount(1);
   await item.getByTestId("gallery-trash-restore").click();
   // (The first restore compiles its route on the dev server.)
