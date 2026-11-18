@@ -47,7 +47,7 @@ function monoFromBytes(ffmpeg: string, bytes: Uint8Array): Promise<Float32Array 
 export type SpeechSpan = { startSec: number; endSec: number };
 
 /** The most pauses heard for one line (each a short transcription). */
-const MAX_PAUSES_HEARD = 4;
+const MAX_PAUSES_HEARD = 6;
 
 /** The clip up to a time, as a file ComfyUI can load. */
 function clipUpTo(ffmpeg: string, source: string, endSec: number, out: string): Promise<boolean> {

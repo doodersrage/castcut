@@ -109,6 +109,15 @@ describe('where a clip’s line can end, and whether it has been said (the flags
     const beat = speechPauses(clip(5.2, [[0.4, 1.9], [3.85, 4.26]]), RATE);
     assert.equal(beat.length, 2);
     assert.ok(Math.abs(beat[1]! - 4.26) < 0.05, `last at ${beat[1]}`);
+    // 1C remade: the line runs into babble with only a dip between — the dip is a place too.
+    const dip = Float32Array.from({ length: Math.round(4.6 * RATE) }, (_, i) => {
+      const t = i / RATE;
+      const loud = t >= 1.0 && t < 4.3 ? 0.3 : 0;
+      const breath = t >= 1.9 && t < 2.0 ? 0.04 : 1;
+      return loud * breath * Math.sin(2 * Math.PI * 220 * t);
+    });
+    const dipped = speechPauses(dip, RATE);
+    assert.ok(dipped.some(at => Math.abs(at - 1.95) < 0.08), `places ${dipped}`);
     assert.deepEqual(speechPauses(clip(2, []), RATE), []);
   });
 

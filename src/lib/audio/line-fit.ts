@@ -119,8 +119,36 @@ export function speechPauses(samples: ArrayLike<number>, rate: number): number[]
       if (quiet === 2) out.push(Math.round((index - 1) * WINDOW_SEC * 100) / 100);
     } else quiet = 0;
   }
+  // Dips too: a breath that doesn't fall below the room (12 dB under the speech around it, the
+  // lowest within 100 ms). The flagship's remade 1C ran its line straight into babble with no
+  // pause at all (2026-11-18). Which one ends the line is heard, so a dip mid-line costs a
+  // hearing, never the line.
+  const near = (index: number, reach: number, pick: (a: number, b: number) => number) => {
+    let value = levels[index]!;
+    for (
+      let j = Math.max(0, index - reach);
+      j <= Math.min(levels.length - 1, index + reach);
+      j += 1
+    )
+      value = pick(value, levels[j]!);
+    return value;
+  };
+  for (let index = Math.ceil(first / WINDOW_SEC); index * WINDOW_SEC < last; index += 1) {
+    const level = levels[index]!;
+    if (
+      level > threshold &&
+      level === near(index, 5, Math.min) &&
+      near(index, 10, Math.max) - level >= 12
+    ) {
+      out.push(Math.round(index * WINDOW_SEC * 100) / 100);
+    }
+  }
   const end = Math.round(last * 100) / 100;
-  return [...out.filter(at => at > first + 0.3 && at < end - 0.1), end];
+  const places = out
+    .filter(at => at > first + 0.3 && at < end - 0.1)
+    .sort((a, b) => a - b)
+    .filter((at, index, all) => index === 0 || at - all[index - 1]! >= 0.15);
+  return [...places, end];
 }
 
 const lineWords = (text: string) =>
