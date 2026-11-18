@@ -74,8 +74,10 @@ export default defineConfig({
       // the default 120 requests a minute to one route and gets 429s (an empty navigation,
       // "No Cast lead"…) that look like flaky tests.
       API_RATE_LIMIT_MAX: process.env.API_RATE_LIMIT_MAX ?? '100000',
-      // A local run: its own empty data dir, not .env.local's real one (e2e/helpers/data-dir.ts).
-      ...(process.env.CI ? {} : { PROMPT_DATA_DIR: e2eDataDir() }),
+      // Its own empty data dir (e2e/helpers/data-dir.ts): locally, not .env.local's real one; in
+      // CI, server storage at all — without it a server-rendered run is refused (503) and its
+      // test failed every CI run (scene.spec.ts, "a run rendered on the server…", 2026-11-18).
+      PROMPT_DATA_DIR: e2eDataDir(),
     },
   },
 });
