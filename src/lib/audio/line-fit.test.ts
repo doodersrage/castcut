@@ -135,10 +135,16 @@ describe('where a clip’s line can end, and whether it has been said (the flags
 describe('a tightened shot ends before speech starts again (the remade 1C, 2026-11-18)', () => {
   it('cuts the tail at the babble and starts earlier to keep its length', async () => {
     const { tightLineTrim, speechResumesAt } = await import('./line-fit');
-    // "That's a key." 1.00–1.66, babble from 1.70: the shot ends at 1.65, starting 1.6 s before.
-    assert.deepEqual(tightLineTrim({ startSec: 1, endSec: 1.66, resumeSec: 1.7 }), {
-      trimStartSec: 0.05,
-      trimEndSec: 1.65,
+    // "That's a key." 1.00–1.66, babble from 1.92: the shot ends at 1.87, starting 1.6 s before.
+    assert.deepEqual(tightLineTrim({ startSec: 1, endSec: 1.66, resumeSec: 1.92 }), {
+      trimStartSec: 0.27,
+      trimEndSec: 1.87,
+    });
+    // Sound straight after the heard end (a dip inside the last word): the line going on, not new
+    // speech — the usual tail ("Where would my books go?", 3B).
+    assert.deepEqual(tightLineTrim({ startSec: 1.53, endSec: 2.74, resumeSec: 2.78 }), {
+      trimStartSec: 1.18,
+      trimEndSec: 3.54,
     });
     // Nothing after it: the usual tail.
     assert.deepEqual(tightLineTrim({ startSec: 1, endSec: 1.66 }), {

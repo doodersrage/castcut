@@ -253,6 +253,9 @@ export function roomForSceneBreaks<
 /** The shortest a tightened talking shot plays. */
 export const TIGHT_LINE_MIN_SEC = 1.6;
 
+/** Speech this long after a heard line is new speech (H3 talking on), not the line's last word. */
+export const RESUME_GAP_SEC = 0.2;
+
 /** A clip's line, and where speech starts again after it (H3 talking on, unasked). */
 export type LineSpan = { startSec: number; endSec: number; resumeSec?: number };
 
@@ -273,7 +276,10 @@ export function tightLineTrim(
   const floor = current.trimStartSec ?? 0;
   const ceiling = Math.min(
     current.trimEndSec ?? Number.POSITIVE_INFINITY,
-    typeof span.resumeSec === 'number' && span.resumeSec > span.endSec
+    // Speech again only after a real gap: sound straight after the heard end is the line's own
+    // last word going on (a dip inside "books go" heard as the end), and capping there cut
+    // fifteen of the flagship's lines short (2026-11-18).
+    typeof span.resumeSec === 'number' && span.resumeSec - span.endSec >= RESUME_GAP_SEC
       ? span.resumeSec - 0.05
       : Number.POSITIVE_INFINITY
   );

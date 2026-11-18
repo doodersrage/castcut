@@ -451,7 +451,7 @@ export function useCutRoom() {
     const tightened = new Set<string>();
     const tight = shots.map(shot => {
       if (shot.kind !== 'clip' || !shot.spoken?.trim() || !shot.url) return shot;
-      const kept = remembered[`line-span-v3:${shot.url}`];
+      const kept = remembered[`line-span-v4:${shot.url}`];
       const span =
         shot.url in speechSpanMap
           ? speechSpanMap[shot.url]!
@@ -487,7 +487,7 @@ export function useCutRoom() {
         shot.spoken?.trim() &&
         shot.url &&
         !(shot.url in speechSpanMap) &&
-        !remembered[`line-span-v3:${shot.url}`]
+        !remembered[`line-span-v4:${shot.url}`]
     );
     if (!unknown.length) return;
     let cancelled = false;
@@ -502,7 +502,7 @@ export function useCutRoom() {
       if (cancelled) return;
       for (const shot of unknown) {
         const span = spans[shot.url] ?? null;
-        rememberReadLine(`line-span-v3:${shot.url}`, span ? JSON.stringify(span) : 'none');
+        rememberReadLine(`line-span-v4:${shot.url}`, span ? JSON.stringify(span) : 'none');
       }
       setSpeechSpanMap(current => ({
         ...current,
@@ -2820,7 +2820,7 @@ export function useCutRoom() {
                 ]
               : []
           );
-          const unknown = talking.filter(entry => !readLineBefore(`line-span-v3:${entry.url}`));
+          const unknown = talking.filter(entry => !readLineBefore(`line-span-v4:${entry.url}`));
           if (unknown.length) {
             setStatus(
               `Finding the lines in ${unknown.length} talking clip${unknown.length === 1 ? '' : 's'}…`
@@ -2835,11 +2835,11 @@ export function useCutRoom() {
             );
             for (const entry of unknown) {
               const span = spans[entry.key];
-              keepReadLine(`line-span-v3:${entry.url}`, span ? JSON.stringify(span) : 'none');
+              keepReadLine(`line-span-v4:${entry.url}`, span ? JSON.stringify(span) : 'none');
             }
           }
           for (const entry of talking) {
-            const kept = readLineBefore(`line-span-v3:${entry.url}`);
+            const kept = readLineBefore(`line-span-v4:${entry.url}`);
             const span =
               kept && kept !== 'none'
                 ? (JSON.parse(kept) as { startSec: number; endSec: number; resumeSec?: number })
