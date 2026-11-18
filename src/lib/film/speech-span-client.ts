@@ -3,7 +3,7 @@
 /** Where each clip's speech starts and ends (POST /api/film/speech-spans); {} when unreachable. */
 export async function requestSpeechSpans(
   shots: ReadonlyArray<{ key: string; url: string; entryId?: string; spoken?: string }>
-): Promise<Record<string, { startSec: number; endSec: number } | null>> {
+): Promise<Record<string, { startSec: number; endSec: number; resumeSec?: number } | null>> {
   if (!shots.length) return {};
   const response = await fetch('/api/film/speech-spans', {
     method: 'POST',
@@ -13,7 +13,7 @@ export async function requestSpeechSpans(
   }).catch(() => null);
   if (!response?.ok) return {};
   const json = (await response.json().catch(() => null)) as {
-    spans?: Record<string, { startSec: number; endSec: number } | null>;
+    spans?: Record<string, { startSec: number; endSec: number; resumeSec?: number } | null>;
   } | null;
   return json?.spans ?? {};
 }

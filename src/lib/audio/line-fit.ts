@@ -151,6 +151,29 @@ export function speechPauses(samples: ArrayLike<number>, rate: number): number[]
   return [...places, end];
 }
 
+/** Where speech starts again after a time (above the room, 40 ms of it); null: it doesn't. */
+export function speechResumesAt(
+  samples: ArrayLike<number>,
+  rate: number,
+  afterSec: number
+): number | null {
+  const size = Math.max(1, Math.round(rate * WINDOW_SEC));
+  const levels: number[] = [];
+  for (let at = 0; at + size <= samples.length; at += size) {
+    let sum = 0;
+    for (let i = at; i < at + size; i += 1) sum += samples[i]! * samples[i]!;
+    levels.push(10 * Math.log10(sum / size + 1e-12));
+  }
+  if (!levels.length) return null;
+  const threshold = Math.max(SPEECH_FLOOR_DB, Math.max(...levels) - SPEECH_BELOW_PEAK_DB);
+  for (let index = Math.ceil(afterSec / WINDOW_SEC); index + 1 < levels.length; index += 1) {
+    if (levels[index]! > threshold && levels[index + 1]! > threshold) {
+      return Math.round(index * WINDOW_SEC * 100) / 100;
+    }
+  }
+  return null;
+}
+
 const lineWords = (text: string) =>
   text
     .toLowerCase()
@@ -230,22 +253,34 @@ export function roomForSceneBreaks<
 /** The shortest a tightened talking shot plays. */
 export const TIGHT_LINE_MIN_SEC = 1.6;
 
+/** A clip's line, and where speech starts again after it (H3 talking on, unasked). */
+export type LineSpan = { startSec: number; endSec: number; resumeSec?: number };
+
 /**
  * A talking clip tightened to its line (Cut's "Tighten talking shots"): from just before its
  * speech to just after. The flagship's talking clips ran ~5 s for a 1–2 s line — two to three
  * seconds of standing about in every exchange (2026-11-16). A trim already there (a cut away, a
- * line said twice) is kept: the window only ever narrows. Null when it can't be tightened.
+ * line said twice) is kept: the window only ever narrows. Where speech starts again after the
+ * line, the shot ends before it — the remade 1C's tail carried 0.4 s of babble after "That's a
+ * key." (2026-11-18) — and a shot too short for that starts earlier instead. Null when it can't
+ * be tightened.
  */
 export function tightLineTrim(
-  span: { startSec: number; endSec: number } | null,
+  span: LineSpan | null,
   current: { trimStartSec?: number; trimEndSec?: number } = {}
 ): { trimStartSec: number; trimEndSec: number } | null {
   if (!span || !(span.endSec > span.startSec)) return null;
   const floor = current.trimStartSec ?? 0;
-  const ceiling = current.trimEndSec ?? Number.POSITIVE_INFINITY;
-  const start = Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
+  const ceiling = Math.min(
+    current.trimEndSec ?? Number.POSITIVE_INFINITY,
+    typeof span.resumeSec === 'number' && span.resumeSec > span.endSec
+      ? span.resumeSec - 0.05
+      : Number.POSITIVE_INFINITY
+  );
+  let start = Math.max(floor, span.startSec - TIGHT_LINE_LEAD_SEC);
   let end = Math.min(ceiling, span.endSec + TIGHT_LINE_TAIL_SEC);
   if (end - start < TIGHT_LINE_MIN_SEC) end = Math.min(ceiling, start + TIGHT_LINE_MIN_SEC);
+  if (end - start < TIGHT_LINE_MIN_SEC) start = Math.max(floor, end - TIGHT_LINE_MIN_SEC);
   if (!(end - start >= 1)) return null;
   return {
     trimStartSec: Math.round(start * 100) / 100,

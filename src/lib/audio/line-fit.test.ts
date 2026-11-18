@@ -131,3 +131,26 @@ describe('where a clip’s line can end, and whether it has been said (the flags
     assert.equal(heardWholeLine('', 'Hi.'), false);
   });
 });
+
+describe('a tightened shot ends before speech starts again (the remade 1C, 2026-11-18)', () => {
+  it('cuts the tail at the babble and starts earlier to keep its length', async () => {
+    const { tightLineTrim, speechResumesAt } = await import('./line-fit');
+    // "That's a key." 1.00–1.66, babble from 1.70: the shot ends at 1.65, starting 1.6 s before.
+    assert.deepEqual(tightLineTrim({ startSec: 1, endSec: 1.66, resumeSec: 1.7 }), {
+      trimStartSec: 0.05,
+      trimEndSec: 1.65,
+    });
+    // Nothing after it: the usual tail.
+    assert.deepEqual(tightLineTrim({ startSec: 1, endSec: 1.66 }), {
+      trimStartSec: 0.65,
+      trimEndSec: 2.46,
+    });
+    const RATE = 16000;
+    const sound = Float32Array.from({ length: 3 * RATE }, (_, i) => {
+      const t = i / RATE;
+      return (t < 1 || t >= 1.7) && t >= 0.2 ? 0.3 * Math.sin(2 * Math.PI * 220 * t) : 0;
+    });
+    const at = speechResumesAt(sound, RATE, 1.04)!;
+    assert.ok(Math.abs(at - 1.7) < 0.05, `resumed at ${at}`);
+  });
+});

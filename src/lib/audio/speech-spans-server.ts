@@ -17,7 +17,13 @@ import {
   resolveComfyNode,
   transcribeInComfy,
 } from '../comfyui/comfy-utility-graph-server';
-import { heardWholeLine, speechBursts, speechPauses } from './line-fit';
+import {
+  heardWholeLine,
+  speechBursts,
+  speechPauses,
+  speechResumesAt,
+  type LineSpan,
+} from './line-fit';
 import { fetchFilmShotBytes } from '../video/shot-fetch';
 import { filmTempOsDir, resolveFfmpegBinary } from '../video/server-encode';
 
@@ -44,7 +50,7 @@ function monoFromBytes(ffmpeg: string, bytes: Uint8Array): Promise<Float32Array 
   });
 }
 
-export type SpeechSpan = { startSec: number; endSec: number };
+export type SpeechSpan = LineSpan;
 
 /** The most pauses heard for one line (each a short transcription). */
 const MAX_PAUSES_HEARD = 6;
@@ -153,7 +159,16 @@ export async function speechSpans(
             line: shot.spoken,
           }).catch(() => null)
         : null;
-    out[shot.key] = { startSec, endSec: heardEnd ?? lastSec };
+    // Ended by hearing, before its last sound: where it talks on, the shot must end before.
+    const resumeSec =
+      heardEnd !== null && heardEnd < lastSec
+        ? speechResumesAt(samples, RATE, heardEnd + 0.04)
+        : null;
+    out[shot.key] = {
+      startSec,
+      endSec: heardEnd ?? lastSec,
+      ...(resumeSec !== null ? { resumeSec } : {}),
+    };
   }
   return out;
 }
