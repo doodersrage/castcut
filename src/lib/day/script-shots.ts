@@ -766,6 +766,13 @@ export function shotSceneDraft(input: {
         ? `${leadName} and ${otherLabel(others[0])}${introLabel(others[0], scene)}, the two of them together.`
         : '',
     shot.action ?? (sceneAction ? clean(sceneAction) : ''),
+    // The scene's master (scene-master.ts): every closer shot is cut from it, so the two of them
+    // side by side at one height — her seated on the floor with him standing over her cut into
+    // close-ups of her beside his belt (the flagship's 1A and 10A, 2026-11-18, both written
+    // "sit on the floor").
+    shot.purpose === 'establishing' && partnerInFrame
+      ? 'Side by side, their faces at the same height, turned to each other.'
+      : '',
     shot.line && !leadSpeaks && !leadVoiceOver && shot.speaker
       ? `${nameOf(shot.speaker)} says: “${shot.line}”${shot.offscreen ? ` ${nameOf(shot.speaker)} is heard, not seen.` : ''}`
       : '',

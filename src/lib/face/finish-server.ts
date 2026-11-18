@@ -39,6 +39,7 @@ import {
   type LeadFaceSide,
 } from '@/lib/face/finish';
 import { normalizeModelKey } from '@/lib/comfyui/comfy-model-batch';
+import { faceSimilarityFromDistance } from '@/lib/face/match';
 
 export type FaceFinishResult =
   | { available: true; image: ComfyImageRef; finisher: FaceFinisher['kind'] }
@@ -441,4 +442,36 @@ export async function runPartnerFaceFinishInComfy(input: {
     };
   }
   return { finished: true, image, before: decision.before, after: kept.after };
+}
+
+/**
+ * Her face in a still of two (FINISHING_PLAN, the flagship's hardware store, 2026-11-18: the
+ * scene's master drew someone else in her place, and every shot cut from it showed her). The
+ * face on her side, against her Cast face: its similarity, or null when it can't be read (one
+ * face, no face, no probe) — no reading is no verdict.
+ */
+export async function measureLeadFaceInComfy(input: {
+  imageUrl: string;
+  referenceUrl: string;
+  side: Exclude<LeadFaceSide, 'largest'>;
+  comfyUrl?: string;
+}): Promise<{ similarity: number; distance: number } | null> {
+  const stillRef = parseComfyViewRef(input.imageUrl);
+  const faceRef = parseComfyViewRef(input.referenceUrl);
+  if (!stillRef || !faceRef) return null;
+  const baseUrl = comfyBaseUrl(input.comfyUrl);
+  const [stillName, faceName] = await Promise.all([
+    stageComfyImageAsInput(baseUrl, stillRef, 'lead-face-check'),
+    stageComfyImageAsInput(baseUrl, faceRef, 'lead-face-check-ref'),
+  ]);
+  const probe = await probeLeadFace(baseUrl, stillName, faceName);
+  if (!probe || probe === NO_REFERENCE_FACE) return null;
+  // Two faces seen: hers is the one on her side. One: the other person faces away — no verdict.
+  const seen = probe.filter(
+    face => typeof face.x === 'number' && typeof face.distance === 'number'
+  );
+  if (new Set(seen.map(face => face.x)).size < 2) return null;
+  const distance = leadFaceDistance(probe, input.side);
+  if (distance === null) return null;
+  return { similarity: faceSimilarityFromDistance(distance, 'cosine'), distance };
 }

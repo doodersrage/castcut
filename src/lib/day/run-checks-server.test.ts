@@ -66,6 +66,39 @@ describe('a run’s take checked on the server (Phase 3, step 7)', () => {
     assert.equal(checks?.outfitMiss, '');
   });
 
+  it('two in frame with her side set: her face on her side, so a master with someone else in her place is redone', async () => {
+    const { checkServerTake } = await import('./run-checks-server');
+    const asked: string[] = [];
+    const duo = (similarity: number | null) =>
+      checkServerTake({
+        imageUrl: '/api/comfyui/view?filename=t.png&type=output',
+        report: report({
+          drawnPeople: 2,
+          toolSettings: { dayMood: 'everyday', autoReviewStills: true },
+          slot: { id: 'afternoon', label: '4A', sceneHints: 'the hardware store', poseLead: 'left' },
+        }),
+        shared: {} as never,
+        comfyUrl: 'http://127.0.0.1:8188',
+        io,
+        faceMatch: async () => {
+          asked.push('whole-picture');
+          return { available: true, similarity: 0.9 } as never;
+        },
+        leadFaceMatch: async input => {
+          asked.push(`${input.side}:${input.referenceUrl}`);
+          return similarity === null ? null : { similarity, distance: 1 - similarity };
+        },
+      });
+    const someoneElse = await duo(0.22);
+    assert.equal(someoneElse?.faceMiss, true);
+    assert.equal(someoneElse?.face, 0.22);
+    assert.match(asked[0]!, /^leftmost:.*mara-plate\.png/);
+    assert.ok(!asked.includes('whole-picture'), 'the whole-picture match would judge his face too');
+    assert.equal((await duo(0.61))?.faceMiss, false);
+    // Unread (one face turned away): no verdict, not a miss.
+    assert.equal((await duo(null))?.faceMiss, undefined);
+  });
+
   it('nothing could run (no vision model, no ComfyUI): unchecked, not passed', async () => {
     const { checkServerTake } = await import('./run-checks-server');
     const checks = await checkServerTake({

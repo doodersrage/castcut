@@ -14,6 +14,7 @@ import { checkableMarks, marksCheckNote, marksCheckVerdict } from '@/lib/cast/ma
 import { readMarksInStill } from '@/lib/cast/marks-check-server';
 import { STILL_MIN_FACE_MATCH } from '@/lib/face/match';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
+import { measureLeadFaceInComfy } from '@/lib/face/finish-server';
 import { measureFaceMatchInComfy } from '@/lib/face/match-server';
 import type { GalleryPlayChecks } from '@/lib/gallery/comfyui-gallery-entry';
 import { parseLlmRequestOptions, sharedLlmRequestBody } from '@/lib/llm/request-options';
@@ -69,6 +70,7 @@ export async function checkServerTake(input: {
   outfitCheck?: typeof checkOutfitInStill;
   readMarks?: typeof readMarksInStill;
   faceMatch?: typeof measureFaceMatchInComfy;
+  leadFaceMatch?: typeof measureLeadFaceInComfy;
 }): Promise<GalleryPlayChecks | undefined> {
   const { report, shared } = input;
   if (report.slot.placeOnly) return undefined;
@@ -89,7 +91,8 @@ export async function checkServerTake(input: {
   const { solo, outfit, wearer, mood } = serverChecksPlan(report, autoReview);
   const checks: GalleryPlayChecks = { at: Date.now() };
   await roomCheck(checks);
-  if (!solo && !wearer) return Object.keys(checks).length > 1 ? checks : undefined;
+  if (!solo && !wearer && !report.slot.poseLead)
+    return Object.keys(checks).length > 1 ? checks : undefined;
   const llm = parseLlmRequestOptions(sharedLlmRequestBody(shared));
   let image: string | null = null;
   const still = async () => (image ??= await dataUrlOf(input.io, input.imageUrl));
@@ -107,13 +110,31 @@ export async function checkServerTake(input: {
     }
   }
   const found = () => (Object.keys(checks).length > 1 ? checks : undefined);
-  if (!solo) return found();
-
   // Face match against the plate (the Likeness chart and the keep-best read it).
   const plate = report.plate;
   const plateUrl = plate?.imageUrl?.includes('/api/comfyui/view?')
     ? plate.imageUrl
     : comfyInputViewUrl(plate?.filename);
+  if (!solo) {
+    // Two in frame, she on her side (script-shots.ts poseLead): her face there. A scene's master
+    // that drew someone else in her place gave every shot cut from it that face (the flagship's
+    // hardware store, 2026-11-18) — and the check above only looks at her alone.
+    const side = report.slot.poseLead;
+    if (plateUrl && side) {
+      const measured = await (input.leadFaceMatch ?? measureLeadFaceInComfy)({
+        imageUrl: input.imageUrl,
+        referenceUrl: plateUrl,
+        side: side === 'left' ? 'leftmost' : 'rightmost',
+        comfyUrl: input.comfyUrl,
+      }).catch(() => null);
+      if (measured) {
+        checks.face = measured.similarity;
+        checks.faceMiss = measured.similarity < STILL_MIN_FACE_MATCH;
+      }
+    }
+    return found();
+  }
+
   if (plateUrl) {
     const measured = await (input.faceMatch ?? measureFaceMatchInComfy)({
       referenceUrl: plateUrl,

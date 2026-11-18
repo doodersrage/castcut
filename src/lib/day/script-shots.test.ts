@@ -133,6 +133,22 @@ describe('shot lists from a script (M3 S4)', () => {
     });
     assert.equal(lead.partnerCharacterId, 'tomas');
 
+    // The opening wide with the two of them is the scene's master: side by side at one height,
+    // so the closer shots cut from it frame each face cleanly (2026-11-18).
+    const master = shotSceneDraft({
+      shot: shots[0]!,
+      scene: kitchen,
+      sceneIndex: 0,
+      shotIndex: 0,
+      castId: 'nora',
+      cast,
+      castMap,
+      placeMap: undefined,
+    });
+    assert.equal(master.partnerInFrame, true);
+    assert.match(master.slot.sceneHints ?? '', /Side by side, their faces at the same height/);
+    assert.doesNotMatch(lead.slot.sceneHints ?? '', /Side by side/);
+
     // His line goes into the beat (the talking clip is hers); a reaction says who reacts.
     const his = shotSceneDraft({
       shot: shots[2]!,
