@@ -303,20 +303,39 @@ export function shotGradeMatrices(input: {
   lut?: ColourMatrix | null;
   /** Match every shot to this one (its index) instead of the film's middle; it stays as shot. */
   matchTo?: number | null;
+  /**
+   * Each shot's script scene (FilmPlaylistShot.sceneGroup): matched toward its own scene's
+   * middle, not the film's — a night scene pulled toward the film's daylight, and a scene's
+   * wides and close-ups corrected by different amounts, read as colour jumping between shots
+   * (the flagship, 2026-11-18). A scene of one shot, or none, falls back to the film.
+   */
+  groups?: ReadonlyArray<string | null | undefined>;
 }): number[][] {
   const look = input.lut
     ? composeMatrices(input.lut, lookMatrix(input.look, input.lookStrength ?? 1))
     : lookMatrix(input.look, input.lookStrength ?? 1);
   const chosen =
     input.matchTo != null && input.matchTo >= 0 ? (input.stats[input.matchTo] ?? null) : null;
-  const reference = input.matchShots ? (chosen ?? filmReferenceStats(input.stats)) : null;
+  const film = input.matchShots ? (chosen ?? filmReferenceStats(input.stats)) : null;
+  const sceneReference = new Map<string, ShotColourStats | null>();
+  const referenceOf = (index: number) => {
+    const group = input.groups?.[index];
+    if (chosen || !group) return film;
+    if (!sceneReference.has(group)) {
+      const own = filmReferenceStats(
+        input.stats.filter((_, other) => input.groups?.[other] === group)
+      );
+      sceneReference.set(group, own);
+    }
+    return sceneReference.get(group) ?? film;
+  };
   return input.stats.map((stats, index) =>
     composeMatrices(
       look,
       composeMatrices(
         shotCorrectionMatrix(input.grades?.[index]),
         input.matchShots && !(chosen && index === input.matchTo)
-          ? shotMatchMatrix(stats, reference)
+          ? shotMatchMatrix(stats, referenceOf(index))
           : [...IDENTITY]
       )
     )

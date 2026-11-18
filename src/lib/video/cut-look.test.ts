@@ -125,4 +125,25 @@ describe('cut look', () => {
     assert.ok(apply(dark!, [0.3, 0.3, 0.3])[0]! > 0.3);
     assert.ok(apply(mid!, [0.5, 0.5, 0.5])[0]! > 0.5);
   });
+
+  it('matches a shot toward its own scene, not the film (the flagship, 2026-11-18)', () => {
+    const s = (v: number) => ({ mean: [v, v, v] as [number, number, number], std: [0.2, 0.2, 0.2] as [number, number, number] });
+    // A night scene (0.20, 0.24) among day scenes (0.6…): the film's middle would lift it.
+    const stats = [s(0.6), s(0.62), s(0.58), s(0.2), s(0.24)];
+    const byFilm = shotGradeMatrices({ stats, look: 'none', matchShots: true });
+    const byScene = shotGradeMatrices({
+      stats,
+      look: 'none',
+      matchShots: true,
+      groups: ['day', 'day', 'day', 'night', 'night'],
+    });
+    const night = (m: number[][], i: number) => apply(m[i]!, [stats[i]!.mean[0], stats[i]!.mean[0], stats[i]!.mean[0]])[0]!;
+    assert.ok(night(byFilm, 3) > 0.25, 'the film lifts the night shot');
+    // Its own scene: the two night shots meet near their own middle, and stay night.
+    assert.ok(night(byScene, 3) < 0.25 && night(byScene, 4) < 0.25);
+    assert.ok(Math.abs(night(byScene, 3) - night(byScene, 4)) < Math.abs(0.2 - 0.24));
+    // A shot with no scene still matches the film.
+    const loose = shotGradeMatrices({ stats, look: 'none', matchShots: true, groups: ['day', 'day', 'day', undefined, 'night'] });
+    assert.ok(night(loose, 3) > 0.25);
+  });
 });

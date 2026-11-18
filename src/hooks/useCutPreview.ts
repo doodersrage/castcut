@@ -618,6 +618,7 @@ export function useCutPreview(input: {
       grades: handGrades,
       lut: lutMatrix,
       matchTo: matchToIndex,
+      groups: loaded.shots.map(shot => shot.sceneGroup),
     });
     return matrices.map((matrix, index) =>
       isIdentityMatrix(matrix) ? null : `${filterPrefix}-${index}`
@@ -633,6 +634,7 @@ export function useCutPreview(input: {
       grades: handGrades,
       lut: lutMatrix,
       matchTo: matchToIndex,
+      groups: loaded.shots.map(shot => shot.sceneGroup),
     });
     const svgNs = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNs, 'svg');
@@ -1260,6 +1262,7 @@ export function useCutPreview(input: {
       grades: handGrades,
       lut: lutMatrix,
       matchTo: matchToIndex,
+      groups: loaded.shots.map(shot => shot.sceneGroup),
     });
     return loaded.stats.map((stats, index) => {
       if (!stats) return null;

@@ -1492,6 +1492,7 @@ export async function encodeFilmPlaylistServer(
               matchShots: options.matchShots === true,
               matchTo: options.matchTo ?? null,
               grades: handGrades,
+              groups: localFiles.map((_, i) => shots[i]?.sceneGroup),
             }).map(colourMatrixFfmpeg);
           })()
         : [];

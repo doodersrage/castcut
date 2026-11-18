@@ -56,6 +56,9 @@ export function parseFilmPlaylistShots(raw: unknown): FilmPlaylistShot[] {
     const moveFrom = normalizeCutFraming(record.moveFrom);
     const moveTo = normalizeCutFraming(record.moveTo);
     const spoken = text(record.spoken);
+    // The script scene it belongs to: the shot match grades a scene as one (cut-look.ts).
+    const sceneGroup =
+      typeof record.sceneGroup === 'string' ? record.sceneGroup.trim().slice(0, 200) : '';
     const narrationText = text(record.narrationText);
     const subtitleFromSec = clampNumber(record.subtitleFromSec, 0, 600);
     const subtitleToSec = clampNumber(record.subtitleToSec, 0, 600);
@@ -73,6 +76,7 @@ export function parseFilmPlaylistShots(raw: unknown): FilmPlaylistShot[] {
         ? { narrationUrl: record.narrationUrl }
         : {}),
       ...(spoken ? { spoken } : {}),
+      ...(sceneGroup ? { sceneGroup } : {}),
       ...(narrationText ? { narrationText } : {}),
       // Set in Cut (M4 F5); '' is kept: no subtitle on this shot.
       ...(typeof record.subtitle === 'string'
