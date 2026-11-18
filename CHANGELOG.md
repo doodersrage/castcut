@@ -9,6 +9,178 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.0.0] - 2026-11-18
+
+- e2e: Recently deleted test finds its own fixture, not "fixture b" too
+- e2e: CI's server gets a data dir too
+- Shot match: each shot toward its own scene's colour, not the film's
+- Render: a scene's last line runs on by the scene change's dip, as the preview does
+- Tighten talking shots: only speech after a real gap ends the tail early
+- Tighten talking shots: the shot ends before speech starts again after its line
+- Tighten talking shots: a dip in the speech is a place a line can end too
+- Tighten talking shots: a line ends at the first pause by which it has been heard, not the clip's last sound
+- Animate the kept takes from a prepared run: shots cut from their masters left nothing to render or start
+- Shoot from the masters: its done note stays when every shot is cut
+- Shoot from the masters without a run: shots cleared after a run was discarded had no button
+- Shoot from the masters: a face-finished master gets its detail pass from the still it finished
+- Her face in a shot of two: its own bar, measured (0.3)
+- Her face checked in a shot of two; a scene's master sets the two of them at one height
+- Real-render: epmasters cancels a run a closed browser left running
+- A take cut from its master gets its clip; a stuck cut gives up after 12 minutes
+- Shoot from the masters: a face-finished master is cut too (its size from the picture)
+- Animate the kept takes beside a paused run; a shot is cut from its master again when its cut changes
+- Shoot from the masters: no two shots in a row cut the same
+- Shoot from the masters: a master finished on another model gives its plain cut
+- Shoot from the masters is offered beside a paused run too
+- Shoot from the masters: a failed cut is tried twice more, says why, and a shot cut already is skipped
+- Real-render: epmasters shoots each scene's shots from its master
+- Shoot from the masters: each script scene's shots cut from its wide master
+- Every retry of a clip with no line holds the shot
+- A drifted clip with no line is animated again with the shot held as it stands
+- Pop-ins count as drift; scenes' last lines aren't faded out; a beat more after each line
+- A film's lines play where their shots are: the dialogue mix starts at 0
+- CASTCUT_DEBUG_CUT=1 keeps what each cut's encode was given, beside the films
+- Cut merges the server's scripts in when it opens
+- Cut's monitor loads its clips a few at a time, and none forever
+- A Scenes cut all from one script opens on that script's title
+- Real-render: epcut shows what the page had when Music by scene wasn't offered
+- A script's cut opens on the script's title, not the Cast's name
+- Tighten talking shots in Cut's shot list, so the preview and what's placed from it match the film
+- Hard cuts with dips between scenes render; a failed cut stops the real-render run
+- Cut: an opening title card on its own, without captions on the shots
+- Cut: Room tone by scene — each scene's own sound, looped quietly under all of it
+- Her lines to him are two-shots; Cut can tighten talking shots; scene changes dip a beat longer
+- Part of a line said again is heard as wrong, and Cut can end the clip before it
+- Temp music: "in triumph" is a happy gesture, not trailer music
+- Softer joins, a single turned to the one she talks to, gentler temp music
+- A close-up's clip is one only when its still is; drift is looked for mid-clip too
+- Real-render: no named helper inside epreset's page code
+- Real-render: a clips-only reset opens the page on a Scene it didn't let go of
+- Drift is a closer shot, someone gone, someone new on another shot, or another place
+- A clip that talks when it should say nothing ends just before it starts
+- A run looks at each clip it animates and animates again one that drifted from its shot
+- Cut's Scene shots follow the Gallery as it changes
+- A clip meant to say nothing that still talks after its retries plays quiet
+- A short line said twice is kept and played up to just after the line
+- Real-render: epreset lets go of clips again once the Scene page has opened
+- Next.js 16.4.6 (GHSA-mfr8-8qww-v76h)
+- Reaction shots laugh instead of mouthing; a line said twice is heard by its sound; two-shots aren't pinned
+- Talking clips move like people talking, read as acting; wordless clips that talk are redone
+- Real-render: epcut opens Cut's Sound group before its switches
+- The read line anchors H3 as a voice, its words unnamed
+- Cut: kept voices on talking clips — the voice engine's reading, fitted to the clip's lips
+- H3 talking clips say the line as the voice engine reads it in the kept voice
+- Real-render: epcut takes the new takes from the Shots tab
+- A clip that opens with the voice sample's greeting didn't say its line
+- A run hears each talking clip it animates and animates again one that doesn't say its line
+- Two people in a scene talk to each other, not to the camera; only close-ups pin their end
+- H3 clips with no line end on their own still; a close-up's clip holds only her face
+- Cut plays a clip up to where it cuts away
+- Real-render: EPISODE_RESET_CLIPS with EPISODE_RESET_SCENES lets go of those shots' clips
+- Music by scene: made again it replaces its cues; a window is not a win
+- No made-up words: a script shot with no line comes into the cut quiet; H3 is told nobody speaks
+- IMPLEMENTATION_PLAN: The Spare Key, take three — the causes behind the distortions, the silence and the jumps
+- Real-render: letting go of clips alone keeps the run (Animate the kept takes needs it)
+- Real-render: epreset can let go of the talking shots' clips alone (EPISODE_RESET_CLIPS=lines)
+- H3 talking clips anchor on the voice's sound, never the voice clip's picture
+- Real-render: epanimate sets the clip engine in the stored Video settings (its picker is in the Animate sheet)
+- Pose guides cut to a shot size draw nothing below the cut
+- Qwen-Image 2.1 stills: no leg stance when the legs are out of frame; a sentence moment said as written
+- Real-render: voices opens the Cast's voice section (its header's Add a voice)
+- The partner says his lines in his voice; Cut can dip to black between a script's scenes
+- IMPLEMENTATION_PLAN: the flagship film, The Spare Key (3:43, every shot a clip)
+- Real-render: epcut can use the new takes Cut offers (EPISODE_CUT_TAKE_NEW)
+- Cut: a pinned still's take is matched by its entry too (its picture moves to the Gallery)
+- Cut plays a pinned take's clip once it is animated; Edit 2511 falls back to fp8 when bf16 is gone
+- Real-render: epreset can change a shot's words as it lets it go (EPISODE_RESET_EDITS)
+- A script shot where the lead touches the partner is a two-shot
+- Real-render: epreset can let go of named shots (EPISODE_RESET_SCENES); srvrun can skip kept Scenes (SRV_SKIP_KEPT)
+- Animate the kept takes: the run's progress and queue count what it animates
+- A Cast partner wears one everyday outfit in every shot
+- Real-render: a screenplay file is imported on Script
+- Real-render: episode imports a screenplay file (EPISODE_SCRIPT_FILE); epanimate animates a Final's kept takes
+- Animate the kept takes: a finished run made again to animate what it kept
+- Server runs finish the partner's face on two-person takes
+- Cut's server-run notice: its hook in the Play layer (architecture boundary)
+- IMPLEMENTATION_PLAN: the flagship film, first attempt — the pipeline holds, the film isn't one yet
+- Real-render package phase: Package and Versions are behind their own tabs now
+- Cut says when a server run's takes aren't here yet, and links to Scene
+- Real-render: the episode cut opens Scene first (a server run's takes) and can cut one script
+- Final runs make one room a scene by default (user, 2026-11-15)
+- Same-room check: close-ups aren't held against the room
+- IMPLEMENTATION_PLAN: s23 — the night street holds; close-ups go out on their words
+- One room a scene: close-ups go out on their words
+- IMPLEMENTATION_PLAN: s22 — One room a scene, live: rooms held, three faults fixed; s23 next
+- Same-room check: a shot linked to another place's scene has no reference
+- One room a scene: a shot linked to another place's scene isn't sent that scene's room
+- One room a scene: the room made at its shots' time of day; the place named beside the photo
+- The same-room check on the page too; a One room a scene switch on the run panel
+- The same-room check: a take beside its scene's room photo or first shot (Phase 4)
+- IMPLEMENTATION_PLAN: keep the Studio workspace's name (user, 2026-11-14)
+- IMPLEMENTATION_PLAN: s21 — drafts queued ahead, 12.3 s a shot, restart-safe; Phase 5's animatic bar met for an Everyday Short
+- A Preview queues its next draft while one renders (Phase 5)
+- Server adult gate skips the empty place and counts its redo as a try; preview canvas reverted
+- Previews draft on a smaller 16:9 canvas; the server asks after a take every second
+- IMPLEMENTATION_PLAN: Phase 5's live gate (Preview 43 shots in 11 min, Final 83 min unattended) and Phase 6's state
+- e2e accessibility: scan once a redirecting path has settled (axe found no document on a cold run's first test)
+- A pending two-takes pick survives the board becoming a Short; end-pose e2e race
+- Server runs ask the adult-appearance gate on adult-mood takes, as the page does
+- Neutral copy where it defaulted to "her" (FINISHING_PLAN Phase 6)
+- scene-real-render: SRV_TIER runs srvrun at Preview or Final (Phase 5's gate)
+- Two tiers: Preview drafts every shot on 2.1 Turbo, Final renders on Edit 2511 (Phase 5)
+- Checks measured on the reviewed sets with every unit-test run (Phase 4)
+- Pose match is advisory: a miss is flagged, not redone (FINISHING_PLAN Phase 4)
+- IMPLEMENTATION_PLAN: Phase 3's gate run — 43 shots on the server through a ComfyUI restart, no duplicates
+- Day from an idea: a reply that left off its closing bracket keeps what it wrote
+- IMPLEMENTATION_PLAN: the full gate attempted — 19 Scenes on the server, no duplicates; the 9-moment writer is the blocker
+- scene-real-render: say when SHORT_IDEA is over the idea box's 240 characters
+- scene-real-render: SHORT_WRITE_ONLY; srvrun renders the Short on the board, SRV_REDO, SRV_REBOOT_AFTER, duplicates counted across patches
+- IMPLEMENTATION_PLAN: Phase 3's gate, small, passed live
+- Server runs: their jobs on the watcher's list, so a lost take really is sent again
+- Server runs ride out a ComfyUI restart: a lost take queued again once, a refused queue tried again
+- Server runs render establishing shots too; srvrun, the live server-run phase
+- Phase 3: the server renders a Scene run — the page can be closed, and catches up when opened
+- queueSlot's body becomes runDayTake(ctx): the take as a function of what it reads from the page
+- Every picture step of a take on the server; the queue settings frozen at Start; the partner face lifted out of queueSlot
+- A take's dress plate made on the server: the page's logic, the server's steps
+- IMPLEMENTATION_PLAN: Phase 3, the take's request built on the server
+- The page's ComfyUI request built on the server, checked against the page in every golden take
+- A take's face plate made on the server: the same steps, ComfyUI asked directly
+- IMPLEMENTATION_PLAN: Phase 3 step 6, the queue steps the server way
+- A take queued to ComfyUI from the server: the route's single prompt as a function
+- A take's prompts prepared from settings passed in; the negative built without a page to ask
+- A queue's runtime resolved from settings passed in (the server's synced copies)
+- e2e: golden take requests re-recorded — the still built on its dressed plate
+- A picture's size read on the server as the page reads it (EXIF orientation turns it)
+- One canvas off the page for the take's pictures; the footwear reference drawn on the server too
+- e2e: the ComfyUI stubs answer a dress plate as finished at once
+- Face crops and the neutral face plate made on the server too, as the page makes them
+- Pose guides drawn on the server too (@napi-rs/canvas), the same picture as the page's
+- e2e: the Looks-wrong redo test waits for its take, not the dress plate before it
+- Runs: inputs frozen at Start, each take checked against them (shadow mode)
+- A take decides for the engine it renders on; the picked engine is no longer overwritten
+- Take plan, piece 4: whether a take sends its drawn pose guide, decided outside the hook
+- Take plan, piece 3: who the take's partner is, decided outside the hook
+- Take plan, piece 2: the take's engine decided outside the hook
+- Take plan, piece 1: the take's outfit decided outside the hook
+- e2e: golden take requests — what each kind of take sends, frozen for the take builder's split
+- A take queued before the outfit catalog loaded went out with no outfit
+- Runs: the server watches Queue-all takes — lands them, queues lost ones again once
+- Runs: the server keeps each Scene run's record (Phase 3, step 1b)
+- e2e: the story-state test waits for the day to be stored before reloading
+- Runs: a server lease says who renders a run, across devices
+- Short package: say which takes a server without file storage can't keep
+- Short package import writes through before it says it's done
+- Runs: keep asking a Scene to open while the last take lands
+- A parked Short keeps its link; a packaged short's board comes back as its lead's Short
+- Cut package format 2: a short travels with its script, Scenes, takes and Cast
+- Stored state gets schema versions and ordered migrations
+- Short: a card whose Scene another device deleted is kept whole in the merge
+- Short: Write it on Suggestive
+- e2e: local runs on a production build; two flaky Scene tests fixed
+- Short: cards don't render; every shot renders as its own Scene
+- Cut: a short's earlier shots stay out of its Scenes
+
 ## [v3.17.0] - 2026-11-13
 
 - e2e: the script-line test waits for the take, not the dress plate
