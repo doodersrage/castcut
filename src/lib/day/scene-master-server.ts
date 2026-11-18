@@ -19,7 +19,12 @@ import {
   shotReframeRectForFaces,
 } from '../pose/shot-reframe';
 import { fetchFilmShotBytes } from '../video/shot-fetch';
-import { buildMasterCutDetailGraph, pngSize, type MasterCut } from './scene-master';
+import {
+  buildMasterCutDetailGraph,
+  masterGraphSources,
+  pngSize,
+  type MasterCut,
+} from './scene-master';
 
 export type MasterCutResult =
   { available: true; image: ComfyImageRef; plain?: true } | { available: false; reason: string };
@@ -107,9 +112,28 @@ export async function cutShotFromMaster(input: {
     });
     cutName = up.subfolder ? `${up.subfolder}/${up.name}` : up.name;
   }
-  const detail = graph
-    ? buildMasterCutDetailGraph(graph, cutName, randomInt(1, 2 ** 31 - 1))
-    : null;
+  const seed = randomInt(1, 2 ** 31 - 1);
+  let detail = graph ? buildMasterCutDetailGraph(graph, cutName, seed) : null;
+  // A face-finished master: the still it finished carries the Qwen-Image 2.1 graph (its models
+  // and the two faces) — two finishes back at most (his face, then hers). The cut is still taken
+  // from the finished master.
+  let sources = detail ? [] : masterGraphSources(graph);
+  for (let hop = 0; hop < 2 && !detail && sources.length; hop += 1) {
+    const next: string[] = [];
+    for (const source of sources) {
+      const slash = source.lastIndexOf('/');
+      const earlier = await readComfyImageGraph(baseUrl, {
+        filename: slash >= 0 ? source.slice(slash + 1) : source,
+        subfolder: slash >= 0 ? source.slice(0, slash) : '',
+        type: 'input',
+      }).catch(() => null);
+      detail = earlier ? buildMasterCutDetailGraph(earlier, cutName, seed) : null;
+      if (detail) break;
+      // Only the still a finish worked on (its first picture), not the face it was given.
+      next.push(...masterGraphSources(earlier).slice(0, 1));
+    }
+    sources = next;
+  }
   if (!detail) {
     // A master last finished on another model (Edit 2511's face finish) has no Qwen-Image 2.1
     // graph to give the detail back with: the plain cut — softer, but the same room and people.

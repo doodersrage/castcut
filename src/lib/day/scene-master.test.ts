@@ -91,3 +91,17 @@ describe('a scene shot from its master', () => {
     assert.equal(pngSize(new Uint8Array([1, 2, 3])), null);
   });
 });
+
+describe('a face-finished master traced back to its Qwen-Image 2.1 still', () => {
+  it('lists the pictures its graph loaded, the finished still first', async () => {
+    const { masterGraphSources } = await import('./scene-master');
+    const finish = {
+      '2': { class_type: 'LoadImage', inputs: { image: 'day-partner-vl-3fe5.png' } },
+      '1': { class_type: 'LoadImage', inputs: { image: 'partner-finish-2861.png' } },
+      '10': { class_type: 'LoadImage', inputs: { image: ['5', 0] } },
+      '3': { class_type: 'UNETLoader', inputs: { unet_name: 'qwen_image_edit_2511.safetensors' } },
+    };
+    assert.deepEqual(masterGraphSources(finish), ['partner-finish-2861.png', 'day-partner-vl-3fe5.png']);
+    assert.deepEqual(masterGraphSources(null), []);
+  });
+});

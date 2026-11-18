@@ -117,6 +117,20 @@ export function buildMasterCutDetailGraph(
   return graph;
 }
 
+/**
+ * The pictures a master's graph loaded, in graph order: a face-finished master (Edit 2511) loads
+ * the still it finished first — that still's own graph is the Qwen-Image 2.1 one the detail pass
+ * is built from (the flagship's remade masters, 2026-11-18, all face-finished, were cut plain).
+ */
+export function masterGraphSources(graph: Record<string, unknown> | null | undefined): string[] {
+  if (!graph) return [];
+  return Object.entries(graph)
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(([, node]) => node as Partial<Node>)
+    .filter(node => node?.class_type === 'LoadImage' && typeof node.inputs?.image === 'string')
+    .map(node => String(node.inputs!.image));
+}
+
 const sameCut = (a: MasterCut | null, b: MasterCut | null) =>
   !!a && !!b && a.who === b.who && a.shot === b.shot;
 
