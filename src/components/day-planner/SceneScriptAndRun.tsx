@@ -182,7 +182,15 @@ function SceneRunPanelOf({
             />
           ) : null}
         </SceneRunPanel>
-      ) : null}
+      ) : (
+        // No run (none yet, or one discarded): a scene's shots can still be cut from its master
+        // (the flagship's reset shots, 2026-11-18, had no button). Hidden when nothing to cut.
+        <SceneShootFromMasters
+          page={page}
+          {...(leadName ? { leadName } : {})}
+          disabled={page.inFlight || runner.looping}
+        />
+      )}
     </>
   );
 }
