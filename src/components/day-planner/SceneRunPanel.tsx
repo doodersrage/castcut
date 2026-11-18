@@ -445,7 +445,12 @@ export default function SceneRunPanel({
         </ol>
         <div className="flex flex-wrap items-center gap-2">
           {children}
-          {(run.state === 'done' || run.state === 'cancelled' || run.state === 'paused') &&
+          {/* A prepared run too, once not already made to animate: every shot kept before it ran
+              (cut from its master) leaves nothing to render, and nothing to start (2026-11-18). */}
+          {(run.state === 'done' ||
+            run.state === 'cancelled' ||
+            run.state === 'paused' ||
+            (run.state === 'prepared' && !run.auto?.animate)) &&
           toAnimate > 0 ? (
             <Button
               size="sm"
