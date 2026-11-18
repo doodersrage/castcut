@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import type { ScenePageState } from '@/hooks/day-planner/useScenePage';
-import { keptTakeOf } from '@/lib/day/scenes';
-import { masterCutFor, sceneMasterGroup, sceneMasters } from '@/lib/day/scene-master';
+import { keptTakeOf, type SavedScene } from '@/lib/day/scenes';
+import { masterCutsInOrder, sceneMasterGroup, sceneMasters } from '@/lib/day/scene-master';
 
 type CutAnswer = {
   available?: boolean;
@@ -42,16 +42,25 @@ export default function SceneShootFromMasters({
   const [note, setNote] = useState<string | null>(null);
   const targets = useMemo(() => {
     const masters = sceneMasters(page.castScenes);
-    return page.castScenes.flatMap(scene => {
+    const shotsOf = new Map<string, SavedScene[]>();
+    for (const scene of page.castScenes) {
       const group = sceneMasterGroup(scene);
       const master = group ? masters.get(group) : undefined;
-      if (!master || master.id === scene.id) return [];
-      const cut = masterCutFor(scene, leadName);
+      if (!group || !master || master.id === scene.id) continue;
+      shotsOf.set(group, [...(shotsOf.get(group) ?? []), scene]);
+    }
+    return [...shotsOf.entries()].flatMap(([group, shots]) => {
+      const master = masters.get(group)!;
       const masterTake = keptTakeOf(master);
-      // Already cut from this master: done (a newer master cuts it again).
-      const kept = keptTakeOf(scene);
-      if (kept?.id.startsWith('master-') && masterTake && kept.at >= masterTake.at) return [];
-      return cut && masterTake ? [{ scene, cut, masterUrl: masterTake.imageUrl }] : [];
+      if (!masterTake) return [];
+      const cuts = masterCutsInOrder(shots, leadName);
+      return shots.flatMap(scene => {
+        const cut = cuts.get(scene.id);
+        // Already cut from this master: done (a newer master cuts it again).
+        const kept = keptTakeOf(scene);
+        if (!cut || (kept?.id.startsWith('master-') && kept.at >= masterTake.at)) return [];
+        return [{ scene, cut, masterUrl: masterTake.imageUrl }];
+      });
     });
   }, [leadName, page.castScenes]);
   if (!targets.length) return null;

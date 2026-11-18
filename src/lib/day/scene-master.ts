@@ -116,3 +116,39 @@ export function buildMasterCutDetailGraph(
   }
   return graph;
 }
+
+const sameCut = (a: MasterCut | null, b: MasterCut | null) =>
+  !!a && !!b && a.who === b.who && a.shot === b.shot;
+
+/** Script order within a scene: 7B before 7C. */
+const shotLabel = (scene: SavedScene) => scene.name.split(' ')[0] ?? scene.name;
+
+/**
+ * Each shot's cut in script order, no two in a row the same (the flagship's stairwell,
+ * 2026-11-17: "a little jumpy" — two two-shots back to back from one master are a jump cut).
+ * A repeat goes closer: on her while she has a line, on him listening when she hasn't.
+ */
+export function masterCutsInOrder(
+  shots: readonly SavedScene[],
+  leadName?: string
+): Map<string, MasterCut> {
+  const out = new Map<string, MasterCut>();
+  const ordered = [...shots].sort((a, b) =>
+    shotLabel(a).localeCompare(shotLabel(b), undefined, { numeric: true })
+  );
+  let previous: MasterCut | null = null;
+  for (const scene of ordered) {
+    let cut = masterCutFor(scene, leadName);
+    if (cut && sameCut(cut, previous)) {
+      const speaks = !!scene.slot.line?.trim();
+      const closer: MasterCut =
+        cut.who === 'both' && scene.allowCompanions === true
+          ? { who: speaks ? 'lead' : 'partner', shot: 'head' }
+          : { who: cut.who, shot: cut.shot === 'head' ? 'waist' : 'head' };
+      cut = closer;
+    }
+    if (cut) out.set(scene.id, cut);
+    previous = cut;
+  }
+  return out;
+}

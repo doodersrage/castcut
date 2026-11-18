@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createScene } from './scenes';
-import { buildMasterCutDetailGraph, masterCutFor, sceneMasters } from './scene-master';
+import {
+  buildMasterCutDetailGraph,
+  masterCutFor,
+  masterCutsInOrder,
+  sceneMasters,
+} from './scene-master';
 
 const scene = (name: string, extra: Record<string, unknown> = {}, slot: Record<string, unknown> = {}) => {
   const base = createScene({ castId: 'slyne', name, id: name, now: 1 });
@@ -59,5 +64,19 @@ describe('a scene shot from its master', () => {
     assert.equal(g['924']!.inputs.sigmas, '0.845148, 0.704534, 0.414568, 0.000000');
     assert.equal(g['920'], undefined);
     assert.equal(g['921']!.inputs.noise_seed, 7);
+  });
+
+  it('no two shots in a row the same: a repeated two-shot goes in on her line, or on him listening', () => {
+    const shot = (name: string, line?: string, framing = 'waist') =>
+      scene(name, { allowCompanions: true }, { poseCamera: { shot: framing }, ...(line ? { line } : {}) });
+    // The park (5B–5E, 2026-11-17): two two-shots back to back were the same picture.
+    const cuts = masterCutsInOrder(
+      [shot('5C CITY PARK · Dialogue'), shot('5B CITY PARK · Dialogue', 'What if we fight about the dishes?'), shot('5D CITY PARK · Dialogue', "That's the right answer.", 'head')],
+      'Slyne'
+    );
+    assert.deepEqual(cuts.get('5B CITY PARK · Dialogue'), { who: 'both', shot: 'waist' });
+    assert.deepEqual(cuts.get('5C CITY PARK · Dialogue'), { who: 'partner', shot: 'head' }, 'no line: him listening');
+    const withLine = masterCutsInOrder([shot('7B · Dialogue'), shot('7C · Dialogue', 'Careful.')], 'Slyne');
+    assert.deepEqual(withLine.get('7C · Dialogue'), { who: 'lead', shot: 'head' }, 'her line: on her');
   });
 });
