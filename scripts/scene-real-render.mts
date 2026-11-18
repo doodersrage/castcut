@@ -3777,6 +3777,14 @@ const phases: Record<string, Phase> = {
   async epmasters(_ctx, page) {
     await openScene(page, V2_CAST);
     const shoot = page.getByTestId('scene-shoot-from-masters');
+    // A run left "running" by a closed browser (its lease still fresh) hides the button: cancel it.
+    if (!(await shoot.isVisible({ timeout: 20_000 }).catch(() => false))) {
+      const cancel = page.getByTestId('scene-run-cancel').first();
+      if (await cancel.isVisible().catch(() => false)) {
+        log('cancelling a run left running');
+        await cancel.click();
+      }
+    }
     await shoot.waitFor({ timeout: 120_000 });
     log('offered:', (await shoot.textContent())?.trim());
     const started = Date.now();
