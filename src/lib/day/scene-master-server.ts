@@ -19,7 +19,7 @@ import {
   shotReframeRectForFaces,
 } from '../pose/shot-reframe';
 import { fetchFilmShotBytes } from '../video/shot-fetch';
-import { buildMasterCutDetailGraph, type MasterCut } from './scene-master';
+import { buildMasterCutDetailGraph, pngSize, type MasterCut } from './scene-master';
 
 export type MasterCutResult =
   { available: true; image: ComfyImageRef; plain?: true } | { available: false; reason: string };
@@ -58,10 +58,10 @@ export async function cutShotFromMaster(input: {
   const stagedName = staged.subfolder ? `${staged.subfolder}/${staged.name}` : staged.name;
   const ref: ComfyImageRef = { filename: staged.name, subfolder: staged.subfolder, type: 'input' };
   const graph = await readComfyImageGraph(baseUrl, ref);
-  const source = reframeSourceOf(graph);
-  if (!graph || !source?.size) {
-    return { available: false, reason: 'The master is not a Qwen-Image 2.1 still.' };
-  }
+  // The picture's own size when its graph doesn't say (a face finish): the cut needs only that.
+  const size = reframeSourceOf(graph)?.size ?? pngSize(new Uint8Array(fetched.buffer));
+  if (!size) return { available: false, reason: 'The master is not a picture Castcut can read.' };
+  const source = { size };
   // She is on the left, the other on the right (script-shots.ts poseLead).
   const faces = (await locateFacesInComfy({ imageName: stagedName, comfyUrl: input.comfyUrl }))
     .filter(face => face.width > 0 && face.height > 0)
@@ -107,7 +107,9 @@ export async function cutShotFromMaster(input: {
     });
     cutName = up.subfolder ? `${up.subfolder}/${up.name}` : up.name;
   }
-  const detail = buildMasterCutDetailGraph(graph, cutName, randomInt(1, 2 ** 31 - 1));
+  const detail = graph
+    ? buildMasterCutDetailGraph(graph, cutName, randomInt(1, 2 ** 31 - 1))
+    : null;
   if (!detail) {
     // A master last finished on another model (Edit 2511's face finish) has no Qwen-Image 2.1
     // graph to give the detail back with: the plain cut — softer, but the same room and people.

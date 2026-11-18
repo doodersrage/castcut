@@ -5,6 +5,7 @@ import {
   buildMasterCutDetailGraph,
   masterCutFor,
   masterCutsInOrder,
+  pngSize,
   sceneMasters,
 } from './scene-master';
 
@@ -78,5 +79,15 @@ describe('a scene shot from its master', () => {
     assert.deepEqual(cuts.get('5C CITY PARK · Dialogue'), { who: 'partner', shot: 'head' }, 'no line: him listening');
     const withLine = masterCutsInOrder([shot('7B · Dialogue'), shot('7C · Dialogue', 'Careful.')], 'Slyne');
     assert.deepEqual(withLine.get('7C · Dialogue'), { who: 'lead', shot: 'head' }, 'her line: on her');
+  });
+
+  it('a master’s size from the picture when its graph doesn’t say (a face finish)', () => {
+    const header = new Uint8Array(24);
+    header.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const view = new DataView(header.buffer);
+    view.setUint32(16, 1664);
+    view.setUint32(20, 928);
+    assert.deepEqual(pngSize(header), { width: 1664, height: 928 });
+    assert.equal(pngSize(new Uint8Array([1, 2, 3])), null);
   });
 });
