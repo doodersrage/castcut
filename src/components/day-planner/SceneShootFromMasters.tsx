@@ -6,6 +6,24 @@ import type { ScenePageState } from '@/hooks/day-planner/useScenePage';
 import { keptTakeOf } from '@/lib/day/scenes';
 import { masterCutFor, sceneMasterGroup, sceneMasters } from '@/lib/day/scene-master';
 
+type CutAnswer = {
+  available?: boolean;
+  image?: { filename: string; subfolder?: string; type?: string };
+  reason?: string;
+};
+
+async function askForCut(masterUrl: string, cut: object): Promise<CutAnswer | null> {
+  const response = await fetch('/api/scene-master', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ masterUrl, ...cut }),
+  }).catch(() => null);
+  if (!response) return { reason: 'the server could not be reached' };
+  const json = (await response.json().catch(() => null)) as CutAnswer | null;
+  return json ?? { reason: `HTTP ${response.status}` };
+}
+
 /**
  * Shoot from the masters (scene-master.ts): each script scene's shots cut from its wide master
  * and given their detail back, each kept on its Scene — then Animate the kept takes makes their
@@ -30,6 +48,9 @@ export default function SceneShootFromMasters({
       if (!master || master.id === scene.id) return [];
       const cut = masterCutFor(scene, leadName);
       const masterTake = keptTakeOf(master);
+      // Already cut from this master: done (a newer master cuts it again).
+      const kept = keptTakeOf(scene);
+      if (kept?.id.startsWith('master-') && masterTake && kept.at >= masterTake.at) return [];
       return cut && masterTake ? [{ scene, cut, masterUrl: masterTake.imageUrl }] : [];
     });
   }, [leadName, page.castScenes]);
@@ -37,22 +58,16 @@ export default function SceneShootFromMasters({
   const run = async () => {
     setNote(null);
     const made: Array<{ sceneId: string; take: { id: string; imageUrl: string } }> = [];
-    let failed = 0;
+    const failed: string[] = [];
     for (const [index, target] of targets.entries()) {
       setBusy(`Shot ${index + 1} of ${targets.length}: ${target.scene.name}…`);
-      const response = await fetch('/api/scene-master', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ masterUrl: target.masterUrl, ...target.cut }),
-      }).catch(() => null);
-      const json = (await response?.json().catch(() => null)) as {
-        available?: boolean;
-        image?: { filename: string; subfolder?: string; type?: string };
-        reason?: string;
-      } | null;
+      let json: CutAnswer | null = null;
+      // A cut can fail for a moment (ComfyUI busy, a staged file not there yet): twice more.
+      for (let attempt = 0; attempt < 3 && !json?.available; attempt += 1) {
+        json = await askForCut(target.masterUrl, target.cut);
+      }
       if (!json?.available || !json.image?.filename) {
-        failed += 1;
+        failed.push(`${target.scene.name.split(' ')[0]}: ${json?.reason ?? 'no answer'}`);
         continue;
       }
       const view = new URLSearchParams({
@@ -72,7 +87,9 @@ export default function SceneShootFromMasters({
     setBusy(null);
     setNote(
       `${made.length} shot${made.length === 1 ? '' : 's'} cut from their masters and kept` +
-        (failed ? ` · ${failed} couldn’t be (kept as they were)` : '') +
+        (failed.length
+          ? ` · ${failed.length} couldn’t be, kept as they were (${failed.join('; ')})`
+          : '') +
         ' — Animate the kept takes makes their clips.'
     );
   };

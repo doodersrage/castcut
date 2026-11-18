@@ -37,5 +37,6 @@ export async function POST(request: Request) {
     userId: user?.id ?? null,
     requestOrigin: new URL(request.url).origin,
   });
+  if (!result.available) console.warn(`[scene-master] ${who}/${shot} not cut: ${result.reason}`);
   return apiJson(result);
 }
