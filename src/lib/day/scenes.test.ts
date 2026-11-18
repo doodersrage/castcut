@@ -40,6 +40,7 @@ import {
   sendSceneToDayPatch,
   swapSceneForCast,
   takeAsStill,
+  withKeptNewTake,
   type SavedScene,
   type SceneToolCache,
   sceneScriptPartners,
@@ -240,6 +241,22 @@ describe('scenes: stored and read back', () => {
 });
 
 describe('scenes: the open scene follows the engine', () => {
+  it('a take cut from its master gets its clip (the flagship, 2026-11-18: 42 clips recorded nowhere)', () => {
+    const scene = withKeptNewTake(kitchen(), { id: 'master-both-waist-x1-0', imageUrl: '/cut.png' }, 40);
+    const kept = scene.takes.find(take => take.id === scene.keptTakeId)!;
+    const still = takeAsStill(scene.slot.id, kept);
+    assert.equal(still.promptId, 'master-both-waist-x1-0');
+    const clipped = recordSceneFromWorking(
+      scene,
+      { slots: [scene.slot], stills: [{ ...still, clipUrl: '/cut.mp4', clipStatus: 'completed', clipPromptId: 'c9' }] },
+      60
+    );
+    assert.equal(clipped.takes.find(take => take.id === kept.id)?.clipUrl, '/cut.mp4');
+    // Saved before it had a job id: it gets one when read.
+    const [old] = normalizeSavedScenes([{ ...scene, takes: [{ id: 'master-1a2b-3', imageUrl: '/cut.png', at: 1 }] }]);
+    assert.equal(old!.takes[0]!.promptId, 'master-1a2b-3');
+  });
+
   it('records the shot as edited, a take that lands, its finish and its clip', () => {
     const scene = kitchen();
     const working: Partial<SceneToolCache> = {

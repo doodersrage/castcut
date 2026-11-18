@@ -21,8 +21,10 @@ async function askForCut(masterUrl: string, cut: object): Promise<CutAnswer | nu
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
     body: JSON.stringify({ masterUrl, ...cut }),
+    // One stuck cut doesn't hold up the rest (the flagship, 2026-11-18: 3 hours on one shot).
+    signal: AbortSignal.timeout(12 * 60_000),
   }).catch(() => null);
-  if (!response) return { reason: 'the server could not be reached' };
+  if (!response) return { reason: 'no answer from the server in 12 minutes' };
   const json = (await response.json().catch(() => null)) as CutAnswer | null;
   return json ?? { reason: `HTTP ${response.status}` };
 }

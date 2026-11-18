@@ -337,7 +337,9 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
   const rawUrl = storableUrl(take.rawUrl);
   const framedUrl = storableUrl(take.framedUrl);
   const clipUrl = storableUrl(take.clipUrl);
-  const promptId = text(take.promptId, 160);
+  // A take cut from its master (scene-master.ts) is its own job id: its clip finds it by that.
+  // Saved before 2026-11-18 without one, it gets it here.
+  const promptId = text(take.promptId, 160) || (id.startsWith('master-') ? id : '');
   const clipPromptId = text(take.clipPromptId, 160);
   return {
     id,
@@ -800,7 +802,8 @@ export function withKeptNewTake(
 ): SavedScene {
   const added = {
     ...scene,
-    takes: [...scene.takes, { id: take.id, imageUrl: take.imageUrl, at: now }],
+    // Its id is its job id too: the card's still carries it, and its clip is recorded on it.
+    takes: [...scene.takes, { id: take.id, promptId: take.id, imageUrl: take.imageUrl, at: now }],
   };
   return keepSceneTake(added, take.id, now);
 }
