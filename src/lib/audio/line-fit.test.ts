@@ -88,3 +88,37 @@ describe('the shot that ends a scene keeps room for its dip (2026-11-17)', () =>
     );
   });
 });
+
+describe('where a clip’s line can end, and whether it has been said (the flagship’s 1B and 1C, 2026-11-18)', () => {
+  const RATE = 16000;
+  /** Sound where `loud` says so, silence elsewhere. */
+  const clip = (seconds: number, loud: Array<[number, number]>) =>
+    Float32Array.from({ length: Math.round(seconds * RATE) }, (_, i) => {
+      const t = i / RATE;
+      return loud.some(([a, b]) => t >= a && t < b) ? 0.3 * Math.sin(2 * Math.PI * 220 * t) : 0;
+    });
+
+  it('lists each pause in the speech, then its last sound', async () => {
+    const { speechPauses } = await import('./line-fit');
+    // 1C: "That's a key." (0.25–1.10), a 60 ms breath, then H3 talking on to the end.
+    const babble = speechPauses(clip(5.2, [[0.25, 1.1], [1.16, 5.1]]), RATE);
+    assert.equal(babble.length, 2);
+    assert.ok(Math.abs(babble[0]! - 1.1) < 0.05, `paused at ${babble[0]}`);
+    assert.ok(Math.abs(babble[1]! - 5.1) < 0.05, `last at ${babble[1]}`);
+    // 1B: a beat inside the line — both its parts are places it could end.
+    const beat = speechPauses(clip(5.2, [[0.4, 1.9], [3.85, 4.26]]), RATE);
+    assert.equal(beat.length, 2);
+    assert.ok(Math.abs(beat[1]! - 4.26) < 0.05, `last at ${beat[1]}`);
+    assert.deepEqual(speechPauses(clip(2, []), RATE), []);
+  });
+
+  it('hears the whole line only once its last words are said', async () => {
+    const { heardWholeLine } = await import('./line-fit');
+    assert.equal(heardWholeLine(' I had one cut.', 'I had one cut. For you.'), false);
+    assert.equal(heardWholeLine(' I had one cut. For you.', 'I had one cut. For you.'), true);
+    assert.equal(heardWholeLine("That's a key.", "That's a key."), true);
+    // Whisper's small slips pass: one word of seven missed, apostrophes dropped.
+    assert.equal(heardWholeLine('Youre asking me to move in over coffee', 'You’re asking me to move in. Over coffee.'), true);
+    assert.equal(heardWholeLine('', 'Hi.'), false);
+  });
+});

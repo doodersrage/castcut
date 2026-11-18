@@ -2,7 +2,7 @@
 
 /** Where each clip's speech starts and ends (POST /api/film/speech-spans); {} when unreachable. */
 export async function requestSpeechSpans(
-  shots: ReadonlyArray<{ key: string; url: string; entryId?: string }>
+  shots: ReadonlyArray<{ key: string; url: string; entryId?: string; spoken?: string }>
 ): Promise<Record<string, { startSec: number; endSec: number } | null>> {
   if (!shots.length) return {};
   const response = await fetch('/api/film/speech-spans', {

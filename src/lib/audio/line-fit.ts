@@ -91,6 +91,66 @@ export function speechBursts(
 }
 
 /**
+ * Where a clip's speech pauses (≥ 40 ms below the room), as times its speech has reached — the
+ * places its line could end; the last sound last. H3 kept talking after the flagship's 1C ("That's
+ * a key."): a 60 ms breath, then babble to the end, and the whole clip read as the line; 1B's
+ * line ("I had one cut. For you.") has a two-second beat inside it (2026-11-18). Which pause ends
+ * the line is heard (speech-spans-server.ts), not guessed from the sound.
+ */
+export function speechPauses(samples: ArrayLike<number>, rate: number): number[] {
+  const bursts = speechBursts(samples, rate);
+  if (!bursts.length) return [];
+  const size = Math.max(1, Math.round(rate * WINDOW_SEC));
+  const levels: number[] = [];
+  for (let at = 0; at + size <= samples.length; at += size) {
+    let sum = 0;
+    for (let i = at; i < at + size; i += 1) sum += samples[i]! * samples[i]!;
+    levels.push(10 * Math.log10(sum / size + 1e-12));
+  }
+  const peak = Math.max(...levels);
+  const threshold = Math.max(SPEECH_FLOOR_DB, peak - SPEECH_BELOW_PEAK_DB);
+  const first = bursts[0]!.startSec;
+  const last = bursts[bursts.length - 1]!.endSec;
+  const out: number[] = [];
+  let quiet = 0;
+  for (let index = Math.ceil(first / WINDOW_SEC); index * WINDOW_SEC < last; index += 1) {
+    if (levels[index]! <= threshold) {
+      quiet += 1;
+      if (quiet === 2) out.push(Math.round((index - 1) * WINDOW_SEC * 100) / 100);
+    } else quiet = 0;
+  }
+  const end = Math.round(last * 100) / 100;
+  return [...out.filter(at => at > first + 0.3 && at < end - 0.1), end];
+}
+
+const lineWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[’']/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+/**
+ * Has the transcript of a clip's opening said all of its line — nearly every word, its last word
+ * among them? "I had one cut." is not yet "I had one cut. For you."
+ */
+export function heardWholeLine(transcript: string, line: string): boolean {
+  const said = lineWords(line);
+  if (!said.length) return true;
+  const heard = lineWords(transcript);
+  if (!heard.includes(said[said.length - 1]!)) return false;
+  let found = 0;
+  for (const word of said) {
+    const at = heard.indexOf(word);
+    if (at >= 0) {
+      heard.splice(at, 1);
+      found += 1;
+    }
+  }
+  return found >= Math.ceil(said.length * 0.85);
+}
+
+/**
  * A one-sentence line said twice, by its sound: two bursts of speech of about its length. Whisper
  * heard the flagship's 3D ("You can't build a shelf.", said again quieter 1.4 s later) as one
  * line; the user heard it twice (2026-11-16). A line of more than one sentence pauses between

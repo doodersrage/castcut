@@ -451,7 +451,7 @@ export function useCutRoom() {
     const tightened = new Set<string>();
     const tight = shots.map(shot => {
       if (shot.kind !== 'clip' || !shot.spoken?.trim() || !shot.url) return shot;
-      const kept = remembered[`span:${shot.url}`];
+      const kept = remembered[`line-span:${shot.url}`];
       const span =
         shot.url in speechSpanMap
           ? speechSpanMap[shot.url]!
@@ -487,7 +487,7 @@ export function useCutRoom() {
         shot.spoken?.trim() &&
         shot.url &&
         !(shot.url in speechSpanMap) &&
-        !remembered[`span:${shot.url}`]
+        !remembered[`line-span:${shot.url}`]
     );
     if (!unknown.length) return;
     let cancelled = false;
@@ -496,12 +496,13 @@ export function useCutRoom() {
         key: shot.url,
         url: shot.url,
         ...(shot.entryId ? { entryId: shot.entryId } : {}),
+        ...(shot.spoken?.trim() ? { spoken: shot.spoken.trim() } : {}),
       }))
     ).then(spans => {
       if (cancelled) return;
       for (const shot of unknown) {
         const span = spans[shot.url] ?? null;
-        rememberReadLine(`span:${shot.url}`, span ? JSON.stringify(span) : 'none');
+        rememberReadLine(`line-span:${shot.url}`, span ? JSON.stringify(span) : 'none');
       }
       setSpeechSpanMap(current => ({
         ...current,
@@ -2808,28 +2809,37 @@ export function useCutRoom() {
         if (cutOptions.tightLines === true) {
           const talking = picked.flatMap((shot, index) =>
             shot.kind === 'clip' && shot.spoken?.trim() && shot.url
-              ? [{ index, key: `${index}`, url: shot.url, entryId: shot.entryId }]
+              ? [
+                  {
+                    index,
+                    key: `${index}`,
+                    url: shot.url,
+                    entryId: shot.entryId,
+                    spoken: shot.spoken.trim(),
+                  },
+                ]
               : []
           );
-          const unknown = talking.filter(entry => !readLineBefore(`span:${entry.url}`));
+          const unknown = talking.filter(entry => !readLineBefore(`line-span:${entry.url}`));
           if (unknown.length) {
             setStatus(
               `Finding the lines in ${unknown.length} talking clip${unknown.length === 1 ? '' : 's'}…`
             );
             const spans = await requestSpeechSpans(
-              unknown.map(({ key, url, entryId }) => ({
+              unknown.map(({ key, url, entryId, spoken }) => ({
                 key,
                 url,
                 ...(entryId ? { entryId } : {}),
+                spoken,
               }))
             );
             for (const entry of unknown) {
               const span = spans[entry.key];
-              keepReadLine(`span:${entry.url}`, span ? JSON.stringify(span) : 'none');
+              keepReadLine(`line-span:${entry.url}`, span ? JSON.stringify(span) : 'none');
             }
           }
           for (const entry of talking) {
-            const kept = readLineBefore(`span:${entry.url}`);
+            const kept = readLineBefore(`line-span:${entry.url}`);
             const span =
               kept && kept !== 'none'
                 ? (JSON.parse(kept) as { startSec: number; endSec: number })
