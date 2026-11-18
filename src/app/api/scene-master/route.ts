@@ -11,8 +11,9 @@ export function GET() {
 }
 
 /**
- * POST { masterUrl, masterEntryId?, who: both|lead|partner, shot: waist|head, comfyUrl? } →
- * { available, image?, reason? }: a shot cut from its scene's master, its detail back.
+ * POST { masterUrl, masterEntryId?, who: both|lead|partner, shot: waist|head, comfyUrl?, plain? }
+ * → { available, image?, reason?, noDetail? }: a shot cut from its scene's master, its detail
+ * back. A master with no detail-pass settings isn't cut (noDetail) unless `plain` asks for it.
  */
 export async function POST(request: Request) {
   const user = isAuthEnabled() ? resolveRequestUser(request) : null;
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
     comfyUrl: typeof body.comfyUrl === 'string' ? body.comfyUrl.trim().slice(0, 300) : undefined,
     userId: user?.id ?? null,
     requestOrigin: new URL(request.url).origin,
+    // Cut plain (no detail pass) when the master can't have one — asked for, never assumed.
+    plain: body.plain === true,
   });
   if (!result.available) console.warn(`[scene-master] ${who}/${shot} not cut: ${result.reason}`);
   return apiJson(result);

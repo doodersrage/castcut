@@ -27,7 +27,13 @@ import {
 } from './scene-master';
 
 export type MasterCutResult =
-  { available: true; image: ComfyImageRef; plain?: true } | { available: false; reason: string };
+  | { available: true; image: ComfyImageRef; plain?: true }
+  | {
+      available: false;
+      reason: string;
+      /** The master has no Qwen-Image 2.1 settings to give the cut its detail back. */
+      noDetail?: true;
+    };
 
 const firstImage = (entry: { outputs?: Record<string, unknown> }) => {
   for (const output of Object.values(entry.outputs ?? {})) {
@@ -44,6 +50,11 @@ export async function cutShotFromMaster(input: {
   comfyUrl?: string;
   userId?: string | null;
   requestOrigin?: string;
+  /**
+   * A master with no detail-pass settings: cut plain (softer) when asked; otherwise not cut, and
+   * said — a plain crop isn't made behind your back (the after-release list, 2026-11-18).
+   */
+  plain?: boolean;
 }): Promise<MasterCutResult> {
   const baseUrl = comfyBaseUrl(input.comfyUrl);
   const fetched = await fetchFilmShotBytes({
@@ -135,11 +146,16 @@ export async function cutShotFromMaster(input: {
     sources = next;
   }
   if (!detail) {
-    // A master last finished on another model (Edit 2511's face finish) has no Qwen-Image 2.1
-    // graph to give the detail back with: the plain cut — softer, but the same room and people.
-    return plainCut
-      ? { available: true, image: plainCut, plain: true }
-      : { available: false, reason: 'The master is not a Qwen-Image 2.1 still.' };
+    // No Qwen-Image 2.1 graph here or in what it finished: a plain cut only when asked for.
+    if (!input.plain || !plainCut) {
+      return {
+        available: false,
+        noDetail: true,
+        reason:
+          'its master has no Qwen-Image 2.1 settings to give the cut its detail back (a plain cut is softer)',
+      };
+    }
+    return { available: true, image: plainCut, plain: true };
   }
   const run = await runComfyUtilityGraph({
     baseUrl,

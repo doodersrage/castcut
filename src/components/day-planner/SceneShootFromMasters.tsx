@@ -13,14 +13,16 @@ type CutAnswer = {
   available?: boolean;
   image?: { filename: string; subfolder?: string; type?: string };
   reason?: string;
+  /** Its master has no detail-pass settings: not cut unless asked plain. */
+  noDetail?: boolean;
 };
 
-async function askForCut(masterUrl: string, cut: object): Promise<CutAnswer | null> {
+async function askForCut(masterUrl: string, cut: object, plain = false): Promise<CutAnswer | null> {
   const response = await fetch('/api/scene-master', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ masterUrl, ...cut }),
+    body: JSON.stringify({ masterUrl, ...cut, ...(plain ? { plain: true } : {}) }),
     // One stuck cut doesn't hold up the rest (the flagship, 2026-11-18: 3 hours on one shot).
     signal: AbortSignal.timeout(12 * 60_000),
   }).catch(() => null);
@@ -45,6 +47,8 @@ export default function SceneShootFromMasters({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Shots whose master has no detail-pass settings: cut plain only when you say so.
+  const [noDetail, setNoDetail] = useState<string[]>([]);
   const targets = useMemo(() => {
     const masters = sceneMasters(page.castScenes);
     const shotsOf = new Map<string, SavedScene[]>();
@@ -72,16 +76,24 @@ export default function SceneShootFromMasters({
   // Nothing left to cut: only what the last press did, if anything (every shot cut leaves none —
   // the note went with the button, 2026-11-18).
   if (!targets.length && !note) return null;
-  const run = async () => {
+  const run = async (plain = false) => {
     setNote(null);
+    // Plain: only the shots held back for want of a detail pass.
+    const list = plain ? targets.filter(target => noDetail.includes(target.scene.id)) : targets;
     const made: Array<{ sceneId: string; take: { id: string; imageUrl: string } }> = [];
     const failed: string[] = [];
-    for (const [index, target] of targets.entries()) {
-      setBusy(`Shot ${index + 1} of ${targets.length}: ${target.scene.name}…`);
+    const heldBack: string[] = [];
+    for (const [index, target] of list.entries()) {
+      setBusy(`Shot ${index + 1} of ${list.length}: ${target.scene.name}…`);
       let json: CutAnswer | null = null;
-      // A cut can fail for a moment (ComfyUI busy, a staged file not there yet): twice more.
-      for (let attempt = 0; attempt < 3 && !json?.available; attempt += 1) {
-        json = await askForCut(target.masterUrl, target.cut);
+      // A cut can fail for a moment (ComfyUI busy, a staged file not there yet): twice more —
+      // not when its master has no detail pass (that doesn't change).
+      for (let attempt = 0; attempt < 3 && !json?.available && !json?.noDetail; attempt += 1) {
+        json = await askForCut(target.masterUrl, target.cut, plain);
+      }
+      if (json?.noDetail) {
+        heldBack.push(target.scene.id);
+        continue;
       }
       if (!json?.available || !json.image?.filename) {
         failed.push(`${target.scene.name.split(' ')[0]}: ${json?.reason ?? 'no answer'}`);
@@ -102,8 +114,15 @@ export default function SceneShootFromMasters({
     }
     page.keepNewTakes(made);
     setBusy(null);
+    setNoDetail(heldBack);
+    const heldNames = list
+      .filter(target => heldBack.includes(target.scene.id))
+      .map(target => target.scene.name.split(' ')[0]);
     setNote(
       `${made.length} shot${made.length === 1 ? '' : 's'} cut from their masters and kept` +
+        (heldNames.length
+          ? ` · ${heldNames.length} not cut: their master has no detail-pass settings (${heldNames.join(', ')}) — a plain cut is softer`
+          : '') +
         (failed.length
           ? ` · ${failed.length} couldn’t be, kept as they were (${failed.join('; ')})`
           : '') +
@@ -131,6 +150,18 @@ export default function SceneShootFromMasters({
         >
           {note}
         </span>
+      ) : null}
+      {noDetail.length && busy === null ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={disabled}
+          data-testid="scene-shoot-from-masters-plain"
+          title="Cut these shots from their masters without the detail pass: the same room and people, softer"
+          onClick={() => void run(true)}
+        >
+          Cut them plain ({noDetail.length})
+        </Button>
       ) : null}
     </div>
   );
