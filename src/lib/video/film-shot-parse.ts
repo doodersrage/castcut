@@ -77,6 +77,9 @@ export function parseFilmPlaylistShots(raw: unknown): FilmPlaylistShot[] {
         : {}),
       ...(spoken ? { spoken } : {}),
       ...(sceneGroup ? { sceneGroup } : {}),
+      // A continuous take's join: the hard-cut crossfade leaves its frames (join-crossfade.ts).
+      ...(clip && record.chainIn === true ? { chainIn: true as const } : {}),
+      ...(clip && record.chainOut === true ? { chainOut: true as const } : {}),
       ...(narrationText ? { narrationText } : {}),
       // Set in Cut (M4 F5); '' is kept: no subtitle on this shot.
       ...(typeof record.subtitle === 'string'

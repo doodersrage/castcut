@@ -132,8 +132,26 @@ describe('a film assembled from mismatched sources', { skip: !hasFfmpeg && 'no f
     assert.ok(audio, 'the film has sound (the clips that had it)');
     assert.equal(audio!.sample_rate, '48000');
     assert.equal(audio!.channels, 2);
-    // As long as its shots: 1.5 + 1.5 + 1.2 + 1 s, give or take a frame per join.
-    assert.ok(Math.abs(duration - 5.2) < 0.25, `5.2 s of shots, the film ${duration} s`);
+    // As long as its shots: 1.5 + 1.5 + 1.2 + 1 s, less the two frames each side of the one
+    // hard cut between clips with sound (join-crossfade.ts), give or take a frame per join.
+    const expected = 5.2 - 2 * (2 / FILM_FPS);
+    assert.ok(Math.abs(duration - expected) < 0.2, `${expected} s of shots, the film ${duration} s`);
+    // The cut between the two clips with sound is crossfaded: no dip toward silence around it
+    // (an 8 ms fade out and in each side used to drop it to nothing for ~16 ms).
+    const cut = 1.5 - 2 / FILM_FPS;
+    const log = execFileSync('sh', ['-c', `ffmpeg -v info -ss ${(cut - 0.12).toFixed(3)} -t 0.24 -i '${out}' -vn -af 'asetnsamples=n=48,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level' -f null - 2>&1`]).toString();
+    const rms = [...log.matchAll(/RMS_level=(-?[\d.]+|-inf)/g)].map(m => (m[1] === '-inf' ? -200 : Number(m[1])));
+    assert.ok(rms.length >= 100, `read the levels (${rms.length})`);
+    // 1 ms windows: no gap — no run of more than 2 ms over 10 dB under the middle level. (Two
+    // tones overlapping beat: single-millisecond dips every ~9 ms are the overlap, not a gap.)
+    const middle = [...rms].sort((a, b) => a - b)[Math.floor(rms.length / 2)]!;
+    let streak = 0;
+    let longest = 0;
+    for (const level of rms) {
+      streak = middle - level > 10 ? streak + 1 : 0;
+      longest = Math.max(longest, streak);
+    }
+    assert.ok(longest <= 2, `no gap at the cut: ${longest} ms under the middle (${middle.toFixed(1)} dB)`);
     // Whole frames at the rate: the frame count is the duration at FILM_FPS.
     const frames = Number(video.nb_frames);
     assert.ok(Math.abs(frames - Number(video.duration) * FILM_FPS) <= 1, `${frames} frames`);

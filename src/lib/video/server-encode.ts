@@ -3,6 +3,8 @@
  * Browser MediaRecorder remains the offline fallback.
  */
 
+import { joinCrossfadeFilters, planJoinCrossfades } from './join-crossfade';
+import { FILM_FPS } from './film-fps';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -563,6 +565,8 @@ export function buildFilterComplex(input: {
   /** Per clip: J / L cut — its sound starts this long before its picture / runs this long after. */
   soundLeads?: ReadonlyArray<number | undefined>;
   soundTails?: ReadonlyArray<number | undefined>;
+  /** Per shot: the hard cut into it crossfades its sound with the shot before's (join-crossfade.ts). */
+  joinCrossfades?: ReadonlyArray<boolean | undefined>;
   /** Music start / fades (cut-sound.ts). */
   sound?: CutSoundOptions | null;
   /** The ambience track's ffmpeg input index (looped), when there is one. */
@@ -934,9 +938,17 @@ export function buildFilterComplex(input: {
       Math.min(pieceSec / 3, Math.max(EDGE_FADE_SEC, Math.min(SOFT_JOIN_MAX_SEC, overlap ?? 0)));
     const fadeInSec = edge(lead > 0 ? 0 : joinOverlaps[index]);
     const fadeOutSec = edge(tail > 0 ? 0 : joinOverlaps[index + 1]);
+    // A crossfaded hard cut (join-crossfade.ts): that edge fades across the cut instead.
+    const joined = joinCrossfadeFilters({
+      pieceSec,
+      lead,
+      tail,
+      fadeIn: input.joinCrossfades?.[index] === true && lead > 0,
+      fadeOut: input.joinCrossfades?.[index + 1] === true && tail > 0,
+    });
     const edgeFades =
       pieceSec > 4 * EDGE_FADE_SEC
-        ? `afade=t=in:st=0:d=${Number(fadeInSec.toFixed(3))},afade=t=out:st=${(pieceSec - fadeOutSec).toFixed(3)}:d=${Number(fadeOutSec.toFixed(3))},`
+        ? `${joined.in || `afade=t=in:st=0:d=${Number(fadeInSec.toFixed(3))}`},${joined.out || `afade=t=out:st=${(pieceSec - fadeOutSec).toFixed(3)}:d=${Number(fadeOutSec.toFixed(3))}`},`
         : '';
     // The clip's own level (Cut's shot list) on top of the Lines level.
     const own = input.volumes?.[index];
@@ -1250,6 +1262,32 @@ export async function encodeFilmPlaylistServer(
       );
     }
 
+    // A hard cut's sound crossfaded (join-crossfade.ts): the picture cut two frames inside each
+    // clip, each clip's sound playing on through them, the two faded across the cut.
+    const joinPlan = planJoinCrossfades({
+      kinds,
+      holdSecs,
+      trimStarts,
+      soundLeads,
+      soundTails,
+      voiced: speech,
+      overlaps: cutJoins({
+        count: shots.length,
+        crossfadeSec,
+        transitions: shots.map(shot => shot.transitionIn),
+      }).overlaps,
+      speeds,
+      reverses,
+      chainIns: shots.map(shot => shot.chainIn),
+      chainOuts: shots.map(shot => shot.chainOut),
+      fps: FILM_FPS,
+    });
+    holdSecs.splice(0, holdSecs.length, ...joinPlan.holdSecs);
+    trimStarts.splice(0, trimStarts.length, ...joinPlan.trimStarts);
+    soundLeads.splice(0, soundLeads.length, ...joinPlan.soundLeads);
+    soundTails.splice(0, soundTails.length, ...joinPlan.soundTails);
+    const joinCrossfades = joinPlan.crossfades;
+
     let audioPath: string | null = null;
     const audioBed = options.audioBedUrl?.trim();
     if (audioBed) {
@@ -1423,6 +1461,7 @@ export async function encodeFilmPlaylistServer(
     const graphPipFiles: Array<(typeof pipFiles)[number]> = [];
     const graphLeads: number[] = [];
     const graphTails: number[] = [];
+    const graphJoinCrossfades: boolean[] = [];
     const inputArgs: string[][] = [];
     // Smooth motion: each clip under the film's rate gets RIFE's in-between frames (same length).
     if (options.smoothMotion) {
@@ -1512,6 +1551,7 @@ export async function encodeFilmPlaylistServer(
       graphPipFiles.push(null);
       graphLeads.push(0);
       graphTails.push(0);
+      graphJoinCrossfades.push(false);
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
       graphMoves.push(null);
@@ -1544,6 +1584,7 @@ export async function encodeFilmPlaylistServer(
       graphPipFiles.push(pipFiles[i] ?? null);
       graphLeads.push(soundLeads[i] ?? 0);
       graphTails.push(soundTails[i] ?? 0);
+      graphJoinCrossfades.push(joinCrossfades[i] === true);
       graphTransitions.push(shots[i]?.transitionIn);
       graphMotions.push(shots[i]?.motion);
       graphMoves.push(
@@ -1690,6 +1731,7 @@ export async function encodeFilmPlaylistServer(
       graphPipFiles.push(null);
       graphLeads.push(0);
       graphTails.push(0);
+      graphJoinCrossfades.push(false);
       graphTransitions.push(undefined);
       graphMotions.push(undefined);
       graphMoves.push(null);
@@ -1782,6 +1824,7 @@ export async function encodeFilmPlaylistServer(
       subtitleStyle,
       soundLeads: graphLeads,
       soundTails: graphTails,
+      joinCrossfades: graphJoinCrossfades,
       sound: options.sound,
       // After the shots, the music bed and the narration tracks.
       ambienceInput: ambiencePath
