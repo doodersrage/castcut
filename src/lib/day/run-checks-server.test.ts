@@ -94,7 +94,8 @@ describe('a run’s take checked on the server (Phase 3, step 7)', () => {
     assert.equal(someoneElse?.face, 0.22);
     assert.match(asked[0]!, /^leftmost:.*mara-plate\.png/);
     assert.ok(!asked.includes('whole-picture'), 'the whole-picture match would judge his face too');
-    assert.equal((await duo(0.61))?.faceMiss, false);
+    // Smaller in a shot of two: a good wide reads 0.37 (match.ts DUO_STILL_MIN_FACE_MATCH).
+    assert.equal((await duo(0.37))?.faceMiss, false);
     // Unread (one face turned away): no verdict, not a miss.
     assert.equal((await duo(null))?.faceMiss, undefined);
   });

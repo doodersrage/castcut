@@ -12,7 +12,7 @@
 import type { CharacterRecord } from '@/lib/character/os';
 import { checkableMarks, marksCheckNote, marksCheckVerdict } from '@/lib/cast/marks-check';
 import { readMarksInStill } from '@/lib/cast/marks-check-server';
-import { STILL_MIN_FACE_MATCH } from '@/lib/face/match';
+import { DUO_STILL_MIN_FACE_MATCH, STILL_MIN_FACE_MATCH } from '@/lib/face/match';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
 import { measureLeadFaceInComfy } from '@/lib/face/finish-server';
 import { measureFaceMatchInComfy } from '@/lib/face/match-server';
@@ -129,7 +129,7 @@ export async function checkServerTake(input: {
       }).catch(() => null);
       if (measured) {
         checks.face = measured.similarity;
-        checks.faceMiss = measured.similarity < STILL_MIN_FACE_MATCH;
+        checks.faceMiss = measured.similarity < DUO_STILL_MIN_FACE_MATCH;
       }
     }
     return found();

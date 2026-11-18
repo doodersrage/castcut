@@ -37,6 +37,14 @@ export const STILL_MIN_FACE_MATCH = 0.4;
 export const STILL_FACE_MATCH_WARN_BELOW = 0.55;
 
 /**
+ * Her face in a shot of two, on her side (face/finish-server.ts measureLeadFaceInComfy): smaller
+ * in frame, so lower than a still of her alone. Measured on the flagship (2026-11-18, her Cast
+ * picture against 16 stills of the two of them): someone else drawn in her place 0.23–0.25 (the
+ * hardware store, 3 stills); her 0.37–0.70 (13) — 0.4 would have redone six good ones.
+ */
+export const DUO_STILL_MIN_FACE_MATCH = 0.3;
+
+/**
  * Story stills are staged expressively (hard golden backlight, open grins, tilted heads) and
  * InsightFace scores all of that as distance: 78 right-woman Story renders (2026-09-27) sat at
  * similarity 0.12–0.43 (median 0.26), so the 0.3 bar marked 68% of them as "not the Cast".
