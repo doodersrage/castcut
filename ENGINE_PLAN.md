@@ -100,6 +100,8 @@ bodies the face score cannot see: a phone turned into a floating object, a blot 
 logo that wasn't there, and a seated figure collapsed. 15 steps had none of those in the shots
 checked. 15 steps is the floor: 35% off a Final, at 78 s against the 75 s gate.
 
+**Shipped:** Edit 2511's Final tier runs 15 steps (`sampler-defaults.ts`, main `1e5a34f6`).
+
 ## 2. Stop re-encoding what repeats (weeks 2–3)
 
 Run s20 found that most of a preview take goes on encoding the prompt and pictures, new for every
