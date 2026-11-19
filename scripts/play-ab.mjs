@@ -20,6 +20,9 @@
  *     "reference": "other-plate.png",                          // optional: this case's own face reference                                          // optional: this case's own seeds (e.g. the still's)
  *     "graph": "/var/lib/comfyui/output/Castcut_00311_.png",  // output PNG (embedded prompt) or API-format .json
  *     "variants": {
+ *       "lightning": { "steps": 8, "cfg": 1, "sampler": "euler", "scheduler": "simple",
+ *                      "nodes": { "990": { "class_type": "LoraLoaderModelOnly", "inputs": { ... } } },
+ *                      "inputs": { "7": { "model": ["990", 0] } } },
  *       "square":   { "latent": [1328, 1328] },
  *       "portrait": { "latent": [1104, 1472], "steps": 8,
  *                     "replace": [["old prompt text", "new prompt text"]],
@@ -28,6 +31,11 @@
  *     }
  *   }]
  * }
+ *
+ * "original": true with a reference also face-scores each graph's own PNG, as the first variant
+ * ("original") — the baseline the others are counted against, without rendering it again. With
+ * the Castcut node pack 1.9.0+, each render's ComfyUI time and sampler time are reported too.
+ * --serial queues one render at a time, so other people's jobs can go between them.
  *
  * Face distance is InsightFace cosine (FaceEmbedDistance, lower = closer; 100 = no face).
  * Always look at the contact sheet too — a face score alone once picked the variant that
@@ -39,7 +47,11 @@ import { basename, join, resolve } from 'node:path';
 import sharp from 'sharp';
 
 const args = process.argv.slice(2);
-const specPath = args.find(arg => !arg.startsWith('--'));
+const specPath = args.find(
+  (arg, index) =>
+    !arg.startsWith('--') &&
+    !['--out', '--comfy', '--client', '--upload-prefix'].includes(args[index - 1])
+);
 const flag = name => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 ? args[index + 1] : undefined;
@@ -55,6 +67,7 @@ const COMFY = (flag('comfy') ?? process.env.COMFYUI_URL ?? 'http://127.0.0.1:818
 const spec = JSON.parse(readFileSync(specPath, 'utf8'));
 const clientId = flag('client');
 const uploadPrefix = flag('upload-prefix') ?? 'play-ab-';
+const serial = args.includes('--serial');
 const runId = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const outDir = resolve(flag('out') ?? join('play-ab-out', runId));
 mkdirSync(outDir, { recursive: true });
@@ -164,6 +177,9 @@ function applyVariant(graph, variant, seed, prefix) {
     }
     if (node.class_type === 'KSampler' || node.class_type === 'KSamplerAdvanced') {
       if (variant.steps) node.inputs.steps = variant.steps;
+      if (variant.cfg !== undefined) node.inputs.cfg = variant.cfg;
+      if (variant.sampler) node.inputs.sampler_name = variant.sampler;
+      if (variant.scheduler) node.inputs.scheduler = variant.scheduler;
     }
     if (node.class_type === 'SaveImage') {
       node.inputs.filename_prefix = prefix;
@@ -186,6 +202,24 @@ async function waitFor(promptId) {
     }
     await sleep(2000);
   }
+}
+
+/** A render's ComfyUI time and sampler time (ms) from the Castcut node pack; null without it. */
+async function renderTimes(promptId, graph) {
+  const timings = await comfy(`/castcut/timings?prompt_id=${encodeURIComponent(promptId)}`).catch(
+    () => null
+  );
+  if (!timings?.nodes?.length || typeof timings.ended !== 'number') return null;
+  let sampleMs = 0;
+  for (const node of timings.nodes) {
+    if (!/Sampler/.test(graph[node.id]?.class_type ?? '')) continue;
+    const end = typeof node.end === 'number' ? node.end : timings.ended;
+    sampleMs += Math.max(
+      0,
+      end - (typeof node.firstStep === 'number' ? node.firstStep : node.start)
+    );
+  }
+  return { renderMs: timings.ended - (timings.started ?? timings.nodes[0].start), sampleMs };
 }
 
 async function uploadInput(buffer, name) {
@@ -266,28 +300,56 @@ async function contactSheet(rows, file) {
 
 const seeds = spec.seeds?.length ? spec.seeds : [1111, 2222];
 const jobs = [];
+// The graphs' own renders, scored as the baseline (no render).
+const scoreOriginals = Boolean(spec.original);
+for (const testCase of spec.cases) {
+  const reference = testCase.reference ?? spec.reference;
+  if (!scoreOriginals || !reference || testCase.graph.endsWith('.json')) continue;
+  const buffer = readFileSync(testCase.graph);
+  const inputName = `${uploadPrefix}${runId}-${testCase.name}_original.png`;
+  await uploadInput(buffer, inputName);
+  const distance = await faceDistance(reference, inputName);
+  for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
+    jobs.push({
+      case: testCase.name,
+      variant: 'original',
+      seed,
+      reference,
+      buffer,
+      faceDistance: distance,
+      original: true,
+    });
+  }
+  console.log(`original ${testCase.name} face ${distance?.toFixed(3)}`);
+}
+const queued = [];
 for (const testCase of spec.cases) {
   const graph = await loadGraph(testCase.graph);
   for (const [variantName, variant] of Object.entries(testCase.variants)) {
     for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
       const prefix = `play-ab/${runId}/${testCase.name}_${variantName}_${seed}`;
-      const { prompt_id: promptId } = await comfy('/prompt', {
-        prompt: applyVariant(graph, variant, seed, prefix),
-      });
-      jobs.push({
+      queued.push({
         case: testCase.name,
         variant: variantName,
         seed,
-        promptId,
+        graph: applyVariant(graph, variant, seed, prefix),
         reference: testCase.reference ?? spec.reference,
       });
     }
   }
 }
-console.log(`queued ${jobs.length} renders → ${outDir}`);
+const submit = async job => {
+  job.promptId = (await comfy('/prompt', { prompt: job.graph })).prompt_id;
+};
+if (!serial) for (const job of queued) await submit(job);
+console.log(`${serial ? 'rendering' : 'queued'} ${queued.length} renders → ${outDir}`);
 
-for (const [index, job] of jobs.entries()) {
+for (const [index, job] of queued.entries()) {
+  jobs.push(job);
+  if (serial) await submit(job);
   const entry = await waitFor(job.promptId);
+  const times = await renderTimes(job.promptId, job.graph);
+  if (times) Object.assign(job, times);
   const image = Object.values(entry.outputs)
     .flatMap(output => output.images ?? [])
     .find(Boolean);
@@ -307,14 +369,30 @@ for (const [index, job] of jobs.entries()) {
     job.faceDistance = await faceDistance(job.reference, inputName);
   }
   console.log(
-    `[${index + 1}/${jobs.length}] ${job.case} ${job.variant} ${seedLabel(job.seed)}` +
-      (job.faceDistance != null ? ` face ${job.faceDistance.toFixed(3)}` : '')
+    `[${index + 1}/${queued.length}] ${job.case} ${job.variant} ${seedLabel(job.seed)}` +
+      (job.faceDistance != null ? ` face ${job.faceDistance.toFixed(3)}` : '') +
+      (job.renderMs != null
+        ? ` ${(job.renderMs / 1000).toFixed(1)} s (sampler ${(job.sampleMs / 1000).toFixed(1)} s)`
+        : '')
   );
 }
 
 // Summary: mean face distance per variant, and per-pair wins against the first variant.
 const variantNames = [...new Set(jobs.map(job => job.variant))];
 const baseline = variantNames[0];
+const median = values => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+for (const name of variantNames) {
+  const timed = jobs.filter(job => job.variant === name && job.renderMs != null);
+  if (!timed.length) continue;
+  console.log(
+    `${name}: median ${(median(timed.map(job => job.renderMs)) / 1000).toFixed(1)} s a render, ` +
+      `sampler ${(median(timed.map(job => job.sampleMs)) / 1000).toFixed(1)} s (${timed.length} timed)`
+  );
+}
 console.log('\nvariant           mean face   n   closer than ' + baseline);
 for (const name of variantNames) {
   const scored = jobs.filter(
@@ -342,7 +420,9 @@ const rows = [];
 for (const testCase of spec.cases) {
   // The render the graph came from, first in each row (a PNG source only).
   const original =
-    spec.original && !testCase.graph.endsWith('.json')
+    spec.original &&
+    !testCase.graph.endsWith('.json') &&
+    !jobs.some(job => job.original && job.case === testCase.name)
       ? [{ buffer: readFileSync(testCase.graph), label: `${testCase.name} original` }]
       : [];
   for (const seed of testCase.seeds?.length ? testCase.seeds : seeds) {
@@ -361,7 +441,7 @@ await contactSheet(rows, join(outDir, 'contact.jpg'));
 writeFileSync(
   join(outDir, 'results.json'),
   JSON.stringify(
-    jobs.map(({ buffer: _buffer, ...job }) => job),
+    jobs.map(({ buffer: _buffer, graph: _graph, ...job }) => job),
     null,
     2
   )
