@@ -9,6 +9,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.1.0] - 2026-11-19
+
+- Engine plan phase 1: the benchmark — real render graphs replayed, timed by stage, two runs compared
+- Engine plan phase 1: where each render's time goes, by stage
+- Docs and e2e: the continuous take, Shoot from the masters, 24 fps, crossfaded hard cuts
+- Animate the kept takes: a shot is landed only when its kept take has its clip
+- Shoot from the masters: a master with no detail-pass settings stops its cuts and says so
+- A hard cut's sound crossfades: the picture cut two frames inside each clip, the sound overlapping
+- Real-render: EPISODE_RESET_MARKS=1 applies edits only (a continuous take marked), takes and run kept
+- Continuous take: a shot can start on the last frame of the shot before's clip
+- One frame rate for the film: 24, read by the render, reframe, browser fallback, Cut room and editor export
+
 ## [v4.0.0] - 2026-11-18
 
 - e2e: Recently deleted test finds its own fixture, not "fixture b" too
