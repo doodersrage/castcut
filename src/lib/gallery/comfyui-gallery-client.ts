@@ -1,3 +1,4 @@
+import { normalizeRenderStages } from '../comfyui/stage-timing';
 import { noteComfyLiveJobState } from '@/lib/comfyui/websocket';
 import type { ComfyHistoryImportItem } from '../comfyui/status';
 import {
@@ -580,6 +581,7 @@ type ComfyJobStatusPayload = {
   images?: ComfyGalleryEntry['images'];
   renderDurationMs?: number;
   executionStartedAt?: number;
+  renderStages?: unknown;
 };
 
 function isUsableJobStatus(status: ComfyJobStatusPayload | null | undefined): boolean {
@@ -722,6 +724,9 @@ function applyComfyJobStatus(
         ? { executionStartedAt: status.executionStartedAt }
         : {}),
       ...(renderDurationMs != null ? { renderDurationMs } : {}),
+      ...(normalizeRenderStages(status.renderStages)
+        ? { renderStages: normalizeRenderStages(status.renderStages) }
+        : {}),
       comfyUrl: tracker.comfyUrl,
     });
     if (entry) {
@@ -776,6 +781,9 @@ function applyComfyJobStatus(
     completedAt,
     ...(status.executionStartedAt != null ? { executionStartedAt: status.executionStartedAt } : {}),
     ...(renderDurationMs != null ? { renderDurationMs } : {}),
+    ...(normalizeRenderStages(status.renderStages)
+      ? { renderStages: normalizeRenderStages(status.renderStages) }
+      : {}),
     comfyUrl: tracker.comfyUrl,
     images: status.images ?? [],
   });

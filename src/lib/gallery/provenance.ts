@@ -4,6 +4,7 @@
  * was given, when, and whether the exact graph is still stored for replay. Rows with nothing to
  * say are left out. Pure.
  */
+import { formatRenderStages } from '../comfyui/stage-timing';
 import type { ComfyGalleryEntry } from './comfyui-gallery-entry';
 import { galleryDerivedKindLabel } from './derived-kind';
 import { galleryToolLabel } from './tool-href';
@@ -40,6 +41,7 @@ export type ProvenanceEntry = Pick<
   | 'queuedAt'
   | 'completedAt'
   | 'renderDurationMs'
+  | 'renderStages'
 >;
 
 const ENGINE_LABELS: Record<string, string> = {
@@ -184,6 +186,8 @@ export function galleryEntryProvenance(
     add('finished', 'Finished', formatTime(entry.completedAt));
   }
   add('render-time', 'Render time', formatRenderDuration(entry.renderDurationMs));
+  // Where it went (ENGINE_PLAN.md phase 1), when the Castcut node pack timed it.
+  add('render-stages', 'Render stages', formatRenderStages(entry.renderStages));
   add('graph', 'Exact graph', storedGraphNote(entry));
   add('prompt', 'Prompt', text(entry.prompt), true);
   add('negative', 'Negative prompt', text(entry.negativePrompt), true);

@@ -4,6 +4,7 @@ import { detectWorkflowPlaceholders } from './config';
 import { extractImagesFromOutputs, type ComfyOutputImage } from './outputs';
 import { extractParamsFromWorkflow } from '../workflow/param-extract';
 import { extractComfyExecutionTiming } from './render-duration';
+import { renderStagesOf, type ComfyJobTimings, type RenderStages } from './stage-timing';
 import { interpretComfyJobDetail, parseComfyJobList } from './jobs';
 
 export type ComfyPromptStatus = {
@@ -18,6 +19,8 @@ export type ComfyPromptStatus = {
   renderDurationMs?: number;
   executionStartedAt?: number;
   executionEndedAt?: number;
+  /** Where that time went, by stage (stage-timing.ts), when the Castcut node pack timed it. */
+  renderStages?: RenderStages;
 };
 
 type ComfyHistoryEntry = {
@@ -204,6 +207,34 @@ export async function confirmComfyPromptLost(
 }
 
 export async function getComfyUiPromptStatus(
+  promptId: string,
+  runtime?: ComfyUiRuntimeConfig
+): Promise<ComfyPromptStatus> {
+  const status = await promptStatusFromComfy(promptId, runtime);
+  if (status.status !== 'completed' && status.status !== 'error') return status;
+  // Where its time went (ENGINE_PLAN.md phase 1): the node pack's timings with the job's graph.
+  const stages = await fetchRenderStages(status.comfyUrl, promptId).catch(() => null);
+  return stages ? { ...status, renderStages: stages } : status;
+}
+
+/** A finished job's stages from the Castcut node pack (1.9.0+); null without it. */
+async function fetchRenderStages(comfyUrl: string, promptId: string): Promise<RenderStages | null> {
+  const timings = await fetchJson(
+    `${comfyUrl}/castcut/timings?prompt_id=${encodeURIComponent(promptId)}`,
+    2000
+  );
+  if (!timings || typeof timings !== 'object' || (timings as { unknown?: unknown }).unknown) {
+    return null;
+  }
+  const history = await fetchHistoryEntry(comfyUrl, promptId);
+  const graph = Array.isArray(history?.prompt) ? history.prompt[2] : null;
+  return renderStagesOf(
+    graph && typeof graph === 'object' ? (graph as Record<string, { class_type?: string }>) : null,
+    timings as ComfyJobTimings
+  );
+}
+
+async function promptStatusFromComfy(
   promptId: string,
   runtime?: ComfyUiRuntimeConfig
 ): Promise<ComfyPromptStatus> {

@@ -245,6 +245,11 @@ export type ComfyGalleryEntry = {
   renderDurationMs?: number;
   /** ComfyUI execution_start timestamp (ms) when parsed from history messages. */
   executionStartedAt?: number;
+  /**
+   * Where the render's time went, by stage (comfyui/stage-timing.ts; ENGINE_PLAN.md phase 1):
+   * load, encode, sample, decode, finish, save — when the Castcut node pack timed it.
+   */
+  renderStages?: import('../comfyui/stage-timing').RenderStages;
   favorite?: boolean;
   images: ComfyOutputImage[];
   /** Set once an OOM/execution_error auto-retry has been attempted for this job (max one retry). */

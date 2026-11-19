@@ -126,6 +126,14 @@ through the render queue:
   the single `castcut_nodes.py` file) and one ComfyUI restart after installing, so ComfyUI
   registers the folder. The copy under `workflows/Castcut/` is still saved either way.
 
+- **1.9.0: where a render's time goes.** The pack times each node of every job — when it
+  started, its first sampler step and when it finished — whoever queued it, and answers
+  `/castcut/timings?prompt_id=…`. Castcut adds the job's stages (load, encode, sample, decode,
+  finish, save) to its Gallery entry beside the render time (**Render stages** in a picture's
+  details), and `node scripts/stage-report.mjs` sums them for a run. A sampler's start to its
+  first step counts as load: ComfyUI moves the model to the GPU there. Needs a ComfyUI restart
+  after updating, like any node pack.
+
 Without 1.2.0 (or when a route fails) everything works as before, through queued graphs. The
 queue position of a waiting still now comes from ComfyUI's jobs list rather than the whole
 queue, on any ComfyUI that has it (pack or not).
