@@ -7,10 +7,11 @@
  *   npx tsx scripts/engine-bench.mts <list.txt> --out <results.json> [--vs <earlier.json>]
  *     [--comfy http://127.0.0.1:8188] [--output-dir <ComfyUI output folder>]
  *
- * list.txt: one ComfyUI output PNG per line (a file name in --output-dir, or a path); its embedded
- * graph is the job. Saves go to the output folder's castcut-bench/ (never over a render). Jobs are
+ * list.txt: one ComfyUI output PNG or MP4 per line (a file name in --output-dir, or a path); its
+ * embedded graph is the job (an MP4's is read with ffprobe). Saves go to the output folder's castcut-bench/ (never over a render). Jobs are
  * queued one at a time, as client castcut-bench, behind anything already in the queue.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import {
@@ -41,8 +42,25 @@ if (!listFile || !outFile) {
   process.exit(2);
 }
 
-/** A PNG's embedded API graph (tEXt "prompt"). */
+/** An MP4 or WebM's embedded API graph (SaveVideo's "prompt" tag), read with ffprobe. */
+function videoGraphOf(file: string): Graph | null {
+  try {
+    const out = execFileSync(
+      'ffprobe',
+      ['-v', 'quiet', '-show_entries', 'format_tags=prompt', '-of', 'json', file],
+      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
+    );
+    const prompt = (JSON.parse(out) as { format?: { tags?: { prompt?: string } } }).format?.tags
+      ?.prompt;
+    return prompt ? (JSON.parse(prompt) as Graph) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A PNG's embedded API graph (tEXt "prompt"), or a video's. */
 function graphOf(file: string): Graph | null {
+  if (/\.(mp4|webm|mov)$/i.test(file)) return videoGraphOf(file);
   const bytes = readFileSync(file);
   let at = 8;
   while (at + 8 <= bytes.length) {
@@ -91,15 +109,18 @@ async function run(file: string): Promise<Result> {
   if (!existsSync(path)) return { file, skipped: 'no such file' };
   const graph = graphOf(path);
   if (!graph) return { file, skipped: 'no graph in the PNG' };
-  // Its pictures must still be in ComfyUI's input folder.
+  // Its pictures, sounds and videos must still be in ComfyUI's input folder.
   for (const node of Object.values(graph)) {
-    const image = node.inputs?.image;
-    if (
-      node.class_type === 'LoadImage' &&
-      typeof image === 'string' &&
-      !(await inputExists(image))
-    ) {
-      return { file, skipped: `input missing: ${image}` };
+    const name =
+      node.class_type === 'LoadImage'
+        ? node.inputs?.image
+        : node.class_type === 'LoadAudio'
+          ? node.inputs?.audio
+          : node.class_type === 'LoadVideo'
+            ? node.inputs?.file
+            : undefined;
+    if (typeof name === 'string' && !(await inputExists(name))) {
+      return { file, skipped: `input missing: ${name}` };
     }
   }
   for (const node of Object.values(graph)) {
