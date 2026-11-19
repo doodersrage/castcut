@@ -4384,6 +4384,97 @@ test('Animate on MiniMax-H3: each part its own beat and length, written and kept
     );
 });
 
+// A continuous take (2026-11-18): a script scene's shot can carry on from the shot before it — offered
+// on every shot but the first, stored on the Scene, and said to be stale when the shot before's clip
+// has changed since.
+test('a shot is marked a continuous take from the shot before; stale when that clip changed', async ({
+  page,
+}) => {
+  const base = sceneWithTakes();
+  const take = (id: string, clipUrl?: string, chainFrom?: Record<string, unknown>) => ({
+    id,
+    promptId: id,
+    imageUrl: `/icon.svg?take=${id}`,
+    ...(clipUrl ? { clipUrl } : {}),
+    ...(chainFrom ? { chainFrom } : {}),
+    at: 1,
+  });
+  const shot = (id: string, name: string, sceneId: string, kept: ReturnType<typeof take>, extra = {}) => ({
+    ...base.scenes[0]!,
+    id,
+    name,
+    createdAt: 1,
+    takes: [kept],
+    keptTakeId: kept.id,
+    fromScript: { scriptId: 'script-chain', sceneId, shotId: `${sceneId}~${id}` },
+    ...extra,
+  });
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        scene: {
+          ...base,
+          scenes: [
+            shot('cafe-a', '1A CAFE · Dialogue', 'int-cafe-day', take('ta', '/clip-a.mp4')),
+            shot('cafe-b', '1B CAFE · Dialogue', 'int-cafe-day', take('tb', '/clip-b2.mp4')),
+            // Chained to 1B's earlier clip (/clip-b.mp4): stale now.
+            shot(
+              'cafe-c',
+              '1C CAFE · Dialogue',
+              'int-cafe-day',
+              take('tc', '/clip-c.mp4', { sceneId: 'cafe-b', clipUrl: '/clip-b.mp4', atSec: 4.9 }),
+              { continuousTake: true }
+            ),
+            shot('beach-a', '2A BEACH · Action', 'ext-beach-night', take('td')),
+          ],
+          activeSceneId: 'cafe-b',
+          scripts: [
+            {
+              id: 'script-chain',
+              castId: CAST,
+              name: 'Chain test',
+              source: 'INT. CAFE - DAY\n\nShe pours coffee.\n\nEXT. BEACH - NIGHT\n\nShe walks.\n',
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  // 1B: offered, from 1A; off.
+  const toggle = page.getByTestId('scene-continuous-take-toggle');
+  await expect(page.getByTestId('scene-continuous-take')).toContainText('Continuous take from 1A', {
+    timeout: 60_000,
+  });
+  await expect(toggle).not.toBeChecked();
+  await toggle.check();
+  await expect
+    .poll(async () => {
+      const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+      return (tool.scenes ?? []).find((entry: { id: string }) => entry.id === 'cafe-b')?.continuousTake;
+    })
+    .toBe(true);
+  // 1C: marked, and its clip started on a clip of 1B's that 1B no longer has — stale.
+  await page.getByTestId('scene-list-item-cafe-c').click();
+  await expect(page.getByTestId('scene-continuous-take')).toContainText('Continuous take from 1B', {
+    timeout: 30_000,
+  });
+  await expect(toggle).toBeChecked();
+  await expect(page.getByTestId('scene-continuous-take-stale')).toBeVisible();
+  // A scene's first shot has nothing before it: not offered.
+  await page.getByTestId('scene-list-group-toggle-ext-beach-night').click();
+  await page.getByTestId('scene-list-item-beach-a').click();
+  await expect(page.getByTestId('scene-action-status')).toContainText('2A BEACH', { timeout: 30_000 });
+  await expect(page.getByTestId('scene-continuous-take')).toHaveCount(0);
+});
+
 // A script's Scenes, listed by its scenes (2026-11-08): an episode's few hundred no longer one strip.
 test('the Scene list shows a script’s Scenes by its scenes, filters them, and the ones made by hand', async ({
   page,

@@ -114,6 +114,22 @@ People isn't Solo). It is the same choice as Day's. Copy moves and Direct render
 The **Animate** card lists files ComfyUI is missing for it, and **End pose** (when this ComfyUI
 can pin a clip's last frame) re-poses the kept take for the clip to land on.
 
+### Continuous take
+
+A shot in a script scene can carry on from the shot before it: tick **Continuous take from 3B**
+(under Make it move). Its clip then starts on the sharpest of the shot before's last frames and
+ends on this shot's own kept still — one unbroken moment across the cut, still landing on the
+picture you approved. Cut ends the shot before on that frame, so the join doesn't jump.
+
+- It suits shots where the camera keeps going (the same two-shot, the action carrying on). A shot
+  framed differently — a close-up after a two-shot — starts in the shot before's framing.
+- Animate the shot before first: until it has a clip, this one starts from its own still.
+- When the shot before gets another clip, this one says so (its clip no longer starts where that
+  one ends) and **Animate the kept takes** animates it again.
+- After three continuous shots in a row, the next starts again from its own still.
+
+Off by default: every shot starts from its own kept still.
+
 ## Script
 
 A screenplay for the Cast, from text to shots, on its own page: **Script** (`/script`, in the Film
@@ -213,6 +229,18 @@ page. It is prepared on Script and renders on Scene: **Open the run →** on Scr
    ComfyUI hasn't started out of its queue. The trade-offs: a failed take doesn't stop the rest,
    and the checks that run on the card (Face finish, review, pose redo) only run on the take that
    lands on the open Scene. Use **Start the run** when you want them on every take.
+
+### Shoot from the masters
+
+Beside a run (or on its own, once a script scene's wide shot is kept), **Shoot from the masters**
+cuts each scene's other shots from its wide establishing shot — the master — instead of rendering
+them one by one: the two-shot, closer on her, closer on him, each given its detail back. The room,
+the light and where each person stands are the master's in every shot. A master asks for the two
+of them side by side, faces at one height; one that drew someone else in her place is caught by
+the face check and rendered again. **Animate the kept takes** then makes their clips.
+
+A master that has no detail-pass settings to work from isn't cut quietly soft: those shots are
+named, and **Cut them plain** cuts them without it when you choose to.
 
 ### Preview, then Final
 
