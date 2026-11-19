@@ -166,6 +166,31 @@ win.
 
 **Done when:** each candidate is kept or rejected with no drop in face distance or flag rate.
 
+**Status (19 November 2026): three candidates rejected for Final.** Each ran on Edit 2511's Final
+graphs at 15 steps, on their own seeds, against plain 15 steps (`scripts/play-ab.mjs`, results in
+`castcut-engine-bench/ab-accel-pilot*`, `ab-int8`, `ab-compile`):
+
+| Candidate                                | Shots | Median render | Sampler | Verdict                                                |
+| ---------------------------------------- | ----- | ------------- | ------- | ------------------------------------------------------ |
+| Plain 15 steps (control)                 | 35    | 67.5 s        | 57.0 s  | n/a                                                    |
+| INT8 attention (`ModelAttentionBackend`) | 35    | 53.5 s        | 44.1 s  | Rejected: redraws shots like a new seed                |
+| EasyCache, threshold 0.2                 | 8     | 43.7 s        | 26.3 s  | Rejected: mottled walls, lost background detail        |
+| EasyCache, threshold 0.05                | 8     | 39.4 s        | 30.4 s  | Rejected: the same, less often (a kitchen went blank)  |
+| `TorchCompileModel` (inductor)           | 1     | n/a           | n/a     | Rejected: out of memory, the model is partly offloaded |
+
+INT8 attention had the best face scores of all (mean 0.46 against 0.51), yet the contact sheet
+showed what the face score cannot: against plain 15 steps it lost the set on 2 of 35 shots, turned
+one cast member into someone else, dropped a person from a group, changed an outfit, and swapped
+or added props. Plain 15 steps kept every layout. For Final, where continuity is the point, that
+rules it out. It may still suit Preview, where a draft is redone anyway; not tested.
+
+The control itself measured 67.5 s a render today against 78.3 s in the earlier A/B, on the same
+graphs: replay times move by about 15% with whatever else holds the GPU. Phase 3's gate (75 s a
+Scene with one redo) needs a real Final run to call, not a replay.
+
+Still open: a tiny VAE for preview decodes (decode is under 1% of a Final), and these candidates on
+Qwen-Image 2.1 and LTX-2.5.
+
 ## 6. One memory budget (weeks 9–10)
 
 A vision model loaded beside Edit 2511 hit ComfyUI's "VRAM grow failed" on its first take. Nothing
