@@ -107,6 +107,32 @@ describe('scenes: stored and read back', () => {
     assert.equal(scene!.keptTakeId, undefined);
   });
 
+  it("drops a clip a newer take borrowed from an older take's still (saved before 49ba6498)", () => {
+    const scene = normalizeSavedScene({
+      id: 's1',
+      castId: 'nora',
+      slot: { id: 'night', location: 'bar' },
+      takes: [
+        { id: 'p1', imageUrl: '/a.png', clipUrl: '/a.mp4', clipPromptId: 'c1', at: 1 },
+        // A new still that landed carrying p1's clip.
+        { id: 'p2', imageUrl: '/b.png', clipUrl: '/a.mp4', clipPromptId: 'c1', at: 2 },
+        // Its own clip stays.
+        { id: 'p3', imageUrl: '/c.png', clipUrl: '/c.mp4', at: 3 },
+        // The same picture under another id (put back): the clip is its own.
+        { id: 'p4', imageUrl: '/c.png', clipUrl: '/c.mp4', at: 4 },
+      ],
+      keptTakeId: 'p2',
+      createdAt: 1,
+    });
+    const clips = Object.fromEntries(scene!.takes.map(take => [take.id, take.clipUrl ?? null]));
+    assert.deepEqual(clips, { p1: '/a.mp4', p2: null, p3: '/c.mp4', p4: '/c.mp4' });
+    assert.equal(scene!.takes.find(take => take.id === 'p2')!.clipPromptId, undefined);
+    // The kept take stays kept: the cut shows its still until Animate makes its clip.
+    assert.equal(scene!.keptTakeId, 'p2');
+    // Read again, nothing changes.
+    assert.deepEqual(normalizeSavedScene(scene), scene);
+  });
+
   it('keeps a bounded number of takes, the kept one always', () => {
     const takes = Array.from({ length: SCENE_TAKE_LIMIT + 5 }, (_, at) => ({
       id: `p${at}`,

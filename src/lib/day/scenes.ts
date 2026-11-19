@@ -387,6 +387,30 @@ function normalizeTake(raw: unknown, now: number): SceneTake | null {
 }
 
 /**
+ * Takes (oldest first) with each clip on the take it was made from only. Before 49ba6498 a new
+ * still on a card kept the last take's clip, so a newer take with another picture could carry an
+ * older take's clip — it played under the wrong still and Make the short cut it in. The oldest
+ * take with the clip keeps it; a newer one with another picture drops it (Animate makes its own).
+ */
+export function withoutBorrowedClips(takes: SceneTake[]): SceneTake[] {
+  const firstWith = new Map<string, SceneTake>();
+  let changed = false;
+  const out = takes.map(take => {
+    if (!take.clipUrl) return take;
+    const owner = firstWith.get(take.clipUrl);
+    if (!owner) {
+      firstWith.set(take.clipUrl, take);
+      return take;
+    }
+    if (owner.imageUrl === take.imageUrl) return take;
+    changed = true;
+    const { clipUrl: _clip, clipPromptId: _id, chainFrom: _chain, ...rest } = take;
+    return rest;
+  });
+  return changed ? out : takes;
+}
+
+/**
  * Takes oldest first, one per id, at most {@link SCENE_TAKE_LIMIT}: the kept one stays, and past
  * the limit rejected takes go first (M7 T3), then the oldest.
  */
@@ -481,7 +505,7 @@ export function normalizeSavedScene(raw: unknown, now = Date.now()): SavedScene 
     ...(scene.outfit && typeof scene.outfit === 'object'
       ? { outfit: sceneOutfitOf(scene.outfit as Record<string, unknown>) }
       : {}),
-    takes: boundedTakes(takes, keptTakeId),
+    takes: withoutBorrowedClips(boundedTakes(takes, keptTakeId)),
     ...(keptTakeId ? { keptTakeId } : {}),
     ...(scene.fromDaySlot && isDaySlotId(scene.fromDaySlot)
       ? { fromDaySlot: scene.fromDaySlot }
