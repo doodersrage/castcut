@@ -9,6 +9,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.2.0] - 2026-11-19
+
+- Scenes: a take that picked up an older take's clip lets it go when read
+- Short: a new still no longer carries the last take's clip
+- engine-bench: replay video graphs (MP4 prompt tag via ffprobe), check LoadAudio and LoadVideo inputs
+- Previews encode their pictures once: Castcut nodes 1.10.0, 12.8 s → 8.3 s a take
+- Edit 2511 Final at 15 steps, not 30: 35% faster, faces and layouts held (ENGINE_PLAN A/B)
+- play-ab: sampler settings per variant, render and sampler times, the original scored as baseline, --serial
+- Security: nodemailer 10.6.0; dev tooling's zod, typescript-eslint and minimatch fixes
+
 ## [v4.1.0] - 2026-11-19
 
 - Engine plan phase 1: the benchmark — real render graphs replayed, timed by stage, two runs compared
