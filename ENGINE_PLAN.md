@@ -50,6 +50,30 @@ ComfyUI's start-to-finish time.
 
 **Done when:** two runs of the benchmark agree within 5%.
 
+**Status (18 November 2026): done, gate met.** The Castcut node pack 1.9.0 times each node
+(`/castcut/timings`), the app stores each take's stages (`comfyui/stage-timing.ts`, shown under
+"Render stages"), and `scripts/engine-bench.mts` replays 44 real render graphs on their own seeds.
+Two runs took 4357 s and 4283 s: 1.7% apart. `scripts/stage-report.mjs` reads the same breakdown
+from an install's Gallery.
+
+What it measured changes phases 3 and 5. The 43 Final stills (Edit 2511, 1536×864, 30 steps at
+cfg 3.2) each took about 121 s inside ComfyUI, and the sampler was 113 s of that:
+
+| Stage  | Median | Share of all time |
+| ------ | ------ | ----------------- |
+| load   | 4.2 s  | 5%                |
+| encode | 1.2 s  | 1.5%              |
+| sample | 113 s  | 91%               |
+| decode | 0.2 s  | under 1%          |
+| finish | 0      | under 1%          |
+| other  | 2.4 s  | 2%                |
+
+So "Edit 2511 renders in about 40 s" was wrong: the 116 s a Scene is almost all ComfyUI's own job,
+and Final has no overhead around the sampler left to cut. A Final under 75 s has to come from the
+sampler: fewer steps, a distilled (Lightning) LoRA at cfg 1, or a smaller latent. That is phase
+5's work, A/B tested for faces and flags. Encoding is about 1 s here, so phase 2's win is limited to
+the preview path. Measure that before building the cache.
+
 ## 2. Stop re-encoding what repeats (weeks 2–3)
 
 Run s20 found that most of a preview take goes on encoding the prompt and pictures, new for every
