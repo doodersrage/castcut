@@ -113,6 +113,15 @@ shot. The plate, dressed plate and room photo repeat across a scene.
 
 **Done when:** a preview take is under 9 s.
 
+**Status (19 November 2026): gate met.** 40 recent preview takes (Qwen-Image 2.1 Turbo) took a
+median 11.75 s, of which encoding was 7.95 s and sampling 2.5 s, so the premise held here. The
+split turned out simpler than a reference cache: ComfyUI's `TextEncodeQwenImage21` encodes the
+empty negative prompt with every reference picture too, a second full pass that a cfg-1 sampler
+never reads. The node pack's `CastcutEncodeQwenImage21` (1.10.0) encodes the negative without
+pictures and reuses each reference's VAE latent; the app swaps it in at queue time when the node
+is installed and the negative goes unread (`castcut/nodes.ts`, main `e57d3d75`). On the same 40
+graphs: median 12.8 s → 8.3 s a take, and every output pixel-identical.
+
 ## 3. Cut the Final tier's overhead (weeks 3–5)
 
 A Final Scene takes about 116 s where Edit 2511 renders in about 40 s. The other 76 s is finishing,
