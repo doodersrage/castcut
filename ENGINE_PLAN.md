@@ -153,6 +153,22 @@ other five.
 
 **Done when:** a median animated shot is under 2.5 minutes.
 
+**Status (19 November 2026): premise out of date; the gate is about met as things stand.** Every
+clip since 10 November is MiniMax-H3; none is LTX-2.5, so the 6 minutes above (a 9 November
+figure) no longer describes how shots are animated. In a run on 19 November with nothing else on
+the GPU, each animated shot was a still, a reframe, a face finish and an H3 clip, and one shot
+landed every 2.4–2.6 minutes (13:13–13:25, read from ComfyUI's output folder). The clip was
+about 73 s of that, the still and its finishing about a minute, and nothing waited between them.
+
+Earlier that morning the same run's clips landed 8 minutes apart. That was this plan's own A/B
+renders sharing the GPU, not the app: so a timing read from the output folder needs the queue
+to have been the run's alone.
+
+What's left here is per job: H3 loads for 14–21 s on every clip, even two of the same model in a
+row (below), and the still, reframe and face finish switch models before every clip. Batching
+stills before clips (the second bullet above) is the next test; the room-tone and Finish-at-export
+bullets apply to LTX-2.5 runs.
+
 ## 5. Sampler-level speedups, A/B tested (weeks 8–10)
 
 The repo uses none of the common sampler accelerations, so each is a candidate to test, not a known
@@ -237,6 +253,21 @@ UK and South Korea. Confirm it covers how H3 will be used and shipped.
 
 **Done when:** a plain 5 s clip is under 100 s and a keyframed 30 s clip is under 10 minutes, with
 face match and motion unchanged on the benchmark.
+
+**Status (19 November 2026): the plain-clip gate is met already.** `scripts/engine-bench.mts`
+now replays clips from the MP4's embedded graph. Four of that morning's 5 s clips (768×1024,
+124 frames), each run twice, alternating models and then grouped:
+
+| Clip                               | Runs | Total   | Load    | Sample  | Decode |
+| ---------------------------------- | ---- | ------- | ------- | ------- | ------ |
+| Plain model, 6 steps               | 4    | 66–74 s | 14–17 s | 37–38 s | 9–10 s |
+| Talking (reference model), 8 steps | 4    | 82–91 s | 15–21 s | 51–52 s | 9–11 s |
+
+So the 145 s above is out of date (since the pruned int8 models and the nvfp4 encoder). Grouping
+by model saved 2–3 s of load a clip, not the minute a switch was feared to cost: H3 is reloaded
+on every job either way, as the 24 GB card can't keep it with the 32B text encoder. The keyframed
+30 s clip was not re-measured. The reference model at 6 steps (about 13 s a talking clip) is the
+next test here, scored for lip sync and face as well as time.
 
 ## Sources
 
