@@ -4982,6 +4982,12 @@ export function upsertDaySlotStill(
         : promptId !== still.promptId
           ? undefined
           : still.framedUrl;
+    // So is its clip: a new take on the slot that says nothing of a clip drops the old take's
+    // (it carried the last take's clip onto the new still, and Make the short cut it in).
+    const newTake = promptId !== still.promptId;
+    const oldClip = newTake
+      ? { clipPromptId: undefined, clipUrl: undefined, clipStatus: undefined, clipChain: undefined }
+      : still;
     return {
       ...still,
       ...patch,
@@ -4991,16 +4997,16 @@ export function upsertDaySlotStill(
       imageUrl: 'imageUrl' in patch ? patch.imageUrl?.trim() || undefined : still.imageUrl,
       status: patch.status ?? still.status,
       clipPromptId:
-        'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : still.clipPromptId,
-      clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : still.clipUrl,
-      clipStatus: 'clipStatus' in patch ? patch.clipStatus : still.clipStatus,
+        'clipPromptId' in patch ? patch.clipPromptId?.trim() || undefined : oldClip.clipPromptId,
+      clipUrl: 'clipUrl' in patch ? patch.clipUrl?.trim() || undefined : oldClip.clipUrl,
+      clipStatus: 'clipStatus' in patch ? patch.clipStatus : oldClip.clipStatus,
       // A chain belongs to its clip: another clip (or none) without one drops it.
       clipChain:
         'clipChain' in patch
           ? patch.clipChain
           : 'clipPromptId' in patch && patch.clipPromptId?.trim() !== still.clipPromptId
             ? undefined
-            : still.clipChain,
+            : oldClip.clipChain,
     };
   });
   return next;

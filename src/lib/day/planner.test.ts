@@ -255,6 +255,48 @@ describe('day-planner', () => {
     assert.equal(same[0]?.framedUrl, cut);
   });
 
+  it("upsertDaySlotStill drops the last take's clip when a new take is queued", () => {
+    const before = [
+      {
+        slotId: 'morning' as const,
+        promptId: 'old',
+        status: 'completed' as const,
+        imageUrl: '/old.png',
+        clipPromptId: 'old-clip',
+        clipUrl: '/old.mp4',
+        clipStatus: 'completed' as const,
+        clipChain: { sceneId: 's0', clipUrl: '/before.mp4', atSec: 4 },
+      },
+    ];
+    const queued = upsertDaySlotStill(before, { slotId: 'morning', promptId: 'new', status: 'queued' });
+    const landed = upsertDaySlotStill(queued, {
+      slotId: 'morning',
+      promptId: 'new',
+      imageUrl: '/new.png',
+      status: 'completed',
+    });
+    for (const still of [queued[0], landed[0]]) {
+      assert.equal(still?.clipUrl, undefined);
+      assert.equal(still?.clipPromptId, undefined);
+      assert.equal(still?.clipStatus, undefined);
+      assert.equal(still?.clipChain, undefined);
+    }
+    // The same take keeps its clip (a finish or status update).
+    const same = upsertDaySlotStill(before, { slotId: 'morning', finishedUrl: '/old-finish.png' });
+    assert.equal(same[0]?.clipUrl, '/old.mp4');
+    assert.equal(same[0]?.clipStatus, 'completed');
+    // A take put back with its clip (takeAsStill) brings that clip.
+    const restored = upsertDaySlotStill(before, {
+      slotId: 'morning',
+      promptId: 'other',
+      status: 'completed',
+      imageUrl: '/other.png',
+      clipUrl: '/other.mp4',
+      clipStatus: 'completed',
+    });
+    assert.equal(restored[0]?.clipUrl, '/other.mp4');
+  });
+
   it('upsertDaySlotStill clears imageUrl when re-queued', () => {
     const queued = upsertDaySlotStill(
       [

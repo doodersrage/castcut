@@ -230,6 +230,11 @@ export function settleDayTwoTakes<T extends StillForPick>(still: T): T {
       adultHoldCause: undefined,
       finishedUrl: undefined,
       finishedFor: undefined,
+      // Another take: no clip of the one before comes with it.
+      clipPromptId: undefined,
+      clipUrl: undefined,
+      clipStatus: undefined,
+      clipChain: undefined,
       twoTakes: undefined,
     };
   }
