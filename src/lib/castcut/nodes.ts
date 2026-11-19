@@ -338,3 +338,75 @@ export function buildCastcutCutoutGraph(input: {
     '6': { class_type: 'CastcutReport', inputs: { report_json: ['4', 2] } },
   };
 }
+
+/** The pack's cfg-1 Qwen-Image 2.1 encode (1.10.0+): the pictures encoded once, not twice. */
+export const CASTCUT_QWEN21_ENCODE_NODE = 'CastcutEncodeQwenImage21';
+const QWEN21_ENCODE_NODE = 'TextEncodeQwenImage21';
+/** Reference inputs the pack node takes (image_1 … image_8). */
+const CASTCUT_QWEN21_ENCODE_IMAGES = 8;
+
+/**
+ * Each TextEncodeQwenImage21 whose negative is only read at cfg 1 (KSampler or a CFG guider at
+ * cfg 1; a BasicGuider and Turbo's four-step node read only the positive), swapped for the pack's
+ * CastcutEncodeQwenImage21 (ENGINE_PLAN.md phase 2). The core node encodes the negative prompt
+ * with every reference picture, a second full vision-language pass that a cfg-1 sampler never
+ * reads: about 4 of a preview's 12 s. Same prompt, pictures, resolution and VAE; the same
+ * outputs (positive, negative, latent). Without the node on this ComfyUI, or when a negative
+ * might be read, the workflow comes back untouched, the same object.
+ */
+export function withCastcutQwen21Encode(
+  workflow: Record<string, unknown>,
+  nodeTypes: Iterable<string> | null | undefined
+): Record<string, unknown> {
+  if (!hasAll(nodeTypes, [CASTCUT_QWEN21_ENCODE_NODE])) return workflow;
+  const encoders = Object.keys(workflow).filter(
+    id => nodeOf(workflow, id)?.class_type === QWEN21_ENCODE_NODE
+  );
+  if (encoders.length === 0) return workflow;
+  let next: Record<string, unknown> | null = null;
+  for (const id of encoders) {
+    if (!negativeUnread(workflow, id)) continue;
+    const inputs = nodeOf(workflow, id)!.inputs ?? {};
+    const swapped: Record<string, unknown> = {};
+    let fits = true;
+    for (const [key, value] of Object.entries(inputs)) {
+      if (key === 'negative_prompt') continue;
+      const image = /^images\.image_(\d+)$/.exec(key);
+      if (image) {
+        if (Number(image[1]) > CASTCUT_QWEN21_ENCODE_IMAGES) fits = false;
+        swapped[`image_${image[1]}`] = value;
+      } else if (key === 'clip' || key === 'prompt' || key === 'resolution' || key === 'vae') {
+        swapped[key] = value;
+      } else {
+        fits = false; // an input this node doesn't know: leave it to the core node
+      }
+    }
+    if (!fits) continue;
+    next ??= { ...workflow };
+    next[id] = {
+      ...(workflow[id] as object),
+      class_type: CASTCUT_QWEN21_ENCODE_NODE,
+      inputs: swapped,
+    };
+  }
+  return next ?? workflow;
+}
+
+/** No node reads this encoder's negative (output 1) except at cfg 1. */
+function negativeUnread(workflow: Record<string, unknown>, encoderId: string): boolean {
+  for (const id of Object.keys(workflow)) {
+    const node = nodeOf(workflow, id);
+    for (const value of Object.values(node?.inputs ?? {})) {
+      if (!Array.isArray(value) || String(value[0]) !== encoderId || value[1] !== 1) continue;
+      const cfg = node?.inputs?.cfg;
+      const atCfgOne =
+        (node?.class_type === 'KSampler' ||
+          node?.class_type === 'KSamplerAdvanced' ||
+          node?.class_type === 'CFGGuider') &&
+        (typeof cfg === 'number' || typeof cfg === 'string') &&
+        Number(cfg) === 1;
+      if (!atCfgOne) return false;
+    }
+  }
+  return true;
+}

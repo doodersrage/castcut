@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   applyCastcutBestOfTwo,
+  withCastcutQwen21Encode,
   buildCastcutCutoutGraph,
   CASTCUT_BEST_OF_TWO_IDS,
   CASTCUT_BEST_OF_TWO_NODES,
@@ -256,5 +257,73 @@ describe('castcut nodes — reports', () => {
     assert.equal(parsed.guide[0]?.length, 18);
     assert.equal(parsed.guide[0]?.[1], null);
     assert.equal(parsed.aspect, 0.75);
+  });
+});
+
+describe('a cfg-1 Qwen-Image 2.1 encode reads its pictures once (ENGINE_PLAN.md phase 2)', () => {
+  const encode = {
+    class_type: 'TextEncodeQwenImage21',
+    inputs: {
+      clip: ['2', 0],
+      vae: ['3', 0],
+      prompt: 'She sits on the couch.',
+      negative_prompt: '',
+      resolution: 1280,
+      'images.image_1': ['900', 0],
+      'images.image_2': ['904', 0],
+    },
+  };
+  const turbo = () => ({
+    '4': structuredClone(encode),
+    '7': { class_type: 'BasicGuider', inputs: { model: ['1', 0], conditioning: ['4', 0] } },
+    '8': { class_type: 'SamplerCustomAdvanced', inputs: { guider: ['7', 0], latent_image: ['4', 2] } },
+  });
+  const withPack = ['TextEncodeQwenImage21', 'CastcutEncodeQwenImage21'];
+
+  it('swaps the encoder when nothing reads its negative', () => {
+    const graph = turbo();
+    const out = withCastcutQwen21Encode(graph, withPack);
+    assert.notEqual(out, graph);
+    assert.deepEqual(out['4'], {
+      class_type: 'CastcutEncodeQwenImage21',
+      inputs: {
+        clip: ['2', 0],
+        vae: ['3', 0],
+        prompt: 'She sits on the couch.',
+        resolution: 1280,
+        image_1: ['900', 0],
+        image_2: ['904', 0],
+      },
+    });
+    assert.equal(graph['4'].class_type, 'TextEncodeQwenImage21', 'the input graph is not changed');
+  });
+
+  it('a KSampler at cfg 1 reading the negative is fine; above cfg 1 keeps the core node', () => {
+    const graph = (cfg: number | string) => ({
+      '4': structuredClone(encode),
+      '8': {
+        class_type: 'KSampler',
+        inputs: { cfg, positive: ['4', 0], negative: ['4', 1], latent_image: ['4', 2] },
+      },
+    });
+    assert.equal(
+      (withCastcutQwen21Encode(graph(1), withPack)['4'] as { class_type: string }).class_type,
+      'CastcutEncodeQwenImage21'
+    );
+    assert.equal(
+      (withCastcutQwen21Encode(graph('1'), withPack)['4'] as { class_type: string }).class_type,
+      'CastcutEncodeQwenImage21'
+    );
+    const strong = graph(1.75);
+    assert.equal(withCastcutQwen21Encode(strong, withPack), strong);
+  });
+
+  it('without the pack node, or with an input it doesn’t take, the graph comes back as it was', () => {
+    const graph = turbo();
+    assert.equal(withCastcutQwen21Encode(graph, ['TextEncodeQwenImage21']), graph);
+    assert.equal(withCastcutQwen21Encode(graph, null), graph);
+    const many = turbo();
+    (many['4'].inputs as Record<string, unknown>)['images.image_9'] = ['950', 0];
+    assert.equal(withCastcutQwen21Encode(many, withPack), many);
   });
 });

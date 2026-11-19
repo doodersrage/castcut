@@ -3,25 +3,25 @@
 An **optional** ComfyUI node pack that runs some of Castcut's checks inside the render job instead
 of as separate ComfyUI calls. Everything works without it.
 
-| With the pack | Without it |
-| --- | --- |
-| **Best of two for hard poses** (Day) renders both takes in one job: one model load, one encode, the pose check runs inside ComfyUI and the closer take is saved as the still, the other beside it. | Best of two queues the second take after the first and checks each one with a separate ComfyUI call. |
-| **Cut-outs** (Isolate on white, plates) repair the matte and composite onto the fill in the same job. | The matte comes back to the app, is repaired there and composited in a second step. |
-| **Longer talking clips** (1.8.0): each MiniMax-H3 part with a line is heard (Whisper, `CastcutTranscribe`) and rendered again on another seed if it said more than its line — about 1 in 10 did. The Whisper model (~290 MB) downloads on first use. | A part that says more than its line is kept; render the clip again by hand. |
+| With the pack                                                                                                                                                                                                                                        | Without it                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Best of two for hard poses** (Day) renders both takes in one job: one model load, one encode, the pose check runs inside ComfyUI and the closer take is saved as the still, the other beside it.                                                   | Best of two queues the second take after the first and checks each one with a separate ComfyUI call. |
+| **Cut-outs** (Isolate on white, plates) repair the matte and composite onto the fill in the same job.                                                                                                                                                | The matte comes back to the app, is repaired there and composited in a second step.                  |
+| **Longer talking clips** (1.8.0): each MiniMax-H3 part with a line is heard (Whisper, `CastcutTranscribe`) and rendered again on another seed if it said more than its line — about 1 in 10 did. The Whisper model (~290 MB) downloads on first use. | A part that says more than its line is kept; render the clip again by hand.                          |
 
 The pack is one Python file, `castcut_nodes.py`, using only what ComfyUI already has (numpy,
-Pillow). It adds five nodes under the *Castcut* category: Pose Score, Pick Best, Face Distance,
+Pillow). It adds five nodes under the _Castcut_ category: Pose Score, Pick Best, Face Distance,
 Mask Repair and Report.
 
 ## Install from Castcut (easiest)
 
 Open **Settings → ComfyUI → Castcut nodes**. The card says whether this ComfyUI has the pack and
-which version (*Missing*, *Installed v1.4.0*, *Outdated*), and offers one way to install it:
+which version (_Missing_, _Installed v1.4.0_, _Outdated_), and offers one way to install it:
 
 - **ComfyUI-Manager is installed** → **Install with ComfyUI-Manager**. When it is done,
   **Restart ComfyUI…** restarts ComfyUI through the Manager. It asks first, because a restart stops
   whatever ComfyUI is rendering and empties its queue for everyone, and it stays disabled
-  (*Wait for 2 jobs*) while ComfyUI has jobs running or waiting. The card then waits for ComfyUI to
+  (_Wait for 2 jobs_) while ComfyUI has jobs running or waiting. The card then waits for ComfyUI to
   come back and checks again.
 - **No Manager, or the Manager refuses** → a copy-paste command for the ComfyUI machine. The app
   reads ComfyUI's `/system_stats` (its start command, OS, Python) to find the `custom_nodes`
@@ -76,14 +76,14 @@ No `python_embeded` packages are needed.
 settings above). It clones the whole Castcut repository; its root `__init__.py` loads only the
 node pack.
 
-**Comfy Registry**: ComfyUI-Manager → search *Castcut nodes*, or `comfy node install castcut-nodes`
+**Comfy Registry**: ComfyUI-Manager → search _Castcut nodes_, or `comfy node install castcut-nodes`
 (published as version 1.1.0; 1.2.0 adds the routes below).
 
 **Docker**: copy the file into the container's `custom_nodes` (or onto the volume mounted
 there) and restart the container.
 
 Check it worked: `http://<comfyui>:8188/object_info/CastcutPoseScore` returns the node, and the
-card shows *Installed v1.4.0*. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
+card shows _Installed v1.4.0_. With 1.2.0, `http://<comfyui>:8188/castcut/info` answers too.
 
 ## Routes (1.2.0 – 1.5.0)
 
@@ -91,7 +91,7 @@ Besides the nodes, the pack adds a few HTTP routes to ComfyUI, so some checks no
 through the render queue:
 
 - **Face checks answer right away.** The face match (identity score, partner and face-lock
-  checks) and *finding the face* on a plate used to be queued as small graphs, which waited for
+  checks) and _finding the face_ on a plate used to be queued as small graphs, which waited for
   the render in progress — 45–95 s on Edit 2511 for about half a second of work. They now run
   on the CPU inside ComfyUI, with the InsightFace model kept loaded, and give the same numbers
   (checked against the queued graphs on 12 stills: distances within 7×10⁻⁸, identical boxes).
@@ -103,7 +103,7 @@ through the render queue:
 - **1.3.0: pose checks and the Face finish probe too.** The pose read behind Auto-review and the
   pose checks runs DWPose on the CPU inside ComfyUI (~0.3 s a still, the same keypoints as the
   node), and Face finish's "which face is hers" probe runs with the face checks.
-- **1.3.0: delete unused uploads.** Settings → ComfyUI → Input folder offers *Delete N files*
+- **1.3.0: delete unused uploads.** Settings → ComfyUI → Input folder offers _Delete N files_
   after a scan. It asks first, scans again, deletes only what that scan offers, and the pack
   keeps anything younger than a day or named by a queued job. Without 1.3.0 you get the command
   as before.
@@ -134,6 +134,13 @@ through the render queue:
   first step counts as load: ComfyUI moves the model to the GPU there. Needs a ComfyUI restart
   after updating, like any node pack.
 
+- **1.10.0: previews encode their pictures once.** ComfyUI's Qwen-Image 2.1 encode node also
+  encodes the empty negative prompt with every reference picture, a second full pass that a
+  cfg-1 sampler never reads. Castcut swaps it for **Castcut Encode Qwen Image 2.1 (cfg 1)**
+  whenever the negative goes unread, and the node reuses each reference's VAE latent across a
+  scene's shots. Same pictures, prompt and result; a preview take is about a third faster.
+  Graphs that sample above cfg 1 keep ComfyUI's node.
+
 Without 1.2.0 (or when a route fails) everything works as before, through queued graphs. The
 queue position of a waiting still now comes from ComfyUI's jobs list rather than the whole
 queue, on any ComfyUI that has it (pack or not).
@@ -141,9 +148,9 @@ queue, on any ComfyUI that has it (pack or not).
 ## Updating
 
 The card compares the installed version (each node's description ends with
-`[castcut-nodes 1.4.0]`) with the version this app ships. *Outdated* means a newer one came with
+`[castcut-nodes 1.4.0]`) with the version this app ships. _Outdated_ means a newer one came with
 the app: install again the same way — copying the file over the old one, `git pull` in a clone, or
-the Manager. A copy from before version 1.1.0 shows as *Installed (an older version)*.
+the Manager. A copy from before version 1.1.0 shows as _Installed (an older version)_.
 
 Use one install, not two: a `castcut_nodes.py` file and a `castcut` folder in `custom_nodes` both
 load and the later one wins.

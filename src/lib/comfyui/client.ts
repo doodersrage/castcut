@@ -43,6 +43,7 @@ import { optimizeWorkflowForQueue } from '../workflow/queue-optimizer';
 import { runWorkflowPreflightSync } from '../workflow/preflight-sync';
 import { resolveActiveLoraStack } from '../lora/stack';
 import { fetchComfyObjectInfoPayload } from './object-info';
+import { withCastcutQwen21Encode } from '../castcut/nodes';
 import { formatComfyUiQueueValidationError } from './queue-validation-error';
 import { workflowContentHash } from '../workflow/content-hash';
 import {
@@ -893,6 +894,16 @@ export async function queuePromptToComfyUi(
     // still with two or more references must sample at cfg 1 — above it ComfyUI segfaults.
     if (activePromptBody.prompt && typeof activePromptBody.prompt === 'object') {
       clampQwenImage21MultiReferenceCfg(activePromptBody.prompt);
+      // Then a cfg-1 Qwen-Image 2.1 encode reads its pictures once (Castcut nodes 1.10.0+).
+      if (!preferDiffusers) {
+        activePromptBody = {
+          ...activePromptBody,
+          prompt: withCastcutQwen21Encode(
+            activePromptBody.prompt as Record<string, unknown>,
+            objectInfo?.nodeTypes
+          ),
+        };
+      }
     }
 
     const clientId =
