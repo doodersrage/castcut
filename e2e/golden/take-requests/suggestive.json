@@ -5,7 +5,7 @@
   "model": "qwen-image-edit-2511",
   "params": {
    "seed": "SEED",
-   "steps": 30,
+   "steps": 15,
    "cfg": 3.2,
    "samplerName": "euler",
    "scheduler": "beta",
@@ -143,7 +143,7 @@
    "comfyPoolBusyThreshold": 4,
    "workflowJson": "{\n  \"1\": {\n    \"class_type\": \"UNETLoader\",\n    \"inputs\": {\n      \"unet_name\": \"{{UNET}}\",\n      \"weight_dtype\": \"default\"\n    },\n    \"_meta\": {\n      \"title\": \"Load UNET\"\n    }\n  },\n  \"2\": {\n    \"class_type\": \"CLIPLoader\",\n    \"inputs\": {\n      \"clip_name\": \"qwen_2.5_vl_7b.safetensors\",\n      \"type\": \"qwen_image\"\n    },\n    \"_meta\": {\n      \"title\": \"Load CLIP\"\n    }\n  },\n  \"3\": {\n    \"class_type\": \"VAELoader\",\n    \"inputs\": {\n      \"vae_name\": \"qwen_image_vae.safetensors\"\n    },\n    \"_meta\": {\n      \"title\": \"Load VAE\"\n    }\n  },\n  \"4\": {\n    \"class_type\": \"TextEncodeQwenImageEditPlus\",\n    \"inputs\": {\n      \"prompt\": \"{{POSITIVE}}\",\n      \"clip\": [\n        \"2\",\n        0\n      ],\n      \"vae\": [\n        \"3\",\n        0\n      ],\n      \"image1\": [\n        \"900\",\n        0\n      ]\n    },\n    \"_meta\": {\n      \"title\": \"Qwen Edit Encode\"\n    }\n  },\n  \"7\": {\n    \"class_type\": \"ModelSamplingAuraFlow\",\n    \"inputs\": {\n      \"model\": [\n        \"1\",\n        0\n      ],\n      \"shift\": \"{{SHIFT}}\"\n    },\n    \"_meta\": {\n      \"title\": \"ModelSamplingAuraFlow\"\n    }\n  },\n  \"8\": {\n    \"class_type\": \"KSampler\",\n    \"inputs\": {\n      \"seed\": \"{{SEED}}\",\n      \"steps\": \"{{STEPS}}\",\n      \"cfg\": \"{{CFG}}\",\n      \"sampler_name\": \"{{SAMPLER}}\",\n      \"scheduler\": \"{{SCHEDULER}}\",\n      \"denoise\": \"{{DENOISE}}\",\n      \"model\": [\n        \"7\",\n        0\n      ],\n      \"positive\": [\n        \"4\",\n        0\n      ],\n      \"negative\": [\n        \"4\",\n        0\n      ],\n      \"latent_image\": [\n        \"901\",\n        0\n      ]\n    },\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"9\": {\n    \"class_type\": \"VAEDecode\",\n    \"inputs\": {\n      \"samples\": [\n        \"8\",\n        0\n      ],\n      \"vae\": [\n        \"3\",\n        0\n      ]\n    },\n    \"_meta\": {\n      \"title\": \"VAE Decode\"\n    }\n  },\n  \"10\": {\n    \"class_type\": \"SaveImage\",\n    \"inputs\": {\n      \"images\": [\n        \"9\",\n        0\n      ],\n      \"filename_prefix\": \"Castcut\"\n    },\n    \"_meta\": {\n      \"title\": \"Save Image\"\n    }\n  },\n  \"900\": {\n    \"class_type\": \"LoadImage\",\n    \"inputs\": {\n      \"image\": \"{{INPUT_IMAGE}}\"\n    },\n    \"_meta\": {\n      \"title\": \"Input Image\"\n    }\n  },\n  \"901\": {\n    \"class_type\": \"VAEEncode\",\n    \"inputs\": {\n      \"pixels\": [\n        \"900\",\n        0\n      ],\n      \"vae\": [\n        \"3\",\n        0\n      ]\n    },\n    \"_meta\": {\n      \"title\": \"VAE Encode Input\"\n    }\n  }\n}",
    "queueParams": {
-    "steps": 30,
+    "steps": 15,
     "cfg": 3.2,
     "samplerName": "euler",
     "scheduler": "beta",

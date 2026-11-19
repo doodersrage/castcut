@@ -117,6 +117,17 @@ describe("model sampler defaults", () => {
     );
   });
 
+  it("runs Edit 2511 Final at 15 steps (ENGINE_PLAN.md A/B, 2026-11-19)", () => {
+    assert.deepEqual(getModelSamplerDefaults("qwen-image-edit-2511", "optimized"), {
+      steps: 15,
+      cfg: 3.2,
+      samplerName: "euler",
+      scheduler: "beta",
+    });
+    // Max tiers keep their step counts.
+    assert.equal(getModelSamplerDefaults("qwen-image-edit-2511", "max").steps, 50);
+  });
+
   it("returns lightning defaults for WAN video 4-step", () => {
     assert.deepEqual(getModelSamplerDefaults("wan-video-lightning-4", "base"), {
       steps: 4,

@@ -379,9 +379,14 @@ const MODEL_SAMPLER_PRESETS: ModelSamplerPresetMap = {
     ...QWEN_LIGHTNING_SAMPLER,
   }),
   // Full Edit-2511 — Compose Final/Max; more steps than Lightning 8 mush.
+  // Final (optimized) at 15 steps, not 30 (ENGINE_PLAN.md, 2026-11-19 A/B on 36 real Final
+  // Scenes, own seeds): the sampler is ~91% of a Final, and 15 steps kept each shot's layout and
+  // face (median face distance 0.45 vs 0.39) at 78 s instead of ~121 s. 12 steps scored as well
+  // on faces but broke objects and bodies (a phone turned to a floating object, blots, a
+  // collapsed seated figure); the Lightning 8-step LoRA lost the likeness on 24 of 36.
   'qwen-image-edit-2511': {
     base: { steps: 28, cfg: 2.5, ...QWEN_2512_SAMPLER },
-    optimized: { steps: 30, cfg: 3.2, ...QWEN_2512_SAMPLER },
+    optimized: { steps: 15, cfg: 3.2, ...QWEN_2512_SAMPLER },
     maxCompatible: { steps: 40, cfg: 3.5, ...QWEN_2512_SAMPLER },
     max: { steps: 50, cfg: 3.5, ...QWEN_2512_SAMPLER },
   },
