@@ -88,6 +88,18 @@ The contact sheet agrees: 20 steps keeps each shot's composition and face. Light
 most shots and loses the likeness, so it is rejected for Final at full strength. 20 steps is
 24% faster but not yet under 75 s, so fewer steps (15 and 12) are the next test.
 
+The same 36 shots at 15 and 12 steps:
+
+| Steps | Median render | Sampler | Median face | Worse than today by >0.1 |
+| ----- | ------------- | ------- | ----------- | ------------------------ |
+| 15    | 78.3 s        | 61.1 s  | 0.45        | 5 of 33                  |
+| 12    | 66.2 s        | 47.8 s  | 0.43        | 3 of 33                  |
+
+Face scores alone would pick 12 steps, but the contact sheet shows that 12 breaks objects and
+bodies the face score cannot see: a phone turned into a floating object, a blot on a shirt, a
+logo that wasn't there, and a seated figure collapsed. 15 steps had none of those in the shots
+checked. 15 steps is the floor: 35% off a Final, at 78 s against the 75 s gate.
+
 ## 2. Stop re-encoding what repeats (weeks 2–3)
 
 Run s20 found that most of a preview take goes on encoding the prompt and pictures, new for every
