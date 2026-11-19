@@ -74,6 +74,20 @@ sampler: fewer steps, a distilled (Lightning) LoRA at cfg 1, or a smaller latent
 5's work, A/B tested for faces and flags. Encoding is about 1 s here, so phase 2's win is limited to
 the preview path. Measure that before building the cache.
 
+**Final sampler A/B (19 November 2026).** 36 of those Final graphs were replayed on their own
+seeds with `scripts/play-ab.mjs`, and each face was scored against its cast plate (InsightFace
+distance, lower is closer):
+
+| Variant                            | Median render | Sampler | Median face | Worse than today by >0.1 |
+| ---------------------------------- | ------------- | ------- | ----------- | ------------------------ |
+| Today (30 steps, cfg 3.2)          | about 121 s   | 113 s   | 0.39        | n/a                      |
+| 20 steps, cfg 3.2                  | 92.7 s        | 77.8 s  | 0.42        | 2 of 35                  |
+| Lightning 8-step LoRA, cfg 1, 8 st | 39.0 s        | 23.5 s  | 0.77        | 24 of 36                 |
+
+The contact sheet agrees: 20 steps keeps each shot's composition and face. Lightning re-lays
+most shots and loses the likeness, so it is rejected for Final at full strength. 20 steps is
+24% faster but not yet under 75 s, so fewer steps (15 and 12) are the next test.
+
 ## 2. Stop re-encoding what repeats (weeks 2–3)
 
 Run s20 found that most of a preview take goes on encoding the prompt and pictures, new for every
