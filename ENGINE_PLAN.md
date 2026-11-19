@@ -269,6 +269,13 @@ on every job either way, as the 24 GB card can't keep it with the 32B text encod
 30 s clip was not re-measured. The reference model at 6 steps (about 13 s a talking clip) is the
 next test here, scored for lip sync and face as well as time.
 
+**Reference model at 6 steps (19 November 2026): not shipped.** 24 recent talking clips again on
+their own seeds at 6 steps, each line checked with Whisper (small) against the 8-step original,
+and frames compared: faces, mouths, gestures and sets were the same, and the clip took about
+67–75 s against 82–91 s. But of the 20 lines Whisper heard at 8 steps, 2 lost most of their words
+at 6 (the other 18 held). The app's Whisper check would render those again, which eats most of
+the 13 s saved, so H3_REF_STEPS stays 8 for now.
+
 ## Sources
 
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): Part 21, runs s19–s23 (tier timings, flags, the
