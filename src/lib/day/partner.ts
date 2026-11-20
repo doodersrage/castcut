@@ -176,6 +176,29 @@ export function dayPartnerBriefLine(partner: DayPartner): string {
   ].join('');
 }
 
+/**
+ * The partner's face was left out at queue time (its picture failed the face check): the lines
+ * written for it read as an invented partner's. Kept, they named an Image 2 that the queue then
+ * filled with the pose map — the partner given the skeleton's "face", the map still called
+ * "Image 3" with two images attached (live 2026-11-20). The descriptor stays: it is all the engine
+ * has of the partner now. Unchanged when no line names the partner's face picture.
+ */
+export function withoutDayPartnerFaceImage(prompt: string): string {
+  return prompt
+    .replace(
+      /SECOND PERSON: Image 2 is the face of (the (man|woman)|the second person) with the Cast lead — give \1 exactly this face, hair and skin tone( \([^)]*\))?; the Cast lead keeps the Image 1 face; two different faces, never merge them; ignore Image 2 background and framing\./g,
+      (_line, who: string, noun: string | undefined, descriptor: string | undefined) =>
+        `SECOND PERSON: ${who} with the Cast lead has ${
+          noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their'
+        } own face${descriptor ?? ''} — different from the Cast lead; two different faces, never merge them.`
+    )
+    .replace(
+      /\b(the (?:other )?(man|woman)|the other person) has the face from the second image/g,
+      (_phrase, who: string, noun: string | undefined) =>
+        `${who} has ${noun === 'man' ? 'his' : noun === 'woman' ? 'her' : 'their'} own face`
+    );
+}
+
 /** Recipe sentence: whose face comes from which encoder image. */
 export function dayPartnerRecipeLine(
   partner: DayPartner,

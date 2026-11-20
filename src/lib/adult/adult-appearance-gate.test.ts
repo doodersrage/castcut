@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   ADULT_GATE_WITHHELD_MESSAGE,
+  BACKDROP_GATE_WITHHELD_MESSAGE,
   CLOTHED_GATE_WITHHELD_MESSAGE,
   adultGateVisionPrompt,
+  adultGateWithheldMessage,
+  decideBackdropGate,
   dayMoodNeedsAdultSafeguards,
   decideAdultGate,
   parseAdultGateReply,
@@ -151,3 +154,35 @@ describe('adult-appearance gate', () => {
     }
   });
 });
+
+describe('no scene before the vision question (still-backdrop.ts, live 2026-11-20)', () => {
+  it('redoes a take with no scene once on a new seed, then withholds it; a scene goes on', () => {
+    const plate = { status: 'plate' as const, reason: 'came back as the Cast plate on white — no scene' };
+    assert.deepEqual(decideBackdropGate(plate, false), {
+      verdict: 'requeue',
+      reason: plate.reason,
+      cause: 'backdrop',
+    });
+    assert.equal(decideBackdropGate(plate, true)?.verdict, 'withhold');
+    assert.equal(decideBackdropGate({ status: 'ok' }, false), null);
+    assert.equal(decideBackdropGate(null, true), null);
+  });
+
+  it('says which failure withheld the take', () => {
+    assert.equal(adultGateWithheldMessage('backdrop'), BACKDROP_GATE_WITHHELD_MESSAGE);
+    assert.equal(adultGateWithheldMessage('bare'), CLOTHED_GATE_WITHHELD_MESSAGE);
+    assert.equal(adultGateWithheldMessage('age'), ADULT_GATE_WITHHELD_MESSAGE);
+    assert.equal(adultGateWithheldMessage(undefined), ADULT_GATE_WITHHELD_MESSAGE);
+  });
+});
+
+describe('why a still was held, for the tray', () => {
+  it('names the reason, but not twice for a still with no scene', async () => {
+    const { adultGateWhy } = await import('./adult-appearance-gate');
+    assert.equal(adultGateWhy('age', 'the vision model was unsure'), ' Why: the vision model was unsure.');
+    assert.equal(adultGateWhy('age', 'low confidence (55%).'), ' Why: low confidence (55%).');
+    assert.equal(adultGateWhy('backdrop', 'came back on a white backdrop'), '');
+    assert.equal(adultGateWhy('age', ''), '');
+  });
+});
+

@@ -17,6 +17,7 @@ import {
   type DayStillSlotOptions,
   assembleDayStillPrompt,
   dayStillCamera,
+  dayAdultQueueBlocked,
   dayBeatIsTyped,
   dayStillAgeFacts,
   dayStillSceneRedraw,
@@ -28,6 +29,7 @@ import {
   withNudeDuoLeadBodyLine,
   withNudeBodyPlateLine,
 } from '@/lib/day/still-prompt';
+import { withoutSelfPair } from '@/lib/day/script-shot-other';
 import { isFaceDownNudeSolo } from '@/lib/pose/face-down-solo';
 import { dayMoodNeedsAdultSafeguards } from '@/lib/adult/adult-appearance-gate';
 import { isAdultContentPrompt } from '@/lib/adult/adult-age-safeguard';
@@ -140,7 +142,7 @@ import {
 } from '@/lib/wardrobe/footwear-image';
 import { formatWardrobeKitLabel } from '@/lib/wardrobe/kit-picker';
 import type { DayPartnerStandIn } from '@/lib/day/partner-stand-in';
-import { type DayPartner } from '@/lib/day/partner';
+import { type DayPartner, withoutDayPartnerFaceImage } from '@/lib/day/partner';
 import { loadPoseLibrary, type NormalizedBody } from '@/lib/pose/library';
 import { isOpenPoseStyle } from '@/lib/pose/guide-prompt';
 import type { PoseLeadPosition } from '@/lib/pose/guide-openpose';
@@ -296,6 +298,11 @@ export type DayTakeOptions = {
    * strong coverage line (clothed-coverage.ts), and a second such take is withheld.
    */
   coverageLine?: boolean;
+  /**
+   * The gate saw no scene on the last take (still-backdrop.ts): this one is its redo on a new
+   * seed, marked on its gallery entry so a second one is withheld, after a reload too.
+   */
+  backdropRedo?: boolean;
   /** Queued by the player (board, slot sheet, retry) — counted in the re-roll record. */
   byPlayer?: boolean;
 };
@@ -534,6 +541,10 @@ export async function runDayTake(
     if (isolateSubject && isolatePending) {
       throw new Error(ISOLATE_QUEUE_BLOCKED_MESSAGE);
     }
+    const adultBlocked = dayAdultQueueBlocked(toolSettings.dayMood, intimateEnabled);
+    if (adultBlocked) {
+      throw new Error(adultBlocked);
+    }
     // Fill blank Setting/Beat so a single Queue doesn't fall back to a generic time-of-day line.
     // Adult Solo/Duo: also replace stale everyday notebook/bookstore beats left from prior mood.
     // From the latest slots, not this render's: Queue day runs every slot through one
@@ -656,6 +667,19 @@ export async function runDayTake(
     });
     const wardrobeId = outfitPlan.wardrobeId;
     queueTarget = outfitPlan.target;
+    // A script shot written as "Loose Lana and Lana": the second is her partner, not a stranger.
+    if (scriptLineStays()) {
+      const pairedRight = withoutSelfPair(
+        queueTarget.sceneHints,
+        character?.name,
+        toolSettings.partnerCharacterId
+          ? steps.getCharacter(toolSettings.partnerCharacterId)?.name
+          : undefined
+      );
+      if (pairedRight !== queueTarget.sceneHints) {
+        queueTarget = { ...queueTarget, sceneHints: pairedRight };
+      }
+    }
     const { picked } = outfitPlan;
     if (picked) {
       workingSlots = workingSlots.map(entry =>
@@ -1498,7 +1522,7 @@ export async function runDayTake(
     );
     // Suggestive / Intimate / Raunchy: every person gets an explicit adult age, and the
     // still waits for the adult-appearance gate before it is shown anywhere.
-    const finalized = finishDayStillPrompt(drafted, {
+    let finalized = finishDayStillPrompt(drafted, {
       adultMood: isDayAdultMood(dayMoodForPrompt),
       adult: adultStill,
       swapLead: assembled.swapLead,
@@ -1547,13 +1571,26 @@ export async function runDayTake(
       });
       extraUrls[1] = sent.url;
       extraFilenames[1] = sent.filename;
+      // Left out (its picture failed the face check): the prompt was written for it as Image 2,
+      // which the queue would fill with the pose map. Said as an invented partner instead.
+      if (!sent.filename?.trim() && !sent.url) {
+        const unnamed = withoutDayPartnerFaceImage(finalized);
+        if (unnamed !== finalized) {
+          finalized = unnamed;
+          setOutput(finalized);
+        }
+      }
       if (sent.filename?.trim()) {
         steps.record.partnerFaceSent?.({
           filename: sent.filename.trim(),
           noun: slotPartner?.noun === 'woman' ? 'woman' : 'man',
         });
       }
-      if (sent.note) referenceNotes.push(sent.note);
+      if (sent.note) {
+        referenceNotes.push(sent.note);
+        // Also in the console: the card's note goes with its take (a later take replaces it).
+        console.warn('Day partner face left out:', queueTarget.label, sent.note);
+      }
       if (sent.sentFace) partnerSentFace = sent.sentFace;
       if (sent.clearPageStandIn) {
         partnerStandInRef.current = null;
@@ -2215,6 +2252,7 @@ export async function runDayTake(
             adultGate: {
               strong: options?.strongAgeLine === true,
               covered: options?.coverageLine === true,
+              ...(options?.backdropRedo ? { backdrop: true } : {}),
             },
           }
         : {}),

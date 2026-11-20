@@ -224,7 +224,7 @@ describe('a Day as a short', () => {
     // Scene kept a take for the afternoon (the run), and a new one for the morning.
     const scenes = short.scenes.map(scene =>
       scene.fromDaySlot === 'afternoon'
-        ? { ...scene, takes: [{ id: 'a1', promptId: 'a1', imageUrl: '/a1.png', at: 2 }], keptTakeId: 'a1' }
+        ? { ...scene, takes: [...scene.takes, { id: 'a1', promptId: 'a1', imageUrl: '/a1.png', at: 2 }], keptTakeId: 'a1' }
         : scene.fromDaySlot === 'morning'
           ? { ...scene, takes: [...scene.takes, { id: 'm2', promptId: 'm2', imageUrl: '/m2.png', at: 3 }], keptTakeId: 'm2' }
           : scene
@@ -248,6 +248,55 @@ describe('a Day as a short', () => {
     assert.equal(dayStillsFromShort({ ...day, stillsCharacterId: 'rob' } as DayToolCache, scenes, link), null);
   });
 
+  it('a new still on the card stays there and becomes its Scene’s kept take — no old take, no old clip', () => {
+    // Live 2026-11-20: a quick still rendered on a card, and the Scene's old kept take came back
+    // onto the card, its clip with it — and Make the short cut that old clip in.
+    const short = dayAsShort({ day, castId: 'mara', leadName: 'Mara', now: 1 })!;
+    const link = { castId: 'mara', scriptId: short.script.id };
+    const withClip = short.scenes.map(scene =>
+      scene.fromDaySlot === 'morning'
+        ? { ...scene, takes: scene.takes.map(take => ({ ...take, clipUrl: '/m-clip.mp4', clipPromptId: 'c-m' })) }
+        : scene
+    ) as SavedScene[];
+    const quick = {
+      ...day,
+      stills: [{ slotId: 'morning', promptId: 'p-new', imageUrl: '/new.png', status: 'completed' }],
+    } as unknown as DayToolCache;
+    // Short ← short: the card's new still is left alone (the Scene doesn't have it yet).
+    assert.equal(dayStillsFromShort(quick, withClip, link), null);
+    // Short → short: the Scene takes it, keeps it, and keeps the old take's clip on the old take.
+    const synced = dayAsShort({ day: quick, castId: 'mara', leadName: 'Mara', now: 2, existing: { script: short.script, scenes: withClip } })!;
+    const morning = synced.scenes.find(scene => scene.fromDaySlot === 'morning')!;
+    assert.equal(morning.keptTakeId, 'p-new');
+    assert.equal(morning.takes.find(take => take.id === 'p-new')?.clipUrl, undefined);
+    assert.equal(morning.takes.find(take => take.id === 'p-m')?.clipUrl, '/m-clip.mp4');
+    // Nothing comes back onto the card after.
+    assert.equal(dayStillsFromShort(quick, synced.scenes, link), null);
+    // The new take animated on the card: its own clip goes on its take.
+    const animated = {
+      ...quick,
+      stills: [{ ...quick.stills![0]!, clipUrl: '/new-clip.mp4', clipPromptId: 'c-new', clipStatus: 'completed' }],
+    } as unknown as DayToolCache;
+    const again = dayAsShort({ day: animated, castId: 'mara', leadName: 'Mara', now: 3, existing: { script: synced.script, scenes: synced.scenes } })!;
+    const take = again.scenes.find(scene => scene.fromDaySlot === 'morning')!.takes.find(entry => entry.id === 'p-new');
+    assert.equal(take?.clipUrl, '/new-clip.mp4');
+    assert.equal(take?.clipPromptId, 'c-new');
+    // A take the Scene keeps later (a run, Keep on Scene) still comes to the card.
+    const runKept = again.scenes.map(scene =>
+      scene.fromDaySlot === 'morning'
+        ? { ...scene, takes: [...scene.takes, { id: 'run', promptId: 'run', imageUrl: '/run.png', at: 9 }], keptTakeId: 'run' }
+        : scene
+    ) as SavedScene[];
+    assert.equal(dayStillsFromShort(animated, runKept, link)?.find(still => still.slotId === 'morning')?.promptId, 'run');
+    // So does the kept take when the card's take was removed on Scene.
+    const removed = runKept.map(scene =>
+      scene.fromDaySlot === 'morning'
+        ? { ...scene, takes: scene.takes.filter(entry => entry.id !== 'p-new'), removedTakeIds: ['p-new'] }
+        : scene
+    ) as SavedScene[];
+    assert.equal(dayStillsFromShort(animated, removed, link)?.find(still => still.slotId === 'morning')?.promptId, 'run');
+  });
+
   it('shows a card that renders no shot as its moment’s shot — her line first, not an empty place', () => {
     // Cards don't render (2026-11-13): the morning card's Scene was let go of its shot
     // (shortShotScenes); the moment's shot Scenes are what Render the short renders.
@@ -258,7 +307,7 @@ describe('a Day as a short', () => {
     const loose = {
       ...card,
       fromScript: { ...card.fromScript!, shotId: `${sceneId}-card` },
-      takes: [{ id: 'card', promptId: 'card', imageUrl: '/card.png', at: 2 }],
+      takes: [...card.takes, { id: 'card', promptId: 'card', imageUrl: '/card.png', at: 2 }],
       keptTakeId: 'card',
     } as SavedScene;
     const shot = (id: string, createdAt: number, slot: Partial<SavedScene['slot']>, kept = true) =>
@@ -589,6 +638,27 @@ describe('a board edit on a moment that is a whole scene (Step 5b-ii)', () => {
     // The one-shot moments are as before.
     assert.equal(again.shots.filter(shot => shot.sceneId !== morning!.id).length, 2);
     assert.equal(new Set(again.scenes.map(scene => scene.id)).size, again.scenes.length);
+  });
+
+  it('a moment written anew unkeeps its shots’ takes (kept, the old first shot stuck on the card)', () => {
+    // Live 2026-11-20: Write it rewrote a morning twice; its first shot's Scene was carried each
+    // time with its kept take, so the card and every short kept the first version's picture.
+    const anew = {
+      ...day,
+      slots: day.slots!.map(slot =>
+        slot.id === 'morning'
+          ? { ...slot, location: 'glass-tiled bathroom', sceneHints: 'stretches under the hot shower, steam rising' }
+          : slot
+      ),
+    } as DayToolCache;
+    const written = dayAsShort({ day: anew, castId: 'mara', leadName: 'Mara', now: 4000, existing: { script, scenes } })!;
+    for (const extra of extras) {
+      const back = written.scenes.find(scene => scene.id === extra.id)!;
+      assert.ok(back, extra.id);
+      assert.equal(back.keptTakeId, undefined, extra.id);
+      // Its takes stay.
+      assert.deepEqual(back.takes.map(take => take.id), extra.takes.map(take => take.id));
+    }
   });
 
   it('writes only what the card changed: an action rewritten on Script stays', () => {

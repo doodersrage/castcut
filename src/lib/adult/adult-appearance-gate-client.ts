@@ -1,5 +1,6 @@
 import {
   decideAdultGate,
+  decideBackdropGate,
   type AdultGateDecision,
   type AdultGateReply,
 } from './adult-appearance-gate';
@@ -10,6 +11,8 @@ import {
   prepareVisionScanImagePayload,
   resolveStillFileForVisionScan,
 } from '../vision/scan-still';
+import { judgeStillBackdrop } from '../checks/still-backdrop';
+import { measureStillBackdrop } from '../checks/still-backdrop-client';
 
 type VisionShared = Pick<
   SharedToolSettings,
@@ -35,8 +38,18 @@ export async function checkStillAdultAppearance(input: {
   clothed?: boolean;
   /** This take already used the strong coverage line. */
   coveredTake?: boolean;
+  /** This take was already the redo for a still with no scene. */
+  backdropTake?: boolean;
+  /** The moment's place (a place meant to be white is never judged as "no scene"). */
+  place?: string;
   shared?: VisionShared;
 }): Promise<AdultGateDecision & { reply: AdultGateReply | null }> {
+  // No scene (the plate handed back, a white void): pixels first, no vision call needed.
+  const noScene = decideBackdropGate(
+    judgeStillBackdrop(await measureStillBackdrop(input.imageUrl), { place: input.place }),
+    input.backdropTake === true
+  );
+  if (noScene) return { ...noScene, reply: null };
   const decide = (visionAvailable: boolean, reply: AdultGateReply | null) =>
     decideAdultGate({
       visionAvailable,

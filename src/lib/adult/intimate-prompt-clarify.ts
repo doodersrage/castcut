@@ -559,15 +559,19 @@ export function intimatePoseSample(text: string): string {
 export function intimateBeatIsOffBed(text: string | null | undefined): boolean {
   const sample = stripNegatedClauses(text ?? '');
   return (
-    /\b(wall|couch|sofa|armchair|chair|sink|counter|desk|table|shower|floor|rug|window|railing|balcony|stairs?|lifted|standing|vanity|dresser)\b/i.test(
+    /\b(wall|couch|sofa|armchair|chair|sink|counter|desk|table|shower|(?:bath)?tub|tiles?|floor|rug|window|railing|balcony|stairs?|lifted|standing|vanity|dresser)\b/i.test(
       sample
     ) && !/\b(bed|mattress|sheets)\b/i.test(sample)
   );
 }
 
-/** The place in an adult prompt (its "setting:" line), else ''. */
+/**
+ * The place in an adult prompt (its "setting:" line, or the brief's "SETTING (backdrop only — …):"
+ * line), else ''. Read as "setting:" alone, a Short's bathroom brief had no place, and its bed
+ * lines stayed (live 2026-11-20).
+ */
 export function intimateSettingSample(text: string): string {
-  return text.match(/^setting:\s*(.+)$/im)?.[1]?.trim() ?? '';
+  return text.match(/^setting(?:\s*\([^)\n]*\))?:\s*(.+)$/im)?.[1]?.trim() ?? '';
 }
 
 /**
@@ -600,6 +604,54 @@ export function withoutBedProps(line: string): string {
     )
     .replace('lamp and closed blinds only, ', '')
     .replace('bare skin and sheets only', 'bare skin only');
+}
+
+/**
+ * A whole adult still prompt with its bed wording gone, for a moment off the bed (a wall, a
+ * shower, a couch): the stock lines kept naming sheets, a nightstand and "the bed/frame", and
+ * the still came out on a bed whatever the beat said (live 2026-11-20, a glass-tiled bathroom).
+ */
+export function withoutBedWords(prompt: string): string {
+  return (
+    prompt
+      .replace(
+        /\bbare sheets and skin only in the foreground\b/g,
+        'bare skin and the beat surface only in the foreground'
+      )
+      .replace(
+        /\bbare sheets and bodies only — empty bed surface around the couple\b/g,
+        'bare bodies and the beat surface only'
+      )
+      .replace(
+        /\bPROPS: bare sheets and bodies only — bare nightstand; nothing open on the bed\./g,
+        'PROPS: bare bodies only; nothing held.'
+      )
+      .replace(/\bbare sheets and bodies only\b/g, 'bare bodies only')
+      .replace(/\bbare skin and sheets only\b/g, 'bare skin only')
+      .replace(/\bsheets and skin only\b/g, 'skin only')
+      .replace(
+        /; bare nightstand; nothing open on the bed between the knees\b/g,
+        '; nothing between the knees'
+      )
+      .replace(/; bare nightstand; nothing open on the bed\b/g, '')
+      .replace(/\bshare the bed\/frame\b/g, 'share the frame')
+      .replace(/\bwith empty sheets beside her\b/g, 'with nobody beside her')
+      .replace(/\bbare sheets in the foreground\b/g, 'the surface the beat names in the foreground')
+      // The solo lines and the queue's pose tail (live 2026-11-20, kneeling by a tub edge came out
+      // kneeling on a bed: "empty sheets between the knees", "bare sheets only", a bedside lamp).
+      .replace(/\bempty sheets between the knees\b/g, 'nothing between the knees')
+      .replace(
+        /\bmatch the beat pose — rumpled sheets and bare skin; closed blinds on every window\b/g,
+        'match the beat pose — the surface the beat names and bare skin; bed out of frame'
+      )
+      .replace(
+        /\bsolo adult: rumpled indoor sheets and lamp light in the foreground\b/g,
+        'solo adult: the surface the beat names in the foreground'
+      )
+      .replace(/, bare sheets only\b/g, '')
+      .replace(/\bbare nightstand; /g, '')
+      .replace(/\bbedside (lamp|light)/gi, '$1')
+  );
 }
 
 /**

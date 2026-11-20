@@ -650,3 +650,14 @@ describe('a moment already a sentence leads the pose line as written', () => {
     assert.equal(line('on a park bench'), 'POSE FIRST: she is on a park bench.');
   });
 });
+
+describe('an adult Short where Adult is off', () => {
+  it('is blocked at the queue, not played as Everyday with its adult beats', async () => {
+    const { dayAdultQueueBlocked, DAY_ADULT_OFF_QUEUE_BLOCKED_MESSAGE } = await import('./still-prompt');
+    assert.equal(dayAdultQueueBlocked('intimate', false), DAY_ADULT_OFF_QUEUE_BLOCKED_MESSAGE);
+    assert.equal(dayAdultQueueBlocked('raunchy', false), DAY_ADULT_OFF_QUEUE_BLOCKED_MESSAGE);
+    assert.equal(dayAdultQueueBlocked('intimate', true), null);
+    assert.equal(dayAdultQueueBlocked('everyday', false), null);
+    assert.equal(dayAdultQueueBlocked('suggestive', false), null);
+  });
+});

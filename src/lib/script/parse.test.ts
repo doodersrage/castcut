@@ -167,4 +167,22 @@ describe('screenplay parser (M3 S1)', () => {
       ]
     );
   });
+
+  it('reads a V.O. written under the cue as heard, not as how it is said or as speech', () => {
+    // Live 2026-11-20: "(V.O., answering the call)" drew her in the room on the phone, and a bare
+    // "V.O." line became Rob's line.
+    const script = parseScript(
+      'INT. BATHROOM - NIGHT\n\nLANA\n(V.O., answering the call)\nHey Mom...\n\nROB\nV.O.\nI heard that.\n\nLANA\n(smiling)\nCome here.\n'
+    );
+    const elements = script.scenes[0]!.elements
+      .filter(e => e.kind !== 'character')
+      .map(e => [e.kind, e.text, e.extension ?? '']);
+    assert.deepEqual(elements, [
+      ['parenthetical', '(answering the call)', ''],
+      ['dialogue', 'Hey Mom...', 'V.O.'],
+      ['dialogue', 'I heard that.', 'V.O.'],
+      ['parenthetical', '(smiling)', ''],
+      ['dialogue', 'Come here.', ''],
+    ]);
+  });
 });

@@ -25,7 +25,9 @@ import { runPartnerFaceFinishInComfy } from '@/lib/face/finish-server';
 import { faceSimilarityFromDistance } from '@/lib/face/match';
 import { comfyInputViewUrl } from '@/lib/face/match-client';
 import { comfyOutputViewUrl } from '@/lib/comfyui/job-wait-server';
-import { decideAdultGate } from '@/lib/adult/adult-appearance-gate';
+import { decideAdultGate, decideBackdropGate } from '@/lib/adult/adult-appearance-gate';
+import { judgeStillBackdrop } from '@/lib/checks/still-backdrop';
+import { measureStillBackdropBytes } from '@/lib/checks/still-backdrop-server';
 import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
 import { parseLlmRequestOptions, sharedLlmRequestBody } from '@/lib/llm/request-options';
 import {
@@ -159,9 +161,15 @@ async function renderOnServer(
           ? markJobSeen(promptId, { runId, sceneId, comfyUrl })
           : markJobLanded(promptId, status),
       // The adult-appearance gate on adult-mood takes, as the page asks it (useDayAdultGate).
-      adultGate: async ({ imageUrl, clothed, strongTake, coveredTake }) => {
+      adultGate: async ({ imageUrl, clothed, strongTake, coveredTake, backdropTake, place }) => {
         const blob = await io.loadBlob([imageUrl]);
         const bytes = Buffer.from(await blob.arrayBuffer());
+        // No scene (the plate handed back, a white void): pixels first, no vision call.
+        const noScene = decideBackdropGate(
+          judgeStillBackdrop(await measureStillBackdropBytes(bytes), { place }),
+          backdropTake === true
+        );
+        if (noScene) return noScene;
         const vision = await askAdultAppearanceVision({
           imageDataUrl: `data:${blob.type || 'image/png'};base64,${bytes.toString('base64')}`,
           llm: parseLlmRequestOptions(sharedLlmRequestBody(bundle.queue!.shared)),

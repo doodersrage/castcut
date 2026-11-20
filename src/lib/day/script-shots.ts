@@ -11,6 +11,7 @@ import type { DaySlot } from './planner';
 import type { CameraShot } from '../pose/camera-shot';
 import type { ScriptScene } from '../script/parse';
 import { resolvePlaces, resolveSpeakers, speakerKey, type ScriptCastMember } from './script-cast';
+import { oneSlipApart } from './name-slip';
 
 export type ShotPurpose = 'establishing' | 'dialogue' | 'reaction' | 'action' | 'insert';
 
@@ -663,8 +664,27 @@ export function shotSceneDraft(input: {
   const parts = resolveSpeakers(scene.speakers, cast, input.castMap).filter(
     part => part.status === 'confirmed' && part.castId
   );
-  const castOf = (speaker: string | undefined) =>
-    speaker ? parts.find(part => part.speaker === speakerKey(speaker))?.castId : undefined;
+  const leadName = cast.find(member => member.id === castId)?.name;
+  // Her cue is also any one word of her name nobody mapped (LANA for "Loose Lana"): unmapped,
+  // her lines read as someone else beside her — "Loose Lana and Lana" — and the still swapped
+  // her partner for a stranger (live 2026-11-20).
+  const leadWords = new Set(
+    [leadName, ...(leadName?.split(/\s+/) ?? [])]
+      .filter((name): name is string => Boolean(name && name.length >= 3))
+      .map(speakerKey)
+  );
+  const castOf = (speaker: string | undefined) => {
+    if (!speaker) return undefined;
+    const key = speakerKey(speaker);
+    const mapped = parts.find(part => part.speaker === key)?.castId;
+    if (mapped) return mapped;
+    if (input.castMap && input.castMap[key] === null) return undefined;
+    // Her name, a word of it, or one letter off a word of it (LANNA for "Loose Lana": four
+    // Scenes paired her with "Lanna", a stranger — bug hunt 2026-11-20).
+    const slip =
+      key.length >= 4 && [...leadWords].some(word => word.length >= 4 && oneSlipApart(key, word));
+    return leadWords.has(key) || slip ? castId : undefined;
+  };
   const nameOf = (speaker: string) => {
     // A cue that names nobody ("V.O. (PHONE)"): a voice.
     if (isTagOnlyCue(speaker)) return 'Voice';
@@ -703,14 +723,9 @@ export function shotSceneDraft(input: {
   const touchesPartner = Boolean(
     partner?.castId && PARTNER_CONTACT_RE.test(shot.action ?? sceneActionRaw ?? '')
   );
-  const leadName = cast.find(member => member.id === castId)?.name;
   // Seen besides her: any speaker in the shot but her, unless only ever heard here.
   const heardOnly = offscreenOnlySpeakers(scene);
-  const leadCues = new Set(
-    [leadName, leadName?.split(/\s+/)[0]].filter(Boolean).map(name => speakerKey(name!))
-  );
-  const isLead = (speaker: string) =>
-    castOf(speaker) === castId || leadCues.has(speakerKey(speaker));
+  const isLead = (speaker: string) => castOf(speaker) === castId;
   // Her line to him, with him there in the scene: a two-shot, as his lines to her are. Shot on
   // her alone, she answered the lens while he answered her ("it is weird Jason responds to her
   // while she responds to the camera", the flagship, 2026-11-16). A call (he isn't in the

@@ -675,7 +675,7 @@ export type DaySlotStill = {
    */
   adultHold?: 'checking' | 'withheld';
   /** What a withheld take failed on: the age read, or bare skin on a Suggestive still. */
-  adultHoldCause?: 'age' | 'bare';
+  adultHoldCause?: 'age' | 'bare' | 'backdrop';
   /** Queued as an adult still: the gate checks it, and no live preview is shown while it renders. */
   adultGated?: boolean;
   /**
@@ -1129,6 +1129,17 @@ export const DAY_ADULT_DUO_IDENTITY_LOCK_CAP = 0.22;
  * (naming lingerie in the positive summons it — keep bans in negatives only).
  */
 export const DAY_ADULT_SOLO_NUDE_IDENTITY_LOCK_CAP = 0.04;
+
+/**
+ * Face only from Image 1, everything else new. The nudity clause only on an undressed still: a
+ * Sport or Vacation still (its own kit replaces the plate's) carried "zero fabric when the beat
+ * is nude" on every prompt (bug hunt, 2026-11-20).
+ */
+function dayFaceOnlyRefactorLine(undressed: boolean): string {
+  return undressed
+    ? 'keep facial likeness only for identity; aggressively refactor pose, camera, lighting, environment, and clothing — zero fabric when the beat is nude'
+    : "keep facial likeness only for identity; aggressively refactor pose, camera, lighting, environment, and clothing — the beat's own outfit";
+}
 
 /** Day Keep→scene: hold face + worn kit from Image 1; unlock pose/camera/background. */
 export const DAY_KEEP_OUTFIT_POSE_UNLOCK_PREFIX =
@@ -2420,8 +2431,13 @@ export function resolveDayAdultIndoorSetting(input: {
   if (heat.includes(sanitized) || heat.includes(raw)) {
     return sanitized;
   }
+  // An indoor room of its own stays: "shower stall with glass door and steam" became the stock
+  // "sunlit bedroom with rumpled sheets", and a Short's shower moments rendered on a bed (live
+  // 2026-11-20).
+  // Any indoor room (outdoor and stale props were turned away above): "laundry room with a
+  // rattling washer" became a bedroom too (bug hunt, 2026-11-20).
   if (
-    /\b(bedroom|hotel|bathroom|apartment|sheets|lamp|nightstand|blinds|curtains|suite)\b/i.test(
+    /\b(bedroom|hotel|bathroom|apartment|sheets|lamp|nightstand|blinds|curtains|suite|showers?|shower stall|(?:bath)?tubs?|bath|tiled?|sauna|steam room|spa|living room|lounge|couch|sofa|day ?bed|fireplace|fireside|den|loft|cabin|rooms?|kitchen|laundry|garage|office|study|library|hallway|corridor|stair(?:s|case|well)?|closet|walk-in|wardrobe|gym|studio|attic|basement|cellar|pantry|sunroom|conservatory|elevator|car|backseat|van|camper|train compartment)\b/i.test(
       sanitized
     )
   ) {
@@ -3362,6 +3378,27 @@ export function dayBeatOmitsGarmentPackshot(input: {
   if (mix === 'solo' && isDayAdultMood(input.dayMood)) {
     return true;
   }
+  // A Mixed day's moment of her alone ("… — Cast alone") is a Solo moment: the SOLO ACT lock
+  // undresses her, so the kit must go too. Kept, "solo with hand on thigh, kneeling by tub
+  // edge — Cast alone" came out dressed, kneeling for the lens (live 2026-11-20).
+  if (isDayIntimateSoloBeat(input.blurb ?? '')) {
+    return true;
+  }
+  // …and so is its two-person moment ("… — both adults fully visible"): written without the word
+  // "partner", 50 of 54 of one evening's adult stills kept the outfit (bug hunt, 2026-11-20).
+  if (
+    /\b(?:both adults fully visible|two adults mid-contact|two heads in frame)\b/i.test(
+      input.blurb ?? ''
+    )
+  ) {
+    return true;
+  }
+  // A script's two-shot ("Loose Lana and Rob, the two of them together. … lips locked"): no
+  // marker, no "partner" — kept in the outfit, Image 1 was the whole Cast plate and she stood in
+  // its pose and underwear in front of him (live 2026-11-20, Castcut_13254).
+  if (/\bthe two of them together\b/i.test(input.blurb ?? '')) {
+    return true;
+  }
   if (
     normalizeDayMood(input.dayMood) === 'raunchy' &&
     isDayRaunchySoloBeat(haystack) &&
@@ -4002,7 +4039,9 @@ export function buildDaySlotPrompt(input: {
         ? soloToy
           ? `FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); ${SOLO_DILDO_INSERTION_CUE}; bare breasts with nipples visible uncovered; never invent a man; never books or phones on the bed.`
           : 'FOREGROUND: match the beat pose — rumpled sheets and bare skin; closed blinds on every window (no glass balcony door, no ocean vista); fingers on her vulva mid-act as written; bare breasts with nipples visible uncovered; nothing held; never books or phones on the bed.'
-        : 'FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; closed blinds (no outdoor vista); both hands on her own skin only (breasts/hips/vulva).'
+        : offBed
+          ? 'FOREGROUND: the surface the beat names (tub edge, floor, wall, couch, counter as written) — bed out of frame; empty lap, nothing held; both hands on her own skin only (breasts/hips/vulva).'
+          : 'FOREGROUND: empty rumpled sheets only between the knees and in front of the body — bare fabric, empty lap, nothing held, nothing open on the bed; closed blinds (no outdoor vista); both hands on her own skin only (breasts/hips/vulva).'
       : duoOffBed
         ? 'FOREGROUND: bare bodies and the beat surface only (wall, couch, chair, counter as written) — bed out of frame; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
         : 'FOREGROUND: bare sheets and bodies only — empty bed surface around the couple; closed blinds on every window (no glass balcony door, no ocean or water visible outside); hands on bodies only; nothing open or held in the foreground.'
@@ -4324,7 +4363,12 @@ export function buildDaySlotPrompt(input: {
     const settingLine = setting
       ? isDayAdultMood(dayMood)
         ? soloSubject
-          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — lamp light and closed blinds only behind the beat pose; bare nightstand; opaque walls; nothing on the bed except sheets and the subject; never invent beach, sand, ocean, shoreline, wet sand, pier softcore, night-beach city-light pin-up, glass balcony door, sliding glass, outdoor railing, ocean through a window, coastal vista, or water outside the glass`
+          ? `SETTING (backdrop only — lighting and empty room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — ${
+              // Off the bed (a tub edge, a wall): no bed props behind her, or Rapid draws a bed.
+              offBed
+                ? 'the place as written behind the beat pose; no bed in frame'
+                : 'lamp light and closed blinds only behind the beat pose; bare nightstand; opaque walls; nothing on the bed except sheets and the subject'
+            }; never invent beach, sand, ocean, shoreline, wet sand, pier softcore, night-beach city-light pin-up, glass balcony door, sliding glass, outdoor railing, ocean through a window, coastal vista, or water outside the glass`
           : `SETTING (backdrop only — lighting and room; never override the beat body pose${plateIsolated ? '; replace every white/studio void' : ''}): ${setting} — environment for ${timeOfDay} behind the beat pose; closed blinds / drawn curtains; never invent walking, grocery, reading, drinking, or fashion-pin-up stances from the scene; never invent beach, sand, ocean, shoreline, night-beach softcore, glass balcony door, ocean through a window, or coastal vista`
         : dayMood === 'suggestive'
           ? `SETTING (backdrop only — lighting and room; never override the beat body pose): ${setting} — environment for ${timeOfDay} behind the beat pose; never a blank white backdrop or ecommerce void; never invent walking, grocery, reading, or bland fashion-portrait stances from the scene`
@@ -4515,7 +4559,7 @@ export function buildDaySlotPrompt(input: {
         companionLock,
         duoHeadcountLock,
         omitGarment || replaceKeepOutfit
-          ? 'keep facial likeness only for identity; aggressively refactor pose, camera, lighting, environment, and clothing — zero fabric when the beat is nude'
+          ? dayFaceOnlyRefactorLine(omitGarment)
           : clothedFaceBreak
             ? 'keep facial likeness only for identity — Image 1 is face only, invent body and clothes for the beat; aggressively refactor pose, camera, lighting, and environment'
             : dayMood === 'vacation'
@@ -4653,7 +4697,7 @@ export function buildDaySlotPrompt(input: {
       companionLock,
       duoHeadcountLock,
       omitGarment || replaceKeepOutfit
-        ? 'keep facial likeness only for identity; aggressively refactor pose, camera, lighting, environment, and clothing — zero fabric when the beat is nude'
+        ? dayFaceOnlyRefactorLine(omitGarment)
         : 'keep facial likeness only from Image 1; aggressively refactor pose, camera, lighting, and environment',
       descriptor
         ? `look (mandatory unique face and body — not a stock beauty face or default slim silhouette): ${descriptor}`
@@ -4954,7 +4998,9 @@ export function normalizeDaySlotStills(
         ? { adultHold: still.adultHold }
         : {}),
       ...(still.adultHold === 'withheld' &&
-      (still.adultHoldCause === 'age' || still.adultHoldCause === 'bare')
+      (still.adultHoldCause === 'age' ||
+        still.adultHoldCause === 'bare' ||
+        still.adultHoldCause === 'backdrop')
         ? { adultHoldCause: still.adultHoldCause }
         : {}),
       ...(still.adultGated === true ? { adultGated: true } : {}),
@@ -5023,7 +5069,7 @@ export type DayGalleryEntry = {
   /** The adult-appearance gate's mark (gallery-adult-check.ts). */
   adultCheck?: 'pending' | 'passed' | 'unchecked' | 'withheld';
   /** Why a withheld take was withheld (the card's message). */
-  adultCheckCause?: 'age' | 'bare';
+  adultCheckCause?: 'age' | 'bare' | 'backdrop';
 };
 
 /** Merge gallery poll results into day slot stills by promptId (stills + clips). */

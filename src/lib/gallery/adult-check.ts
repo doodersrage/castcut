@@ -26,10 +26,19 @@ export type GalleryAdultCheck = {
    * clothed-mood still — clothed-coverage.ts).
    */
   covered?: boolean;
+  /**
+   * This take is the one redo of a still that came back with no scene (still-backdrop.ts): a
+   * second such take is withheld for good. On the entry, so a reload still knows (the page kept
+   * it in memory only, and a reloaded page could redo it again).
+   */
+  backdrop?: boolean;
   /** Why it was withheld / passed, in a few words. */
   reason?: string;
-  /** What a withheld take failed on: the age read, or bare skin on a clothed-mood still. */
-  cause?: 'age' | 'bare';
+  /**
+   * What a withheld take failed on: the age read, bare skin on a clothed-mood still, or no scene
+   * (the Cast plate on white, a white void — still-backdrop.ts).
+   */
+  cause?: 'age' | 'bare' | 'backdrop';
   at: number;
 };
 
@@ -91,6 +100,7 @@ export function inheritedAdultCheck(
       state: 'pending',
       strong: parent?.adultCheck?.strong,
       ...(parent?.adultCheck?.covered ? { covered: true } : {}),
+      ...(parent?.adultCheck?.backdrop ? { backdrop: true } : {}),
       at: now,
     };
   }

@@ -16,6 +16,7 @@ import type { SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { replannedMomentShots } from './short-scene-edit';
 import { shortMomentsOf } from './short-moments';
+import { oneSlipApart } from './name-slip';
 
 /** Someone in a moment besides the lead: a Cast member (castId) or the writer's to name. */
 export type MomentPerson = EpisodeCastMember & { castId?: string };
@@ -130,26 +131,6 @@ export function withPeoplePresent(written: string, people: readonly MomentPerson
     .join('\n');
 }
 
-/** Whether two cues are one slip apart: a letter changed, added, dropped, or two swapped. */
-function oneSlipApart(a: string, b: string): boolean {
-  if (a === b || Math.abs(a.length - b.length) > 1) return false;
-  if (a.length === b.length) {
-    const off = [...a].flatMap((char, index) => (char === b[index] ? [] : [index]));
-    if (off.length === 1) return true;
-    return (
-      off.length === 2 &&
-      off[1] === off[0]! + 1 &&
-      a[off[0]!] === b[off[1]!] &&
-      a[off[1]!] === b[off[0]!]
-    );
-  }
-  const [short, long] = a.length < b.length ? [a, b] : [b, a];
-  for (let index = 0; index < long.length; index++) {
-    if (long.slice(0, index) + long.slice(index + 1) === short) return true;
-  }
-  return false;
-}
-
 /**
  * A misspelt cue put right (2026-11-11): a live run's writer wrote SYLNE for Slyne, so her lines
  * were nobody's in Who's who (unmapped, "the face doesn't match" on 3 of them) and her shot text
@@ -184,9 +165,26 @@ export function withKnownCues(written: string, names: readonly string[]): string
       if (!match || /^(?:INT|EXT|EST|I\/E)\b/.test(match[2]!)) return line;
       if (!lines[index + 1]?.trim()) return line;
       const cue = match[2]!;
-      if (cue.length < 4 || known.includes(cue)) return line;
+      if (cue.length < 3 || known.includes(cue)) return line;
+      // One word of exactly one known name: LANA for the Cast's "Loose Lana" was nobody's cue,
+      // so her lines named "Lana" as someone else and the still put a stranger in for her
+      // partner (live 2026-11-20).
+      const byWord = /^(?:HER|HIS|THE|THEIR|AND|MR|MRS|MS|DR)$/.test(cue)
+        ? []
+        : known.filter(name => name.includes(' ') && name.split(' ').includes(cue));
+      if (byWord.length === 1) return `${match[1]}${byWord[0]}${match[3] ?? ''}`;
+      if (cue.length < 4) return line;
       const near = known.filter(name => name.length >= 4 && oneSlipApart(cue, name));
-      return near.length === 1 ? `${match[1]}${near[0]}${match[3] ?? ''}` : line;
+      if (near.length === 1) return `${match[1]}${near[0]}${match[3] ?? ''}`;
+      if (near.length > 1) return line;
+      // A slip of one word of a name: LANNA for "Loose Lana" (four Scenes paired her with
+      // "Lanna", a stranger, bug hunt 2026-11-20).
+      const nearWord = known.filter(
+        name =>
+          name.includes(' ') &&
+          name.split(' ').some(word => word.length >= 4 && oneSlipApart(cue, word))
+      );
+      return nearWord.length === 1 ? `${match[1]}${nearWord[0]}${match[3] ?? ''}` : line;
     })
     .join('\n');
 }

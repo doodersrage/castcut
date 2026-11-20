@@ -13,6 +13,8 @@
  * adult-appearance-gate-server.ts (server) / adult-appearance-gate-client.ts (client).
  */
 
+import type { StillBackdropVerdict } from '../checks/still-backdrop';
+
 /**
  * The question. Calibrated on clothed adult Day stills (docs/play-guide.md, "Adult content
  * safeguards"): asking for the youngest apparent age as well as the yes/no keeps the model
@@ -112,10 +114,18 @@ export type AdultGateDecision = {
   reason: string;
   /**
    * What a requeue / withhold is for: the age read (the stronger age sentence), or bare skin
-   * on a clothed-mood still (the coverage line, clothed-coverage.ts).
+   * on a clothed-mood still (the coverage line, clothed-coverage.ts), or no scene at all (the
+   * plate handed back, a white void — still-backdrop.ts; redone on a new seed).
    */
-  cause?: 'age' | 'bare';
+  cause?: AdultGateCause;
 };
+
+/** What a withheld take failed on. */
+export type AdultGateCause = 'age' | 'bare' | 'backdrop';
+
+export function isAdultGateCause(value: unknown): value is AdultGateCause {
+  return value === 'age' || value === 'bare' || value === 'backdrop';
+}
 
 /**
  * What to do with a landed adult still. `reply` null with `visionAvailable` true means the call
@@ -163,6 +173,33 @@ export function decideAdultGate(input: {
   return { verdict: 'pass', reason: `clearly adult (${reply.confidence}%)` };
 }
 
+/**
+ * Before the vision question: a take that came back with no scene (its Cast plate on white, the
+ * people in a white void — still-backdrop.ts) is withheld and redone once on a new seed, then
+ * withheld for good. Null: the take has a scene (or could not be measured) — go on to the
+ * vision question.
+ */
+export function decideBackdropGate(
+  verdict: StillBackdropVerdict | null | undefined,
+  /** This take was already the redo for no scene. */
+  backdropTake: boolean
+): AdultGateDecision | null {
+  if (!verdict || verdict.status === 'ok') return null;
+  return {
+    verdict: backdropTake ? 'withhold' : 'requeue',
+    reason: verdict.reason ?? 'no scene',
+    cause: 'backdrop',
+  };
+}
+
+/** The card's message when the redo came back with no scene too. */
+export const BACKDROP_GATE_WITHHELD_MESSAGE =
+  'Withheld: the picture came back with no scene (the Cast plate on white) twice — try a different seed or beat';
+
+/** The tray line when a take came back with no scene and the slot is redone. */
+export const BACKDROP_GATE_REQUEUE_MESSAGE =
+  'A still came back with no scene (the Cast plate on white) — it is hidden and being redone on a new seed.';
+
 /** The card's message when the second take is withheld too. */
 export const ADULT_GATE_WITHHELD_MESSAGE =
   'Withheld: the picture did not read as clearly adult — try a different seed or beat';
@@ -191,4 +228,34 @@ export function storyRatingNeedsAdultSafeguards(content: string | null | undefin
   return (
     rating === 'suggestive' || rating === 'sultry' || rating === 'explicit' || rating === 'raunchy'
   );
+}
+
+/** The card's / run's message for a take withheld for good, by what it failed on. */
+/**
+ * Why the check said so, for the tray and the run log (" Why: the vision model was unsure."),
+ * '' for a still with no scene (its message says it). The reason was only in the browser console.
+ */
+export function adultGateWhy(
+  cause: AdultGateCause | null | undefined,
+  reason: string | null | undefined
+): string {
+  const why = reason?.trim().replace(/[.\s]+$/, '');
+  return why && cause !== 'backdrop' ? ` Why: ${why}.` : '';
+}
+
+export function adultGateWithheldMessage(cause: AdultGateCause | null | undefined): string {
+  return cause === 'bare'
+    ? CLOTHED_GATE_WITHHELD_MESSAGE
+    : cause === 'backdrop'
+      ? BACKDROP_GATE_WITHHELD_MESSAGE
+      : ADULT_GATE_WITHHELD_MESSAGE;
+}
+
+/** The tray line for a withheld take being redone, by what it failed on. */
+export function adultGateRequeueMessage(cause: AdultGateCause | null | undefined): string {
+  return cause === 'bare'
+    ? CLOTHED_GATE_REQUEUE_MESSAGE
+    : cause === 'backdrop'
+      ? BACKDROP_GATE_REQUEUE_MESSAGE
+      : ADULT_GATE_REQUEUE_MESSAGE;
 }

@@ -229,6 +229,7 @@ export async function postQueueSinglePrompt(input: {
               state: 'pending' as const,
               ...(options.adultGate.strong ? { strong: true } : {}),
               ...(options.adultGate.covered ? { covered: true } : {}),
+              ...(options.adultGate.backdrop ? { backdrop: true } : {}),
               at: Date.now(),
             },
           }

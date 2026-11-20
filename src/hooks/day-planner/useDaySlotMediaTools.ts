@@ -125,6 +125,9 @@ export function useDaySlotMediaTools(ctx: DayPlannerToolOrchestrationCore) {
       try {
         const patch = await work(still);
         const now = stillsRef.current.find(entry => entry.slotId === slot.id) ?? still;
+        // A new take on the card meanwhile: this result is the last take's (kept in the Gallery).
+        if ((now.promptId ?? '') !== (still.promptId ?? ''))
+          return 'The moment has a new still since — that result is in the Gallery.';
         updateToolSettings({ stills: upsertDaySlotStill(stillsRef.current, { ...now, ...patch }) });
         return null;
       } catch (error) {

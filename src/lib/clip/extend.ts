@@ -681,11 +681,28 @@ export function withPartAction(prompt: string, beat: string): string | null {
   const action = beat.trim().replace(/[.\s]+$/, '');
   if (!action) return null;
   for (const label of ['Action', 'Scene']) {
+    // The whole action, every sentence of it, up to the line that follows it in the templates
+    // (still/clip-prompt.ts, play/intimate-clip-prompt.ts). Cut at its first full stop, "Loose
+    // Lana and Older Man, the two of them together." went and "AN OLDER MAN approaches, holding
+    // two full glasses" stayed in every part: a new man in a suit walked in with glasses at 9 s
+    // and 24 s of a 30 s clip (2026-11-20).
+    const whole = new RegExp(`${label}: [^]*?\\.(?=\\s+(?:${AFTER_ACTION})|\\s*$)`);
+    if (whole.test(prompt)) return prompt.replace(whole, () => `${label}: ${action}.`);
     const pattern = new RegExp(`${label}: [^]*?\\.(?=\\s|$)`);
     if (pattern.test(prompt)) return prompt.replace(pattern, () => `${label}: ${action}.`);
   }
   return null;
 }
+
+/** What follows the action in a clip prompt: the motion, the end pose, the age sentence. */
+const AFTER_ACTION = [
+  'Motion:',
+  'By the end of the clip,',
+  'The place, light and clothes',
+  'Faces?:',
+  'Camera:',
+  '(?:Both are|She is|He is|They are|Everyone in the picture is) (?:clearly )?(?:an )?adults?',
+].join('|');
 
 /** A long H3 part's most content (s): H3_LONG_PART_FRAMES less the start frame it drops. */
 export const H3_LONG_PART_SECONDS = 15;

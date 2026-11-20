@@ -198,6 +198,17 @@ describe('Make it 30 s', () => {
       'Scene: they slow down. Both are adults. Motion: slow.'
     );
     assert.equal(withPartAction('A plain prompt.', 'x'), null);
+    // An action of several sentences goes whole (2026-11-20: "AN OLDER MAN approaches, holding
+    // two full glasses" stayed in every part, and a new man in a suit walked in each time).
+    const entrance =
+      '4s clip, one continuous shot that starts on the first frame. Action: Loose Lana and Older Man, the two of them together. AN OLDER MAN approaches, holding two full glasses. He hands one to Lana. Older Man says: “You’re Lana, aren’t you?”. Motion: both people continue this moment. The place, light and clothes stay exactly as in the first frame.';
+    const next = withPartAction(entrance, 'They clink glasses and laugh.')!;
+    assert.doesNotMatch(next, /approaches|hands one|says:/);
+    assert.match(next, /Action: They clink glasses and laugh\. Motion: both people/);
+    assert.equal(
+      withPartAction('Scene: on the couch. She leans in. Both are adults in their thirties. Motion: slow.', 'they slow down'),
+      'Scene: they slow down. Both are adults in their thirties. Motion: slow.'
+    );
     // H3: the swapped prompt is what the part says, its framing held, no prop nouns.
     const h3 = h3PartPrompt(
       `${part} Camera: one fixed wide shot on a tripod for the whole clip. studio-grade lighting.`,

@@ -4,6 +4,8 @@
  * rendered in partner-stand-in.ts.
  */
 
+import { oneSlipApart } from './name-slip';
+
 /**
  * The other person a script's two-shot shows, from its opening ("Slyne and Elderly man, the two
  * of them together." — script-shots.ts). The partner (PARTNER, a husband, a date…) is the film's
@@ -47,6 +49,43 @@ export function scriptShotOther(hints: string | null | undefined): ScriptShotOth
   const elderly =
     /\b(?:elderly|old|older|aged|senior|retired|grand(?:pa|ma|father|mother)|granny)\b/.test(words);
   return { who: who.slice(0, 60), noun, elderly };
+}
+
+/**
+ * A shot that pairs the lead with herself ("Loose Lana and Lana, the two of them together."):
+ * written before a cue that was a word of her name (LANA) or a slip of one (LANNA) was read as
+ * her, 23 of one film's Scenes did, and each drew a stranger in for her partner (2026-11-20).
+ * The second name becomes the partner's, or the pairing goes when there is none. Read at render
+ * time: the stored Scene keeps its words.
+ */
+export function withoutSelfPair(
+  hints: string | null | undefined,
+  leadName: string | null | undefined,
+  partnerName: string | null | undefined
+): string | undefined {
+  const text = hints ?? undefined;
+  const lead = leadName?.trim();
+  if (!text || !lead) return text;
+  const pair =
+    /^(\s*)([^,.!?]{1,60}?)\s+and\s+([^,.!?(]{1,60}?)(\s*\([^)]*\))?,\s+the two of them together\.?\s*/.exec(
+      text
+    );
+  if (!pair || pair[2]!.trim().toLowerCase() !== lead.toLowerCase()) return text;
+  const other = pair[3]!.trim().toLowerCase();
+  const words = lead
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length >= 3);
+  const isHer =
+    other === lead.toLowerCase() ||
+    words.includes(other) ||
+    (other.length >= 4 && words.some(word => word.length >= 4 && oneSlipApart(other, word)));
+  if (!isHer) return text;
+  const rest = text.slice(pair[0].length);
+  const partner = partnerName?.trim();
+  return partner
+    ? `${pair[1]}${lead} and ${partner}, the two of them together. ${rest}`.trimEnd()
+    : `${pair[1]}${rest}`;
 }
 
 /** Where a film keeps a stand-in: the script for its partner, `script|who` for anyone else. */

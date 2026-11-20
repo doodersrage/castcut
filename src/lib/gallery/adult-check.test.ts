@@ -135,6 +135,12 @@ describe('gallery adult check (withheld / pending entries)', () => {
     assert.equal(inheritedAdultCheck(visible, 'refine', 5), undefined);
   });
 
+  it('keeps the mark that a take is the one no-scene redo (so a reload still knows)', () => {
+    const redo = { ...pending, adultCheck: { state: 'pending' as const, backdrop: true, at: 1 } };
+    assert.equal(inheritedAdultCheck(redo, 'i2v', 5)?.backdrop, true);
+    assert.equal(inheritedAdultCheck(pending, 'i2v', 5)?.backdrop, undefined);
+  });
+
   describe('server storage', () => {
     const previousDataDir = process.env.PROMPT_DATA_DIR;
     let tempDir = '';

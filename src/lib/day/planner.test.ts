@@ -1859,6 +1859,18 @@ describe('day-planner', () => {
       /hotel room with white sheets/i
     );
     assert.match(sanitizeDayAdultIndoorSetting('bedroom with an open window'), /closed blinds/i);
+    // A shower is its own room, not the stock bedroom (live 2026-11-20).
+    for (const [setting, slotId] of [
+      ['shower stall with glass door and steam', 'morning'],
+      ['shower lit by soft overhead bulb', 'night'],
+      ['fireside rug in a log cabin', 'evening'],
+      // Any indoor room (bug hunt, 2026-11-20: a laundry room became a bedroom).
+      ['laundry room with a rattling washer', 'afternoon'],
+      ['kitchen mid-bake with a flour-dusted island', 'evening'],
+      ['home office with a leather chair', 'night'],
+    ] as const) {
+      assert.equal(resolveDayAdultIndoorSetting({ setting, slotId }), setting);
+    }
   });
 
   it('buildDayAdultBeatPoseLock locks all-fours doggy and wall vs softcore kneel', () => {
@@ -2510,6 +2522,70 @@ describe('day-planner', () => {
     assert.match(prompt, /never a soft floral-dress pin-up|never a soft fashion pin-up|use FACE only|face identity only|Discard every garment/i);
     assert.match(prompt, /SOLO SUBJECT \(mandatory\)/i);
     assert.doesNotMatch(prompt, /PARTNERS:/i);
+  });
+
+  it('a Mixed day\'s moment of her alone by the tub: outfit off, and no bed anywhere in the brief', async () => {
+    // Live 2026-11-20 ("After the bath"): the dress was kept and the brief kept its sheets, a
+    // nightstand and a bedside lamp, so she knelt on a bed in the dress, facing the lens.
+    const { withoutBedWords } = await import('../adult/intimate-prompt-clarify');
+    const sceneHints = 'solo with hand on thigh, kneeling by tub edge, candlelight flickering — Cast alone';
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({ blurb: sceneHints, dayMood: 'intimate', intimateMix: 'mixed' }),
+      true
+    );
+    // Its two-person moment too, with no "partner" in it (the shower kiss, same evening).
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb: 'kissing under spray, hands on tiles, steam rising — both adults fully visible',
+        dayMood: 'intimate',
+        intimateMix: 'mixed',
+      }),
+      true
+    );
+    // And a script's two-shot, which has neither (Castcut_13254).
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({
+        blurb:
+          'Loose Lana and Rob, the two of them together. ROB, behind her, grabs her wrist, pulls her back into him. They SPIN, press against the tile, lips locked.',
+        dayMood: 'intimate',
+        intimateMix: 'mixed',
+      }),
+      true
+    );
+    // A clothed mood never undresses.
+    assert.equal(
+      dayBeatOmitsGarmentPackshot({ blurb: sceneHints, dayMood: 'everyday', intimateMix: 'mixed' }),
+      false
+    );
+    const prompt = withoutBedWords(
+      buildDaySlotPrompt({
+        slot: {
+          ...DEFAULT_DAY_SLOTS[3]!,
+          location: 'master bathroom with amber glow from bedside lamp',
+          sceneHints,
+        },
+        hasPlate: true,
+        plateSource: 'keeper',
+        poseGuide: true,
+        dayMood: 'intimate',
+        intimateMix: 'mixed',
+        omitGarment: true,
+      })
+    );
+    assert.match(prompt, /kneeling by tub edge/);
+    assert.match(prompt, /master bathroom/);
+    assert.doesNotMatch(prompt, /\b(sheets|nightstand|bedside)\b/i);
+    // A bedroom moment keeps its bed.
+    const bedroom = buildDaySlotPrompt({
+      slot: { ...DEFAULT_DAY_SLOTS[3]!, location: 'hotel bedroom with warm lamp', sceneHints: 'solo on her back on the bed — Cast alone' },
+      hasPlate: true,
+      plateSource: 'keeper',
+      poseGuide: true,
+      dayMood: 'intimate',
+      intimateMix: 'mixed',
+      omitGarment: true,
+    });
+    assert.match(bedroom, /FOREGROUND: empty rumpled sheets/);
   });
 
   it('buildDaySlotPrompt raunchy duo bans invented notebooks and demands slapstick sex', () => {

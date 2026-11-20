@@ -58,7 +58,13 @@ import {
 } from '@/lib/pose/camera-shot';
 import type { PoseGuideStylePreference } from '@/lib/pose/guide-prompt';
 import { dayAutoFootwear, footwearIsBarefoot, withFootwearLine } from '@/lib/wardrobe/footwear';
-import { reinforceIntimateStillPrompt } from '@/lib/adult/intimate-prompt-clarify';
+import {
+  intimatePoseSample,
+  intimateSceneIsOffBed,
+  intimateSettingSample,
+  reinforceIntimateStillPrompt,
+  withoutBedWords,
+} from '@/lib/adult/intimate-prompt-clarify';
 import { KLEIN_FACE_REFERENCE_LINE } from '@/lib/engine/klein-face-reference';
 import {
   ALWAYS_CUED_DUO_LAYOUTS,
@@ -723,7 +729,13 @@ function finishDayStillWording(
   // Adult moods only — reinforceIntimateStillPrompt false-positives on Suggestive / Vacation
   // ("hands on" zipper, "sex contact" bans) and injects nude/duo locks that fight CLOTHING LOCK
   // → bikini/beach drift.
-  const reinforced = input.adultMood ? reinforceIntimateStillPrompt(drafted) : drafted;
+  const intimate = input.adultMood ? reinforceIntimateStillPrompt(drafted) : drafted;
+  // Off the bed (a wall, a shower, a couch): none of the stock bed wording, or it lands on a bed.
+  const reinforced =
+    input.adultMood &&
+    intimateSceneIsOffBed(intimatePoseSample(intimate), intimateSettingSample(intimate))
+      ? withoutBedWords(intimate)
+      : intimate;
   if (!input.swapLead) return reinforced;
   // The lead's and the partner's own descriptions already read right — set them aside while
   // the rest is reworded for a man lead. Swapped too, a man partner was written as "a White
@@ -825,6 +837,22 @@ export type DayStillSlotState = {
 function withAdultBody(descriptor: string | undefined, adultBody: string): string | undefined {
   if (!adultBody) return descriptor;
   return descriptor?.trim() ? `${descriptor.trim()}, with ${adultBody}` : adultBody;
+}
+
+/** Why an adult Short cannot render here: Adult (the NSFW generator) is off on this install. */
+export const DAY_ADULT_OFF_QUEUE_BLOCKED_MESSAGE =
+  'This Short is Adult — turn Adult on to render it (set PROMPT_NSFW_GENERATOR_ENABLED=true on this install).';
+
+/**
+ * An adult Short where Adult is off: blocked, not played as Everyday. Played as Everyday it kept
+ * its adult beats, and a "fully clothed" still was asked for "mid-sex against the wall" (bug
+ * hunt, 2026-11-20).
+ */
+export function dayAdultQueueBlocked(
+  dayMood: string | null | undefined,
+  intimateEnabled: boolean
+): string | null {
+  return isDayAdultMood(dayMood) && !intimateEnabled ? DAY_ADULT_OFF_QUEUE_BLOCKED_MESSAGE : null;
 }
 
 /** The mood a still plays as. */

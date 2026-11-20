@@ -15,10 +15,7 @@ import ShotCardMenu, {
   ShotCardMenuGroup,
 } from '@/components/ui/ShotCardMenu';
 import StillPromptCheckNote from '@/components/StillPromptCheckNote';
-import {
-  ADULT_GATE_WITHHELD_MESSAGE,
-  CLOTHED_GATE_WITHHELD_MESSAGE,
-} from '@/lib/adult/adult-appearance-gate';
+import { adultGateWithheldMessage } from '@/lib/adult/adult-appearance-gate';
 import OpenInComfyButton from '@/components/OpenInComfyButton';
 import {
   daySlotBoardCaption,
@@ -1103,9 +1100,7 @@ export default function DaySlotBoard({
                     role="status"
                     data-testid={`day-slot-withheld-${slot.id}`}
                   >
-                    {still.adultHoldCause === 'bare'
-                      ? CLOTHED_GATE_WITHHELD_MESSAGE
-                      : ADULT_GATE_WITHHELD_MESSAGE}
+                    {adultGateWithheldMessage(still.adultHoldCause)}
                   </p>
                 ) : null}
                 {still?.engineNote ? (

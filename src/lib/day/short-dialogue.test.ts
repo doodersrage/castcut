@@ -163,6 +163,18 @@ describe('a misspelt cue put right', () => {
     assert.match(out, /^Slyne stirs her coffee\.$/m);
   });
 
+  it('writes a cue that is one word of exactly one name as that name (LANA → LOOSE LANA)', () => {
+    const written = 'LANA\nCome here.\n\nROB\nMake me.\n\nHER\nWho?';
+    const out = withKnownCues(written, ['Loose Lana', 'Rob']);
+    assert.equal(out, 'LOOSE LANA\nCome here.\n\nROB\nMake me.\n\nHER\nWho?');
+    // A word two names share stays as written.
+    assert.equal(withKnownCues('ANNA\nHi.', ['Anna Lee', 'Anna Park']), 'ANNA\nHi.');
+    // One letter off a word of a name: LANNA for "Loose Lana" (four Scenes named "Lanna").
+    assert.equal(withKnownCues('LANNA\nNot again...', ['Loose Lana', 'Rob']), 'LOOSE LANA\nNot again...');
+    // Off a word two names share: left as written.
+    assert.equal(withKnownCues('ANNE\nHi.', ['Anna Lee', 'Anna Park']), 'ANNE\nHi.');
+  });
+
   it('leaves a cue near two names, a short cue, and another person alone', () => {
     assert.equal(withKnownCues('MARK\nHi.', ['Mara', 'Mary']), 'MARK\nHi.');
     // A voice named only by its tag (the bookshop's "V.O. (PHONE)"): the one other person, off

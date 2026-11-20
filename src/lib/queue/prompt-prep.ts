@@ -35,6 +35,7 @@ import {
   intimateSceneIsOffBed,
   intimateSettingSample,
   withoutBedProps,
+  withoutBedWords,
 } from '../adult/intimate-prompt-clarify';
 import { isRapidDuoRecipePrompt } from '../prompt/recipe-mark';
 import { inferAthleticSport, type AthleticSport } from '../scene/athletic-sport-profiles';
@@ -644,6 +645,12 @@ export function applyQueuePromptSteering(rawInput: {
       /\b(MOOD:\s*(?:intimate|raunchy)\s+duo|PARTNERS:|HEADCOUNT LOCK:|exactly TWO adults|DUO VISIBLE)\b/i.test(
         steeredPositive
       );
+    // Off the bed (a wall, a couch, a tub edge, a fireside rug, a kitchen): the bed foreground
+    // pulls the pose back onto the sheets, so its props go — solo or duo.
+    const offBed = intimateSceneIsOffBed(
+      intimatePoseSample(steeredPositive),
+      intimateSettingSample(steeredPositive)
+    );
     if (poseGuideAttached) {
       // Nude solo/duo pose-leak fights CLOTHING LOCK on Suggestive/Vacation — base only.
       positive = appendUniqueCsv(
@@ -653,7 +660,9 @@ export function applyQueuePromptSteering(rawInput: {
             ? RAPID_AIO_POSE_LEAK_POSITIVE_BASE
             : duoBeat
               ? RAPID_AIO_DUO_POSE_LEAK_POSITIVE
-              : RAPID_AIO_POSE_LEAK_POSITIVE,
+              : offBed
+                ? withoutBedWords(RAPID_AIO_POSE_LEAK_POSITIVE)
+                : RAPID_AIO_POSE_LEAK_POSITIVE,
           openPoseGuide
         )
       );
@@ -665,12 +674,6 @@ export function applyQueuePromptSteering(rawInput: {
         /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
           steeredPositive
         );
-      // Off the bed (a wall, a couch, a fireside rug, a kitchen): the bed foreground pulls the
-      // pose back onto the sheets, so its props go — solo or duo.
-      const offBed = intimateSceneIsOffBed(
-        intimatePoseSample(steeredPositive),
-        intimateSettingSample(steeredPositive)
-      );
       const props = (line: string) => (offBed ? withoutBedProps(line) : line);
       if (duoBeat) {
         positive = appendUniqueCsv(positive, props(RAPID_AIO_ADULT_DUO_PROP_POSITIVE));

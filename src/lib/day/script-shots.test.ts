@@ -101,6 +101,66 @@ describe('shot lists from a script (M3 S4)', () => {
     assert.equal(shotLabel('12', 27), '12AB');
   });
 
+  it('reads an unmapped cue that is one word of the lead’s name as her (LANA for “Loose Lana”)', () => {
+    const source = [
+      'INT. BATHROOM - MORNING',
+      '',
+      'Steam fills the room.',
+      '',
+      'LANA',
+      'Come here.',
+      '',
+      'ROB',
+      'Make me.',
+      '',
+    ].join('\n');
+    const scene = parseScript(source).scenes[0]!;
+    const shots = draftShots(scene);
+    const herLine = shots.find(shot => shot.speaker === 'LANA')!;
+    const draft = shotSceneDraft({
+      shot: herLine,
+      scene,
+      sceneIndex: 0,
+      shotIndex: shots.indexOf(herLine),
+      castId: 'lana',
+      cast: [
+        { id: 'lana', name: 'Loose Lana' },
+        { id: 'rob', name: 'Rob' },
+      ],
+      // Write it kept her full name; the writer cued her LANA (live 2026-11-20).
+      castMap: { 'LOOSE LANA': 'lana', ROB: 'rob' },
+      placeMap: undefined,
+    });
+    const hints = draft.slot.sceneHints ?? '';
+    assert.match(hints, /^Loose Lana and Rob, the two of them together\./);
+    assert.doesNotMatch(hints, /Lana and Lana|Lana says/);
+    assert.equal(scriptShotOther(hints)?.who, 'rob');
+    assert.equal(draft.slot.line, 'Come here.');
+  });
+
+  it('reads a cue one letter off a word of the lead’s name as her (LANNA for “Loose Lana”)', () => {
+    const source = ['INT. BATHROOM - DAY', '', 'LANNA', 'Not again...', '', 'ROB', 'Again.', ''].join('\n');
+    const scene = parseScript(source).scenes[0]!;
+    const shots = draftShots(scene);
+    const robLine = shots.find(shot => shot.speaker === 'ROB')!;
+    const draft = shotSceneDraft({
+      shot: robLine,
+      scene,
+      sceneIndex: 0,
+      shotIndex: shots.indexOf(robLine),
+      castId: 'lana',
+      cast: [
+        { id: 'lana', name: 'Loose Lana' },
+        { id: 'rob', name: 'Rob' },
+      ],
+      castMap: { 'LOOSE LANA': 'lana', ROB: 'rob' },
+      placeMap: undefined,
+    });
+    const hints = draft.slot.sceneHints ?? '';
+    assert.doesNotMatch(hints, /Lanna/);
+    assert.equal(scriptShotOther(hints)?.who, 'rob');
+  });
+
   it('makes a Scene from a shot: place, beat, the lead’s line, framing, time, confirmed partner', () => {
     const shots = draftShots(kitchen);
     const castMap = { NORA: 'nora', TOMAS: 'tomas' };
@@ -841,5 +901,30 @@ describe('her line to him is a two-shot only when he is there (the flagship, 202
       placeMap: undefined,
     });
     assert.notEqual(her.partnerInFrame, true);
+  });
+});
+
+describe('a shot that pairs the lead with herself (written before 2026-11-20)', () => {
+  it('names her partner instead, or drops the pairing, and leaves every other shot alone', async () => {
+    const { withoutSelfPair, scriptShotOther } = await import('./script-shot-other');
+    const shot =
+      'Loose Lana and Lana, the two of them together. Lana leans against the edge of the bathtub. Lana says: “Don’t you dare.”';
+    const fixed = withoutSelfPair(shot, 'Loose Lana', 'Rob');
+    assert.equal(
+      fixed,
+      'Loose Lana and Rob, the two of them together. Lana leans against the edge of the bathtub. Lana says: “Don’t you dare.”'
+    );
+    assert.equal(scriptShotOther(fixed)?.who, 'rob');
+    // A slip of her name too ("Lanna"); no partner: the pairing goes.
+    assert.equal(
+      withoutSelfPair('Loose Lana and Lanna, the two of them together. She kneels on the tiles.', 'Loose Lana', null),
+      'She kneels on the tiles.'
+    );
+    // Someone else, or another lead, stays as written.
+    const other = 'Loose Lana and Rob, the two of them together. Steam rises.';
+    assert.equal(withoutSelfPair(other, 'Loose Lana', 'Rob'), other);
+    const elderly = 'Nora and Elderly man, the two of them together. He hands her a book.';
+    assert.equal(withoutSelfPair(elderly, 'Nora', 'Tomas'), elderly);
+    assert.equal(withoutSelfPair(shot, 'Nora', 'Tomas'), shot);
   });
 });

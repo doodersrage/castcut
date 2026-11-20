@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DayPlannerToolOrchestrationCore } from '@/hooks/day-planner/useDayPlannerToolOrchestrationCore';
 import {
-  ADULT_GATE_REQUEUE_MESSAGE,
-  ADULT_GATE_WITHHELD_MESSAGE,
-  CLOTHED_GATE_REQUEUE_MESSAGE,
-  CLOTHED_GATE_WITHHELD_MESSAGE,
+  adultGateRequeueMessage,
+  adultGateWhy,
+  adultGateWithheldMessage,
+  type AdultGateCause,
 } from '@/lib/adult/adult-appearance-gate';
 import { dayMoodMustStayClothed } from '@/lib/wardrobe/clothed-coverage';
 import {
@@ -61,7 +61,12 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
    * Slots waiting for the queue to be free to requeue: what the requeue is for, and the take it
    * redoes (a slot whose card moved on — the Scene page opened another scene — is not redone).
    */
-  const requeueRef = useRef<Map<string, { cause: 'age' | 'bare'; promptId: string }>>(new Map());
+  const requeueRef = useRef<Map<string, { cause: AdultGateCause; promptId: string }>>(new Map());
+  /**
+   * Slots whose take on the card is the one redo for a still with no scene (the plate handed
+   * back, a white void — still-backdrop.ts): another one is withheld for good.
+   */
+  const backdropRedoRef = useRef<Set<string>>(new Set());
   const [tick, setTick] = useState(0);
   /**
    * A take is held but its gallery entry isn't there (or not finished) yet — after a reload the
@@ -113,17 +118,22 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
         const coveredTake = entry.adultCheck?.covered === true;
         const { checkStillAdultAppearance } =
           await import('@/lib/adult/adult-appearance-gate-client');
+        const backdropTake =
+          entry.adultCheck?.backdrop === true || backdropRedoRef.current.has(target.slotId);
         const decision = await checkStillAdultAppearance({
           imageUrl,
           strongTake,
           clothed,
           coveredTake,
+          backdropTake,
+          place: slots.find(slot => slot.id === target.slotId)?.location,
           shared,
         });
         decidedRef.current.add(promptId);
         const takeMarks = {
           ...(strongTake ? { strong: true } : {}),
           ...(coveredTake ? { covered: true } : {}),
+          ...(backdropTake ? { backdrop: true } : {}),
         };
         if (decision.verdict === 'pass' || decision.verdict === 'unchecked') {
           setGalleryAdultCheck(promptId, {
@@ -132,6 +142,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
             ...takeMarks,
           });
           void persistCompletedGalleryMedia({ ...entry, adultCheck: undefined });
+          if (!target.second) backdropRedoRef.current.delete(target.slotId);
           setAdultGateStatus(null);
           return;
         }
@@ -159,17 +170,20 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
         if (decision.verdict === 'requeue' && onCard) {
           requeueRef.current.set(target.slotId, { cause, promptId });
           pushSystemTrayMessage({
-            text: `${label}: ${cause === 'bare' ? CLOTHED_GATE_REQUEUE_MESSAGE : ADULT_GATE_REQUEUE_MESSAGE}`,
+            text: `${label}: ${adultGateRequeueMessage(cause)}${adultGateWhy(cause, decision.reason)}`,
             tone: 'warning',
           });
           setAdultGateStatus(
             cause === 'bare'
               ? `${label}: redoing with a coverage line…`
-              : `${label}: redoing with a stronger age line…`
+              : cause === 'backdrop'
+                ? `${label}: came back with no scene — redoing on a new seed…`
+                : `${label}: redoing with a stronger age line…`
           );
         } else {
+          backdropRedoRef.current.delete(target.slotId);
           pushSystemTrayMessage({
-            text: `${label}: ${cause === 'bare' ? CLOTHED_GATE_WITHHELD_MESSAGE : ADULT_GATE_WITHHELD_MESSAGE}.`,
+            text: `${label}: ${adultGateWithheldMessage(cause)}.${adultGateWhy(cause, decision.reason)}`,
             tone: 'warning',
             ttlMs: 20_000,
           });
@@ -192,9 +206,15 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
       setAdultGateStatus(null);
       return;
     }
+    // No scene: the same take on a new seed (the plate came back at random, not for its words).
+    if (cause === 'backdrop') backdropRedoRef.current.add(slotId);
     void queueSlot(
       slot,
-      cause === 'bare' ? { coverageLine: true } : { strongAgeLine: true }
+      cause === 'bare'
+        ? { coverageLine: true }
+        : cause === 'backdrop'
+          ? { backdropRedo: true }
+          : { strongAgeLine: true }
     ).finally(() => {
       setAdultGateStatus(null);
       setTick(value => value + 1);

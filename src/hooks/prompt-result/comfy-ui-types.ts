@@ -94,7 +94,7 @@ export type SendComfyUiOptions = {
    * the stronger age sentence (the one requeue after a withheld take). `covered`: it uses the
    * strong coverage line (the one requeue after bare skin on a clothed-mood still).
    */
-  adultGate?: { strong?: boolean; covered?: boolean };
+  adultGate?: { strong?: boolean; covered?: boolean; backdrop?: boolean };
 };
 
 export type TrackComfyUiJobInput = {

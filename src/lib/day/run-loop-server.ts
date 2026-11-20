@@ -48,9 +48,10 @@ import {
 import { runTierEngine } from './run-tier';
 import { resolveRenderingTakes, type SceneToolCache } from './scenes';
 import {
-  ADULT_GATE_WITHHELD_MESSAGE,
-  CLOTHED_GATE_WITHHELD_MESSAGE,
+  adultGateWhy,
+  adultGateWithheldMessage,
   dayMoodNeedsAdultSafeguards,
+  type AdultGateCause,
   type AdultGateDecision,
 } from '../adult/adult-appearance-gate';
 import type { GalleryAdultCheck } from '../gallery/adult-check';
@@ -96,7 +97,7 @@ export type ServerRunState = RunTakeState & {
    * Scenes being rendered again because the adult-appearance gate withheld their take: what the
    * one redo is for (the stronger age line, or the coverage line on a clothed-mood still).
    */
-  gateRedo?: Record<string, 'age' | 'bare'>;
+  gateRedo?: Record<string, AdultGateCause>;
 };
 
 export type ServerRunDeps = ServerTakeDeps & {
@@ -127,6 +128,10 @@ export type ServerRunDeps = ServerTakeDeps & {
     clothed: boolean;
     strongTake: boolean;
     coveredTake: boolean;
+    /** This take was already the redo for a still with no scene (still-backdrop.ts). */
+    backdropTake?: boolean;
+    /** The moment's place (a place meant to be white is never "no scene"). */
+    place?: string;
   }) => Promise<AdultGateDecision>;
   /** Where the run's state and patches are kept (sqlite/scene-run-patches.ts). */
   saveState: (state: ServerRunState) => void;
@@ -529,6 +534,8 @@ export async function runSceneRunOnServer(
               clothed: dayMoodMustStayClothed(mood),
               strongTake: redoneFor === 'age',
               coveredTake: redoneFor === 'bare',
+              backdropTake: redoneFor === 'backdrop',
+              place: sceneOf(sceneId)?.slot.location,
             })
             .catch(() => ({
               verdict: redoneFor ? ('withhold' as const) : ('requeue' as const),
@@ -567,7 +574,9 @@ export async function runSceneRunOnServer(
             withRunRedo(
               runOf()!,
               sceneId,
-              `${scene.name}: withheld by the adult check (${decision.reason}) — rendering it again with ${cause === 'bare' ? 'the coverage line' : 'a stronger age line'}`,
+              cause === 'backdrop'
+                ? `${scene.name}: ${decision.reason} — rendering it again on a new seed`
+                : `${scene.name}: withheld by the adult check (${decision.reason}) — rendering it again with ${cause === 'bare' ? 'the coverage line' : 'a stronger age line'}`,
               now()
             )
           );
@@ -587,7 +596,7 @@ export async function runSceneRunOnServer(
               },
               sceneId,
               'failed',
-              `${scene.name}: ${cause === 'bare' ? CLOTHED_GATE_WITHHELD_MESSAGE : ADULT_GATE_WITHHELD_MESSAGE}`,
+              `${scene.name}: ${adultGateWithheldMessage(cause)}.${adultGateWhy(cause, decision.reason)}`,
               now()
             )
           );

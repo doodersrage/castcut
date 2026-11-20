@@ -321,6 +321,56 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('a take with no scene (the plate on white): withheld, redone once on a new seed, no extra line', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued, patches } = await harness(tool => {
+      for (const entry of tool.scenes) (entry as { dayMood: string }).dayMood = 'suggestive';
+      tool.dayMood = 'suggestive';
+      Object.assign(tool.run, { items: [{ sceneId: 's1', include: true }] });
+    });
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      const asked: Array<{ backdropTake?: boolean; strongTake: boolean }> = [];
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        checkTake: async () => ({ face: 0.8 }),
+        adultGate: async (input: { backdropTake?: boolean; strongTake: boolean }) => {
+          asked.push({ backdropTake: input.backdropTake, strongTake: input.strongTake });
+          return asked.length === 1
+            ? {
+                verdict: 'requeue',
+                reason: 'came back as the Cast plate on white — no scene',
+                cause: 'backdrop',
+              }
+            : { verdict: 'pass', reason: 'clearly adult (95%)' };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      assert.deepEqual(asked, [
+        { backdropTake: false, strongTake: false },
+        { backdropTake: true, strongTake: false },
+      ]);
+      const stills = queued.filter(prompt => !/outfit try-on/i.test(prompt));
+      assert.equal(stills.length, 2, 'rendered again once');
+      assert.equal(stills[1], stills[0], 'the same words: only the seed changes');
+      const takes = patches.flatMap(
+        patch => (patch as { takes?: { adultCheck?: { state: string; cause?: string } }[] }).takes ?? []
+      );
+      assert.deepEqual(
+        takes.map(take => [take.adultCheck?.state, take.adultCheck?.cause]),
+        [
+          ['withheld', 'backdrop'],
+          ['passed', undefined],
+        ]
+      );
+      assert.equal(state.gateRedo?.s1, undefined);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('the adult check withholds the redo too: the Scene fails, nothing kept; Everyday is never asked', async () => {
     const original = globalThis.fetch;
     const { bundle, deps } = await harness(tool => {

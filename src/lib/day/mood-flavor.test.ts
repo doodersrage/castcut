@@ -184,20 +184,9 @@ describe('Intimate · Playful (the old Raunchy mood)', () => {
   });
 
   it('the two flavors still differ (Playful is not a no-op)', () => {
-    // Prompts differ where the mood says so (MOOD / FOREGROUND lines, Solo self-touch locks)…
-    const differs = MIXES.flatMap(mix =>
-      SLOT_IDS.flatMap(slotId =>
-        raunchyBeatsForMix(slotId, mix).map(beat => {
-          const slot: DaySlot = { id: slotId, label: slotId, location: 'bedroom', sceneHints: beat };
-          return (
-            prompt(dayMoodFlavor({ dayMood: 'intimate', intimatePlayful: true }), mix, slot) !==
-            prompt(dayMoodFlavor({ dayMood: 'intimate', intimatePlayful: false }), mix, slot)
-          );
-        })
-      )
-    );
-    assert.ok(differs.some(Boolean));
-    // …and the boards differ: Playful draws the comedy beats.
+    // The stills no longer differ: every adult still with its clothes off takes the same pose
+    // recipe. They only differed where a Mixed day's "— Cast alone" nude moment kept the outfit
+    // (a bug, fixed 2026-11-20). Playful lives in the beats it draws:
     const board = (playful: boolean) =>
       diversifyDaySlotScenes(daySlotsForLength(6), {
         dayMood: dayMoodFlavor({ dayMood: 'intimate', intimatePlayful: playful }),

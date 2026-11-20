@@ -67,6 +67,7 @@ import {
   takeWardrobeLabel,
 } from './take-helpers';
 import { runTierEngine } from './run-tier';
+import { dayAdultQueueBlocked } from './still-prompt';
 
 type Fetch = typeof fetch;
 
@@ -164,6 +165,8 @@ export async function runServerTake(
   const character = getCharacter(shared.activeCharacterId) ?? getCharacter(bundle.castId);
   const leadNoun = dayPartnerNoun(character ?? {});
   const intimateEnabled = bundle.settings.intimateEnabled;
+  const adultBlocked = dayAdultQueueBlocked(toolSettings.dayMood, intimateEnabled);
+  if (adultBlocked) return { error: adultBlocked };
 
   // The page's plate (useDayPlateIsolate), from the Cast and its keepers.
   const basePlate = resolveDayPlate({ character, gallery: page.gallery });

@@ -900,6 +900,15 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 forClip: promptId,
               }
             : undefined;
+        // The card moved on to another take while this clip was being queued (a quick still, Make
+        // the short): the clip is the old take's — it stays in the Gallery, not on the new still.
+        const nowStill = stillsRef.current.find(entry => entry.slotId === slot.id);
+        if (still?.promptId && nowStill?.promptId !== still.promptId) {
+          setFilmStatus(
+            `${slot.label} has a new still since — its clip of the last one is in the Gallery.`
+          );
+          return;
+        }
         const nextStills = upsertDaySlotStill(stillsRef.current, {
           slotId: slot.id,
           clipPromptId: typeof promptId === 'string' ? promptId : undefined,

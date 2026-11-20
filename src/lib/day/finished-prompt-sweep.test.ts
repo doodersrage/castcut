@@ -22,6 +22,9 @@
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { stripNegatedClauses } from '../prompt/negated-clauses';
+import { intimateSceneIsOffBed } from '../adult/intimate-prompt-clarify';
+import { dayAdultQueueBlocked } from './still-prompt';
 import { dayGarmentPromptName, dayOutfitPromptName } from './clothed-lead';
 import {
   dayStillClothingReinforce,
@@ -92,7 +95,7 @@ import { cuePoseLayouts, poseLayoutFromKey, weakPoseLayouts } from '../play/metr
 import { DEFAULT_POSE_GUIDE_STYLE } from '../pose/guide-prompt';
 import { poseModelFamily, poseProfileForModel } from '../pose/pose-model-profile';
 import { resolveDayStillModel } from '../queue/tool-model';
-import { auditStillPrompt } from '../still/prompt-audit';
+import { repairStillPrompt } from '../still/prompt-audit';
 import { formatWardrobeKitLabel } from '../wardrobe/kit-picker';
 
 // ── Engines ──────────────────────────────────────────────────────────────────────────────
@@ -116,6 +119,34 @@ type Beat = {
   beat: string;
   location: string;
 };
+
+/** Beats in the words Write it and a script's shots use (names, markers, LLM settings). */
+const WRITTEN_BEATS: ReadonlyArray<[string, boolean, DaySlotId, string, string]> = [
+  // Intimate, Write it on a Mixed day: the marker says who is there; no "partner", no act word.
+  ['intimate', false, 'evening', 'solo with hand on thigh, kneeling by tub edge, candlelight flickering — Cast alone', 'master bathroom with amber glow from bedside lamp'],
+  ['intimate', false, 'night', 'stretched out on the rug by the fire, eyes closed, one arm over her head — Cast alone', 'cabin living room with a crackling fireplace'],
+  ['intimate', false, 'morning', 'leaning on the kitchen counter in an oversized shirt, coffee steaming — Cast alone', 'sunlit kitchen with white tiles'],
+  ['intimate', true, 'morning', 'kissing under spray, hands on tiles, steam rising — both adults fully visible', 'shower stall with glass door and chrome fixtures'],
+  ['intimate', true, 'afternoon', 'oral while leaning back, water cascading down her spine — both adults fully visible', 'bathroom mirror reflecting tiled walls and soft sun'],
+  ['intimate', true, 'evening', 'pressed against the hallway wall, his hands in her hair — both adults fully visible', 'narrow apartment hallway lit by one sconce'],
+  ['intimate', true, 'night', 'on the couch, her astride him, city lights behind — both adults fully visible', 'loft living room with floor-to-ceiling windows'],
+  ['raunchy', false, 'afternoon', 'perched on the washing machine as it hits the spin cycle, laughing — Cast alone', 'laundry room with a rattling washer'],
+  ['raunchy', true, 'evening', 'bent over the kitchen island, flour everywhere, both laughing — both adults fully visible', 'kitchen mid-bake with a flour-dusted island'],
+  // A script's shots (script-shots.ts): names, then the action, then a spoken line.
+  ['intimate', true, 'evening', 'Nora and Tomas, the two of them together. She leans back against his chest in the bath. Tomas says: “You okay?” Tomas, softly.', 'bathroom (bathroom) at home'],
+  ['intimate', true, 'morning', 'Nora and Tomas, the two of them together. Water runs down the glass; he pulls her close.', 'glass shower (bathroom) at home'],
+  ['intimate', false, 'night', 'She sits on the edge of the tub, phone in hand. Manner: whispering.', 'dark bathroom (bathroom) at home'],
+  ['everyday', true, 'morning', 'Nora and Tomas, the two of them together. She pours two coffees and slides one across. Tomas says: “You remembered.”', 'kitchen at home'],
+  ['everyday', false, 'afternoon', 'She scans the shelves, a stack of paperbacks under one arm. Manner: muttering.', 'bookshop (shop) in town'],
+  ['everyday', true, 'evening', 'Nora and Tomas, the two of them together. They split a dessert at the window table. Nora reacts.', 'restaurant (dining room) downtown'],
+  ['everyday', false, 'night', 'She kicks off her heels at the door and drops onto the sofa.', 'apartment living room at night'],
+  ['suggestive', false, 'evening', 'unzipping her dress in front of the mirror, glancing back over her shoulder — Cast alone', 'hotel room with a full-length mirror'],
+  ['suggestive', true, 'night', 'slow dancing barefoot in the kitchen, his hand low on her back — both adults fully visible', 'kitchen lit by the open fridge'],
+  ['vacation', true, 'afternoon', 'Nora and Tomas, the two of them together. They lean on the ferry rail as the island comes into view.', 'ferry deck (boat) on the bay'],
+  ['vacation', false, 'morning', 'She wades into the surf, sundress hem in one hand, laughing.', 'beach at sunrise'],
+  ['sport', false, 'morning', 'She laces her shoes on the track, then sprints the first bend.', 'running track (stadium) in town'],
+  ['sport', true, 'afternoon', 'Nora and Tomas, the two of them together. They rally hard across the net. Tomas says: “Out!”', 'tennis court (club) in town'],
+];
 
 function collectBeats(): Beat[] {
   const beats: Beat[] = [];
@@ -252,6 +283,13 @@ function collectBeats(): Beat[] {
         location: turn(heat, index),
       })
     );
+  }
+
+  // Beats as Write it and a script's shots write them, not as the presets do: the presets say
+  // "with a partner" and "masturbating", these don't. 50 of 54 adult stills one evening kept the
+  // outfit on such beats and the sweep never saw it (bug hunt, 2026-11-20).
+  for (const [mood, two, slotId, beat, location] of WRITTEN_BEATS) {
+    add({ mood, pool: 'written', two, slotId, beat, location });
   }
 
   for (const theme of Object.values(DAY_THEMES)) {
@@ -975,8 +1013,7 @@ type KnownIssue = {
  * KNOWN_ISSUES — genuine app defects this sweep found. Each entry excuses exactly the failures
  * it describes; everything else still fails. Remove the entry with the fix.
  */
-const KNOWN_ISSUES: KnownIssue[] = [
-];
+const KNOWN_ISSUES: KnownIssue[] = [];
 
 const hitKnownIssues = new Set<string>();
 function unexpected(invariant: string): string[] {
@@ -1018,6 +1055,11 @@ const OUTFIT_SOURCE = OUTFIT_SOURCE_NAME;
 const MAN_LEAD = 'man lead wording';
 const NO_POSE_MAP = 'no pose map';
 const AGE_LINE = 'adult age line';
+const OFF_BED = 'bed wording off the bed';
+const OUTFIT_NUDE = 'outfit kept and taken off';
+const CLOTHED_HEAT = 'adult wording on a clothed still';
+const TIME_OF_DAY = 'one time of day';
+const HEADCOUNT = 'one headcount';
 
 const count = (text: string, pattern: RegExp) => (text.match(pattern) ?? []).length;
 
@@ -1025,12 +1067,14 @@ for (const still of STILLS) {
   const { prompt } = still;
 
   // I1 — the audit the hook runs before queueing.
-  for (const issue of auditStillPrompt(prompt, {
+  // What the hook still warns about after its repair (repairStillPrompt): a script shot's
+  // "Tomas says: “…”" goes out as "Tomas speaks.", so only what stays wrong is a failure.
+  for (const issue of repairStillPrompt(prompt, {
     people: still.figures || undefined,
     imageCount: still.imageCount,
     // As the hook passes it: clothed stills are checked against their Setting.
     setting: still.adultStill ? null : still.beat.location,
-  })) {
+  }).remaining) {
     fail(AUDIT, still, `${issue.code}: ${issue.message} ("${issue.evidence}")`);
   }
 
@@ -1155,6 +1199,94 @@ for (const still of STILLS) {
   }
 }
 
+// ── Bug hunt invariants (2026-11-20) ─────────────────────────────────────────────────────
+
+/** Words that put a still on a bed (outside "never …" clauses). */
+const BED_WORD_RE = /\b(?:beds?|sheets|nightstand|bedside|mattress|duvet)\b/i;
+/** Where a phrase sits in the prompt, for a failure line. */
+function around(prompt: string, match: RegExpExecArray): string {
+  return prompt
+    .slice(Math.max(0, match.index - 60), match.index + 60)
+    .replace(/\s+/g, ' ');
+}
+
+for (const still of STILLS) {
+  const { prompt } = still;
+  const said = stripNegatedClauses(prompt);
+
+  // I8 — a moment off the bed (a tub edge, a wall, a kitchen) has no bed in its prompt: the
+  // stock lines kept sheets and a nightstand, and it rendered on a bed (live 2026-11-20).
+  if (still.adultStill && intimateSceneIsOffBed(still.beat.beat, still.beat.location)) {
+    // "bed out of frame" says where the bed is not.
+    const bed = BED_WORD_RE.exec(said.replace(/\bbed out of frame\b/g, ''));
+    if (bed) fail(OFF_BED, still, `"${bed[0]}" in "…${around(said, bed)}…"`);
+  }
+
+  // I9 — never "keep the outfit" and "clothes are now gone" in one prompt (live 2026-11-20: a
+  // Mixed day's "— Cast alone" moment kept her dress under the undressed solo lines).
+  const keeps =
+    /\b(?:keep the clothing|outfit continuity|Keep facial likeness AND the worn outfit|(?:the|her|his) outfit from the first image)\b/i.exec(
+      said
+    );  const undresses = /\b(?:clothes are now gone|zero fabric on the body)\b/i.exec(said);
+  // …and an adult two-person still never keeps the plate's outfit: she stood in the plate's pose
+  // and underwear in front of him (a script's two-shot, live 2026-11-20, Castcut_13254).
+  if (still.adultStill && still.figures === 2 && !still.omitGarment) {
+    fail(OUTFIT_NUDE, still, 'a two-person adult still keeps the outfit');
+  }
+  if (keeps && undresses) {
+    fail(OUTFIT_NUDE, still, `"${keeps[0]}" with "${undresses[0]}"`);
+  }
+
+  // I10 — a clothed mood names no sex or nudity. An adult Short where Adult is off never renders
+  // (dayAdultQueueBlocked): played as Everyday it kept its adult beats.
+  const blocked = dayAdultQueueBlocked(still.beat.mood, !still.situation.startsWith('adult mood, Intimate off'));
+  if (blocked) {
+    // Nothing queued.
+  } else if (!dayMoodNeedsAdultSafeguards(still.playedMood)) {
+    const heat = /\b(?:nude|naked|vulva|nipples?|penis|masturbat\w*|fingering|sex)\b/i.exec(said);
+    if (heat) fail(CLOTHED_HEAT, still, `"${heat[0]}" in "…${around(said, heat)}…"`);
+  } else if (still.playedMood === 'suggestive') {
+    const heat = /\b(?:naked|vulva|nipples?|penis|masturbat\w*|fingering)\b/i.exec(said);
+    if (heat) fail(CLOTHED_HEAT, still, `"${heat[0]}" in "…${around(said, heat)}…"`);
+  }
+
+  // I11 — one time of day: the brief's "Day still — evening" and the output's "night photograph".
+  const times = new Set(
+    [...prompt.matchAll(/\b(?:Day still — |live-action )(morning|late-morning|midday|afternoon|evening|night)\b/gi)].map(
+      match => match[1]!.toLowerCase()
+    )
+  );
+  if (times.size > 1) fail(TIME_OF_DAY, still, `times: ${[...times].join(', ')}`);
+
+  // I12 — one headcount: a one-person still asks for no partner, a two-person still for no solo.
+  if (still.figures === 1 && /\b(?:PARTNERS:|exactly TWO adults|both adults fully visible|HEADCOUNT LOCK: exactly two)\b/.test(said)) {
+    fail(HEADCOUNT, still, 'a one-person still asks for two people');
+  }
+  if (still.figures === 2 && /\b(?:SOLO SUBJECT \(mandatory\)|exactly one person in frame|Exactly one person in the still)/.test(said)) {
+    fail(HEADCOUNT, still, 'a two-person still asks for one person');
+  }
+}
+
+if (process.env.DAY_BUG_HUNT) {
+  for (const invariant of [OFF_BED, OUTFIT_NUDE, CLOTHED_HEAT, TIME_OF_DAY, HEADCOUNT]) {
+    const lines = unexpected(invariant);
+    console.log(`\n=== ${invariant}: ${lines.length}`);
+    for (const line of lines.slice(0, 8)) console.log(line.slice(0, 400));
+    const situations = new Map<string, number>();
+    for (const failure of FAILURES.filter(f => f.invariant === invariant)) {
+      const key = `${failure.still.situation.split(',')[0]} · played ${failure.still.playedMood} · ${failure.still.beat.mood}`;
+      situations.set(key, (situations.get(key) ?? 0) + 1);
+    }
+    console.log([...situations].map(([k, n]) => `  S ${n}× ${k}`).join('\n'));
+    const phrases = new Map<string, number>();
+    for (const line of lines) {
+      const key = /in "…(.*)…"$/.exec(line)?.[1]?.replace(/^\S*\s/, '').slice(0, 110) ?? line.slice(-80);
+      phrases.set(key, (phrases.get(key) ?? 0) + 1);
+    }
+    console.log([...phrases].sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, n]) => `  ${n}× ${k}`).join('\n'));
+  }
+}
+
 // ── Length statistics (reported, not asserted) ───────────────────────────────────────────
 
 function lengthStats(stills: Still[]): { n: number; median: number; p95: number; max: number } {
@@ -1221,6 +1353,11 @@ describe('Day finished prompt sweep', () => {
   it('does not refer to a pose image that is not attached', () => assertHolds(NO_POSE_MAP));
   it('names every adult-mood still\'s ages once, after the pose sentence', () =>
     assertHolds(AGE_LINE));
+  it('has no bed in a moment set off the bed', () => assertHolds(OFF_BED));
+  it('never keeps the outfit and takes it off in one prompt', () => assertHolds(OUTFIT_NUDE));
+  it('names no sex or nudity on a clothed still', () => assertHolds(CLOTHED_HEAT));
+  it('names one time of day', () => assertHolds(TIME_OF_DAY));
+  it('asks for one headcount', () => assertHolds(HEADCOUNT));
 
   it('builds byte-identical prompts for slots with no look of their own (or the active one)', () => {
     assert.ok(lookChecked > 100, `only ${lookChecked} look checks ran`);

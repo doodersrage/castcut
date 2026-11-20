@@ -400,6 +400,10 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
       to: first.n,
     });
     let spoken: Line[] = [];
+    // The cue's own tag, plus one written under it for the next speech: "(V.O.)", "(V.O.,
+    // answering the call)" or a bare "V.O." line. Read as how she says it (or as speech: "Rob
+    // says: “V.O.”"), a phone call drew the caller in the room (live Short scripts, 2026-11-20).
+    let lineExtension = extension;
     const flush = () => {
       if (!spoken.length) return;
       push({
@@ -407,17 +411,26 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
         text: spoken.map(line => line.text.trim()).join('\n'),
         speaker,
         // V.O., O.S.: heard, not seen — the shot shows who hears it (script-shots.ts).
-        ...(extension ? { extension } : {}),
+        ...(lineExtension ? { extension: lineExtension } : {}),
         from: spoken[0]!.n,
         to: spoken.at(-1)!.n,
       });
       spoken = [];
+      lineExtension = extension;
     };
     for (const line of paragraph.slice(1)) {
       const body = line.text.trim();
-      if (/^\(.*\)$/.test(body)) {
+      const note = /^\((.*)\)$/.exec(body)?.[1] ?? (HEARD_TAG_RE.test(body) ? body : null);
+      if (note !== null) {
         flush();
-        push({ kind: 'parenthetical', text: body, speaker, from: line.n, to: line.n });
+        const [first = '', ...rest] = note.split(/[,;]/);
+        if (HEARD_TAG_RE.test(first.trim())) {
+          lineExtension = [extension, first.trim()].filter(Boolean).join(', ');
+          const manner = rest.join(',').trim();
+          if (manner) {
+            push({ kind: 'parenthetical', text: `(${manner})`, speaker, from: line.n, to: line.n });
+          }
+        } else push({ kind: 'parenthetical', text: body, speaker, from: line.n, to: line.n });
       } else spoken.push(line);
     }
     flush();
@@ -430,6 +443,12 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
     to: last.n,
   });
 }
+
+/**
+ * A voice heard, not seen, written as a note under the cue: V.O., O.S., O.C. (any dots). Not
+ * "(on phone)" there: under a cue that is her talking into a phone, in the room.
+ */
+const HEARD_TAG_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
 
 /** No scene headings: each paragraph or list item is a scene of one action. */
 function outlineScenes(lines: Line[]): ScriptScene[] {

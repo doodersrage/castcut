@@ -357,6 +357,22 @@ describe('off-bed duo beats', () => {
     assert.match(steer('bedroom with white sheets'), /bare bed surface/);
   });
 
+  it('takes the bed out of the pose tail too, when a pose map rides along off the bed', async () => {
+    // Live 2026-11-20: a tub-edge still kept "rumpled indoor sheets … bare sheets only" from the
+    // queue's pose tail and came out on a bed.
+    const { applyQueuePromptSteering } = await import('../queue/prompt-prep');
+    const steer = (beat: string) =>
+      applyQueuePromptSteering({
+        positive: `MOOD: intimate solo still — follow the beat exactly.\nSOLO ACT: one adult woman alone.\nbeat: ${beat} — Cast alone\nImage 3 is an OpenPose keypoint skeleton map (pose control only, not part of the picture).`,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        realismMode: 'off' as never,
+        anatomyMode: 'off' as never,
+        tool: 'day',
+      }).positive;
+    assert.doesNotMatch(steer('kneeling by the tub edge, candlelight'), /sheets/);
+    assert.match(steer('on her back on the bed'), /bare sheets only/);
+  });
+
   it('draws scissors as missionary — the pose the recipe renders (Rapid cannot draw scissoring)', () => {
     const beat = 'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible';
     const scissors = synthesizeSceneStickFigures(beat, 0, { forcePeople: 2 }).figures;
@@ -368,5 +384,27 @@ describe('off-bed duo beats', () => {
       for (const fig of figs) assert.ok(Math.abs(fig.head.y - fig.pelvis.y) < 0.15, 'lying');
     }
   });
-});
 
+  it('a Short brief set off the bed (its SETTING line) loses every bed line', async () => {
+    // Live 2026-11-20: a glass-tiled bathroom brief kept "bare sheets", "the bed/frame" and a
+    // bare nightstand — its place was written "SETTING (backdrop only — …):", not "setting:".
+    const { intimatePoseSample, intimateSceneIsOffBed, intimateSettingSample, withoutBedWords } =
+      await import('../adult/intimate-prompt-clarify');
+    const brief = [
+      'MOOD: intimate adult still — follow the beat exactly; bare sheets and skin only in the foreground.',
+      'SETTING (backdrop only — lighting and room; never override the beat body pose): glass-tiled bathroom at home — closed blinds',
+      'DUO VISIBLE: partner head and torso share the bed/frame with Cast — never a solo portrait with empty sheets beside her.',
+      'PROPS: bare sheets and bodies only — bare nightstand; nothing open on the bed.',
+      'beat: she leans over him, water running down her back, grinning.',
+    ].join('\n');
+    assert.equal(intimateSettingSample(brief), 'glass-tiled bathroom at home — closed blinds');
+    assert.equal(intimateSceneIsOffBed(intimatePoseSample(brief), intimateSettingSample(brief)), true);
+    const scrubbed = withoutBedWords(brief);
+    assert.doesNotMatch(scrubbed, /\b(sheets|bed|nightstand)\b/i);
+    assert.match(scrubbed, /share the frame/);
+    assert.match(scrubbed, /PROPS: bare bodies only; nothing held\./);
+    // A bedroom brief keeps its bed.
+    const bedroom = brief.replace('glass-tiled bathroom at home', 'bedroom with white sheets');
+    assert.equal(intimateSceneIsOffBed(intimatePoseSample(bedroom), intimateSettingSample(bedroom)), false);
+  });
+});

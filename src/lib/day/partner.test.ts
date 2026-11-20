@@ -9,7 +9,12 @@ import {
   partnerEverydayWear,
   scrubDayPartnerOutfitImageClaims,
   toDayPartner,
+  withoutDayPartnerFaceImage,
+  dayPartnerRecipeLine,
+  type DayPartner,
 } from './partner';
+import { queuedDayStillPrompt } from './still-prompt';
+import { auditStillPrompt } from '../still/prompt-audit';
 import { buildRapidDuoRecipe, buildRapidSuggestiveDuoRecipe } from '../play/rapid-duo-recipe';
 
 const lana = toDayPartner({ name: 'Loose Lana', descriptor: 'white woman in her 30s athletic build' })!;
@@ -289,5 +294,31 @@ describe('a Cast partner’s clothes, the same in every shot', () => {
     assert.match(say('Slyne and Jason at dinner, candlelit'), /he wears a dark button-up shirt and trousers/);
     // An invented partner has no Cast: the words as before.
     assert.equal(inventedDayPartner('new:man')?.wears, undefined);
+  });
+
+  it('a partner face left out at queue time leaves no Image 2 face and no Image 3 the queue lacks', () => {
+    // Live 2026-11-20: the face failed its check and was left out; the brief still named it as
+    // Image 2, the queue put the pose map there, and the map stayed "Image 3" with two attached.
+    const partner: DayPartner = { name: 'Rob', noun: 'man', descriptor: 'an East Asian man in his late thirties' };
+    const brief = [
+      'Edit Image 1. Keep facial likeness from Image 1.',
+      'Image 3 is a pose map on black — fill Image 1 white with the SETTING.',
+      'Match Image 3 body positions and headcount exactly.',
+      dayPartnerBriefLine(partner),
+      dayPartnerRecipeLine(partner, 'second', undefined, 'woman'),
+    ].join('\n');
+    // As queued before: the face named, the map left as Image 3.
+    const before = queuedDayStillPrompt(brief, { second: false, third: true });
+    assert.equal(auditStillPrompt(before.prompt, { imageCount: 2 }).some(issue => issue.code === 'image-not-attached'), true);
+    const unnamed = withoutDayPartnerFaceImage(brief);
+    assert.match(unnamed, /SECOND PERSON: the man with the Cast lead has his own face \(an East Asian man in his late thirties\) — different from the Cast lead/);
+    assert.match(unnamed, /Keep her face from the first image; the man has his own face \(an East Asian/);
+    assert.doesNotMatch(unnamed, /Image 2|second image/);
+    const queued = queuedDayStillPrompt(unnamed, { second: false, third: true });
+    assert.doesNotMatch(queued.prompt, /Image 3/);
+    assert.match(queued.prompt, /Image 2 is a pose map/);
+    assert.deepEqual(auditStillPrompt(queued.prompt, { imageCount: 2 }).filter(issue => issue.code === 'image-not-attached'), []);
+    // Nothing to change without the face lines.
+    assert.equal(withoutDayPartnerFaceImage('Image 3 is a pose map.'), 'Image 3 is a pose map.');
   });
 });

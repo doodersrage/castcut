@@ -26,6 +26,7 @@ import {
   suggestiveCoverageLine,
 } from '../wardrobe/clothed-coverage';
 import { stripNegatedClauses } from '../prompt/negated-clauses';
+import { intimateSceneIsOffBed } from '../adult/intimate-prompt-clarify';
 import { poseSurfaces, sceneSurfaces, sceneVenue, surfaceFitsVenue } from '../scene/surface';
 import {
   isFloorSurface,
@@ -127,7 +128,24 @@ function isCouchSurface(surface: string | null): boolean {
  */
 export const FULL_PENETRATION = 'his penis penetrating her vaginal opening';
 
-function placement(layout: IntimateLayout, beat: string, surface: string | null): string | null {
+/** A pose sentence that puts them on a bed. */
+const BED_PLACEMENT_RE = /\b(?:bed|mattress|sheets|pillows?)\b/i;
+
+/** Two-person poses with one of them seated on an edge (the room's seat when off the bed). */
+const DUO_SEATED_LAYOUTS: ReadonlySet<IntimateLayout> = new Set<IntimateLayout>([
+  'oral',
+  'sixty_nine',
+  'facesit',
+]);
+
+function placement(
+  layout: IntimateLayout,
+  beat: string,
+  surface: string | null,
+  /** The surface is the room's (no furniture named, off the bed): sit on it, not on a bed. */
+  roomSeat = false
+): string | null {
+  const seat = () => (roomSeat && surface ? surface : oralSeat(beat, surface));
   const on = (fallback: string) => `the ${surface ?? fallback}`;
   switch (layout) {
     case 'missionary':
@@ -181,7 +199,7 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // user's spoon still (every arm of the 2026-10-16 replays). A low camera at the foot of the
       // bed, her legs together in front and his behind: no merging 4/4 (stacking her legs on his
       // threw them in the air; a sheet over both was ignored).
-      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; ${FULL_PENETRATION} from behind; seen from the foot of the bed at mattress height: her legs in front, together and bent, his legs behind hers; his hand on her hip. Both faces in frame.`;
+      return `Spooning, seen from the front. The woman lies on her side on ${on('bed')}, turned toward the camera, her head on her lower arm and her hip up; the man lies on his side right behind her, his chest pressed against her back and his face just behind her shoulder; ${FULL_PENETRATION} from behind; ${surface ? `seen from in front of ${on('bed')} at its height` : 'seen from the foot of the bed at mattress height'}: her legs in front, together and bent, his legs behind hers; his hand on her hip. Both faces in frame.`;
     case 'scissors':
       // Drawn as missionary since 2026-10-05 (the seated wording + the scissors map merged legs
       // and once added a third person). Without the map, each leg placed: real scissoring 5-6/6
@@ -222,7 +240,7 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
         : !/\bkneel/i.test(beat)
           ? // "She lies on her back … he lies between her thighs" disagreed with the kneel-up map;
             // seated on the edge, words and map agree (oralReceiverSeated). Live A/B: see CHANGELOG.
-            `Side view, exactly two people. The woman sits on ${edgeOf(oralSeat(beat, surface), 'bed')}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`
+            `Side view, exactly two people. The woman sits on ${edgeOf(seat(), 'bed')}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`
           : // At a bed/couch she sits on its edge (the oral map draws that seated pose too —
             // oralReceiverSeated, rapid-oral-pose.ts); else she stands.
             ORAL_SEAT_RE.test(beat)
@@ -236,7 +254,7 @@ function placement(layout: IntimateLayout, beat: string, surface: string | null)
       // Rapid cannot draw a 69, and on v23 face-sitting came back as a kiss or cowgirl too
       // (live 2026-09-28: 0/8 across wordings, with and without the guide). The seated oral
       // pose lands every time, so the oral beat stays readable (guide: day-slot-pose.ts).
-      return `Side view, exactly two people. The woman sits on the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`;
+      return `Side view, exactly two people. The woman sits on ${(roomSeat || /(?:bed|couch|sofa|chair|bench|counter)$/i.test(surface ?? '')) && surface ? edgeOf(surface, 'bed') : `the edge of the ${/\b(?:couch|sofa|living[- ]room)\b/i.test(beat) ? 'couch' : 'bed'}`}, feet on the floor, leaning back on her hands with her thighs spread; the man kneels upright on the floor between her knees, his back straight, his face in profile pressed to her vulva, licking her, his hands on her thighs. She looks down at him.`;
     case 'kneeling':
       // "Both kneel upright … facing each other" with no camera knelt them side by side facing
       // the lens, 3/3 on the user's night still (Qwen-Image 2.1 Turbo); side view, in profile,
@@ -385,7 +403,7 @@ function placementTwoMen(
     case 'straddle':
       // "Wide shot, both faces in frame … kneels astride" stood the rider up over him on the bed
       // (2/2 sweep); a side view, "sits upright astride … knees bent on the mattress": 3/3.
-      return `Side view. ${cap(bf)} lies on his back on ${on('bed')}; the man sits upright astride his boyfriend's hips, his knees bent on the mattress on either side, riding him, hands on his boyfriend's chest. Both bodies on the bed, one on top of the other.`;
+      return `Side view. ${cap(bf)} lies on his back on ${on('bed')}; the man sits upright astride his boyfriend's hips, his knees bent on ${on('mattress')} on either side, riding him, hands on his boyfriend's chest. Both bodies on ${on('bed')}, one on top of the other.`;
     case 'lap':
       // Seated, as the couple's lap is: shared with the straddle it laid his boyfriend on his
       // back "on the armchair".
@@ -667,7 +685,10 @@ export function buildRapidDuoRecipe(input: {
   if (!layout) {
     return null;
   }
-  const surface = rapidDuoSurface(beat);
+  // Off the bed by its beat or its room, with no furniture named ("oral while leaning back, soap
+  // in hair" in a tiled bathroom): furniture from the room, or the pose sat her on a bed edge in
+  // the bathroom (live 2026-11-20, Castcut_13257).
+  const named = rapidDuoSurface(beat);
   const leadMan = input.lead === 'man';
   const partnerNoun = input.partner?.partner.noun ?? (leadMan ? 'woman' : 'man');
   const twoWomen = !leadMan && partnerNoun === 'woman';
@@ -679,11 +700,25 @@ export function buildRapidDuoRecipe(input: {
   // the pose map (rapidAdultSkipsPoseGuide) gave real scissoring. Two women keep the side-by-side
   // missionary that tested clean (not re-tested); two men keep their kneeling recipe.
   const drawn: IntimateLayout = layout === 'scissors' && twoWomen ? 'missionary' : layout;
-  const body = twoWomen
-    ? placementTwoWomen(drawn, beat, surface)
-    : twoMen
-      ? placementTwoMen(drawn, beat, surface)
-      : placement(drawn, beat, surface);
+  const place = (on: string | null, roomSeat: boolean) =>
+    twoWomen
+      ? placementTwoWomen(drawn, beat, on)
+      : twoMen
+        ? placementTwoMen(drawn, beat, on)
+        : placement(drawn, beat, on, roomSeat);
+  // Only where the pose would land on a bed: a layout's own furniture from the beat's words ("on
+  // the counter edge") stays.
+  const roomSeat =
+    !named &&
+    BED_PLACEMENT_RE.test(place(null, false) ?? '') &&
+    intimateSceneIsOffBed(beat, input.setting);
+  const surface = roomSeat
+    ? soloRoomSurface(
+        DUO_SEATED_LAYOUTS.has(layout) ? 'seated' : 'on_back',
+        `${beat} ${input.setting ?? ''}`
+      )
+    : named;
+  const body = place(surface, roomSeat);
   if (!body) {
     return null;
   }
@@ -842,12 +877,32 @@ export function buildStoryClothedDuoRecipe(input: {
 }
 
 /** Where her body is, per solo stance — the same stances the solo pose guide draws. */
+/**
+ * Something to sit or lie on in the room, for a solo pose away from the bed whose beat names none.
+ * Seated keeps the pose map's legs (shins down over an edge), so it gets an edge to sit on.
+ */
+export function soloRoomSurface(kind: SoloMasturbationPoseKind, place: string): string {
+  const seated = kind === 'seated' || kind === 'lean';
+  if (/\b(?:shower|steam)\b/i.test(place))
+    return seated ? 'tiled shower bench' : 'tiled shower floor';
+  if (/\b(?:bathroom|bath|tub|vanity)\b/i.test(place))
+    return seated ? 'edge of the bathtub' : 'bathroom floor';
+  if (/\bkitchen\b/i.test(place)) return seated ? 'kitchen counter' : 'kitchen floor';
+  if (/\b(?:couch|sofa|living room|lounge|den|loft)\b/i.test(place)) return 'couch';
+  if (/\b(?:fire(?:place|side)?|hearth|rug|cabin)\b/i.test(place))
+    return seated ? 'armchair by the fire' : 'rug';
+  return seated ? 'armchair' : 'floor';
+}
+
 function soloPlacement(
   kind: SoloMasturbationPoseKind,
   beat: string,
   surface: string | null
 ): string {
   const on = (fallback: string) => `the ${surface ?? fallback}`;
+  // No pillow off the bed ("her head on the pillow" on a shower floor).
+  const pillow =
+    surface && !/\bbed\b/.test(surface) ? 'her head resting back' : 'head on the pillow';
   if (/\bwindowsill\b/i.test(beat)) {
     return 'She sits on the windowsill with her back against the window frame, thighs apart, facing the camera.';
   }
@@ -880,17 +935,17 @@ function soloPlacement(
       // "Ankles near her shoulders" / "knees pulled up": the guide raises both legs (legsHigh in
       // day-pose-guide.ts) — the one-knee line twisted her (live 2026-10-07); this, 3/3 clean.
       return SOLO_LEGS_HIGH_RE.test(beat)
-        ? `She lies on her back on ${on('bed')}, head on the pillow, both knees pulled up toward her chest, feet in the air — two legs only.`
-        : `She lies on her back on ${on('bed')}, head on the pillow, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
+        ? `She lies on her back on ${on('bed')}, ${pillow}, both knees pulled up toward her chest, feet in the air — two legs only.`
+        : `She lies on her back on ${on('bed')}, ${pillow}, one knee drawn up toward her chest and the other leg bent out to the side — two legs only.`;
     case 'side_lying':
       // "Top knee raised high" shot the top leg straight up in a near-split (4/7 of the user's own
       // renders of one beat, re-rolled in six sessions; 3/3 replays). Knee drawn forward, foot on
       // the mattress: a natural side-lying pose 3/3, map kept (2026-10-09).
-      return `She lies on her side on ${on('bed')} facing the camera, bottom leg straight along the mattress; her top leg is bent, the knee drawn forward toward her chest and that foot resting flat on the mattress in front of her bottom knee.`;
+      return `She lies on her side on ${on('bed')} facing the camera, bottom leg straight along ${on('mattress')}; her top leg is bent, the knee drawn forward toward her chest and that foot resting flat on ${on('mattress')} in front of her bottom knee.`;
     case 'prone':
       // Live 2026-09-27: "face-down … cheek on the pillow" rendered her on her back 3/3 (the
       // side-view guide can't say which way she faces); naming back-up/breasts-down got 3/4.
-      return `She lies stretched out flat on her stomach on ${on('bed')}, legs straight out behind her, her whole body flat on the mattress, seen from the side: her bare back and buttocks up, her breasts pressed into the sheets, her hips pressing down into the mattress, her head on the pillow turned to the side.`;
+      return `She lies stretched out flat on her stomach on ${on('bed')}, legs straight out behind her, her whole body flat on ${on('mattress')}, seen from the side: her bare back and buttocks up, her breasts pressed into ${on('sheets')}, her hips pressing down into ${on('mattress')}, ${surface && !/\bbed\b/.test(surface) ? 'her head turned to the side' : 'her head on the pillow turned to the side'}.`;
     case 'kneeling':
       return `She kneels upright on ${on('bed')} with her knees apart and her torso straight up, facing the camera.`;
     case 'all_fours':
@@ -1098,7 +1153,16 @@ export function buildRapidSoloRecipe(input: {
     /\b(?:looking\s+(?:back|up)|over\s+(?:her|a)\s+shoulder|head\s+tipped\s+back|eyes|biting)\b/i.test(
       beat
     );
-  const placement = soloPlacement(kind, beat, surface);
+  // Off the bed by its beat or its room, with no furniture named ("hand on tile, body arched" in a
+  // shower room): furniture from the room, or every pose fell back to the bed (live 2026-11-20,
+  // Castcut_13251 — sat on a bed edge in a shower room).
+  const roomSurface =
+    surface ??
+    (BED_PLACEMENT_RE.test(soloPlacement(kind, beat, null)) &&
+    intimateSceneIsOffBed(beat, input.setting)
+      ? soloRoomSurface(kind, `${beat} ${input.setting ?? ''}`)
+      : null);
+  const placement = soloPlacement(kind, beat, roomSurface);
   // The on-her-back line already says where each leg is (as the guide draws them); "knees apart"
   // left in the Moment gave her a third leg 2/3 (and 0/3 without it, live 2026-10-07).
   const legsSet = /two legs only/.test(placement) ? beat.replace(SOLO_LEG_SPREAD_RE, '') : beat;

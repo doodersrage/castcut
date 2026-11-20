@@ -1057,3 +1057,44 @@ describe('Intimate duos say the act, keep what the beat keeps on, and sweat (202
     assert.doesNotMatch(pushed, /Both are completely nude/);
   });
 });
+
+describe('a solo moment away from the bed that names no furniture', () => {
+  it('sits or lies on what the room has, and keeps the bed in a bedroom', async () => {
+    const { buildRapidSoloRecipe } = await import('./rapid-duo-recipe');
+    const pose = (beat: string, setting: string) =>
+      (buildRapidSoloRecipe({ beat, setting, poseGuide: true }) ?? '').match(
+        /She (?:sits|lies|kneels|stands|is|leans)[^.]*\./
+      )?.[0] ?? '';
+    // Live 2026-11-20 (Castcut_13251): a shower room, "hand on tile" — sat on a bed edge.
+    const shower = pose('solo with hand on tile, body arched, warm glow from vanity light — alone', 'shower room dimmed, soft gold lamp');
+    assert.match(shower, /tiled shower bench/);
+    assert.doesNotMatch(shower, /\bbed\b/);
+    const fireside = pose('alone on her back, eyes closed, one hand between her thighs — Cast alone', 'cabin living room with a crackling fireplace');
+    assert.match(fireside, /on the couch/);
+    assert.doesNotMatch(fireside, /pillow|\bbed\b/);
+    assert.match(pose('alone on her back, eyes closed, one hand between her thighs — Cast alone', 'hotel bedroom with white sheets'), /on the bed, head on the pillow/);
+    assert.match(pose('solo masturbation lying in late-morning sheets — Cast alone', 'sunlit kitchen'), /on the bed/);
+  });
+});
+
+describe('a two-person moment away from the bed that names no furniture', () => {
+  it('sits her on what the room has, and keeps the bed in a bedroom', async () => {
+    const { buildRapidDuoRecipe } = await import('./rapid-duo-recipe');
+    const recipe = (beat: string, setting: string) =>
+      buildRapidDuoRecipe({ beat, setting, timeOfDay: 'morning', poseGuide: true }) ?? '';
+    // Live 2026-11-20 (Castcut_13257): a tiled bathroom, "oral while leaning back" — a bed edge.
+    const bathroom = recipe(
+      'oral while leaning back, soap in hair — both adults fully visible',
+      'bathroom tiled walls, sunlit mirror'
+    );
+    assert.match(bathroom, /sits on the edge of the bathtub/);
+    assert.doesNotMatch(bathroom, /\bbed\b/);
+    const shower = recipe('oral while leaning back, water running — both adults fully visible', 'glass shower');
+    assert.match(shower, /tiled shower bench/);
+    assert.doesNotMatch(shower, /\bbed\b/);
+    assert.match(
+      recipe('oral while leaning back — both adults fully visible', 'hotel bedroom with white sheets'),
+      /edge of the bed/
+    );
+  });
+});

@@ -370,7 +370,28 @@ export function dayAsShort(input: {
             entry.imageUrl === take.imageUrl
         );
       const fromDay = scene.takes.filter(take => !known(take));
-      const takes = [...before.takes, ...fromDay];
+      // A take the Scene has that the card has since animated: the card's clip goes on it (it
+      // is that take's — a new take on the card drops the last one's clip, upsertDaySlotStill).
+      const withClips = before.takes.map(take => {
+        const day = scene.takes.find(entry => entry.id === take.id);
+        if (!day?.clipUrl || day.clipUrl === take.clipUrl) return take;
+        const { clipPromptId: _id, chainFrom: _chain, ...rest } = take;
+        return {
+          ...rest,
+          clipUrl: day.clipUrl,
+          ...(day.clipPromptId ? { clipPromptId: day.clipPromptId } : {}),
+          ...(day.chainFrom ? { chainFrom: day.chainFrom } : {}),
+        };
+      });
+      const takes = [...withClips, ...fromDay];
+      // The card's still rendered on the board since (not one the Scene had): the player's newest
+      // take, so the Scene keeps it. Kept as before, the Scene's old take came straight back onto
+      // the card, its old clip with it, and Make the short cut that clip in (live 2026-11-20).
+      const cardTake = (input.day.stills ?? []).find(entry => entry.slotId === slot.id);
+      const newOnCard =
+        cardTake?.status === 'completed' && !cardTake.twoTakes
+          ? fromDay.find(take => take.id === cardTake.promptId?.trim())?.id
+          : undefined;
       // A moment written anew (another beat or place, not a tweak): the take kept for the old
       // one isn't this moment's — it stays among the takes, unkept, and Make the short renders
       // the moment again. (Live 2026-11-07: a seaside day's kept stills stood in for an
@@ -380,7 +401,8 @@ export function dayAsShort(input: {
       // the take just unkept) — the card's shown take while two takes wait for the pick.
       const kept = rewritten
         ? undefined
-        : (before.keptTakeId ??
+        : (newOnCard ??
+          before.keptTakeId ??
           (pendingPick(slot.id) && fromDay.some(take => take.id === pendingPick(slot.id))
             ? pendingPick(slot.id)
             : fromDay[fromDay.length - 1]?.id));
@@ -421,10 +443,16 @@ export function dayAsShort(input: {
         }
       }
       const shotOf = new Map(planned.map(shot => [shot.madeSceneId, shot.id]));
+      // The moment written anew (another beat or place): its shots' kept takes are the old
+      // moment's. They stay among the takes, unkept, so Render the short renders the shots again —
+      // kept, the first shot's old picture and clip stood in every short after (live 2026-11-20:
+      // a shower-stall morning's shot on a bathroom card rewritten twice since).
+      const momentAnew = Boolean(before && momentRewritten(syncedSlotOf(before)!, scene.slot));
       for (const other of [...own.moment.shots.map(entry => entry.scene), ...own.moment.loose]) {
         if (!other || other.id === anchor.id || !other.fromScript) continue;
+        const { keptTakeId: _kept, ...unkept } = other;
         alongside.push({
-          ...other,
+          ...(momentAnew && other.keptTakeId ? { ...unkept, updatedAt: now + index } : other),
           fromScript: {
             ...other.fromScript,
             sceneId,
@@ -632,6 +660,21 @@ function cardShotTakeOf(card: SavedScene, scenes: readonly SavedScene[]): SceneT
   return keptTakeOf(pick);
 }
 
+/** Any Scene of the short has (or had, since removed) this take: the card shows a recorded take. */
+function shortKnowsTake(
+  scenes: readonly SavedScene[],
+  link: { castId: string; scriptId: string },
+  takeId: string
+): boolean {
+  return scenes.some(
+    scene =>
+      scene.fromScript?.scriptId === link.scriptId &&
+      scene.castId === link.castId &&
+      (scene.takes.some(take => take.id === takeId || take.promptId === takeId) ||
+        (scene.removedTakeIds ?? []).includes(takeId))
+  );
+}
+
 /**
  * Short ← its short (the board on the script road, 2026-11-06): each moment's kept take on its
  * Scene as the moment's still on the Day — Make the short's renders show on the board, its reel
@@ -652,11 +695,20 @@ export function dayStillsFromShort(
     if (scene.fromScript?.scriptId !== link.scriptId || scene.castId !== link.castId) continue;
     const slotId = scene.fromDaySlot;
     if (!slotId || !slots.some(slot => slot.id === slotId)) continue;
-    const kept = cardShotTakeOf(scene, scenes) ?? keptTakeOf(scene);
+    // A card that renders no shot shows its moment's shot — unless a take rendered on the card
+    // since is the one its own Scene keeps (the player's newer choice).
+    const own = keptTakeOf(scene);
+    const shot = cardShotTakeOf(scene, scenes);
+    const kept = shot && !(own && own.at > shot.at) ? shot : own;
     if (!kept) continue;
     const before = stills.find(still => still.slotId === slotId);
     if (before && before.status !== 'completed' && before.status !== 'error' && before.promptId)
       continue;
+    // A take rendered on the card that its Scene doesn't have yet: the board is ahead (the Scene
+    // keeps it on the next sync, dayAsShort). Putting the Scene's take back here replaced every
+    // new quick still with the old one, its old clip with it (live 2026-11-20).
+    const cardId = before?.status === 'completed' ? before.promptId?.trim() : undefined;
+    if (cardId && !shortKnowsTake(scenes, link, cardId)) continue;
     const next = takeAsStill(slotId, kept);
     // Two takes waiting for the pick, and the Scene keeps one of them: the pick stays the
     // player's (replacing the still dropped the pair).
