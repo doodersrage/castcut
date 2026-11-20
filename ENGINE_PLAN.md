@@ -240,8 +240,27 @@ up to 14.2 GB and LM Studio's vision model 6.7 GB the whole time; the card peake
 24.5 GB and was within 1 GB of full for 4.4 min, every time while ComfyUI rendered beside the
 loaded vision model. No out-of-memory error and no hang in that run. Earlier the same day ComfyUI
 froze mid-preview (0% CPU, its HTTP queue full) with the same two on the card; a run waits out its
-20-minute render timeout on that. Open: what the resident vision model costs Edit 2511's
-sampler (ComfyUI streams the weights that don't fit).
+20-minute render timeout on that.
+
+What the resident vision model costs (user's OK to unload it for the test): 10 of s25's Final
+graphs replayed with LM Studio's model loaded, then unloaded — **740 s → 658 s, 11% faster
+without it** (load −42%, sampling −6%; median 69.2 s → 63.9 s a render).
+
+The other way round fails too: with the model unloaded (LM Studio unloads it after 30 min idle),
+ComfyUI grew to 17 GB between jobs and the model could not load again — the API answers only
+"Failed to load model" — so a run's vision checks would fail and its takes go unchecked.
+**Fixed** (main `e4d560a2`): a local LLM that fails to load asks an idle ComfyUI on the same
+machine to free its cached models once, then goes again. Live: card at 19.7 GB, model unloaded;
+the request freed ComfyUI, loaded the model and answered in 4.2 s.
+
+Next here:
+
+- **Checks after renders, not between them.** Unloading the vision model for each render and
+  loading it for each check would win about 8 s a render and pay about 4 s a reload. Checking a
+  scene's takes together after its renders (phase 3's second bullet) wins the 11% without the
+  reloads.
+- **A stuck ComfyUI is found in minutes, not 20.** The freeze above answers no HTTP request; a run
+  could see that from `/queue` timing out with a job of its own in flight.
 
 ## 7. MiniMax-H3 clips (weeks 6–8)
 
