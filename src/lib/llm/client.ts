@@ -720,9 +720,23 @@ async function openAiCompatibleChatCompletion(options: {
       body: requestBody,
     });
   let response = await post();
+  let roomMade = false;
   // A busy local server drops a request now and then: try again after growing pauses.
   for (let attempt = 0; !response.ok; attempt += 1) {
     const detail = await response.text();
+    // No room on the GPU for the model: an idle ComfyUI on this machine lets go of its cached
+    // models once, and the request goes again at once (ENGINE_PLAN phase 6; server only).
+    if (!roomMade && typeof window === 'undefined') {
+      const room = await import('./llm-room-server');
+      if (room.isLlmGpuRoomFailure(detail)) {
+        roomMade = true;
+        if (await room.makeRoomForLocalLlm(options.baseUrl)) {
+          response = await post();
+          attempt -= 1;
+          continue;
+        }
+      }
+    }
     const pause = LLM_TRANSIENT_RETRY_MS[attempt];
     if (pause === undefined || !isTransientLlmFailure(response.status, detail)) {
       throw new Error(`LLM request failed (${response.status}): ${llmErrorDetail(detail)}`);
