@@ -20,6 +20,16 @@ async function download(url, dest) {
 function extract(archivePath, destDir, dist) {
   if (dist.archive === 'zip') {
     if (process.platform === 'win32') {
+      // Windows' own bsdtar reads zips (by full path: Git's GNU tar is first on a runner's PATH
+      // and cannot). Expand-Archive broke on the runner image of 2026-11-20 ("Cannot find an
+      // overload for ExtractToDirectory"), failing the v4.2.1 Windows build; kept as a fallback.
+      const systemTar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+      try {
+        execFileSync(systemTar, ['-x', '-f', archivePath, '-C', destDir], { stdio: 'inherit' });
+        return;
+      } catch (error) {
+        console.warn(`tar.exe could not unzip ${archivePath} (${error.message}); trying Expand-Archive`);
+      }
       execFileSync(
         'powershell.exe',
         ['-NoProfile', '-Command', `Expand-Archive -Force -Path "${archivePath}" -DestinationPath "${destDir}"`],
