@@ -256,6 +256,13 @@ export async function runSceneRunOnServer(
    * before it is sent and with its job once queued. Not queued (ComfyUI said no): dropped — the
    * loop queues that Scene in turn.
    */
+  /**
+   * What each take queued ahead was rendered from (its prompt, settings, references), by job: the
+   * checks need it once it becomes the current take. Without it every Final take queued ahead went
+   * unchecked (s26, 2026-11-19: 42 of 43 "not checked"). Lost on a restart, as a take picked up
+   * mid-render always was.
+   */
+  const aheadReports = new Map<string, ServerTakeReport>();
   const queueAhead = async (currentScene: string) => {
     const now0 = runOf()!;
     // The next Scene as if the one in flight were done.
@@ -290,6 +297,7 @@ export async function runSceneRunOnServer(
       return;
     }
     deps.onJob?.('queued', queued, nextId);
+    if (result.report) aheadReports.set(queued, result.report);
     setRun(
       withRunLog(
         { ...rest, ahead: { sceneId: nextId, promptId: queued, at: now() } },
@@ -361,7 +369,9 @@ export async function runSceneRunOnServer(
 
     // Its take: the one in flight (picked up after a restart) — never a second.
     let promptId = latest.current?.sceneId === sceneId ? latest.current.promptId : undefined;
-    let report: ServerTakeReport | undefined;
+    // A take queued ahead keeps what it was rendered from; one picked up after a restart has none.
+    let report: ServerTakeReport | undefined = promptId ? aheadReports.get(promptId) : undefined;
+    if (promptId) aheadReports.delete(promptId);
     if (!promptId) {
       setRun({ ...latest, current: { sceneId, at: now() } });
       save();

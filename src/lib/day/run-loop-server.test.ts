@@ -549,6 +549,37 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('a Final take queued ahead is checked from what it was rendered from, like the first', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness();
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      const checked: Array<{ promptId: string; report: boolean }> = [];
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        // The server's checks need the take's report (s26: none on takes queued ahead — 42 of 43
+        // went unchecked).
+        checkTake: async ({ promptId, report }: { promptId: string; report?: unknown }) => {
+          checked.push({ promptId, report: Boolean(report) });
+          return report ? { outfitChecked: true, face: 0.8 } : undefined;
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+      const stills = queued.filter(prompt => !/outfit try-on/i.test(prompt));
+      assert.equal(stills.length, 2, 'one take a Scene, the second queued ahead');
+      assert.equal(checked.length, 2);
+      assert.ok(
+        checked.every(entry => entry.report),
+        `every take checked with its report: ${JSON.stringify(checked)}`
+      );
+      assert.equal(run?.flagged, undefined, 'nothing flagged as not checked');
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('ComfyUI restarted under a take: the lost job queued again once, waited for, no second take', async () => {
     const original = globalThis.fetch;
     const { bundle, deps, queued } = await harness();
