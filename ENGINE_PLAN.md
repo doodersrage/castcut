@@ -138,6 +138,22 @@ checks, set-up renders and waiting.
 
 **Done when:** Final is under 75 s a Scene with one redo allowed.
 
+**Status (19 November 2026): not met — 105 s a Scene, and the render alone is 75 s.** Run s25
+was s23 again at main `95d46a6e` (s19's Short, Final on Edit 2511 at 15 steps, one room a
+scene, one redo; Castcut nodes 1.10.0): **43 Scenes in 75 min** (s23: 116 min, s22: 112), 15
+flagged (s23: 25), one take a Scene. From ComfyUI's job history:
+
+| Part                                           | Jobs | Median | Total          |
+| ---------------------------------------------- | ---- | ------ | -------------- |
+| Final renders (Edit 2511, 15 steps)            | 43   | 75.4 s | 56.0 min (74%) |
+| Face finish and reframe (SDXL)                 | 11   | 21.6 s | 4.6 min        |
+| Set-up renders (Qwen-Image 2.1)                | 12   | 11.3 s | 2.1 min        |
+| ComfyUI idle between jobs (vision checks, app) | n/a  | 4.6 s  | 11.8 min       |
+
+The 15-step change took 35% off the run. What is left around the render is about 25 s a Scene
+(checks 16 s, finishing 9 s); the render itself is the gate's whole budget, and every faster
+sampler tested broke the pictures (phase 5). This gate needs a faster model, not less overhead.
+
 ## 4. Video (weeks 5–8)
 
 LTX-2.5 renders 97 frames in 45–51 s, yet an animated shot takes about 6 minutes. Find and cut the
@@ -217,6 +233,15 @@ today plans the card's memory across everything that uses it.
 - **Use the pool.** `pool.ts` can route checks to a second ComfyUI endpoint when one exists.
 
 **Done when:** a 480-shot episode runs overnight with no out-of-memory stop and no lost job.
+
+**Status (19 November 2026): measuring.** `scripts/gpu-watch.mjs` records what each process
+holds on the card every 2 s, with ComfyUI's and LM Studio's state. Over s25 (75 min): ComfyUI held
+up to 14.2 GB and LM Studio's vision model 6.7 GB the whole time; the card peaked at 24.0 of
+24.5 GB and was within 1 GB of full for 4.4 min, every time while ComfyUI rendered beside the
+loaded vision model. No out-of-memory error and no hang in that run. Earlier the same day ComfyUI
+froze mid-preview (0% CPU, its HTTP queue full) with the same two on the card; a run waits out its
+20-minute render timeout on that. Open: what the resident vision model costs Edit 2511's
+sampler (ComfyUI streams the weights that don't fit).
 
 ## 7. MiniMax-H3 clips (weeks 6–8)
 
