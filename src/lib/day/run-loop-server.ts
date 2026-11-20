@@ -405,8 +405,10 @@ export async function runSceneRunOnServer(
       emit({ scene: sceneOf(sceneId) });
     }
 
-    // A Preview queues the next draft now, so ComfyUI goes straight on to it (run-tier.ts).
-    if (runOf()!.tier === 'preview' && !runOf()!.ahead) await queueAhead(sceneId);
+    // The next Scene's take queued now, so ComfyUI goes straight on to it (run-tier.ts): a
+    // Preview's draft, and a Final's too — its checks then run while the next one renders (s25,
+    // 2026-11-19: ComfyUI sat idle 16 s a Scene, 11.8 of 75 min, while each take was checked).
+    if (!runOf()!.ahead) await queueAhead(sceneId);
 
     // Wait for it to land (the watcher follows a job ComfyUI queued again).
     const landed = await waitForJob(promptId, sceneId, deps, sleep, now, requeued => {

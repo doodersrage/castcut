@@ -503,12 +503,15 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       } as never);
       assert.equal(asked[0], inFlight, 'it waited for the take already in flight');
       assert.equal(run?.state, 'done');
-      const kitchenStills = queued
+      // Before the stop: the Kitchen's take and the Window's queued ahead (Final queues ahead too,
+      // 2026-11-19); after it, both waited for and nothing queued again.
+      const stillsBefore = queued
         .slice(0, queuedBefore)
         .filter(prompt => !/outfit try-on/i.test(prompt)).length;
-      assert.equal(kitchenStills, 1);
+      assert.equal(stillsBefore, 2);
       const after = queued.slice(queuedBefore).filter(prompt => !/outfit try-on/i.test(prompt));
-      assert.equal(after.length, 1, 'only the Window queued after the restart');
+      assert.equal(after.length, 0, 'nothing queued twice after the restart');
+      assert.equal(new Set(asked).size, 2, 'both takes in flight were waited for');
     } finally {
       globalThis.fetch = original;
     }
@@ -616,7 +619,8 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
       assert.ok(clock >= 3 * 60_000 && clock < 4 * 60_000, `paused at ${clock} ms`);
       assert.equal(run?.current?.promptId, 'job-1');
       assert.equal(run?.outcomes?.s1, undefined);
-      assert.equal(queued.length, 1);
+      // The next Scene's take was queued ahead before ComfyUI hung; none after it.
+      assert.equal(queued.length, 2);
     } finally {
       globalThis.fetch = original;
     }
