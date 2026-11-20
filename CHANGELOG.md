@@ -9,6 +9,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.2.1] - 2026-11-20
+
+- Short fixes from the 2026-11-20 live runs and bug hunt
+- Server run: a Final take queued ahead is checked — it keeps what it was rendered from
+- Server run: Final queues the next Scene's take too, so checks run while it renders
+- Server run: a hung ComfyUI pauses the run in 3 minutes and says so, not after 20
+- LLM: no room on the GPU to load the model — an idle ComfyUI on this machine lets go once
+- gpu-watch: the card's memory over a run, by process, with ComfyUI and LM Studio state (ENGINE_PLAN phase 6)
+- Intimate stills off the bed when the moment is: the place counts, solo too
+- Short: Write it on an Intimate short — the LLM writes its adult moments from your idea
+
 ## [v4.2.0] - 2026-11-19
 
 - Scenes: a take that picked up an older take's clip lets it go when read
