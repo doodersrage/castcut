@@ -228,8 +228,12 @@ The control itself measured 67.5 s a render today against 78.3 s in the earlier 
 graphs: replay times move by about 15% with whatever else holds the GPU. Phase 3's gate (75 s a
 Scene with one redo) needs a real Final run to call, not a replay.
 
-Still open: a tiny VAE for preview decodes (decode is under 1% of a Final), and these candidates on
-Qwen-Image 2.1 and LTX-2.5.
+**Tiny VAE (20 November 2026): rejected without a download.** Decode is 0.37 s of a 11.75 s
+Preview still (median of 40, `castcut-engine-bench/preview1.json`) and under 1% of a Final, so a
+tiny VAE saves at most about 0.3 s a still. None is installed, and it isn't worth adding a model
+for that. H3's decode (9–10 s a clip) uses H3's own VAE, which has no tiny version.
+
+Still open: these candidates on Qwen-Image 2.1 and LTX-2.5.
 
 ## 6. One memory budget (weeks 9–10)
 
@@ -327,6 +331,37 @@ and frames compared: faces, mouths, gestures and sets were the same, and the cli
 67–75 s against 82–91 s. But of the 20 lines Whisper heard at 8 steps, 2 lost most of their words
 at 6 (the other 18 held). The app's Whisper check would render those again, which eats most of
 the 13 s saved, so H3_REF_STEPS stays 8 for now.
+
+**Preview size (20 November 2026): 768 halves a clip.** Four plain 5 s clips (two people each,
+124 frames) replayed on their own seeds with the long side at 1024, 768 and 576
+(`castcut-engine-bench/h3-size.mjs`, results in `h3-size/`):
+
+| Long side | Median of 4 | Range   |
+| --------- | ----------- | ------- |
+| 1024      | 68.1 s      | 62–73 s |
+| 768       | 36.3 s      | 32–37 s |
+| 576       | 25.0 s      | 19–28 s |
+
+Every size kept the set, faces and outfits of the 1024 run on three clips; the motion differs as
+a new seed's would. At 576 faces are soft but hold. On the fourth clip outfits changed mid-clip at
+every size, 1024 included, and worst at 768 (the man ended in a white dress), so the drift is H3's,
+not the size's. 768 looks right for the Preview animatic: about 2× faster with no loss a draft
+would show. Not wired in yet: `H3_LONG_SIDE` is one constant for every tier.
+
+**Keyframed 30 s clip (20 November 2026): 9.4 minutes, the gate met.** Run through
+`/api/clip/extend` on an isolated server (`castcut-x30-run/`), from a fresh 1024 replay of a
+one-person street clip: five parts of 5 s, each with its keyframe drawn first, about 95–105 s a
+part (the first 165 s, its keyframe taking 83 s). 9.4 minutes for the extension, about 10.6 with
+the first clip's 73 s. One keyframe missed its check ("something put on or taken off") and was
+used anyway; the clip held her face, dress and the street to the end.
+
+The two-person path is another matter. Two people get no keyframes; each part goes on the
+reference model with both faces, as two 10 s parts. The same test on a two-person clip took
+**25.7 minutes**, 18 of them for the first part, with the card within 1 GB of full for 18 minutes
+(LM Studio's vision model held 6.7 GB the whole run). Its second part took about 6 minutes. And
+at about 9 s and 24 s strangers in suits stepped into the shot, the partner gone for the first.
+Both are open: the memory squeeze is phase 6's LLM-unload question, and the strangers are a
+continuity bug in the two-person parts.
 
 ## Sources
 
