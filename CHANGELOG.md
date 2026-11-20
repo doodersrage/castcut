@@ -9,6 +9,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.2.2] - 2026-11-20
+
+- Desktop: unzip the bundled Node with Windows' tar.exe, Expand-Archive as fallback
+
 ## [v4.2.1] - 2026-11-20
 
 - Short fixes from the 2026-11-20 live runs and bug hunt
