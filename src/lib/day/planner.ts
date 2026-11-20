@@ -11,7 +11,7 @@ import {
 } from '../video/ltx25-renderer';
 import { storySceneNamesSecondPerson } from '../story/scene-people';
 import { beatOwnsFootwear } from '../wardrobe/footwear';
-import { intimateBeatIsOffBed } from '../adult/intimate-prompt-clarify';
+import { intimateSceneIsOffBed } from '../adult/intimate-prompt-clarify';
 import {
   buildRapidDuoRecipe,
   duoBeatClothing,
@@ -3855,8 +3855,11 @@ export function buildDaySlotPrompt(input: {
                   : ''
               }`
     : `mandatory new body pose: ${defaultPose}`;
-  // Wall / couch / armchair / sink beats: no bed wording, or Rapid lays the pose on a mattress.
-  const duoOffBed = isDayAdultMood(dayMood) && !soloSubject && intimateBeatIsOffBed(hints);
+  // Wall / couch / armchair / sink beats, or a beat with no bed in a place that isn't a bedroom:
+  // no bed wording, or Rapid lays the pose on a mattress (solo too: every one was on sheets).
+  const offBed = isDayAdultMood(dayMood) && intimateSceneIsOffBed(hints, setting);
+  const duoOffBed = offBed && !soloSubject;
+  const soloSheets = offBed ? 'the surface the beat names' : 'bare sheets';
   const cameraLine =
     isDayAdultMood(dayMood) && poseHeadcount >= 2
       ? duoOffBed
@@ -3865,9 +3868,9 @@ export function buildDaySlotPrompt(input: {
       : isDayAdultMood(dayMood)
         ? dayMood === 'raunchy' && soloSubject
           ? soloToy
-            ? 'camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; bare sheets in the foreground; eyes closed or half-lidded looking down at the penis-shaped dildo inserted in her vaginal opening — never a soft fashion pin-up staring at the lens; never invent a man or partner; never raised gesture hands; never beach, sand, ocean, shoreline, pier, or night-beach city lights — indoor rumpled sheets only'
-            : 'camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; bare sheets in the foreground; eyes closed or half-lidded looking down at her hands — never a soft fashion pin-up staring at the lens; never raised hands or fingers pointing up; nothing held — fingers only; never beach, sand, ocean, shoreline, pier, or night-beach city lights — indoor rumpled sheets only'
-          : 'camera: intimate medium / three-quarter on the beat body pose and sex/action — prioritize stance over environment; empty lap and bare sheets in the foreground; eyes half-lidded or looking at her own body/hands — never a soft fashion pin-up staring at the lens with hands flat on the mattress'
+            ? `camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; ${soloSheets} in the foreground; eyes closed or half-lidded looking down at the penis-shaped dildo inserted in her vaginal opening — never a soft fashion pin-up staring at the lens; never invent a man or partner; never raised gesture hands; never beach, sand, ocean, shoreline, pier, or night-beach city lights — ${offBed ? 'in the setting as written' : 'indoor rumpled sheets only'}`
+            : `camera: intimate medium / three-quarter on the beat body pose — prioritize that stance over environment; ${soloSheets} in the foreground; eyes closed or half-lidded looking down at her hands — never a soft fashion pin-up staring at the lens; never raised hands or fingers pointing up; nothing held — fingers only; never beach, sand, ocean, shoreline, pier, or night-beach city lights — ${offBed ? 'in the setting as written' : 'indoor rumpled sheets only'}`
+          : `camera: intimate medium / three-quarter on the beat body pose and sex/action — prioritize stance over environment; empty lap and ${soloSheets} in the foreground; eyes half-lidded or looking at her own body/hands — never a soft fashion pin-up staring at the lens with hands flat on the mattress`
         : dayMood === 'suggestive'
           ? 'camera: charged medium / three-quarter on the beat body pose — match Image 3 (dance as the beat says, zip-twist look-back with hands on her own zipper, lean, sit, stretch, or recline as written); lingerie or dress stays on (top and bottom); ' +
             (suggestiveCouple
@@ -3883,7 +3886,7 @@ export function buildDaySlotPrompt(input: {
               : `camera: ${cameraCue}`;
   const framingLine = soloSubject
     ? isDayAdultMood(dayMood)
-      ? 'single-subject framing on the beat sex/self-touch pose — full or three-quarter body; empty sheets around her; never a polite dressed portrait with invented props'
+      ? `single-subject framing on the beat sex/self-touch pose — full or three-quarter body; ${offBed ? 'the place the beat names around her' : 'empty sheets around her'}; never a polite dressed portrait with invented props`
       : input.hasPlate
         ? 'single-subject framing, natural lighting for the time of day — no second person in frame'
         : 'single cinematic still of one person, full or three-quarter framing, natural lighting for the time of day'

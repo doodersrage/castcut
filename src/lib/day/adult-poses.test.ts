@@ -329,6 +329,34 @@ describe('off-bed duo beats', () => {
     assert.equal(intimateBeatIsOffBed('on her back mid-sex, never against the wall'), false);
   });
 
+  it('reads the place too: no bed in the beat, set somewhere that is not a bedroom', async () => {
+    const { intimateSceneIsOffBed } = await import('../adult/intimate-prompt-clarify');
+    // Written by Write it (2026-11-19): every one of these came out on sheets.
+    assert.equal(intimateSceneIsOffBed('on top on the worn rug, candles flickering', 'cabin by the fire'), true);
+    assert.equal(intimateSceneIsOffBed('solo with her hand, head tipped back', 'kitchen at night'), true);
+    assert.equal(intimateSceneIsOffBed('missionary, legs around him', 'living room lit by one lamp'), true);
+    // A bed in the beat, or a bedroom (or no place at all), keeps the bed.
+    assert.equal(intimateSceneIsOffBed('missionary on the rumpled bed', 'kitchen'), false);
+    assert.equal(intimateSceneIsOffBed('on her back, legs parted', 'bedroom with white sheets'), false);
+    assert.equal(intimateSceneIsOffBed('on her back, legs parted', 'hotel room at dusk'), false);
+    assert.equal(intimateSceneIsOffBed('on her back, legs parted', ''), false);
+  });
+
+  it('takes the bed props off a solo still set off the bed, and keeps them in a bedroom', async () => {
+    const { applyQueuePromptSteering } = await import('../queue/prompt-prep');
+    const steer = (setting: string) =>
+      applyQueuePromptSteering({
+        positive: `MOOD: intimate solo still — follow the beat exactly.\nSOLO ACT: one adult woman alone.\nbeat: solo with her hand between her thighs — Cast alone\nsetting: ${setting}`,
+        model: 'qwen-rapid-aio-edit-nsfw',
+        realismMode: 'off' as never,
+        anatomyMode: 'off' as never,
+        tool: 'day',
+      }).positive;
+    const fireside = steer('cabin rug by the fireplace');
+    assert.doesNotMatch(fireside, /bare bed surface|rumpled indoor sheets|closed blinds only/);
+    assert.match(steer('bedroom with white sheets'), /bare bed surface/);
+  });
+
   it('draws scissors as missionary — the pose the recipe renders (Rapid cannot draw scissoring)', () => {
     const beat = 'scissoring on the bed in the lamp glow, legs interlocked with a partner — both adults fully visible';
     const scissors = synthesizeSceneStickFigures(beat, 0, { forcePeople: 2 }).figures;

@@ -565,6 +565,43 @@ export function intimateBeatIsOffBed(text: string | null | undefined): boolean {
   );
 }
 
+/** The place in an adult prompt (its "setting:" line), else ''. */
+export function intimateSettingSample(text: string): string {
+  return text.match(/^setting:\s*(.+)$/im)?.[1]?.trim() ?? '';
+}
+
+/**
+ * An adult moment off the bed: by its beat (a wall, a couch, a counter…), or by its place — a
+ * beat that names no bed, set somewhere that is not a bedroom (a fireside rug, a kitchen, a
+ * patio). Every adult still was dressed in bare sheets otherwise, so a moment the LLM wrote by the
+ * fire came out on a mattress (2026-11-19, Write it on an Intimate short).
+ */
+export function intimateSceneIsOffBed(
+  beat: string | null | undefined,
+  setting: string | null | undefined
+): boolean {
+  if (intimateBeatIsOffBed(beat)) return true;
+  if (/\b(beds?|mattress|sheets|pillows?|duvet)\b/i.test(stripNegatedClauses(beat ?? ''))) {
+    return false;
+  }
+  const place = stripNegatedClauses(setting ?? '').trim();
+  return (
+    Boolean(place) &&
+    !/\b(beds?|bedrooms?|mattress|sheets|duvet|bedside|hotel room|motel)\b/i.test(place)
+  );
+}
+
+/** An adult Rapid prop line without its bed: no sheets, no bed surface, no blinds-only room. */
+export function withoutBedProps(line: string): string {
+  return line
+    .replace(
+      'rumpled indoor sheets in the foreground, bare bed surface, ',
+      'the surface the beat names, '
+    )
+    .replace('lamp and closed blinds only, ', '')
+    .replace('bare skin and sheets only', 'bare skin only');
+}
+
 /**
  * SNOFS / NSFW LoRA caption cues. Bare "sex" alone collapses every beat to one pose —
  * prefer trained "… position" phrases (see CivArchive SNOFS trigger list).

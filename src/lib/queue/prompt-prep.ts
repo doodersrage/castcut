@@ -30,7 +30,12 @@ import {
   mergeCleanSkinNegatives,
   promptHasNoPerson,
 } from '../face/clean-skin';
-import { intimateBeatIsOffBed, intimatePoseSample } from '../adult/intimate-prompt-clarify';
+import {
+  intimatePoseSample,
+  intimateSceneIsOffBed,
+  intimateSettingSample,
+  withoutBedProps,
+} from '../adult/intimate-prompt-clarify';
 import { isRapidDuoRecipePrompt } from '../prompt/recipe-mark';
 import { inferAthleticSport, type AthleticSport } from '../scene/athletic-sport-profiles';
 import { resolveQueueNegativePromptRaw } from './negative';
@@ -660,24 +665,22 @@ export function applyQueuePromptSteering(rawInput: {
         /\b(dildo|vibrator|wand\s+vibrator|magic\s*wand|rabbit\s+vibe|sex\s*toy|toy\s+play)\b/i.test(
           steeredPositive
         );
+      // Off the bed (a wall, a couch, a fireside rug, a kitchen): the bed foreground pulls the
+      // pose back onto the sheets, so its props go — solo or duo.
+      const offBed = intimateSceneIsOffBed(
+        intimatePoseSample(steeredPositive),
+        intimateSettingSample(steeredPositive)
+      );
+      const props = (line: string) => (offBed ? withoutBedProps(line) : line);
       if (duoBeat) {
-        // Wall / couch / armchair beats — the bed foreground pulls the pose back onto the sheets.
-        positive = appendUniqueCsv(
-          positive,
-          intimateBeatIsOffBed(intimatePoseSample(steeredPositive))
-            ? RAPID_AIO_ADULT_DUO_PROP_POSITIVE.replace(
-                'rumpled indoor sheets in the foreground, bare bed surface, ',
-                ''
-              ).replace('bare skin and sheets only', 'bare skin only')
-            : RAPID_AIO_ADULT_DUO_PROP_POSITIVE
-        );
+        positive = appendUniqueCsv(positive, props(RAPID_AIO_ADULT_DUO_PROP_POSITIVE));
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_DUO_PROP_NEGATIVE);
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
       } else if (soloToyBeat) {
-        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_TOY_PROP_POSITIVE);
+        positive = appendUniqueCsv(positive, props(RAPID_AIO_ADULT_TOY_PROP_POSITIVE));
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_TOY_PROP_NEGATIVE);
       } else {
-        positive = appendUniqueCsv(positive, RAPID_AIO_ADULT_PROP_POSITIVE);
+        positive = appendUniqueCsv(positive, props(RAPID_AIO_ADULT_PROP_POSITIVE));
         negative = appendUniqueCsv(negative, RAPID_AIO_ADULT_PROP_NEGATIVE);
       }
       // Read the planner's POSE LOCK, else the beat — the DUO ACT boilerplate names
