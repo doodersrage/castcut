@@ -587,6 +587,77 @@ describe('a Scene run on the server (Phase 3, step 8)', () => {
     }
   });
 
+  it('ComfyUI hung under a take: the run pauses in minutes and says so, the take still in flight', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps, queued } = await harness();
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      let clock = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        now: () => clock,
+        sleep: async (ms: number) => {
+          clock += ms;
+        },
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        // 2026-11-19: frozen mid-job — every status call times out.
+        jobStatus: async (promptId: string) => ({
+          promptId,
+          status: 'unknown' as const,
+          statusMessage: 'The operation was aborted due to timeout',
+          comfyUrl: COMFY,
+        }),
+      } as never);
+      assert.equal(run?.state, 'paused');
+      assert.match(run?.stopReason ?? '', /ComfyUI stopped answering \(3 min\)/);
+      // Within the 3 minutes, not the 20-minute render timeout; the take is not called failed.
+      assert.ok(clock >= 3 * 60_000 && clock < 4 * 60_000, `paused at ${clock} ms`);
+      assert.equal(run?.current?.promptId, 'job-1');
+      assert.equal(run?.outcomes?.s1, undefined);
+      assert.equal(queued.length, 1);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('a slow ComfyUI that answers again in time is waited for (loading models)', async () => {
+    const original = globalThis.fetch;
+    const { bundle, deps } = await harness();
+    globalThis.fetch = deps.fetchImpl;
+    try {
+      const { runSceneRunOnServer, serverRunState } = await import('./run-loop-server');
+      const state = serverRunState(bundle as never)!;
+      let clock = 0;
+      const run = await runSceneRunOnServer(bundle as never, state, {
+        ...deps,
+        now: () => clock,
+        sleep: async (ms: number) => {
+          clock += ms;
+        },
+        checkTake: async () => ({ outfitChecked: true, face: 0.8 }),
+        // Silent for 2 min, then pending, silent 2 min more, then landed: never 3 min in a row.
+        jobStatus: async (promptId: string) => {
+          const at = clock % 300_000;
+          if (clock < 600_000 && at < 120_000) {
+            return { promptId, status: 'unknown' as const, comfyUrl: COMFY };
+          }
+          if (clock < 600_000) return { promptId, status: 'running' as const, comfyUrl: COMFY };
+          return {
+            promptId,
+            status: 'completed' as const,
+            comfyUrl: COMFY,
+            images: [{ filename: `${promptId}.png`, subfolder: '', type: 'output' }],
+          };
+        },
+      } as never);
+      assert.equal(run?.state, 'done');
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it('a take that could not be queued (ComfyUI restarting) is tried again, not left paused', async () => {
     const original = globalThis.fetch;
     const { bundle, deps, queued } = await harness();

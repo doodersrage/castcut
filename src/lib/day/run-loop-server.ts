@@ -156,9 +156,23 @@ export type ServerRunDeps = ServerTakeDeps & {
   /** How long a take may render, and how often it is asked about. */
   renderTimeoutMs?: number;
   pollMs?: number;
+  /** How long ComfyUI may not answer at all, a take in flight, before the run pauses. */
+  unresponsiveMs?: number;
 };
 
 const RENDER_TIMEOUT_MS = 20 * 60_000;
+/**
+ * ComfyUI not answering at all (every status call timing out) this long, a take of the run's in
+ * flight: it has hung — the run pauses and says so, instead of waiting out the render timeout
+ * (2026-11-19: frozen mid-preview, its HTTP queue full, 0% CPU). A healthy ComfyUI went at most
+ * 24 s without answering over s25's 75 min (loading models).
+ */
+export const COMFY_UNRESPONSIVE_MS = 3 * 60_000;
+
+/** Why a run paused on a hung ComfyUI (its take stays in flight; Resume waits for it again). */
+export function comfyUnresponsiveReason(minutes: number): string {
+  return `ComfyUI stopped answering (${minutes} min) — restart it, then Resume: the take in flight is queued again.`;
+}
 /** Tries to queue a lost take again before it is called failed. */
 const LOST_REQUEUE_TRIES = 6;
 
@@ -406,9 +420,15 @@ export async function runSceneRunOnServer(
       );
       emit();
     });
-    if (landed === 'stopped') {
-      // Paused with the take still in flight: picked up again, the run waits for it.
-      const why = deps.shouldStop?.() ?? 'stopped';
+    if (landed === 'stopped' || landed === 'unresponsive') {
+      // Paused with the take still in flight: picked up again, the run waits for it (a ComfyUI
+      // restarted since lost it, so it is queued again from its graph).
+      const why =
+        landed === 'unresponsive'
+          ? comfyUnresponsiveReason(
+              Math.round((deps.unresponsiveMs ?? COMFY_UNRESPONSIVE_MS) / 60_000)
+            )
+          : (deps.shouldStop?.() ?? 'stopped');
       setRun({
         ...runOf()!,
         state: stoppedState(why),
@@ -703,13 +723,27 @@ async function waitForJob(
   sleep: (ms: number) => Promise<void>,
   now: () => number,
   onRequeued: (next: string) => void
-): Promise<ComfyPromptStatus | 'stopped'> {
+): Promise<ComfyPromptStatus | 'stopped' | 'unresponsive'> {
   const deadline = now() + (deps.renderTimeoutMs ?? RENDER_TIMEOUT_MS);
   let last: ComfyPromptStatus = { promptId, status: 'pending', comfyUrl: deps.comfyUrl };
   let requeued = false;
   let tries = 0;
+  // Since when ComfyUI hasn't answered (a status call that failed or came back unknown).
+  let silentSince: number | null = null;
   for (;;) {
-    last = await deps.jobStatus(promptId).catch(() => last);
+    let answered = true;
+    last = await deps.jobStatus(promptId).catch(() => {
+      answered = false;
+      return last;
+    });
+    if (!answered || last.status === 'unknown') {
+      silentSince ??= now();
+      if (now() - silentSince >= (deps.unresponsiveMs ?? COMFY_UNRESPONSIVE_MS)) {
+        return 'unresponsive';
+      }
+    } else {
+      silentSince = null;
+    }
     if (last.status === 'completed') return last;
     if (last.status === 'error') {
       // Lost, not failed: queued again once, and waited for under the same id. ComfyUI may still
