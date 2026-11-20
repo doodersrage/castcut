@@ -150,6 +150,14 @@ flagged (s23: 25), one take a Scene. From ComfyUI's job history:
 | Set-up renders (Qwen-Image 2.1)                | 12   | 11.3 s | 2.1 min        |
 | ComfyUI idle between jobs (vision checks, app) | n/a  | 4.6 s  | 11.8 min       |
 
+**Queue ahead in Final (main `1db14c45`, `a4e8cd03`):** the next Scene's take is queued as soon
+as the current one is, so its checks run while the next one renders. s26 ran 43 Scenes in 50 min
+but found the first version left 42 takes "not checked" (a take queued ahead lost its render
+report); fixed and tested, **s27: 43 Scenes in 66 min, 93 s a Scene** (s25: 75 min, 105 s), 9
+flagged and 7 redos (s25: 15 and 12), every take checked, no out-of-memory error with a check
+running beside a render (the card within 1 GB of full 4.3 min, as in s25). Fewer redos helped too,
+and those vary run to run, so about 12% is the upper end.
+
 The 15-step change took 35% off the run. What is left around the render is about 25 s a Scene
 (checks 16 s, finishing 9 s); the render itself is the gate's whole budget, and every faster
 sampler tested broke the pictures (phase 5). This gate needs a faster model, not less overhead.
@@ -234,7 +242,7 @@ today plans the card's memory across everything that uses it.
 
 **Done when:** a 480-shot episode runs overnight with no out-of-memory stop and no lost job.
 
-**Status (19 November 2026): measuring.** `scripts/gpu-watch.mjs` records what each process
+**Status (20 November 2026): two fixes in, gate not run.** `scripts/gpu-watch.mjs` records what each process
 holds on the card every 2 s, with ComfyUI's and LM Studio's state. Over s25 (75 min): ComfyUI held
 up to 14.2 GB and LM Studio's vision model 6.7 GB the whole time; the card peaked at 24.0 of
 24.5 GB and was within 1 GB of full for 4.4 min, every time while ComfyUI rendered beside the
@@ -253,14 +261,14 @@ ComfyUI grew to 17 GB between jobs and the model could not load again — the AP
 machine to free its cached models once, then goes again. Live: card at 19.7 GB, model unloaded;
 the request freed ComfyUI, loaded the model and answered in 4.2 s.
 
-Next here:
+**A stuck ComfyUI is found in 3 minutes, not 20** (main `d4195e40`): with a take in flight and no
+answer from ComfyUI at all for 3 minutes, the run pauses with "ComfyUI stopped answering —
+restart it, then Resume" and keeps the take, which a restarted ComfyUI's lost-job path queues
+again. A healthy ComfyUI went at most 24 s without answering over s25's 75 min.
 
-- **Checks after renders, not between them.** Unloading the vision model for each render and
-  loading it for each check would win about 8 s a render and pay about 4 s a reload. Checking a
-  scene's takes together after its renders (phase 3's second bullet) wins the 11% without the
-  reloads.
-- **A stuck ComfyUI is found in minutes, not 20.** The freeze above answers no HTTP request; a run
-  could see that from `/queue` timing out with a job of its own in flight.
+Left open: the gate's overnight 480-shot episode, and unloading the vision model during renders
+(11% of a render, about 4 s a reload to pay back; with checks now overlapping the next render, the
+model is busy beside it, so this needs its own A/B).
 
 ## 7. MiniMax-H3 clips (weeks 6–8)
 
