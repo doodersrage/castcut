@@ -1379,6 +1379,9 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
         ),
         companions: toolSettings.allowCompanions === true,
         mood: normalizeDayMood(toolSettings.dayMood),
+        // Intimate: who is in it and its tone, as the card has them.
+        ...(toolSettings.intimateMix ? { intimateMix: toolSettings.intimateMix } : {}),
+        ...(toolSettings.intimatePlayful ? { playful: true } : {}),
         llmBody: sharedLlmRequestBody(shared),
       });
       // A whole day from an idea leaves an event (the toggle alone left it on underneath).
@@ -1401,6 +1404,8 @@ export function useDayPlannerToolOrchestrationCore(variant: DayEngineVariant = '
       toolSettings.dayEvent,
       toolSettings.dayMood,
       toolSettings.dayThread,
+      toolSettings.intimateMix,
+      toolSettings.intimatePlayful,
       updateToolSettings,
     ]
   );

@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       companions?: boolean;
       previousBeats?: unknown;
       mood?: unknown;
+      intimateMix?: unknown;
+      playful?: unknown;
       llmTemperature?: number;
       allowTemplateFallback?: boolean;
       llmModel?: string;
@@ -52,11 +54,19 @@ export async function POST(request: Request) {
         : undefined,
       // Only a known mood (Suggestive writes in its own words); anything else is everyday.
       ...(typeof body.mood === 'string' ? { mood: normalizeDayMood(body.mood) } : {}),
+      // Intimate's people and tone (the card's Solo / Duo / Mixed, Playful).
+      ...(body.intimateMix === 'solo' || body.intimateMix === 'duo' || body.intimateMix === 'mixed'
+        ? { intimateMix: body.intimateMix }
+        : {}),
+      ...(body.playful === true ? { playful: true } : {}),
       llm: parseLlmRequestOptions(body),
     });
     return apiJson({ beats });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Day from an idea failed.';
-    return apiError(message, /first|no slots|needs the LLM/i.test(message) ? 400 : 500);
+    return apiError(
+      message,
+      /first|no slots|needs the LLM|needs adult content/i.test(message) ? 400 : 500
+    );
   }
 }

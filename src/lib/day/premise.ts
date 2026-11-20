@@ -10,7 +10,14 @@
  */
 
 import type { ChatMessage } from '@/lib/llm/client';
-import { normalizeDayMood, type DaySlot } from '@/lib/day/planner';
+import { neutralizeYouthWords } from '@/lib/adult/adult-age-safeguard';
+import {
+  isDayAdultMood,
+  isDayIntimateSoloBeat,
+  normalizeDayMood,
+  type DayIntimateMix,
+  type DaySlot,
+} from '@/lib/day/planner';
 import { DAY_PARTS, slotDayPart, type DayPart } from '@/lib/day/parts';
 
 export const DAY_PREMISE_MAX_LENGTH = 240;
@@ -19,11 +26,16 @@ const SETTING_MAX = 120;
 
 /**
  * Moods the premise writer serves: clothed stills — Everyday, Vacation and Suggestive (its own
- * words, dayPremiseSuggestive; 2026-11-13: Write it vanished on Suggestive, so it looked broken).
- * Adult and Sport beats are tuned by hand.
+ * words, dayPremiseSuggestive; 2026-11-13: Write it vanished on Suggestive, so it looked broken)
+ * — and Intimate where the server allows adult content (`adult`; 2026-11-19: Write it could not
+ * be clicked on an adult short). Sport beats are tuned by hand.
  */
-export function dayPremiseAvailable(mood: string | null | undefined): boolean {
+export function dayPremiseAvailable(
+  mood: string | null | undefined,
+  options: { adult?: boolean } = {}
+): boolean {
   const normalized = normalizeDayMood(mood);
+  if (isDayAdultMood(normalized)) return options.adult === true;
   return normalized === 'everyday' || normalized === 'vacation' || normalized === 'suggestive';
 }
 
@@ -49,6 +61,9 @@ const STANCE_LEAD_RE =
 /** In the water: a clothed Day can't render it (nude, or dressed in the tub). */
 const IN_WATER_RE =
   /\b(?:in|into)\s+(?:the\s+|a\s+|her\s+)?(?:bath|bathtub|tub|hot tub|shower|jacuzzi)\b|\b(?:bathing|showering|soaking)\b/i;
+/** An adult beat with someone else in it (a partner, him, the two of them) or a partnered act. */
+const ADULT_PARTNER_RE =
+  /\b(partner|lover|boyfriend|girlfriend|husband|wife|him|his|he|both|together|couple|two of them|each other|missionary|from behind|doggy\w*|cowgirl|riding|on top|oral|going down|blowjob|69|spooning|kiss\w*|straddl\w*|mid-sex|having sex)\b/i;
 const SECOND_PERSON_RE =
   /\b(partner|boyfriend|girlfriend|husband|wife|friend|friends|date|together|with (?:him|her|them)|both|couple|guests?|neighbou?rs?|strangers?|crowd)\b/i;
 
@@ -70,9 +85,14 @@ export function buildDayPremiseMessages(input: {
   companions: boolean;
   /** Tomorrow: yesterday's beats ("morning: …"), so today follows on from them. */
   previousBeats?: string[];
-  /** The Day's mood: Suggestive is written in its own words; any other, everyday. */
+  /** The Day's mood: Suggestive and Intimate are written in their own words; any other, everyday. */
   mood?: string;
+  /** Intimate: alone, with a partner, or either (the card's Solo / Duo / Mixed). */
+  intimateMix?: DayIntimateMix;
+  /** Intimate's Playful: crude sexual comedy. */
+  playful?: boolean;
 }): ChatMessage[] {
+  if (isDayAdultMood(normalizeDayMood(input.mood))) return buildIntimatePremiseMessages(input);
   const premise = input.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
   const yesterday = (input.previousBeats ?? [])
     .map(beat => beat.replace(/\s+/g, ' ').trim().slice(0, BEAT_MAX))
@@ -128,6 +148,97 @@ export function buildDayPremiseMessages(input: {
   ];
 }
 
+/** One sentence each mix asks for (an Intimate short's people). */
+const INTIMATE_MIX_LINE: Record<DayIntimateMix, string> = {
+  solo: 'She is alone in every moment: solo pleasure, no other people — end each beat with "— Cast alone".',
+  duo: 'Every moment is her with her partner: name what the two of them do — end each beat with "— both adults fully visible".',
+  mixed:
+    'Moments may be her alone (end that beat with "— Cast alone") or with her partner (end that beat with "— both adults fully visible").',
+};
+
+/**
+ * Intimate's beats (an adult short, the server's adult setting on): one explicit moment each,
+ * between consenting adults, written as the hand-tuned presets are (a position or act, where, the
+ * light) so the adult pipeline reads its layout from the beat as it does for theirs.
+ */
+function buildIntimatePremiseMessages(input: {
+  premise: string;
+  slotIds: string[];
+  slotTimes?: Record<string, string>;
+  previousBeats?: string[];
+  intimateMix?: DayIntimateMix;
+  playful?: boolean;
+}): ChatMessage[] {
+  const premise = neutralizeYouthWords(input.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH));
+  const yesterday = (input.previousBeats ?? [])
+    .map(beat => beat.replace(/\s+/g, ' ').trim().slice(0, BEAT_MAX))
+    .filter(Boolean)
+    .slice(0, 8);
+  const slots = input.slotIds
+    .map(id => {
+      const fixed = input.slotTimes?.[id];
+      return fixed ? `"${id}" (at ${slotDayPart({ id, timeOfDay: fixed })})` : `"${id}"`;
+    })
+    .join(', ');
+  const mix = input.intimateMix ?? 'mixed';
+  return [
+    {
+      role: 'system',
+      content: [
+        'You plan an explicit adult short film about one woman: a handful of moments, one still photo each, in story order. Everyone in it is a consenting adult, well over 18; nobody is young-looking, and there is no school, family or age play.',
+        'The moments are one continuous stretch of the story, close together, so the room and the light carry from one to the next; a moment marked "at …" happens then. Each moment also gets a short title (2–5 words).',
+        'Write each beat as ONE short line (under 30 words): the sex position or act first (missionary, on top, from behind, oral, kissing and undressing, solo with her hand…), then where in the room and how her body is placed, then the light.',
+        'One moment only, no sequence. Give each beat a short room / place (under 12 words).',
+        input.playful
+          ? 'The tone is crude sexual comedy: something goes funnily wrong or is played for laughs, still explicit.'
+          : 'The tone is intimate and sensual.',
+        INTIMATE_MIX_LINE[mix],
+        'Follow the premise in story order.',
+        'Answer with JSON only: [{"slot":"<slot id>","title":"...","time":"morning|afternoon|evening|night","beat":"...","setting":"..."}], one entry per slot.',
+      ].join(' '),
+    },
+    {
+      role: 'user',
+      content: 'Premise: a lazy Sunday in with her partner\nSlots: "morning", "evening"',
+    },
+    {
+      role: 'assistant',
+      content:
+        '[{"slot":"morning","title":"Slow start","time":"morning","beat":"missionary on the rumpled bed, her legs around him, morning light through the blinds — both adults fully visible","setting":"bedroom with white sheets and blinds"},{"slot":"evening","title":"On the sofa","time":"evening","beat":"on top of him on the sofa, hands on his chest, head tipped back — both adults fully visible","setting":"living room lit by one lamp"}]',
+    },
+    {
+      role: 'user',
+      content: yesterday.length
+        ? [
+            `In the short before, she was: ${yesterday.join('; ')}.`,
+            `This is the next short${premise ? ` — ${premise}` : ''}. Continue her story; its places are new.`,
+            `Slots: ${slots}`,
+          ].join('\n')
+        : `Premise: ${premise}\nSlots: ${slots}`,
+    },
+  ];
+}
+
+/**
+ * An Intimate beat checked for its mix and sealed with its lock (the planner tells solo from duo
+ * by these words): null when it doesn't fit the mix. Youth-coded words are taken out.
+ */
+function intimateBeatFor(beat: string, mix: DayIntimateMix): string | null {
+  const text = neutralizeYouthWords(beat).replace(
+    /\s*[—-]\s*(?:Cast alone|both adults fully visible)\s*$/i,
+    ''
+  );
+  // Said alone, or with someone (or a partnered act); a beat that says neither is the mix's.
+  const solo = isDayIntimateSoloBeat(text)
+    ? true
+    : ADULT_PARTNER_RE.test(text)
+      ? false
+      : mix !== 'duo';
+  if (mix === 'solo' && !solo) return null;
+  if (mix === 'duo' && solo) return null;
+  return `${text} — ${solo ? 'Cast alone' : 'both adults fully visible'}`.slice(0, BEAT_MAX + 30);
+}
+
 function cleanLine(value: unknown, max: number): string {
   return typeof value === 'string'
     ? value
@@ -170,8 +281,9 @@ function premiseRows(reply: string): unknown[] | null {
 export function parseDayPremiseBeats(
   reply: string,
   slotIds: string[],
-  options: { companions: boolean; mood?: string }
+  options: { companions: boolean; mood?: string; intimateMix?: DayIntimateMix }
 ): DayPremiseBeat[] {
+  const adult = isDayAdultMood(normalizeDayMood(options.mood));
   const bare = dayPremiseSuggestive(options.mood) ? SUGGESTIVE_BARE_RE : ADULT_RE;
   const rows = premiseRows(reply);
   if (!rows) return [];
@@ -185,9 +297,28 @@ export function parseDayPremiseBeats(
     const named = cleanLine(record.slot, 40);
     const slotId = wanted.has(named) ? named : slotIds[index];
     if (!slotId || seen.has(slotId)) return;
-    const beat = cleanLine(record.beat, BEAT_MAX);
-    const setting = cleanLine(record.setting, SETTING_MAX);
-    if (!beat || !setting) return;
+    const written = cleanLine(record.beat, BEAT_MAX);
+    const setting = adult
+      ? neutralizeYouthWords(cleanLine(record.setting, SETTING_MAX))
+      : cleanLine(record.setting, SETTING_MAX);
+    if (!written || !setting) return;
+    if (adult) {
+      // An adult beat: explicit is its point; it must fit the mix, and says whose it is.
+      const beat = intimateBeatFor(written, options.intimateMix ?? 'mixed');
+      if (!beat) return;
+      seen.add(slotId);
+      const title = neutralizeYouthWords(cleanLine(record.title, 40));
+      const time = cleanLine(record.time, 12).toLowerCase();
+      out.push({
+        slotId,
+        beat,
+        setting,
+        ...(title ? { title } : {}),
+        ...((DAY_PARTS as readonly string[]).includes(time) ? { timeOfDay: time as DayPart } : {}),
+      });
+      return;
+    }
+    const beat = written;
     if (bare.test(beat) || bare.test(setting)) return;
     if (IN_WATER_RE.test(beat)) return;
     if (!options.companions && SECOND_PERSON_RE.test(beat)) return;
@@ -237,8 +368,11 @@ export async function requestDayPremiseBeats(input: {
   slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
-  /** The Day's mood (Suggestive has its own words). */
+  /** The Day's mood (Suggestive and Intimate have their own words). */
   mood?: string;
+  /** Intimate: Solo / Duo / Mixed, and Playful. */
+  intimateMix?: DayIntimateMix;
+  playful?: boolean;
   llmBody?: Record<string, unknown>;
 }): Promise<DayPremiseBeat[]> {
   const response = await fetch('/api/day-premise', {
@@ -252,6 +386,8 @@ export async function requestDayPremiseBeats(input: {
       companions: input.companions,
       previousBeats: input.previousBeats,
       ...(input.mood ? { mood: input.mood } : {}),
+      ...(input.intimateMix ? { intimateMix: input.intimateMix } : {}),
+      ...(input.playful ? { playful: true } : {}),
       ...input.llmBody,
     }),
   });

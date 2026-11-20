@@ -15,8 +15,12 @@ describe('Day from an idea', () => {
     assert.equal(dayPremiseAvailable('everyday'), true);
     assert.equal(dayPremiseAvailable('vacation'), true);
     assert.equal(dayPremiseAvailable('date-night'), true);
+    // Intimate only where the server allows adult content (2026-11-19).
     assert.equal(dayPremiseAvailable('intimate'), false);
+    assert.equal(dayPremiseAvailable('intimate', { adult: true }), true);
+    assert.equal(dayPremiseAvailable('raunchy', { adult: true }), true);
     assert.equal(dayPremiseAvailable('sport'), false);
+    assert.equal(dayPremiseAvailable('sport', { adult: true }), false);
     // Suggestive is clothed too (2026-11-13: Write it vanished on it, so it looked broken).
     assert.equal(dayPremiseAvailable('suggestive'), true);
   });
@@ -99,6 +103,120 @@ describe('Day from an idea', () => {
     assert.equal(next[0]!.sceneHintsTyped, undefined);
     assert.equal(next[0]!.poseLayout, undefined);
     assert.equal(next[1]!.sceneHints, 'keep me');
+  });
+});
+
+describe('Write it on an Intimate short (adult content allowed)', () => {
+  const reply = JSON.stringify([
+    {
+      slot: 'morning',
+      title: 'Slow start',
+      time: 'morning',
+      beat: 'missionary on the rumpled bed with her partner, morning light',
+      setting: 'bedroom with white sheets',
+    },
+    {
+      slot: 'evening',
+      title: 'Alone',
+      time: 'evening',
+      beat: 'lying alone on the sofa, one hand between her thighs',
+      setting: 'living room lit by a lamp',
+    },
+  ]);
+
+  it('asks for explicit beats between consenting adults, in the mix and tone the card has', () => {
+    const duo = buildDayPremiseMessages({
+      premise: 'a lazy Sunday',
+      slotIds: ['morning'],
+      companions: false,
+      mood: 'intimate',
+      intimateMix: 'duo',
+    });
+    const system = duo[0]!.content as string;
+    assert.match(system, /explicit adult short/);
+    assert.match(system, /consenting adult, well over 18/);
+    assert.match(system, /with her partner/);
+    assert.doesNotMatch(system, /Fully clothed/);
+    const playful = buildDayPremiseMessages({
+      premise: 'x',
+      slotIds: ['morning'],
+      companions: false,
+      mood: 'intimate',
+      intimateMix: 'solo',
+      playful: true,
+    });
+    assert.match(playful[0]!.content as string, /crude sexual comedy/);
+    assert.match(playful[0]!.content as string, /alone in every moment/);
+  });
+
+  it('keeps explicit beats and seals each as solo or duo for the planner', () => {
+    const beats = parseDayPremiseBeats(reply, ['morning', 'evening'], {
+      companions: false,
+      mood: 'intimate',
+    });
+    assert.equal(beats.length, 2);
+    assert.match(beats[0]!.beat, /— both adults fully visible$/);
+    assert.match(beats[1]!.beat, /— Cast alone$/);
+    assert.equal(beats[0]!.title, 'Slow start');
+  });
+
+  it('drops a beat that does not fit Solo or Duo', () => {
+    const solo = parseDayPremiseBeats(reply, ['morning', 'evening'], {
+      companions: false,
+      mood: 'intimate',
+      intimateMix: 'solo',
+    });
+    assert.deepEqual(
+      solo.map(beat => beat.slotId),
+      ['evening']
+    );
+    const duo = parseDayPremiseBeats(reply, ['morning', 'evening'], {
+      companions: false,
+      mood: 'intimate',
+      intimateMix: 'duo',
+    });
+    assert.deepEqual(
+      duo.map(beat => beat.slotId),
+      ['morning']
+    );
+  });
+
+  it('reads a partnered act as duo, and a beat that says neither as the mix has it', () => {
+    const rows = JSON.stringify([
+      { slot: 'morning', beat: 'kissing while undressing by the mirror', setting: 'a bathroom' },
+      { slot: 'evening', beat: 'on the rug by the fire, candles lit', setting: 'a cabin' },
+    ]);
+    const mixed = parseDayPremiseBeats(rows, ['morning', 'evening'], {
+      companions: true,
+      mood: 'intimate',
+    });
+    assert.match(mixed[0]!.beat, /both adults fully visible$/);
+    assert.match(mixed[1]!.beat, /Cast alone$/);
+    const duo = parseDayPremiseBeats(rows, ['morning', 'evening'], {
+      companions: true,
+      mood: 'intimate',
+      intimateMix: 'duo',
+    });
+    assert.equal(duo.length, 2);
+    assert.match(duo[1]!.beat, /both adults fully visible$/);
+  });
+
+  it('takes youth-coded words out of what it writes', () => {
+    const beats = parseDayPremiseBeats(
+      JSON.stringify([
+        {
+          slot: 'night',
+          beat: 'on top of her boyfriend, a petite girl in a dorm room',
+          setting: 'a college dorm room',
+        },
+      ]),
+      ['night'],
+      { companions: false, mood: 'intimate' }
+    );
+    assert.equal(beats.length, 1);
+    assert.doesNotMatch(beats[0]!.beat, /\b(girl|petite)\b/i);
+    // Its lock is not doubled when the writer already wrote one.
+    assert.equal(beats[0]!.beat.match(/both adults fully visible/g)?.length, 1);
   });
 });
 

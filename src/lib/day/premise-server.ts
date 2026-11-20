@@ -1,4 +1,6 @@
+import { isNsfwGeneratorEnabledServer } from '../adult/nsfw-generator-env';
 import { chatCompletion } from '../llm/client';
+import { isDayAdultMood, normalizeDayMood, type DayIntimateMix } from './planner';
 import {
   buildDayPremiseMessages,
   DAY_PREMISE_MAX_LENGTH,
@@ -19,14 +21,23 @@ export async function writeDayPremiseBeats(options: {
   slotTimes?: Record<string, string>;
   companions: boolean;
   previousBeats?: string[];
-  /** The Day's mood: Suggestive is written and checked in its own words. */
+  /** The Day's mood: Suggestive and Intimate are written and checked in their own words. */
   mood?: string;
+  /** Intimate: Solo / Duo / Mixed, and Playful. */
+  intimateMix?: DayIntimateMix;
+  playful?: boolean;
   llm?: LlmRequestOptions;
 }): Promise<DayPremiseBeat[]> {
   const premise = options.premise.trim().slice(0, DAY_PREMISE_MAX_LENGTH);
   const previousBeats = options.previousBeats?.filter(beat => beat.trim()) ?? [];
   if (!premise && previousBeats.length === 0) throw new Error('Write the idea for the day first.');
   if (options.slotIds.length === 0) throw new Error('This Day has no slots.');
+  // Adult beats only where the server allows adult content (as Write it as a script).
+  if (isDayAdultMood(normalizeDayMood(options.mood)) && !isNsfwGeneratorEnabledServer()) {
+    throw new Error(
+      'Intimate needs adult content turned on: set PROMPT_NSFW_GENERATOR_ENABLED=true first.'
+    );
+  }
   if (!resolveRequestLlmEnabled(options.llm)) {
     throw new Error('Day from an idea needs the LLM. Turn it on under Settings → LLM.');
   }
@@ -40,6 +51,8 @@ export async function writeDayPremiseBeats(options: {
           companions: options.companions,
           previousBeats,
           ...(options.mood ? { mood: options.mood } : {}),
+          ...(options.intimateMix ? { intimateMix: options.intimateMix } : {}),
+          ...(options.playful ? { playful: true } : {}),
         }),
         maxTokens: 120 + 90 * slotIds.length,
         temperature: 0.7,
@@ -48,7 +61,11 @@ export async function writeDayPremiseBeats(options: {
         usageContext: { route: 'day-premise' },
       }),
       slotIds,
-      { companions: options.companions, ...(options.mood ? { mood: options.mood } : {}) }
+      {
+        companions: options.companions,
+        ...(options.mood ? { mood: options.mood } : {}),
+        ...(options.intimateMix ? { intimateMix: options.intimateMix } : {}),
+      }
     );
   // A reply with nothing usable at all is asked once more (it is a sampled reply).
   let beats = await ask(options.slotIds);

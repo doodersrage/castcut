@@ -64,8 +64,9 @@ export default function DayIdeaRow({
   const [noteFailed, setNoteFailed] = useState(false);
   // Intimate's short is written by the LLM only where the server allows adult content.
   const adultAllowed = useNsfwGeneratorEnabled();
-  // Write the day is Everyday's and Vacation's; a short (the script road) is every clothed mood's.
-  const writeDay = dayPremiseAvailable(dayMood);
+  // Write it is the clothed moods' and, with adult content allowed, Intimate's; a short (the
+  // script road) is every mood's the server allows.
+  const writeDay = dayPremiseAvailable(dayMood, { adult: adultAllowed });
   const shortOnly =
     !writeDay && Boolean(castId) && dayShortMoodAvailable(dayMood, { adult: adultAllowed });
   if (!writeDay && !shortOnly) return null;
