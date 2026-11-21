@@ -433,6 +433,25 @@ describe('floating utensils (2026-10-14)', async () => {
     assert.deepEqual(labels('clinking glasses on the rooftop'), ['holding the glass']);
   });
 
+  it('asks about reading only when she reads or holds the book (bookshop episode, 2026-11-20)', () => {
+    const labels = (beat: string) => gestureQuestions({ beat }).map(q => q.label);
+    const shelves =
+      'Slyne and Theo, the two of them together. Theo doesn’t move. He looks at the shelves behind her — the ones he built with care, book by book.';
+    assert.deepEqual(labels(shelves), []);
+    assert.deepEqual(labels('Slyne looks down at the floor again — at the open book, then up at him.'), []);
+    assert.deepEqual(labels('Slyne stands at the counter, fingers tracing a poetry book — not reading yet.'), []);
+    assert.deepEqual(labels('It’s where the books live when they’re not being read.'), []);
+    assert.deepEqual(labels('She reads aloud, voice low and soft.'), ['reading']);
+    assert.deepEqual(labels('Slyne smiles, hands her a book with care.'), ['reading']);
+    assert.deepEqual(labels('curled up on the couch, a paperback open on her knees'), ['reading']);
+  });
+
+  it('drops a quoted line split at its question mark (2026-11-20)', () => {
+    const text =
+      'Slyne and Fisherman, the two of them together. He holds it out to her. Fisherman says: “Still got pages? Maybe you read ‘em.”';
+    assert.deepEqual(gestureQuestions({ beat: text }), []);
+  });
+
   it('reads the beat without quotes, memories or the crowd', () => {
     assert.equal(
       actionText('She laughs. Locals sip coffee. Rob says: “Cup?” Mabel used to stir pots. She waves.'),
@@ -449,6 +468,17 @@ describe('a two-shot read as the lead’s', () => {
     assert.deepEqual(gestureQuestions({ beat: text }), []);
     const hers = `${opening} Lena crosses her arms. Rob laughs.`;
     assert.deepEqual(gestureQuestions({ beat: hers }).map(q => q.label), ['arms crossed']);
+  });
+
+  it('reads "The Poet" as the poet, and a pronoun as whoever led before it', () => {
+    const text =
+      'Slyne and The Poet, the two of them together. Then — the poet returns, holding the book open in front of her. He smiles. Slyne waits.';
+    assert.equal(leadsOwnText(text), 'Slyne and The Poet, the two of them together. Slyne waits.');
+    const fisherman =
+      'Slyne and Fisherman, the two of them together. The fisherman takes it, thumbing through. He stops at page 138.';
+    assert.deepEqual(gestureQuestions({ beat: fisherman }), []);
+    const hers = 'Slyne and Theo, the two of them together. She reads louder now. Clearer.';
+    assert.deepEqual(gestureQuestions({ beat: hers }).map(q => q.label), ['reading']);
   });
 
   it('leaves a text without the two-shot opening as it is', () => {

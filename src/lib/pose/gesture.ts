@@ -75,6 +75,15 @@ const DRINK_WORDS =
 const DRINK_HELD =
   /\b(in (?:one|her|his|both|each|the other) hands?|holding|holds|sip(?:ping|s)?|drink(?:ing|s)? (?:from|a|her|his)|to drink|pour(?:ing|s)?|clink(?:ing|s)?|toast(?:ing)?|raising|raises|cradling|with an? (?:mug|cup|coffee|glass|bottle|drink|latte))\b|\b(?:mug|cup|glass|bottle|coffee|drink) in (?:one |her |his |both |each )?hands?\b/i;
 
+const READING_MATTER = String.raw`(?:book|paperback|novel|magazine|newspaper|letter|journal|diary)s?`;
+/** Reading, or reading matter in hand — not "being read", not a book on a shelf or a pile. */
+const READ_WORDS = new RegExp(
+  String.raw`\b(?<!being |been |not )read(?:ing|s)?\b|\b(?:flipping|leafing|thumbing|paging) through\b|` +
+    String.raw`\b(?:hold(?:s|ing)?|open(?:s|ing)|clutch(?:es|ing)?|cradl(?:es?|ing)|carr(?:y|ies|ying)|pick(?:s|ing)? up|lift(?:s|ing)?|tak(?:es?|ing)|pull(?:s|ing)?|hand(?:s|ing)?|press(?:es|ing)?|flip(?:s|ping)? open)\b[^.;!?—]{0,25}\b${READING_MATTER}\b|` +
+    String.raw`\b${READING_MATTER} (?:in (?:her|his|their|both|one) hands?|open (?:on|in) (?:her|his|their) (?:lap|knees|hands?)|in (?:her|his|their) lap)\b|\bnose in an? ${READING_MATTER}\b`,
+  'i'
+);
+
 /** The drink's container as the beat names it ("clinking bottles" → bottle; "coffee" → cup). */
 function drinkNoun(beat: string): string {
   const word =
@@ -142,8 +151,10 @@ const GESTURE_SPECS: readonly GestureSpec[] = [
   },
   {
     id: 'read',
-    // "menu" / "page" alone don't say she reads (a menu board, a page on the counter).
-    beat: /\b(read(?:ing|s)?|book|paperback|novel|magazine|newspaper|flipping through)\b/i,
+    // "menu" / "page" alone don't say she reads (a menu board, a page on the counter), and nor
+    // does a book alone: in a bookshop episode "the shelves he built book by book" and "a pile of
+    // books" asked her to read and failed 39 two-shots of 363 (2026-11-20). A book counts in hand.
+    beat: READ_WORDS,
     layouts: ['read'],
     question: p => `Is ${p.subject} holding or reading a book, menu or page?`,
     label: () => 'reading',
@@ -259,24 +270,36 @@ const OTHERS_SENTENCE =
 export function leadsOwnText(text: string | null | undefined): string {
   const value = text ?? '';
   const pair =
-    /^\s*([A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*\s+and\s+([A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*,\s+the two of them together\b/.exec(
+    /^\s*((?:[A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*)\s+and\s+((?:[A-Z][\w'’-]*)(?:\s+[A-Z][\w'’-]*)*),\s+the two of them together\b/.exec(
       value
     );
-  const partner = pair?.[2];
-  if (!partner || partner === pair[1]) return value;
+  // The partner's own word: "The Poet" is the poet, written "the poet returns" in the action.
+  const partner = pair?.[2]?.replace(/^the\s+/i, '');
+  if (!partner || !pair || partner === pair[1]) return value;
+  const name = partner.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const led = new RegExp(
-    `^(?:then|now|meanwhile|behind her),?\\s+${partner}\\b|^${partner}\\b`,
+    `^(?:(?:then|now|meanwhile|behind her)\\s*[,—–-]*\\s*)?(?:the\\s+)?${name}\\b`,
     'i'
   );
+  // A sentence led by a pronoun goes on with whoever led the one before it ("The fisherman takes
+  // it. He stops at page 138."); after the opening or the lead's own sentence it stays hers.
+  const pronoun = /^(?:then\s*[,—–-]*\s*)?(?:he|she|his|her|they)\b/i;
+  let partners = false;
   return value
     .split(/(?<=[.!?…])\s+/)
-    .filter((sentence, index) => index === 0 || !led.test(sentence.trim()))
+    .filter((sentence, index) => {
+      if (index === 0) return true;
+      const said = sentence.trim();
+      if (led.test(said)) partners = true;
+      else if (!pronoun.test(said)) partners = false;
+      return !partners;
+    })
     .join(' ');
 }
 
 export function actionText(beat: string | null | undefined): string {
-  return leadsOwnText(beat)
-    .replace(/[“"][^”"]*[”"]/g, ' ')
+  // Quotes out first: a line split at its "?" keeps half a quote ("Maybe you read ‘em.”").
+  return leadsOwnText((beat ?? '').replace(/[“"][^”"]*[”"]/g, ' '))
     .replace(/\bused to\b[^.;!?]*/gi, ' ')
     .replace(OTHERS_SENTENCE, '$1 ')
     .replace(/\s+/g, ' ')
