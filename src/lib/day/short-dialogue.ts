@@ -234,7 +234,9 @@ export function withMomentDialogue(input: {
   ];
   const planned = replannedMomentShots(
     moment.shots.map(entry => entry.shot),
-    scene
+    scene,
+    undefined,
+    old
   );
   // The card's own Scene: on its shot if it kept one, else her first line's, else the first free.
   const card = [...moment.shots.map(entry => entry.scene), ...moment.loose].find(

@@ -165,6 +165,15 @@ export function offscreenOnlySpeakers(scene: ScriptScene): Set<string> {
   return new Set([...heard].filter(speaker => !seen.has(speaker)));
 }
 
+/**
+ * Who is in the scene to be seen: its speakers but a voice only heard, and a cue that names nobody
+ * ("V.O." over a "(ringing)": a phone, drawn as a person in the wide and given a reaction shot,
+ * live 2026-11-20).
+ */
+function presentSpeakers(scene: ScriptScene, heardOnly: ReadonlySet<string>): string[] {
+  return scene.speakers.map(speakerKey).filter(name => !heardOnly.has(name) && !isTagOnlyCue(name));
+}
+
 /** Who hears a line heard, not seen: the one who spoke last, or next, or anyone else here. */
 function hearerOf(
   dialogue: readonly ScriptScene['elements'][number][],
@@ -190,7 +199,7 @@ function hearerOf(
 export function withOffscreenLines(shots: PlannedShot[], scene: ScriptScene): PlannedShot[] {
   const dialogue = scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
   const heardOnly = offscreenOnlySpeakers(scene);
-  const everyone = scene.speakers.map(speakerKey).filter(name => !heardOnly.has(name));
+  const everyone = presentSpeakers(scene, heardOnly);
   return shots.map(shot => {
     if (!shot.line || !shot.speaker || shot.offscreen) return shot;
     const index = dialogue.findIndex(
@@ -211,7 +220,7 @@ export function draftShots(scene: ScriptScene): PlannedShot[] {
   const dialogue = scene.elements.filter(element => element.kind === 'dialogue' && element.speaker);
   // Who is here: a voice only heard (a phone call) is in no wide and reacts to nothing.
   const heardOnly = offscreenOnlySpeakers(scene);
-  const everyone = scene.speakers.map(speakerKey).filter(name => !heardOnly.has(name));
+  const everyone = presentSpeakers(scene, heardOnly);
   shots.push({
     sceneId: scene.id,
     purpose: 'establishing',

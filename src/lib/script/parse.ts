@@ -388,8 +388,20 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
     const cue = head.replace(/^@/, '');
     const dual = /\^\s*$/.test(cue);
     const bare = cue.replace(/\s*\^\s*$/, '');
-    const extension = bare.match(/\(([^)]*)\)\s*$/)?.[1]?.trim();
-    const speaker = bare.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const written = bare.match(/\(([^)]*)\)\s*$/)?.[1]?.trim();
+    const named = bare.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    // The tag joined to the name ("V.O. - MOM", "MOM - V.O."): her mother on the phone, heard —
+    // as one cue, the shots drew "V.o. - Mom" in the bathroom beside her (live 2026-11-20).
+    const joinedTag =
+      /^(v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?\s*[-–—:]\s*(.+)$/i.exec(named) ??
+      /^(.+?)\s*[-–—:]\s*(v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i.exec(named);
+    const tagFirst = joinedTag && HEARD_TAG_RE.test(joinedTag[1]!.trim());
+    const speaker = joinedTag ? joinedTag[tagFirst ? 2 : 1]!.trim() : named;
+    const joinedExtension = joinedTag ? joinedTag[tagFirst ? 1 : 2]!.trim().toUpperCase() : '';
+    const extension =
+      [joinedExtension && `${joinedExtension.replace(/\.$/, '')}.`, written]
+        .filter(Boolean)
+        .join(', ') || undefined;
     push({
       kind: 'character',
       text: head,
@@ -406,9 +418,24 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
     let lineExtension = extension;
     const flush = () => {
       if (!spoken.length) return;
+      // A direction inside the words ("I need... (smiles) You know what I need."): not said —
+      // the voice read it out (live Short, 2026-11-19).
+      const text = spoken
+        .map(line =>
+          line.text
+            .trim()
+            .replace(/\s*\([^()]*\)\s*/g, ' ')
+            .trim()
+        )
+        .filter(Boolean)
+        .join('\n');
+      if (!text) {
+        spoken = [];
+        return;
+      }
       push({
         kind: 'dialogue',
-        text: spoken.map(line => line.text.trim()).join('\n'),
+        text,
         speaker,
         // V.O., O.S.: heard, not seen — the shot shows who hears it (script-shots.ts).
         ...(lineExtension ? { extension: lineExtension } : {}),
@@ -420,7 +447,11 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
     };
     for (const line of paragraph.slice(1)) {
       const body = line.text.trim();
-      const note = /^\((.*)\)$/.exec(body)?.[1] ?? (HEARD_TAG_RE.test(body) ? body : null);
+      // A direction written bare on its own line ("To herself."): how it is said, not words —
+      // the voice read it out with the line (live 2026-11-20).
+      const bareDirection = BARE_DIRECTION_RE.test(body) ? body.replace(/\.$/, '') : null;
+      const note =
+        /^\((.*)\)$/.exec(body)?.[1] ?? (HEARD_TAG_RE.test(body) ? body : null) ?? bareDirection;
       if (note !== null) {
         flush();
         const [first = '', ...rest] = note.split(/[,;]/);
@@ -430,7 +461,10 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
           if (manner) {
             push({ kind: 'parenthetical', text: `(${manner})`, speaker, from: line.n, to: line.n });
           }
-        } else push({ kind: 'parenthetical', text: body, speaker, from: line.n, to: line.n });
+        } else {
+          const text = bareDirection !== null ? `(${bareDirection.toLowerCase()})` : body;
+          push({ kind: 'parenthetical', text, speaker, from: line.n, to: line.n });
+        }
       } else spoken.push(line);
     }
     flush();
@@ -449,6 +483,10 @@ function readParagraph(paragraph: Line[], push: (element: ScriptElement) => void
  * "(on phone)" there: under a cue that is her talking into a phone, in the room.
  */
 const HEARD_TAG_RE = /^(?:v\.?\s*o|o\.?\s*s|o\.?\s*c)\.?$/i;
+
+/** A direction under a cue with no brackets: "To herself.", "Under his breath", "Aside." */
+const BARE_DIRECTION_RE =
+  /^(?:to (?:herself|himself|themselves|themself|no one|nobody)|under (?:her|his|their) breath|aside|beat)\.?$/i;
 
 /** No scene headings: each paragraph or list item is a scene of one action. */
 function outlineScenes(lines: Line[]): ScriptScene[] {

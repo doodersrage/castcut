@@ -103,20 +103,46 @@ const shotKey = (shot: Pick<PlannedShot, 'purpose' | 'speaker' | 'line'>) =>
   shot.purpose === 'dialogue' ? `d|${shot.speaker ?? ''}|${flat(shot.line)}` : shot.purpose;
 
 /**
+ * A shot's key when the whole scene was written again (Write it): a shot that isn't a line also
+ * by who is in it and its own action. By purpose alone, a rewritten scene's wide kept the old
+ * wide's Scene — its old room, its old people, a bathtub in a phone call (live 2026-11-20).
+ */
+const rewrittenShotKey = (
+  shot: Pick<PlannedShot, 'purpose' | 'speaker' | 'line' | 'who' | 'action'>
+) =>
+  shot.purpose === 'dialogue'
+    ? shotKey(shot)
+    : `${shot.purpose}|${[...shot.who].sort().join('+')}|${flat(shot.action)}`;
+
+/** The scene's action, all of it: a shot with no action of its own is drawn from it. */
+const actionOf = (scene: ScriptScene) =>
+  scene.elements
+    .filter(element => element.kind === 'action')
+    .map(element => flat(element.text))
+    .join('\n');
+
+/**
  * The scene's shots planned again (draftShots) with each carrying the shot it was: a line's
  * shot by its speaker and words (the card's own line by what it was — `lineSwap`), else by its
- * purpose in order (the establishing shot, the first reaction…). A carried shot keeps its id
+ * purpose in order (the establishing shot, the first reaction…). Given `sceneBefore` (the scene
+ * written again whole), a shot that isn't a line is carried only with the same people and action,
+ * and one drawn from the scene's action (a reaction) only when that action is unchanged. A carried shot keeps its id
  * and its Scene; a new one is unmade; one no longer planned is dropped from the plan — its
  * Scene stays (listed as loose by shortMomentsOf), never deleted.
  */
 export function replannedMomentShots(
   before: readonly PlannedShot[],
   scene: ScriptScene,
-  lineSwap?: { speaker: string; from?: string; to?: string }
+  lineSwap?: { speaker: string; from?: string; to?: string },
+  /** The scene as it was, when it was written again whole (Write it). */
+  sceneBefore?: ScriptScene
 ): PlannedShot[] {
   const unused = [...before];
+  const keyOf = sceneBefore ? rewrittenShotKey : shotKey;
+  const actionChanged = Boolean(sceneBefore && actionOf(sceneBefore) !== actionOf(scene));
   const take = (key: string) => {
-    const index = unused.findIndex(shot => shotKey(shot) === key);
+    if (actionChanged && !key.startsWith('d|') && key.endsWith('|')) return undefined;
+    const index = unused.findIndex(shot => keyOf(shot) === key);
     return index < 0 ? undefined : unused.splice(index, 1)[0];
   };
   const swapped = (shot: PlannedShot) =>
@@ -129,7 +155,7 @@ export function replannedMomentShots(
   const drafted = draftShots(scene);
   const carried = new Set<number>();
   const planned = drafted.map((shot, index) => {
-    const was = take(shotKey(shot)) ?? (swapped(shot) ? take(swapped(shot)!) : undefined);
+    const was = take(keyOf(shot)) ?? (swapped(shot) ? take(swapped(shot)!) : undefined);
     if (!was) return shot;
     carried.add(index);
     return {

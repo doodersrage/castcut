@@ -186,3 +186,42 @@ describe('screenplay parser (M3 S1)', () => {
     ]);
   });
 });
+
+describe('cues a live Short writer wrote (2026-11-20)', () => {
+  it('reads "V.O. - MOM" as Mom heard, and "To herself." under a cue as how she says it', () => {
+    const scene = parseScript(
+      "INT. BATHROOM - DAY\n\nV.O. - MOM\nHey sweetie.\n\nMOM - O.S.\nDinner?\n\nLOOSE LANA\n(sighs)\nTo herself.\nAnother day, another dollar.\n"
+    ).scenes[0]!;
+    const said = scene.elements.filter(element => element.kind === 'dialogue');
+    assert.deepEqual(
+      said.map(element => [element.speaker, element.extension, element.text]),
+      [
+        ['MOM', 'V.O.', 'Hey sweetie.'],
+        ['MOM', 'O.S.', 'Dinner?'],
+        ['LOOSE LANA', undefined, 'Another day, another dollar.'],
+      ]
+    );
+    assert.ok(
+      scene.elements.some(
+        element => element.kind === 'parenthetical' && element.text === '(to herself)'
+      )
+    );
+  });
+
+  it('keeps a hyphenated name a name', () => {
+    const scene = parseScript('INT. CAFE - DAY\n\nMARY-JO\nHi.\n').scenes[0]!;
+    assert.equal(scene.elements.find(element => element.kind === 'dialogue')!.speaker, 'MARY-JO');
+  });
+});
+
+describe('a direction inside the words (live Short, 2026-11-19)', () => {
+  it('is not said', () => {
+    const scene = parseScript(
+      'INT. BATHROOM - NIGHT\n\nLANA\nI need... (smiles) You know what I need. Thanks, love.\n'
+    ).scenes[0]!;
+    assert.equal(
+      scene.elements.find(element => element.kind === 'dialogue')!.text,
+      'I need... You know what I need. Thanks, love.'
+    );
+  });
+});

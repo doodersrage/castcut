@@ -120,3 +120,75 @@ describe('a scene moment edited on its card (Step 5b-ii)', () => {
     assert.equal(ids.size, after.length);
   });
 });
+
+describe('a scene written again whole (Write it, live 2026-11-20)', () => {
+  // The bathroom scene of a live Short's script, after Write it: a phone rings ("V.O." over a
+  // "(ringing)") and her mother calls ("V.O. - MOM").
+  const AFTER = [
+    'INT. BATHROOM - DAY',
+    '',
+    'Lana, mid-thirties, athletic build, long wet hair, towels her face.',
+    '',
+    'She looks at her reflection in the mirror.',
+    '',
+    'Lana picks up a phone off the counter.',
+    '',
+    'V.O.',
+    '(ringing)',
+    '',
+    'She answers it on speaker.',
+    '',
+    'LOOSE LANA',
+    'Yeah?',
+    '',
+    'V.O. - MOM',
+    "Hey sweetie, just checking if you're free for dinner tonight?",
+    '',
+  ].join('\n');
+  // As it was before: the two of them in the bath.
+  const BEFORE = [
+    'INT. BATHROOM - DAY',
+    '',
+    "Lana leans back against Rob's chest, his arms around her.",
+    '',
+    'ROB',
+    'Stay a while.',
+    '',
+    'LOOSE LANA',
+    'Yeah?',
+    '',
+  ].join('\n');
+  const after = parseScript(AFTER).scenes[0]!;
+  const before = parseScript(BEFORE).scenes[0]!;
+
+  it('draws neither the ringing phone nor the caller in the room', () => {
+    const shots = draftShots(after);
+    assert.deepEqual(shots[0]!.who, ['LOOSE LANA']);
+    const mom = shots.find(shot => shot.line?.startsWith('Hey sweetie'))!;
+    assert.equal(mom.speaker, 'MOM');
+    assert.equal(mom.offscreen, true);
+    assert.deepEqual(mom.who, ['LOOSE LANA']);
+    assert.ok(shots.every(shot => !shot.who.includes('V.O.')));
+  });
+
+  it("gives the old wide's and reaction's Scenes to no new shot, and keeps her same line's", () => {
+    const old = draftShots(before).map((shot, index) => ({ ...shot, madeSceneId: `old-${index}` }));
+    const oldLine = old.find(shot => shot.line === 'Yeah?')!;
+    const planned = replannedMomentShots(old, after, undefined, before);
+    assert.equal(planned.find(shot => shot.purpose === 'establishing')!.madeSceneId, undefined);
+    assert.ok(planned.filter(shot => shot.purpose === 'reaction').every(shot => !shot.madeSceneId));
+    assert.equal(
+      planned.find(shot => shot.line === 'Yeah?')!.madeSceneId,
+      oldLine.madeSceneId
+    );
+    // A board edit (no scene before given) still carries by purpose, as Step 5b-ii does.
+    const edited = replannedMomentShots(old, after);
+    assert.equal(edited.find(shot => shot.purpose === 'establishing')!.madeSceneId, 'old-0');
+  });
+
+  it('keeps a wide whose people and action are the same', () => {
+    const old = draftShots(after).map((shot, index) => ({ ...shot, madeSceneId: `old-${index}` }));
+    const planned = replannedMomentShots(old, after, undefined, after);
+    assert.equal(planned.find(shot => shot.purpose === 'establishing')!.madeSceneId, 'old-0');
+  });
+});
