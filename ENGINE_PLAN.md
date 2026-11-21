@@ -246,7 +246,7 @@ today plans the card's memory across everything that uses it.
 
 **Done when:** a 480-shot episode runs overnight with no out-of-memory stop and no lost job.
 
-**Status (20 November 2026): two fixes in, gate not run.** `scripts/gpu-watch.mjs` records what each process
+**Status (20 November 2026): two fixes in; gate met on two overnight episodes (363 and 427 shots, below).** `scripts/gpu-watch.mjs` records what each process
 holds on the card every 2 s, with ComfyUI's and LM Studio's state. Over s25 (75 min): ComfyUI held
 up to 14.2 GB and LM Studio's vision model 6.7 GB the whole time; the card peaked at 24.0 of
 24.5 GB and was within 1 GB of full for 4.4 min, every time while ComfyUI rendered beside the
@@ -270,7 +270,29 @@ answer from ComfyUI at all for 3 minutes, the run pauses with "ComfyUI stopped a
 restart it, then Resume" and keeps the take, which a restarted ComfyUI's lost-job path queues
 again. A healthy ComfyUI went at most 24 s without answering over s25's 75 min.
 
-Left open: the gate's overnight 480-shot episode, and unloading the vision model during renders
+**Overnight episode (20 November 2026): 363 shots, no out-of-memory stop, no lost job.** Main
+`c6a84ebb` (v4.2.2) on an isolated server (`castcut-ep480-run/`): a 30-minute bookshop episode,
+40 scenes, written in 21 minutes, then 363 Scenes rendered in **258 minutes** (about 43 s a
+Scene) on the server run, keep plus one redo: 304 kept clean, 59 flagged, 13 redos, every Scene
+landed, no pause. gpu-watch over 283 minutes: the card peaked at 24,043 of 24,564 MiB (ComfyUI
+14.1 GB, LM Studio's vision model 6.7 GB, both on the card the whole time) and was within 1 GB of
+full for 36.6 minutes, none of it an error. The script came out at 363 shots, not 480: at the
+same pace 480 is about 5.7 hours, well inside a night, but that is a projection.
+
+**Second night (20–21 November): 427 shots in 305 minutes, gate met.** The same set-up with a
+40-minute episode (`castcut-ep480b-run/`, `c6a84ebb` plus the gesture fix below): the outline
+stops at 40 scenes whatever the length, so 40 minutes gave 427 shots, not 480. All 427 landed in
+305 minutes (about 43 s a Scene), 376 kept clean, 51 flagged, 19 redos, no pause, no
+out-of-memory stop, no lost job. The card peaked at 24,019 MiB and was within 1 GB of full for
+44.7 of 334 minutes, with ComfyUI and the vision model both on it the whole time. Reaching 480
+needs more shots a scene, not a longer episode; the memory record gives no reason to expect a
+different result.
+
+Of the 59 flags, 39 were "reading" asked of two-shots where nobody reads (a bookshop's every
+"book", a quote split at its "?", the partner's own sentences). Fixed in the check
+(`src/lib/pose/gesture.ts`): 13 of those 39 still ask, each a shot where she reads or hands a book.
+
+Left open: unloading the vision model during renders
 (11% of a render, about 4 s a reload to pay back; with checks now overlapping the next render, the
 model is busy beside it, so this needs its own A/B).
 
@@ -362,6 +384,14 @@ reference model with both faces, as two 10 s parts. The same test on a two-perso
 at about 9 s and 24 s strangers in suits stepped into the shot, the partner gone for the first.
 Both are open: the memory squeeze is phase 6's LLM-unload question, and the strangers are a
 continuity bug in the two-person parts.
+
+**Strangers fixed (20 November 2026, main `a306cc0d`, live at `c6a84ebb`).** The first clip's
+action ("an older man approaches…") was carried into every part; a part now takes the whole
+action of its own beat (`withPartAction`, `src/lib/clip/extend.ts`). The same two-person 30 s
+test again (`castcut-x30-verify/`, a fresh 1024 replay of the same clip): **16.6 minutes** (was
+25.7), and on a frame every 2 s the same two people hold the shot to the end, outfits and street
+unchanged, nobody stepping in (the old clip had men in suits at about 8–10 s and 24–28 s). The
+card was within 1 GB of full for 7.8 of those minutes (was 18), the vision model loaded throughout.
 
 ## Sources
 
