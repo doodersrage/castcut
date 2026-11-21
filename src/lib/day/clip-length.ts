@@ -170,6 +170,8 @@ export type DayAnimateChoice = {
   tones?: string[];
   /** Two people (M11 T21): who says each extra part's line (same order). */
   speakers?: DaySpeaker[];
+  /** Draft size (MiniMax-H3 at 768, about twice as fast): a clip to judge, not to keep. */
+  draft?: boolean;
 };
 
 /** Who says a line when two people are in the shot: the Cast, or the other person. */
@@ -205,6 +207,7 @@ export function dayAnimateSettingsPatch(
 export function dayAnimateOptions(choice: DayAnimateChoice): {
   direction?: string;
   extraSeconds: number;
+  draft?: true;
   camera?: ClipCameraMove;
   dialogue?: {
     targetSec: number;
@@ -216,8 +219,10 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
     scene?: string;
   };
 } {
+  const draft = choice.draft === true ? { draft: true as const } : {};
   if (choice.talkTotalSeconds === undefined) {
     return {
+      ...draft,
       direction: choice.direction,
       extraSeconds: choice.extraSeconds,
       ...(choice.camera && choice.camera !== 'still' ? { camera: choice.camera } : {}),
@@ -230,7 +235,7 @@ export function dayAnimateOptions(choice: DayAnimateChoice): {
     const tone = choice.tones?.[index]?.trim() ?? '';
     return tone === 'natural' ? '' : tone.slice(0, 24);
   });
-  const direction = choice.direction ? { direction: choice.direction } : {};
+  const direction = { ...draft, ...(choice.direction ? { direction: choice.direction } : {}) };
   return choice.talkTotalSeconds > DAY_TALK_TOTAL_SECONDS[0] && lines.length
     ? {
         ...direction,

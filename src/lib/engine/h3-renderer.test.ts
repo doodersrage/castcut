@@ -22,6 +22,7 @@ import {
   H3_GUIDE_NODE,
   h3Dialogue,
   withH3Dialogue,
+  H3_DRAFT_LONG_SIDE,
 } from './h3-renderer';
 import { clipEngineForShot, dayClipVideoModel } from '../video/ltx25-renderer';
 
@@ -454,5 +455,20 @@ describe('a part where one speaks and the other answers (M11 T21)', () => {
       people: 2,
     });
     assert.match(prompt, /She says, "Stay up here\?" Then he answers, "If you bring blankets\."/);
+  });
+});
+
+describe('a draft clip (the Animate sheet\'s Draft size)', () => {
+  const sizes = (out: ReturnType<typeof convertVideoWorkflowToH3>) =>
+    (Object.values(out.workflow) as Array<{ class_type: string; inputs: Record<string, unknown> }>)
+      .filter(node => node.class_type === 'ComfyMathExpression')
+      .map(node => String(node.inputs.expression));
+
+  it('sizes the long side at 768, and at 1024 without it', () => {
+    const draft = sizes(convertVideoWorkflowToH3(wanClipGraph(), { longSide: H3_DRAFT_LONG_SIDE }));
+    assert.equal(draft.length, 2);
+    assert.ok(draft.every(expression => expression.includes('* 768 /')), draft.join(' | '));
+    const full = sizes(convertVideoWorkflowToH3(wanClipGraph(), {}));
+    assert.ok(full.every(expression => expression.includes('* 1024 /')), full.join(' | '));
   });
 });

@@ -65,6 +65,8 @@ export type DayClipPreview = {
   chainLength?: { firstSec: number };
   /** Two people in the still (MiniMax-H3): each extra line can be the other person's (M11 T21). */
   twoPeople?: boolean;
+  /** The engine offers a draft size (MiniMax-H3 at 768, about twice as fast). */
+  draftSize?: boolean;
 };
 
 /**
@@ -96,6 +98,7 @@ export default function DayAnimateSheet({
   const initial = slot ? preview(slot) : null;
   const [direction, setDirection] = useState(initial?.defaultDirection ?? '');
   const [camera, setCamera] = useState<ClipCameraMove>('still');
+  const [draft, setDraft] = useState(false);
   const [extraSeconds, setExtraSeconds] = useState<DayClipExtraSeconds>(() =>
     normalizeDayClipExtraSeconds(initialExtraSeconds)
   );
@@ -218,10 +221,11 @@ export default function DayAnimateSheet({
     }
   };
 
-  const submit = () =>
-    onAnimate(
-      slot,
-      talk
+  const submit = () => {
+    const size = current.draftSize && draft ? { draft: true } : {};
+    onAnimate(slot, {
+      ...size,
+      ...(talk
         ? {
             extraSeconds,
             talkTotalSeconds: talkTotal,
@@ -249,8 +253,9 @@ export default function DayAnimateSheet({
               direction: edited && !current.talking ? direction : undefined,
               extraSeconds,
               ...(!current.talking && camera !== 'still' ? { camera } : {}),
-            }
-    );
+            }),
+    });
+  };
 
   return (
     <Dialog
@@ -558,6 +563,26 @@ export default function DayAnimateSheet({
           ) : null}
         </div>
       )}
+      {current.draftSize ? (
+        <div className="space-y-1" data-testid="day-animate-size">
+          <span className="type-caption block text-[var(--text-muted)]">Size</span>
+          <SegmentedControl
+            aria-label="Clip size"
+            value={draft ? 'draft' : 'full'}
+            onChange={value => setDraft(value === 'draft')}
+            options={[
+              { value: 'full', label: 'Full (1024)', testId: 'day-animate-size-full' },
+              { value: 'draft', label: 'Draft (768)', testId: 'day-animate-size-draft' },
+            ]}
+          />
+          {draft ? (
+            <p className="type-caption text-[var(--text-muted)]">
+              About twice as fast, with the same set and faces — for judging the motion. Animate at
+              Full for the clip you keep.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <details className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] px-2 py-1">
         <summary className="type-caption cursor-pointer text-[var(--text-muted)]">
           What gets sent

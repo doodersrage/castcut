@@ -334,3 +334,14 @@ describe('a clip in parts: one scene for every part', () => {
     assert.equal(still?.pendingDialogue?.scene, 'A quiet morning');
   });
 });
+
+describe('Animate at draft size', () => {
+  it('carries the draft pick to animateSlot, a talking total too', () => {
+    assert.equal(dayAnimateOptions({ extraSeconds: 0, draft: true }).draft, true);
+    assert.equal(dayAnimateOptions({ extraSeconds: 0 }).draft, undefined);
+    assert.equal(
+      dayAnimateOptions({ extraSeconds: 0, talkTotalSeconds: 15, lines: ['Hi'], draft: true }).draft,
+      true
+    );
+  });
+});

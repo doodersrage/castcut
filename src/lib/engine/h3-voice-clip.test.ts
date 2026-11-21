@@ -367,3 +367,16 @@ describe('a reaction shot on H3 says how it reacts in place of "Nobody speaks"',
     assert.match(prompt({}), /Nobody speaks in this shot/);
   });
 });
+
+describe('a draft clip from the queue (videoDraft)', () => {
+  const sides = (params: Record<string, unknown>) =>
+    talkingClip(params)
+      .filter(node => node.class_type === 'ComfyMathExpression')
+      .map(node => String(node.inputs.expression));
+
+  it('reaches the H3 graph as a 768 long side, and only when asked', () => {
+    const draft = sides({ videoDraft: 'on' });
+    assert.ok(draft.length >= 2 && draft.every(expression => expression.includes('* 768 /')), draft.join(' | '));
+    assert.ok(sides({}).every(expression => !expression.includes('* 768 /')));
+  });
+});

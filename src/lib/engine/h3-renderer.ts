@@ -54,6 +54,11 @@ export const H3_LICENCE_NOTE =
 export const H3_STEPS = 6;
 /** Long side of the clip (the tested 768×1024 for a 3:4 still). */
 export const H3_LONG_SIDE = 1024;
+/**
+ * A draft clip's long side (the Animate sheet's Draft size): about half the time of 1024 with the
+ * same set, faces and outfits (ENGINE_PLAN phase 7, four clips: median 36 s against 68 s).
+ */
+export const H3_DRAFT_LONG_SIDE = 768;
 const H3_FPS = 24;
 /** Frame counts sit on a 17k+5 grid; 124 (~5 s) is the shortest trained length. */
 const H3_MIN_FRAMES = 124;
@@ -185,6 +190,8 @@ export function convertVideoWorkflowToH3(
     speech?: boolean;
     /** No line, but a reaction heard (videoReaction): said in place of "Nobody speaks". */
     reaction?: string;
+    /** The clip's long side (a draft's H3_DRAFT_LONG_SIDE); unset: H3_LONG_SIDE. */
+    longSide?: number;
   } = {}
 ): H3ConvertResult {
   const workflow = input as Workflow;
@@ -213,7 +220,9 @@ export function convertVideoWorkflowToH3(
   const fps = Number(save.inputs.fps ?? save.inputs.frame_rate) || 16;
   const seed = Number(options.seed ?? sampler.inputs.seed ?? sampler.inputs.noise_seed) || 0;
   const prefix = String(save.inputs.filename_prefix ?? PRODUCT_OUTPUT_PREFIX);
-  // The still's own side scaled so its long side is H3_LONG_SIDE, on the 32-px grid.
+  // The still's own side scaled so its long side is H3_LONG_SIDE (or a draft's), on the 32-px grid.
+  const longSide =
+    options.longSide && options.longSide >= 256 ? Math.round(options.longSide) : H3_LONG_SIDE;
   const frames = h3FrameCount(length, fps);
   const sound = h3RendersSound(frames, options.speech);
   const prompt = [
@@ -227,8 +236,7 @@ export function convertVideoWorkflowToH3(
   ]
     .filter(Boolean)
     .join(' ');
-  const side = (own: 'a' | 'b') =>
-    `max(256, round(${own} * ${H3_LONG_SIDE} / max(a, b) / 32) * 32)`;
+  const side = (own: 'a' | 'b') => `max(256, round(${own} * ${longSide} / max(a, b) / 32) * 32)`;
 
   const next: Workflow = {
     '1': {

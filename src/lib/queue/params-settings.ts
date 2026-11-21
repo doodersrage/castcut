@@ -383,6 +383,9 @@ export function resolveQueueParams(
   if (base?.videoLongSide != null && Number(base.videoLongSide) > 0) {
     merged.videoLongSide = base.videoLongSide;
   }
+  if (base?.videoDraft === 'on') {
+    merged.videoDraft = 'on';
+  }
   // Two-person adult LTX clips (still hold, size) — dropped here until 2026-10-11, so only
   // their prompt lines reached the graph.
   if (base?.videoStillHold === 'on') {

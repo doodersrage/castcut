@@ -16,6 +16,7 @@ import {
 import {
   convertVideoWorkflowToH3,
   H3_GUIDE_NODE,
+  H3_DRAFT_LONG_SIDE,
   H3_REF_NODE,
   H3_REQUIRED_NODE,
   withH3Conversation,
@@ -303,6 +304,8 @@ export type WorkflowParamValues = {
   videoVoiceSteer?: 'on';
   /** LTX-2.5 full-size long side (full-frame talking clips render larger so the face holds). */
   videoLongSide?: string | number;
+  /** A draft clip (the Animate sheet's Draft size): MiniMax-H3 renders it at H3_DRAFT_LONG_SIDE. */
+  videoDraft?: 'on';
   /**
    * Best of two in one job (castcut-nodes.ts): the pose guide as CastcutPoseScore reads it. Only
    * acted on when ComfyUI has the Castcut nodes; otherwise the graph is left as it is.
@@ -661,6 +664,9 @@ export function resolveQueueParams(
   }
   if (merged.videoLongSide != null && Number(merged.videoLongSide) > 0) {
     result.videoLongSide = merged.videoLongSide;
+  }
+  if (merged.videoDraft === 'on') {
+    result.videoDraft = 'on';
   }
   if (merged.videoStillHold === 'on') {
     result.videoStillHold = 'on';
@@ -2146,6 +2152,7 @@ export function injectPromptsWithFallbacks(
         ...(input.params?.videoReaction?.trim()
           ? { reaction: input.params.videoReaction.trim() }
           : {}),
+        ...(input.params?.videoDraft === 'on' ? { longSide: H3_DRAFT_LONG_SIDE } : {}),
       });
       if (converted.converted) {
         // A talking clip speaks in the Cast's kept voice (M11 T16) when this ComfyUI has the

@@ -445,6 +445,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
          * before's clip (`frameUrl`, a ComfyUI input) and ends on this slot's own still.
          */
         chain?: { frameUrl: string; sceneId: string; clipUrl: string; atSec: number };
+        /** Draft size (the Animate sheet): MiniMax-H3 renders the clip at 768, about 2× faster. */
+        draft?: boolean;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -817,6 +819,7 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
                 ? { videoRefine: 'on' as const }
                 : {}),
               videoFps: 16,
+              ...(options?.draft && isH3Model(videoModel) ? { videoDraft: 'on' as const } : {}),
               ...(endImageFilename ? { videoEndImageFilename: endImageFilename } : {}),
               ...(videoReaction ? { videoReaction } : {}),
               ...(speaking
@@ -1431,6 +1434,8 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         // MiniMax-H3 renders a longer clip with no spoken line silent (h3RendersSound) — only
         // still offered when pinned to a last frame; otherwise H3 grows in parts with sound.
         silentWhenLong: isH3Model(engine) && !spokenLine && !h3Chain,
+        // MiniMax-H3 offers a draft size (768): about half the time, the same set and faces.
+        ...(isH3Model(engine) ? { draftSize: true } : {}),
         ...(h3Chain ? { chainLength: { firstSec: lengthSeconds[0] ?? 5 } } : {}),
         // Two people in the still: each extra line can be the other person's.
         ...(h3Chain && stillPromptPeople(parentEntry?.prompt) >= 2 ? { twoPeople: true } : {}),
