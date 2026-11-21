@@ -292,9 +292,29 @@ Of the 59 flags, 39 were "reading" asked of two-shots where nobody reads (a book
 "book", a quote split at its "?", the partner's own sentences). Fixed in the check
 (`src/lib/pose/gesture.ts`): 13 of those 39 still ask, each a shot where she reads or hands a book.
 
-Left open: unloading the vision model during renders
-(11% of a render, about 4 s a reload to pay back; with checks now overlapping the next render, the
-model is busy beside it, so this needs its own A/B).
+The second night's 15 outfit flags were all one false alarm: two women in frame, checked as if the
+still showed her alone. Fixed (main `f13c8ebc`): with no pose guide drawn, a still whose text says
+two people is not given the lone-wearer outfit check.
+
+**Unloading the vision model between checks (21 November 2026, main `fca4d825`).** Opt-in
+`LLM_IDLE_TTL_SECONDS` sends a local LM Studio a per-request `ttl`, so the model unloads after that
+many idle seconds and JIT-loads on the next check (about 11 s from unloaded to answer). A/B on the
+same 43-shot Final Short (s26's data, one room, one take a Scene, model unloaded at the start of
+each; `castcut-llmttl-ab/`):
+
+| | kept loaded (A) | `ttl` 10 s (B) |
+|---|---|---|
+| run time | 82 min | **69 min** (−16%) |
+| flagged / redos | 11 / 1 | 11 / 1 |
+| model on the card | 97% of the time | 15% |
+| within 1 GB of full | 4.9 min | 2.7 min |
+| peak | 24,022 MiB | 24,037 MiB |
+| "Failed to load model" | 0 | 0 |
+
+Same checks, same results, no load failure. One pair only: replays of the same graphs vary about
+15% run to run, so the 16% is a lead, not a measurement; the time near full roughly halved, which
+fits. Left off by default until a second pair (or an overnight with it on) agrees; turning it on is
+one environment variable.
 
 ## 7. MiniMax-H3 clips (weeks 6–8)
 
