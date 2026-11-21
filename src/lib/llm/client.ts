@@ -704,6 +704,7 @@ async function openAiCompatibleChatCompletion(options: {
       stream: false,
       top_p: 0.9,
       think: false,
+      ...llmIdleTtlBody(options.baseUrl),
       ...options.extraBody,
     });
   } catch (error) {
@@ -856,6 +857,26 @@ async function* ollamaNativeChatCompletionStream(options: {
   }
 }
 
+/**
+ * LM Studio's per-request `ttl` (seconds): a model loaded on demand unloads after that long idle,
+ * so ComfyUI gets its memory back between checks (ENGINE_PLAN phase 6 A/B). Off unless
+ * LLM_IDLE_TTL_SECONDS is set; only for an LLM server on this machine (it shares the GPU).
+ */
+export function llmIdleTtlBody(
+  baseUrl: string,
+  env: Record<string, string | undefined> = typeof process === 'undefined' ? {} : process.env
+): { ttl?: number } {
+  const seconds = Math.round(Number(env.LLM_IDLE_TTL_SECONDS));
+  if (!Number.isFinite(seconds) || seconds <= 0) return {};
+  try {
+    const host = new URL(baseUrl).hostname.toLowerCase();
+    if (!['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host)) return {};
+  } catch {
+    return {};
+  }
+  return { ttl: seconds };
+}
+
 async function* openAiCompatibleChatCompletionStream(options: {
   baseUrl: string;
   apiKey: string;
@@ -878,6 +899,7 @@ async function* openAiCompatibleChatCompletionStream(options: {
       stream: true,
       top_p: 0.9,
       think: false,
+      ...llmIdleTtlBody(options.baseUrl),
       ...options.extraBody,
     }),
   });

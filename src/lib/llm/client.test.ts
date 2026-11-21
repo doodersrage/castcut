@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { getLlmConfig, getVisionModel } from "./client";
+import { getLlmConfig, getVisionModel, llmIdleTtlBody } from "./client";
 
 describe("llm-client config resolution", () => {
   const originalBaseUrl = process.env.LLM_API_BASE_URL;
@@ -192,5 +192,17 @@ describe('transient LLM failures', () => {
         assert.equal(calls, 1);
       }
     );
+  });
+});
+
+describe('llmIdleTtlBody', () => {
+  it('sends LM Studio a ttl only when set, and only to a server on this machine', () => {
+    const on = { LLM_IDLE_TTL_SECONDS: '10' };
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', on), { ttl: 10 });
+    assert.deepEqual(llmIdleTtlBody('http://localhost:1234/v1', on), { ttl: 10 });
+    assert.deepEqual(llmIdleTtlBody('https://api.example.com/v1', on), {});
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', {}), {});
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: '0' }), {});
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: 'x' }), {});
   });
 });
