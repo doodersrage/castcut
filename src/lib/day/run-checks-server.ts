@@ -28,6 +28,10 @@ export { roomReferenceFor } from './room-reference';
 import { isDayAdultMood, normalizeDayIntimateMix, normalizeDayMood } from './planner';
 import type { ServerTakeReport } from './run-take-server';
 
+/** A still's words that put two people in it. */
+const TWO_IN_FRAME =
+  /\bthe two of them together\b|\btheir two bodies\b|\bthe two people\b|\b(?:a|the) (?:woman|man) and (?:her|his) (?:girlfriend|boyfriend|partner|friend|wife|husband)\b/i;
+
 /** Whose clothes and face to check: the lead alone, or beside someone else (the page's plan). */
 export function serverChecksPlan(report: ServerTakeReport, autoReview: boolean) {
   const { toolSettings, slot } = report;
@@ -35,7 +39,13 @@ export function serverChecksPlan(report: ServerTakeReport, autoReview: boolean) 
   const companionsPossible =
     toolSettings.allowCompanions === true ||
     (isDayAdultMood(mood) && normalizeDayIntimateMix(toolSettings.intimateMix) !== 'solo');
-  const solo = report.drawnPeople != null ? report.drawnPeople === 1 : !companionsPossible;
+  // No pose guide drawn: the still's own words say two (a script two-shot, "their two bodies"),
+  // else the day's setting. Read as alone beside another woman, the outfit check described her
+  // (15 false outfit flags with the Librarian, 427-shot episode, 2026-11-21).
+  const solo =
+    report.drawnPeople != null
+      ? report.drawnPeople === 1
+      : !companionsPossible && !TWO_IN_FRAME.test(report.prompt ?? slot.sceneHints ?? '');
   // The outfit: planned on an Everyday day, and not already checked by Auto-review.
   const outfit =
     mood === 'everyday' && !autoReview

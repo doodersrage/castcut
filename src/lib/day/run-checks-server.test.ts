@@ -66,6 +66,18 @@ describe('a run’s take checked on the server (Phase 3, step 7)', () => {
     assert.equal(checks?.outfitMiss, '');
   });
 
+  it('no guide drawn, but the still says two women: not checked as hers alone (2026-11-21)', async () => {
+    const { serverChecksPlan } = await import('./run-checks-server');
+    const prompt =
+      'POSE FIRST: the two people — Slyne and Librarian, the two of them together. Day photo: A woman and her girlfriend together, both fully clothed. She wears the outfit from the first image; her girlfriend wears a cream knit sweater and dark blue jeans.';
+    const plan = serverChecksPlan(report({ drawnPeople: undefined, prompt }), false);
+    assert.equal(plan.solo, false);
+    assert.equal(plan.wearer, null);
+    const alone = serverChecksPlan(report({ drawnPeople: undefined }), false);
+    assert.equal(alone.solo, true);
+    assert.equal(alone.wearer, 'woman');
+  });
+
   it('two in frame with her side set: her face on her side, so a master with someone else in her place is redone', async () => {
     const { checkServerTake } = await import('./run-checks-server');
     const asked: string[] = [];
