@@ -732,6 +732,46 @@ async function toRunOnScene(page: Page) {
   await page.getByTestId('scene-run').waitFor({ timeout: 60_000 });
 }
 
+/** What Animate renders on (Video → dayClips: h3, wan or ltx), then the Scene page open again. */
+async function setClipEngine(page: Page, clipEngine: string | undefined) {
+  if (clipEngine) {
+    // Video → dayClips, the setting the Animate sheet's engine picker writes — written with no
+    // app page open (it would write its own copy back), then the Scene opened again.
+    await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+    const set = await page.evaluate(
+      engine =>
+        new Promise<string>((resolve, reject) => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const db = request.result;
+            const store = db.transaction('kv', 'readwrite').objectStore('kv');
+            const get = store.get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              const record = get.result as {
+                value: { tools: Record<string, Record<string, unknown>>; updatedAt?: number };
+              };
+              record.value.tools.video = {
+                ...(record.value.tools.video ?? {}),
+                dayClips: engine,
+              };
+              record.value.updatedAt = Date.now();
+              const put = store.put(record);
+              put.onsuccess = () => {
+                db.close();
+                resolve(String(record.value.tools.video.dayClips));
+              };
+              put.onerror = () => reject(put.error);
+            };
+          };
+        }),
+      clipEngine
+    );
+    log('clips on:', set);
+    await openScene(page, V2_CAST);
+  }
+}
+
 async function v2Script(page: Page) {
   return (await storedScripts(page)).find(entry => entry.castId === V2_CAST);
 }
@@ -4187,44 +4227,7 @@ const phases: Record<string, Phase> = {
    */
   async epanimate(_ctx, page) {
     await openScene(page, V2_CAST);
-    // EPISODE_CLIP_ENGINE=h3 (or wan, ltx): what Animate renders on (Day's and Scene's choice).
-    const clipEngine = process.env.EPISODE_CLIP_ENGINE?.trim();
-    if (clipEngine) {
-      // Video → dayClips, the setting the Animate sheet's engine picker writes — written with no
-      // app page open (it would write its own copy back), then the Scene opened again.
-      await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
-      const set = await page.evaluate(
-        engine =>
-          new Promise<string>((resolve, reject) => {
-            const request = indexedDB.open('comfy-prompt-studio-v1');
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-              const db = request.result;
-              const store = db.transaction('kv', 'readwrite').objectStore('kv');
-              const get = store.get('comfy-prompt-tool-settings-tools-v1');
-              get.onsuccess = () => {
-                const record = get.result as {
-                  value: { tools: Record<string, Record<string, unknown>>; updatedAt?: number };
-                };
-                record.value.tools.video = {
-                  ...(record.value.tools.video ?? {}),
-                  dayClips: engine,
-                };
-                record.value.updatedAt = Date.now();
-                const put = store.put(record);
-                put.onsuccess = () => {
-                  db.close();
-                  resolve(String(record.value.tools.video.dayClips));
-                };
-                put.onerror = () => reject(put.error);
-              };
-            };
-          }),
-        clipEngine
-      );
-      log('clips on:', set);
-      await openScene(page, V2_CAST);
-    }
+    await setClipEngine(page, process.env.EPISODE_CLIP_ENGINE?.trim());
     const button = page.getByTestId('scene-run-animate-kept');
     await button.waitFor({ timeout: 180_000 });
     log('offered:', (await button.textContent())?.trim());
@@ -4250,6 +4253,64 @@ const phases: Record<string, Phase> = {
     );
     if (run?.state !== 'done') problems.push(`epanimate: the run ended ${run?.state}`);
     await shot(page, 'animated');
+  },
+
+  /**
+   * After a Preview run (srvrun with SRV_TIER=preview): the run's "Animate the previews at
+   * Draft", started on the page and waited for — each preview made a Draft clip (MiniMax-H3 at
+   * 768 with ANIMPREV_ENGINE=h3, the default). Writes SCENE_OUT/animate-previews.json: the run's
+   * log, and each preview's clip.
+   */
+  async animprev(_ctx, page) {
+    await openScene(page, V2_CAST);
+    await setClipEngine(page, process.env.ANIMPREV_ENGINE?.trim() || 'h3');
+    const button = page.getByTestId('scene-run-animate-previews');
+    await button.waitFor({ timeout: 180_000 });
+    log('offered:', (await button.textContent())?.trim());
+    await button.click();
+    log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
+    await shot(page, 'animate-previews-prepared');
+    await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
+    const started = Date.now();
+    await waitForRun(
+      page,
+      run => run.state === 'done' || run.state === 'cancelled' || run.state === 'paused',
+      Number(process.env.ANIMPREV_MINUTES ?? 120)
+    );
+    const run = ((await toolSettings(page)).scene as { run?: V2Run } | undefined)?.run;
+    type Take = { id: string; tier?: string; clipUrl?: string; clipPromptId?: string };
+    const scenes = (await v2Scenes(page)) as Array<V2Scene & { takes: Take[] }>;
+    const clips = scenes.flatMap(scene =>
+      scene.takes
+        .filter(take => take.tier === 'preview' && take.clipUrl)
+        .map(take => ({
+          scene: scene.name,
+          take: take.id,
+          clipUrl: take.clipUrl,
+          clipPromptId: take.clipPromptId,
+        }))
+    );
+    const outcomes = Object.values(run?.outcomes ?? {});
+    log(
+      'animate previews',
+      run?.state,
+      'in',
+      Math.round((Date.now() - started) / 60_000),
+      'min ·',
+      outcomes.filter(value => value === 'landed').length,
+      'landed ·',
+      outcomes.filter(value => value === 'failed').length,
+      'failed ·',
+      clips.length,
+      'preview takes with a clip',
+      run?.stopReason ? `· ${run.stopReason}` : ''
+    );
+    writeFileSync(
+      join(OUT, 'animate-previews.json'),
+      JSON.stringify({ run, clips, minutes: (Date.now() - started) / 60_000 }, null, 1)
+    );
+    if (run?.state !== 'done') problems.push(`animprev: the run ended ${run?.state}`);
+    await shot(page, 'animate-previews-done');
   },
 
   /**
