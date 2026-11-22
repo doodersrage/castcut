@@ -13,6 +13,17 @@ describe('talking clip framing', () => {
     assert.ok(210 - rect.y < rect.height / 3, 'face in the upper third');
   });
 
+  it('crops a wide still chest-up in its own shape, so a 16:9 film has no black bars', () => {
+    // A 16:9 preview still (1344×768), standing at the counter: face ~70 px near the middle.
+    const rect = talkingClipCropRect(1344, 768, { x: 640, y: 150, width: 60, height: 70 })!;
+    assert.equal(rect.height, 294);
+    assert.equal(rect.width, 515);
+    assert.ok(Math.abs(rect.width / rect.height - 1344 / 768) < 0.01, '16:9');
+    assert.ok(rect.x <= 640 && rect.x + rect.width >= 700, 'face inside');
+    assert.ok(150 - rect.y < rect.height / 3, 'face in the upper third');
+    assert.ok(rect.x + rect.width <= 1344 && rect.y + rect.height <= 768, 'inside the still');
+  });
+
   it('leaves a still whose face is already large alone', () => {
     assert.equal(talkingClipCropRect(960, 1280, { x: 400, y: 200, width: 200, height: 260 }), null);
   });

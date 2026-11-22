@@ -37,17 +37,24 @@ export function talkingFramingFromShare(share: number | null | undefined): Talki
 
 export type CropRect = { x: number; y: number; width: number; height: number };
 
-/** The chest-up 3:4 crop for a talking clip, or null when the still is already close. */
+/**
+ * The chest-up crop for a talking clip, or null when the still is already close. It keeps the
+ * still's shape: 3:4 from a portrait still, the still's own width-to-height from a wide one — a
+ * 16:9 film pads a 3:4 clip with black bars (buildFilmScaleFilter), and stills are 16:9 unless
+ * chosen otherwise since 2026-11-08 (a preview's line shot came out 576×768, 2026-11-21). Her face
+ * is the same size on screen either way: the crop's height is the same.
+ */
 export function talkingClipCropRect(width: number, height: number, face: FaceBox): CropRect | null {
   const w = Math.max(1, Math.floor(width));
   const h = Math.max(1, Math.floor(height));
   const faceH = Math.max(1, face.height);
   if (faceH / h >= TALKING_CLOSE_FACE_SHARE) return null;
+  const aspect = w > h ? w / h : 0.75;
   let cropH = Math.min(h, Math.round(faceH * TALKING_CROP_FACE_HEIGHTS));
-  let cropW = Math.round(cropH * 0.75);
+  let cropW = Math.round(cropH * aspect);
   if (cropW > w) {
     cropW = w;
-    cropH = Math.min(h, Math.round(cropW / 0.75));
+    cropH = Math.min(h, Math.round(cropW / aspect));
   }
   // The face sits in the upper third, hair inside the frame.
   const centerX = face.x + face.width / 2;
