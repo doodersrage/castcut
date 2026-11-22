@@ -23,6 +23,8 @@ export function takeCheckAdvisories(checks: GalleryPlayChecks | undefined): stri
     notes.push(`the action may be off (${checks.gestureMiss.trim()})`);
   // The same-room check (still/room.ts): 12 of 16 findings right, one reviewer — advisory.
   if (checks.roomMiss?.trim()) notes.push(`maybe not the scene's room (${checks.roomMiss.trim()})`);
+  // The adult gate's anatomy question, on the anatomy redo too (adult/anatomy-check.ts).
+  if (checks.anatomyMiss) notes.push('the anatomy may be wrong');
   return notes;
 }
 

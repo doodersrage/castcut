@@ -161,7 +161,16 @@ async function renderOnServer(
           ? markJobSeen(promptId, { runId, sceneId, comfyUrl })
           : markJobLanded(promptId, status),
       // The adult-appearance gate on adult-mood takes, as the page asks it (useDayAdultGate).
-      adultGate: async ({ imageUrl, clothed, strongTake, coveredTake, backdropTake, place }) => {
+      adultGate: async ({
+        imageUrl,
+        clothed,
+        strongTake,
+        coveredTake,
+        backdropTake,
+        place,
+        anatomy,
+        anatomyTake,
+      }) => {
         const blob = await io.loadBlob([imageUrl]);
         const bytes = Buffer.from(await blob.arrayBuffer());
         // No scene (the plate handed back, a white void): pixels first, no vision call.
@@ -174,6 +183,7 @@ async function renderOnServer(
           imageDataUrl: `data:${blob.type || 'image/png'};base64,${bytes.toString('base64')}`,
           llm: parseLlmRequestOptions(sharedLlmRequestBody(bundle.queue!.shared)),
           clothed,
+          anatomy: anatomy ?? null,
         });
         return decideAdultGate({
           visionAvailable: vision.available,
@@ -181,6 +191,8 @@ async function renderOnServer(
           strongTake,
           clothed,
           coveredTake,
+          anatomy: Boolean(anatomy) && !clothed,
+          anatomyTake: anatomyTake === true,
         });
       },
       // A two-person take: the partner's face finished against the crop they were sent.

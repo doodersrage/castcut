@@ -41,6 +41,8 @@ import {
 
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
+import { anatomyCastFromPrompt, withAnatomyRedoLine } from '@/lib/adult/anatomy-check';
+import { stillPromptPeople } from '@/lib/still/clip-prompt';
 
 import { activeDayEvent } from '@/lib/day/event';
 
@@ -298,6 +300,11 @@ export type DayTakeOptions = {
    * strong coverage line (clothed-coverage.ts), and a second such take is withheld.
    */
   coverageLine?: boolean;
+  /**
+   * The gate saw a visible body that didn't match who it should be on a nude still: this one
+   * leads with the anatomy line (adult/anatomy-check.ts); a second mismatch is kept, flagged.
+   */
+  anatomyLine?: boolean;
   /**
    * The gate saw no scene on the last take (still-backdrop.ts): this one is its redo on a new
    * seed, marked on its gallery entry so a second one is withheld, after a reload too.
@@ -1538,6 +1545,11 @@ export async function runDayTake(
       }),
       coverage: options?.coverageLine === true,
     });
+    // The anatomy redo: each person's body said outright, leading the prompt (anatomy-check.ts).
+    if (options?.anatomyLine === true) {
+      const cast = anatomyCastFromPrompt(finalized, leadNoun, stillPromptPeople(finalized));
+      if (cast) finalized = withAnatomyRedoLine(finalized, cast);
+    }
     // An adult beat played with Intimate off still reads as adult content: gate it too.
     const adultSafeguards =
       dayMoodNeedsAdultSafeguards(dayMoodForPrompt) || isAdultContentPrompt(finalized);

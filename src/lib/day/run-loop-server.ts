@@ -56,6 +56,8 @@ import {
 } from '../adult/adult-appearance-gate';
 import type { GalleryAdultCheck } from '../gallery/adult-check';
 import { dayMoodMustStayClothed } from '../wardrobe/clothed-coverage';
+import { stillPromptPeople } from '../still/clip-prompt';
+import { anatomyCastFromPrompt, type AnatomyCast } from '../adult/anatomy-check';
 import { dayPlayedMood } from './still-prompt';
 
 /** A take's gallery entry as the page registers it, and its checks. */
@@ -132,6 +134,10 @@ export type ServerRunDeps = ServerTakeDeps & {
     backdropTake?: boolean;
     /** The moment's place (a place meant to be white is never "no scene"). */
     place?: string;
+    /** Who the still should show (anatomy-check.ts): asked about on a nude still. */
+    anatomy?: AnatomyCast | null;
+    /** This take is already the anatomy redo. */
+    anatomyTake?: boolean;
   }) => Promise<AdultGateDecision>;
   /** Where the run's state and patches are kept (sqlite/scene-run-patches.ts). */
   saveState: (state: ServerRunState) => void;
@@ -289,6 +295,7 @@ export async function runSceneRunOnServer(
     const result = await runServerTake(bundle, state, nextId, deps, {
       ...(gateRedo === 'bare' ? { coverageLine: true } : {}),
       ...(gateRedo === 'age' ? { strongAgeLine: true } : {}),
+      ...(gateRedo === 'anatomy' ? { anatomyLine: true } : {}),
     }).catch(() => ({ error: 'not queued' }) as Awaited<ReturnType<typeof runServerTake>>);
     const still = activeStill(state);
     const queued =
@@ -386,6 +393,7 @@ export async function runSceneRunOnServer(
       const result = await runServerTake(bundle, state, sceneId, deps, {
         ...(gateRedo === 'bare' ? { coverageLine: true } : {}),
         ...(gateRedo === 'age' ? { strongAgeLine: true } : {}),
+        ...(gateRedo === 'anatomy' ? { anatomyLine: true } : {}),
       });
       report = result.report;
       const still = activeStill(state);
@@ -527,6 +535,14 @@ export async function runSceneRunOnServer(
     // unreadable answer about no one).
     if (dayMoodNeedsAdultSafeguards(mood) && !sceneOf(sceneId)?.slot.placeOnly) {
       const redoneFor = state.gateRedo?.[sceneId];
+      // Who the still should show, for the anatomy question (nude moods only; anatomy-check.ts).
+      const anatomy = dayMoodMustStayClothed(mood)
+        ? null
+        : anatomyCastFromPrompt(
+            report?.prompt,
+            report?.leadNoun,
+            stillPromptPeople(report?.prompt)
+          );
       const decision: AdultGateDecision = deps.adultGate
         ? await deps
             .adultGate({
@@ -536,6 +552,8 @@ export async function runSceneRunOnServer(
               coveredTake: redoneFor === 'bare',
               backdropTake: redoneFor === 'backdrop',
               place: sceneOf(sceneId)?.slot.location,
+              anatomy,
+              anatomyTake: redoneFor === 'anatomy',
             })
             .catch(() => ({
               verdict: redoneFor ? ('withhold' as const) : ('requeue' as const),
@@ -546,13 +564,22 @@ export async function runSceneRunOnServer(
       const marks = {
         ...(redoneFor === 'age' ? { strong: true } : {}),
         ...(redoneFor === 'bare' ? { covered: true } : {}),
+        ...(redoneFor === 'anatomy' ? { anatomy: true } : {}),
       };
       if (decision.verdict === 'pass' || decision.verdict === 'unchecked') {
         adultCheck = {
           state: decision.verdict === 'pass' ? 'passed' : 'unchecked',
           reason: decision.reason,
           ...marks,
+          ...(decision.flag ? { flag: decision.flag } : {}),
         };
+        // Kept, flagged for review: keep-best lists it (episode-run.ts takeCheckAdvisories).
+        if (decision.flag === 'anatomy') {
+          state.checks[promptId] = {
+            ...(state.checks[promptId] ?? { at: now() }),
+            anatomyMiss: true,
+          };
+        }
         if (state.gateRedo?.[sceneId]) {
           const { [sceneId]: _done, ...rest } = state.gateRedo;
           state.gateRedo = rest;
@@ -576,7 +603,7 @@ export async function runSceneRunOnServer(
               sceneId,
               cause === 'backdrop'
                 ? `${scene.name}: ${decision.reason} — rendering it again on a new seed`
-                : `${scene.name}: withheld by the adult check (${decision.reason}) — rendering it again with ${cause === 'bare' ? 'the coverage line' : 'a stronger age line'}`,
+                : `${scene.name}: withheld by the adult check (${decision.reason}) — rendering it again with ${cause === 'bare' ? 'the coverage line' : cause === 'anatomy' ? 'an anatomy line' : 'a stronger age line'}`,
               now()
             )
           );

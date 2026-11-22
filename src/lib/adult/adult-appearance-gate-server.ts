@@ -31,6 +31,8 @@ export async function askAdultAppearanceVision(options: {
   llm?: LlmRequestOptions;
   /** A clothed-mood still: also ask whether anyone's chest, genitals or buttocks are bare. */
   clothed?: boolean;
+  /** A nude adult still: who it should show — also ask whether a visible body doesn't match. */
+  anatomy?: import('./anatomy-check').AnatomyCast | null;
 }): Promise<AdultGateVisionResult> {
   if (!resolveRequestLlmEnabled(options.llm)) return { available: false, reply: null };
   const model = await resolveVisionModel(options.llm);
@@ -38,7 +40,10 @@ export async function askAdultAppearanceVision(options: {
   try {
     const text = await visionCompletion({
       systemPrompt: '',
-      textPrompt: adultGateVisionPrompt({ clothed: options.clothed === true }),
+      textPrompt: adultGateVisionPrompt({
+        clothed: options.clothed === true,
+        anatomy: options.anatomy ?? null,
+      }),
       imageDataUrl: options.imageDataUrl,
       maxTokens: 200,
       temperature: 0,

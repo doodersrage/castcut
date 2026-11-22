@@ -4266,6 +4266,55 @@ const phases: Record<string, Phase> = {
    * After a Final rendered on the server: the run's "Animate the kept takes", started on the page
    * and waited for (EPISODE_HOURS at most) — each kept take made a clip.
    */
+  /**
+   * Calibration (the anatomy check, 2026-11-22): every Scene of the Cast set to an adult mood —
+   * ADULT_MOOD (default intimate) with ADULT_MIX (default duo) — in the page's own store, as
+   * setClipEngine writes it, then the Scene opened again. Needs a server with the adult setting on.
+   */
+  async adultmood(_ctx, page) {
+    const mood = process.env.ADULT_MOOD?.trim() || 'intimate';
+    const mix = process.env.ADULT_MIX?.trim() || 'duo';
+    await page.goto(`${BASE}/api/catalog`, { waitUntil: 'domcontentloaded' });
+    const changed = await page.evaluate(
+      ({ mood, mix, cast }) =>
+        new Promise<number>((resolve, reject) => {
+          const request = indexedDB.open('comfy-prompt-studio-v1');
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => {
+            const db = request.result;
+            const store = db.transaction('kv', 'readwrite').objectStore('kv');
+            const get = store.get('comfy-prompt-tool-settings-tools-v1');
+            get.onsuccess = () => {
+              const record = get.result as {
+                value: { tools: Record<string, Record<string, unknown>>; updatedAt?: number };
+              };
+              const tools = record.value.tools;
+              tools.day = { ...(tools.day ?? {}), dayMood: mood, intimateMix: mix };
+              const scene = (tools.scene ?? {}) as { scenes?: Array<Record<string, unknown>> };
+              let n = 0;
+              for (const entry of scene.scenes ?? []) {
+                if (entry.castId !== cast) continue;
+                entry.dayMood = mood;
+                entry.intimateMix = mix;
+                n += 1;
+              }
+              record.value.updatedAt = Date.now();
+              const put = store.put(record);
+              put.onsuccess = () => {
+                db.close();
+                resolve(n);
+              };
+              put.onerror = () => reject(put.error);
+            };
+          };
+        }),
+      { mood, mix, cast: V2_CAST }
+    );
+    log('adult mood', mood, mix, 'on', changed, 'Scenes');
+    if (!changed) problems.push('adultmood: no Scenes to set');
+    await openScene(page, V2_CAST);
+  },
+
   async epanimate(_ctx, page) {
     await openScene(page, V2_CAST);
     await setClipEngine(page, process.env.EPISODE_CLIP_ENGINE?.trim());

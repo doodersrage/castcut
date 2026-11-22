@@ -12,12 +12,15 @@ import { dayMoodMustStayClothed } from '@/lib/wardrobe/clothed-coverage';
 import {
   galleryEntryPrimaryViewUrl,
   loadComfyGallery,
+  recordGalleryPlayChecks,
   setGalleryAdultCheck,
 } from '@/lib/gallery/comfyui-gallery';
 import { COMFYUI_GALLERY_UPDATED_EVENT } from '@/lib/gallery/comfyui-gallery-storage-meta';
 import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-client';
 import { dayPlayedMood } from '@/lib/day/still-prompt';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
+import { ANATOMY_FLAG_REASON, anatomyCastFromPrompt } from '@/lib/adult/anatomy-check';
+import { stillPromptPeople } from '@/lib/still/clip-prompt';
 
 /** The slot's card still holds `promptId` (its take, or the second of two takes). */
 function takeOnCard(
@@ -45,6 +48,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
   const {
     busy,
     intimateEnabled,
+    leadNoun,
     mounted,
     queueSlot,
     shared,
@@ -67,6 +71,8 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
    * back, a white void — still-backdrop.ts): another one is withheld for good.
    */
   const backdropRedoRef = useRef<Set<string>>(new Set());
+  /** Slots whose take on the card is the anatomy redo: a second mismatch is kept, flagged. */
+  const anatomyRedoRef = useRef<Set<string>>(new Set());
   const [tick, setTick] = useState(0);
   /**
    * A take is held but its gallery entry isn't there (or not finished) yet — after a reload the
@@ -120,6 +126,12 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           await import('@/lib/adult/adult-appearance-gate-client');
         const backdropTake =
           entry.adultCheck?.backdrop === true || backdropRedoRef.current.has(target.slotId);
+        const anatomyTake =
+          entry.adultCheck?.anatomy === true || anatomyRedoRef.current.has(target.slotId);
+        // Who the still should show, from its own prompt: asked about on a nude still.
+        const anatomy = clothed
+          ? null
+          : anatomyCastFromPrompt(entry.prompt, leadNoun, stillPromptPeople(entry.prompt));
         const decision = await checkStillAdultAppearance({
           imageUrl,
           strongTake,
@@ -127,6 +139,8 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           coveredTake,
           backdropTake,
           place: slots.find(slot => slot.id === target.slotId)?.location,
+          anatomy,
+          anatomyTake,
           shared,
         });
         decidedRef.current.add(promptId);
@@ -134,13 +148,25 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           ...(strongTake ? { strong: true } : {}),
           ...(coveredTake ? { covered: true } : {}),
           ...(backdropTake ? { backdrop: true } : {}),
+          ...(anatomyTake ? { anatomy: true } : {}),
         };
         if (decision.verdict === 'pass' || decision.verdict === 'unchecked') {
           setGalleryAdultCheck(promptId, {
             state: decision.verdict === 'pass' ? 'passed' : 'unchecked',
             reason: decision.reason,
             ...takeMarks,
+            ...(decision.flag ? { flag: decision.flag } : {}),
           });
+          // Kept, flagged for review: the card lists it (findings.ts anatomy-miss).
+          if (decision.flag === 'anatomy') {
+            recordGalleryPlayChecks(promptId, { anatomyMiss: true });
+            pushSystemTrayMessage({
+              text: `${label}: ${ANATOMY_FLAG_REASON} — kept for you to check.`,
+              tone: 'warning',
+              ttlMs: 20_000,
+            });
+          }
+          if (!target.second) anatomyRedoRef.current.delete(target.slotId);
           void persistCompletedGalleryMedia({ ...entry, adultCheck: undefined });
           if (!target.second) backdropRedoRef.current.delete(target.slotId);
           setAdultGateStatus(null);
@@ -178,7 +204,9 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
               ? `${label}: redoing with a coverage line…`
               : cause === 'backdrop'
                 ? `${label}: came back with no scene — redoing on a new seed…`
-                : `${label}: redoing with a stronger age line…`
+                : cause === 'anatomy'
+                  ? `${label}: redoing with an anatomy line…`
+                  : `${label}: redoing with a stronger age line…`
           );
         } else {
           backdropRedoRef.current.delete(target.slotId);
@@ -194,7 +222,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
         setTick(value => value + 1);
       }
     })();
-  }, [clothed, mounted, shared, slots, stills, stillsRef, tick]);
+  }, [clothed, leadNoun, mounted, shared, slots, stills, stillsRef, tick]);
 
   // The one requeue, once the Day queue is free (never overlaps a Queue-all submit).
   useEffect(() => {
@@ -208,13 +236,16 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
     }
     // No scene: the same take on a new seed (the plate came back at random, not for its words).
     if (cause === 'backdrop') backdropRedoRef.current.add(slotId);
+    if (cause === 'anatomy') anatomyRedoRef.current.add(slotId);
     void queueSlot(
       slot,
       cause === 'bare'
         ? { coverageLine: true }
         : cause === 'backdrop'
           ? { backdropRedo: true }
-          : { strongAgeLine: true }
+          : cause === 'anatomy'
+            ? { anatomyLine: true }
+            : { strongAgeLine: true }
     ).finally(() => {
       setAdultGateStatus(null);
       setTick(value => value + 1);

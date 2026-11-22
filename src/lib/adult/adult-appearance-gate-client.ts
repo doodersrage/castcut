@@ -1,3 +1,4 @@
+import type { AnatomyCast } from './anatomy-check';
 import {
   decideAdultGate,
   decideBackdropGate,
@@ -42,6 +43,10 @@ export async function checkStillAdultAppearance(input: {
   backdropTake?: boolean;
   /** The moment's place (a place meant to be white is never judged as "no scene"). */
   place?: string;
+  /** Who a nude still should show (anatomy-check.ts): the anatomy question is asked too. */
+  anatomy?: AnatomyCast | null;
+  /** This take is already the anatomy redo. */
+  anatomyTake?: boolean;
   shared?: VisionShared;
 }): Promise<AdultGateDecision & { reply: AdultGateReply | null }> {
   // No scene (the plate handed back, a white void): pixels first, no vision call needed.
@@ -57,6 +62,8 @@ export async function checkStillAdultAppearance(input: {
       strongTake: input.strongTake,
       clothed: input.clothed === true,
       coveredTake: input.coveredTake === true,
+      anatomy: Boolean(input.anatomy) && input.clothed !== true,
+      anatomyTake: input.anatomyTake === true,
     });
   if (input.shared?.sessionLlmEnabled === false) {
     return { ...decide(false, null), reply: null };
@@ -78,6 +85,7 @@ export async function checkStillAdultAppearance(input: {
         image,
         mimeType,
         ...(input.clothed ? { clothed: true } : {}),
+        ...(input.anatomy && !input.clothed ? { anatomy: input.anatomy } : {}),
         ...(input.shared ? sharedLlmRequestBody(input.shared) : {}),
       }),
     });

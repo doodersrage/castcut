@@ -50,6 +50,11 @@ export type GalleryPlayChecks = {
    * or first shot) — what the model saw differ. Advisory: said, never redone.
    */
   roomMiss?: string;
+  /**
+   * The adult gate's anatomy question (adult/anatomy-check.ts): a nude still whose visible body
+   * didn't match who it should be, on its anatomy redo too. Advisory: kept, flagged for review.
+   */
+  anatomyMiss?: boolean;
   /** The gesture check (pose/gesture.ts): what the still's hands or action didn't do. */
   gestureMiss?: string;
   /**

@@ -14,6 +14,13 @@
  */
 
 import type { StillBackdropVerdict } from '../checks/still-backdrop';
+import {
+  ANATOMY_FLAG_REASON,
+  anatomyQuestionLines,
+  readAnatomyAnswer,
+  type AnatomyCast,
+  type AnatomyRead,
+} from './anatomy-check';
 
 /**
  * The question. Calibrated on clothed adult Day stills (docs/play-guide.md, "Adult content
@@ -24,8 +31,13 @@ import type { StillBackdropVerdict } from '../checks/still-backdrop';
  * The same call then also asks whether anyone's chest, genitals or buttocks are bare; a "yes"
  * is treated like a pose miss (requeued once with the coverage line), never shown.
  */
-export function adultGateVisionPrompt(options?: { clothed?: boolean }): string {
+export function adultGateVisionPrompt(options?: {
+  clothed?: boolean;
+  /** A nude adult still: who it should show — also ask whether any visible body doesn't match. */
+  anatomy?: AnatomyCast | null;
+}): string {
   const clothed = options?.clothed === true;
+  const anatomy = !clothed && options?.anatomy ? options.anatomy : null;
   return [
     'Look at every person in this photo and judge how old each one looks from their face and body.',
     'Question: do all people shown clearly look like adults over 21?',
@@ -36,10 +48,13 @@ export function adultGateVisionPrompt(options?: { clothed?: boolean }): string {
           'Underwear, lingerie, a bra, a bikini or swimsuit, a slip, or a robe worn over underwear all count as covered, and so does a chest covered by an arm, hands, hair, a sheet or a towel. Cleavage, a low neckline, bare legs, thighs, a bare back, shoulders or a bare midriff are NOT bare. Answer "yes" only when a nipple, the genitals or a bare bottom is actually visible.',
         ]
       : []),
+    ...(anatomy ? anatomyQuestionLines(anatomy) : []),
     'Reply with strict JSON only, no other text, in this shape:',
     clothed
       ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"bare":"yes or no"}'
-      : '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100}',
+      : anatomy
+        ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"anatomy":"ok, mismatch or not_visible"}'
+        : '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100}',
     'confidence is how sure you are of the answer.',
   ].join('\n');
 }
@@ -53,6 +68,8 @@ export type AdultGateReply = {
   people?: number;
   /** Clothed-mood question: a chest, genitals or buttocks bare (only when it was asked). */
   bare?: 'yes' | 'no' | 'unsure';
+  /** Nude-still question: does every visible body match who it should be (only when asked). */
+  anatomy?: AnatomyRead;
 };
 
 function yesNo(value: unknown): 'yes' | 'no' | 'unsure' {
@@ -83,12 +100,14 @@ export function parseAdultGateReply(text: string | null | undefined): AdultGateR
   const youngest = Number(parsed.youngest_apparent_age ?? parsed.youngestApparentAge);
   const people = Number(parsed.people);
   const bare = parsed.bare == null || typeof parsed.bare === 'object' ? null : yesNo(parsed.bare);
+  const anatomy = readAnatomyAnswer(parsed.anatomy);
   return {
     answer,
     confidence,
     ...(Number.isFinite(youngest) && youngest > 0 ? { youngestAge: youngest } : {}),
     ...(Number.isFinite(people) && people >= 0 ? { people } : {}),
     ...(bare ? { bare } : {}),
+    ...(anatomy ? { anatomy } : {}),
   };
 }
 
@@ -118,13 +137,18 @@ export type AdultGateDecision = {
    * plate handed back, a white void — still-backdrop.ts; redone on a new seed).
    */
   cause?: AdultGateCause;
+  /**
+   * Passed, but flagged for review: the anatomy redo still read as not matching (anatomy-check.ts)
+   * — kept, as a quality miss and not a safety one.
+   */
+  flag?: 'anatomy';
 };
 
-/** What a withheld take failed on. */
-export type AdultGateCause = 'age' | 'bare' | 'backdrop';
+/** What a withheld take failed on ('anatomy': a body that doesn't match — redone, never withheld). */
+export type AdultGateCause = 'age' | 'bare' | 'backdrop' | 'anatomy';
 
 export function isAdultGateCause(value: unknown): value is AdultGateCause {
-  return value === 'age' || value === 'bare' || value === 'backdrop';
+  return value === 'age' || value === 'bare' || value === 'backdrop' || value === 'anatomy';
 }
 
 /**
@@ -144,6 +168,10 @@ export function decideAdultGate(input: {
   clothed?: boolean;
   /** This take already used the strong coverage line. */
   coveredTake?: boolean;
+  /** The anatomy question was asked (a nude still whose cast is known). */
+  anatomy?: boolean;
+  /** This take is already the anatomy redo. */
+  anatomyTake?: boolean;
 }): AdultGateDecision {
   if (!input.visionAvailable) {
     return { verdict: 'unchecked', reason: 'no vision model configured' };
@@ -169,6 +197,21 @@ export function decideAdultGate(input: {
       reason: 'bare chest, genitals or buttocks on a clothed-mood still',
       cause: 'bare',
     };
+  }
+  // A body that doesn't match who it should be: redone once with the anatomy line, then kept
+  // and flagged. Only a plain "mismatch" counts; unsure, not visible or no answer pass.
+  if (input.anatomy && reply.anatomy === 'mismatch') {
+    return input.anatomyTake
+      ? {
+          verdict: 'pass',
+          reason: `clearly adult (${reply.confidence}%); ${ANATOMY_FLAG_REASON}`,
+          flag: 'anatomy',
+        }
+      : {
+          verdict: 'requeue',
+          reason: 'a visible body does not match who it should be',
+          cause: 'anatomy',
+        };
   }
   return { verdict: 'pass', reason: `clearly adult (${reply.confidence}%)` };
 }
@@ -216,6 +259,10 @@ export const CLOTHED_GATE_WITHHELD_MESSAGE =
 export const CLOTHED_GATE_REQUEUE_MESSAGE =
   'A Suggestive still showed bare skin it must not — it is hidden and being redone with a coverage line.';
 
+/** The tray line when a nude still's anatomy didn't match and the slot is redone. */
+export const ANATOMY_GATE_REQUEUE_MESSAGE =
+  'A still showed a body that does not match who it should be — it is hidden and being redone with an anatomy line.';
+
 /** Day moods whose stills get the age sentence and the gate (an adult mood with Intimate on). */
 export function dayMoodNeedsAdultSafeguards(playedMood: string | null | undefined): boolean {
   const mood = (playedMood ?? '').trim().toLowerCase();
@@ -257,5 +304,7 @@ export function adultGateRequeueMessage(cause: AdultGateCause | null | undefined
     ? CLOTHED_GATE_REQUEUE_MESSAGE
     : cause === 'backdrop'
       ? BACKDROP_GATE_REQUEUE_MESSAGE
-      : ADULT_GATE_REQUEUE_MESSAGE;
+      : cause === 'anatomy'
+        ? ANATOMY_GATE_REQUEUE_MESSAGE
+        : ADULT_GATE_REQUEUE_MESSAGE;
 }

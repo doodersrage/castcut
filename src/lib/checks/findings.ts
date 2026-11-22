@@ -23,6 +23,7 @@ export type ContinuityRule =
   | 'place-miss'
   /** Not the room of its scene's reference (still/room.ts; advisory). */
   | 'room-miss'
+  | 'anatomy-miss'
   /** A longer clip's part ran from a keyframe that failed every draft's checks (M12 T3). */
   | 'keyframe-miss'
   /** The realism check called the still computer-made (2026-11-11). */
@@ -185,6 +186,15 @@ export function findingsForGalleryEntry(
       'Same room',
       `Maybe not the scene's room — ${checks.roomMiss.trim()}`,
       'Check it against the scene’s first shot; redo it, or keep it if the place is right.'
+    );
+  }
+  if (checks?.anatomyMiss) {
+    add(
+      'anatomy-miss',
+      'warns',
+      'Anatomy',
+      'A visible body may not match who it should be (read so twice, the second time with an anatomy line)',
+      'Check it; redo it on a new seed, or keep it if it is right.'
     );
   }
   if (checks?.realismMiss?.trim()) {

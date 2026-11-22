@@ -675,7 +675,7 @@ export type DaySlotStill = {
    */
   adultHold?: 'checking' | 'withheld';
   /** What a withheld take failed on: the age read, or bare skin on a Suggestive still. */
-  adultHoldCause?: 'age' | 'bare' | 'backdrop';
+  adultHoldCause?: 'age' | 'bare' | 'backdrop' | 'anatomy';
   /** Queued as an adult still: the gate checks it, and no live preview is shown while it renders. */
   adultGated?: boolean;
   /**
@@ -5000,7 +5000,8 @@ export function normalizeDaySlotStills(
       ...(still.adultHold === 'withheld' &&
       (still.adultHoldCause === 'age' ||
         still.adultHoldCause === 'bare' ||
-        still.adultHoldCause === 'backdrop')
+        still.adultHoldCause === 'backdrop' ||
+        still.adultHoldCause === 'anatomy')
         ? { adultHoldCause: still.adultHoldCause }
         : {}),
       ...(still.adultGated === true ? { adultGated: true } : {}),
@@ -5069,7 +5070,7 @@ export type DayGalleryEntry = {
   /** The adult-appearance gate's mark (gallery-adult-check.ts). */
   adultCheck?: 'pending' | 'passed' | 'unchecked' | 'withheld';
   /** Why a withheld take was withheld (the card's message). */
-  adultCheckCause?: 'age' | 'bare' | 'backdrop';
+  adultCheckCause?: 'age' | 'bare' | 'backdrop' | 'anatomy';
 };
 
 /** Merge gallery poll results into day slot stills by promptId (stills + clips). */

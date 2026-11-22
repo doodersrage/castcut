@@ -32,13 +32,18 @@ export type GalleryAdultCheck = {
    * it in memory only, and a reloaded page could redo it again).
    */
   backdrop?: boolean;
+  /** This take is the one redo after its anatomy didn't match (anatomy-check.ts). */
+  anatomy?: boolean;
+  /** Passed but flagged for review: the anatomy redo still didn't match. */
+  flag?: 'anatomy';
   /** Why it was withheld / passed, in a few words. */
   reason?: string;
   /**
    * What a withheld take failed on: the age read, bare skin on a clothed-mood still, or no scene
-   * (the Cast plate on white, a white void — still-backdrop.ts).
+   * (the Cast plate on white, a white void — still-backdrop.ts), or a body that doesn't match who
+   * it should be (anatomy-check.ts; the take is hidden while its redo renders).
    */
-  cause?: 'age' | 'bare' | 'backdrop';
+  cause?: 'age' | 'bare' | 'backdrop' | 'anatomy';
   at: number;
 };
 
