@@ -454,6 +454,34 @@ test again (`castcut-x30-verify/`, a fresh 1024 replay of the same clip): **16.6
 unchanged, nobody stepping in (the old clip had men in suits at about 8–10 s and 24–28 s). The
 card was within 1 GB of full for 7.8 of those minutes (was 18), the vision model loaded throughout.
 
+**Two-person 30 s, faster (22 November 2026): 13.8 minutes at best, the gate still not met.** The
+same clip and seed source as above, each on an isolated server, each judged on a frame every 2 s
+(the same two people, outfits and street to the end in every run, nobody stepping in):
+
+| Run | Parts | Minutes | Card within 1 GB of full | Folder |
+| --- | --- | --- | --- | --- |
+| 8 steps (as shipped) | 2 × 15 s | 16.6 | 7.8 min | `castcut-x30-verify/` |
+| 8 steps, 5 s parts (`CASTCUT_EXTEND_H3_GROUP=off`) | 5 × 5 s | 15.3 | 9.6 min | `castcut-x30-parts/` |
+| 6 steps (`CASTCUT_H3_REF_WORDLESS_STEPS=6`) | 2 × 15 s | 14.7 | 10.0 min | `castcut-x30-6step/` |
+| 6 steps, vision model unloaded after 10 s (main `82a7778c`) | 2 × 15 s | **13.8** | 4.6 min | `castcut-x30-6step-ttl/` |
+
+Shorter parts don't help: every part carries the moment before and the first clip's opening as
+two reference videos plus both faces on the reference model, about 175 s a 5 s part, against 82–91 s
+for a one-person talking clip on the same model. 6 steps is safe here (no words to lose) but buys
+1–2 minutes, inside the 15% replays vary; freeing the vision model's 6.7 GB halved the time near
+full and took about another minute. Neither switch is on by default: together about 17% off, not
+the 40% the gate needs. What's left is a product choice: fewer reference inputs on two-person parts
+(the before-video kept the faces' skin through 20 s in M11 T21), or two-person long clips at the
+Draft size (768 halved a plain clip).
+
+**Talking clips through the chest-up crop, live (22 November 2026).** Line shots are waist shots,
+and their faces came out at 15.9–20.5% of the still's height in seven real line stills, so the crop
+(under 16%) fires only on the odd one (`castcut-crop-run/`: three new line stills at 18.0, 16.3 and
+20.5%, all used whole at 768×416). To see it render, today's 1B Draft graph was replayed with its
+start image swapped for the app's crop of a wide kitchen still (face 8.7%,
+`talkingClipCropRect` → 610×340 at x 537): **768×416, 5.2 s with sound**, waist-up, talking and
+gesturing, in 68 s. A wide film takes it with no bars.
+
 ## Sources
 
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): Part 21, runs s19–s23 (tier timings, flags, the
