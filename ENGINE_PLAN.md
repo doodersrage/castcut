@@ -212,6 +212,17 @@ clip's set-up on the page, which G pays between stills instead. The bigger cost 
 again: 5–6 of 11–12, about a third of the run, three of them "the camera moves in close" on
 establishing shots. That, not the order, is where this phase's next minutes are.
 
+**Drift redos held (22 November 2026, main `febd50e7`).** The drifts were real: each still showed
+her mid-stride toward the lens and H3 walked her into it, ending on her dress filling the frame
+(the street shot drifted on all 3 tries and was kept that way). Replayed on the same 5 seeds,
+"…or come toward the camera; she stays about as far from it" in the prompt changed nothing (5
+of 5 walked in); the still pinned as H3's last frame held all 5, with movement left in them. A
+run's drift redo of a wordless clip now pins its still (`holdShot`). The same run again
+(`castcut-order-run/H`): 4 of 6 first clips drifted, and each passed on its first pinned redo, 0
+flagged, 21 min. The first tries drift as often as before, so the clip count is the same (12);
+pinning the first try of a wordless wide shot would save those ~5 minutes, at the cost of every
+such clip returning to its still.
+
 ## 5. Sampler-level speedups, A/B tested (weeks 8–10)
 
 The repo uses none of the common sampler accelerations, so each is a candidate to test, not a known
