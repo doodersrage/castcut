@@ -3992,7 +3992,8 @@ const phases: Record<string, Phase> = {
    * first take is kept, ComfyUI is restarted (POST /v2/manager/reboot; SRV_REBOOT=0 skips it).
    * Then the run must finish by itself with one take a Scene (redo off) — no duplicates — and the
    * page, opened again, show it done. Writes SCENE_OUT/server-run.json.
-   * SRV_TIER=preview|final runs it at that tier (Phase 5; server-run-<tier>.json); SRV_ONE_ROOM=1
+   * SRV_TIER=preview|final runs it at that tier (Phase 5; server-run-<tier>.json; SRV_FINAL_ENGINE=fibo
+   * picks the fast Final); SRV_ONE_ROOM=1
    * ticks One room a scene.
    */
   async srvrun(_ctx, page) {
@@ -4026,6 +4027,14 @@ const phases: Record<string, Phase> = {
     const tier = process.env.SRV_TIER;
     if (tier === 'preview' || tier === 'final') {
       await page.getByTestId(`scene-run-tier-${tier}`).click();
+      // SRV_FINAL_ENGINE=fibo: the fast Final (Fibo 2.0), picked in the panel as you would.
+      if (tier === 'final' && process.env.SRV_FINAL_ENGINE === 'fibo') {
+        await page.getByTestId('scene-run-final-engine-fibo').click({ timeout: 30_000 });
+        log(
+          'final on:',
+          (await page.getByTestId('scene-run-final-engine-note').textContent())?.trim()
+        );
+      }
       if (tier === 'final' && process.env.SRV_REDO) {
         // The tier locks the episode settings: its own redo (one) stands.
         log('final tier: one redo (SRV_REDO ignored)');

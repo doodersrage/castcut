@@ -26,10 +26,30 @@ export function isRunTier(value: unknown): value is RunTier {
 export const PREVIEW_ENGINE = 'qwen-image-2.1-edit-turbo-8';
 /** The engine finals render on. */
 export const FINAL_ENGINE = 'qwen-image-edit-2511';
+/**
+ * The fast Final (opt-in, `SceneRun.finalEngine: 'fibo'`): Bria Fibo 2.0 Edit Turbo. ENGINE_PLAN
+ * phase 3, 2026-11-22: the same 43 Scenes in 23 min against Edit 2511's 63, 7 flagged against
+ * 15, faces closer to the plate (median 0.51 against 0.60) — but its weights are non-commercial,
+ * so it is a choice, not the default.
+ */
+export const FAST_FINAL_ENGINE = 'fibo-2-edit-turbo';
+export const FAST_FINAL_LICENCE_NOTE =
+  'Fibo 2.0’s weights are licensed CC BY-NC 4.0: not for commercial use.';
 
-/** The engine a tier renders on; unset (no tier): each take's own. */
-export function runTierEngine(tier: RunTier | undefined): string | undefined {
-  return tier === 'preview' ? PREVIEW_ENGINE : tier === 'final' ? FINAL_ENGINE : undefined;
+/** A Final run's engine choice: unset is Edit 2511; `fibo` the fast Final. */
+export type FinalEngineChoice = 'fibo';
+
+export function isFinalEngineChoice(value: unknown): value is FinalEngineChoice {
+  return value === 'fibo';
+}
+
+/** The engine a run's tier renders on; unset (no tier): each take's own. */
+export function runTierEngine(
+  run: { tier?: RunTier | undefined; finalEngine?: FinalEngineChoice | undefined } | undefined
+): string | undefined {
+  if (run?.tier === 'preview') return PREVIEW_ENGINE;
+  if (run?.tier === 'final') return run.finalEngine === 'fibo' ? FAST_FINAL_ENGINE : FINAL_ENGINE;
+  return undefined;
 }
 
 export function takeIsPreview(take: Pick<SceneTake, 'tier'> | undefined): boolean {
@@ -67,7 +87,8 @@ export function withRunTier(
 ): SceneRun {
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   // A tier set again is a render run: an Animate the previews run's mode goes.
-  const { tier: _old, animatePreviews: _previews, ...rest } = run;
+  // The fast Final choice belongs to Final: another tier (or none) drops it.
+  const { tier: _old, animatePreviews: _previews, finalEngine, ...rest } = run;
   if (!tier) return rest;
   if (tier === 'preview') {
     return {
@@ -87,6 +108,7 @@ export function withRunTier(
   return {
     ...rest,
     tier,
+    ...(finalEngine ? { finalEngine } : {}),
     onServer: true,
     auto: {
       ...(run.auto ?? {}),

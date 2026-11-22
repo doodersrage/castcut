@@ -157,7 +157,7 @@ export async function runServerTake(
     flavor === stored.dayMood ? stored : { ...stored, dayMood: flavor }
   ) as DayToolCache;
   // A tiered run (run-tier.ts) renders on its tier's engine, as if the Engine were set to it.
-  const tierEngine = runTierEngine(state.sceneTool.run?.tier);
+  const tierEngine = runTierEngine(state.sceneTool.run);
   const shared = tierEngine ? { ...queue.shared, model: tierEngine } : queue.shared;
   const castById = new Map(bundle.cast.map(record => [record.id, record]));
   const getCharacter = (id: string | undefined | null) =>

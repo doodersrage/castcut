@@ -1,6 +1,12 @@
 'use client';
 
-import { comfyModelLabel, type ComfyImageModel } from '@/lib/comfy-models/client';
+import {
+  COMFY_IMAGE_MODELS,
+  comfyModelLabel,
+  type ComfyImageModel,
+} from '@/lib/comfy-models/client';
+import { readAnyCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
+import { installedComfyModels } from '@/lib/model/picker';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
@@ -19,7 +25,14 @@ import {
   type SceneRun,
 } from '@/lib/day/scene-run';
 import type { SavedScene } from '@/lib/day/scenes';
-import { runTierEngine, sceneHeldFromFinals, withRunTier, type RunTier } from '@/lib/day/run-tier';
+import {
+  FAST_FINAL_ENGINE,
+  FAST_FINAL_LICENCE_NOTE,
+  runTierEngine,
+  sceneHeldFromFinals,
+  withRunTier,
+  type RunTier,
+} from '@/lib/day/run-tier';
 import { loadComfyGallery } from '@/lib/gallery/comfyui-gallery';
 import { formatEta, typicalRenderMs } from '@/lib/queue/eta';
 
@@ -55,7 +68,18 @@ export default function SceneRunPanel({
   /** The run's controls (W4). */
   children?: React.ReactNode;
 }) {
-  const engine = runTierEngine(run.tier) ?? model;
+  const engine = runTierEngine(run) ?? model;
+  // The fast Final is offered where ComfyUI has Fibo 2.0 (or a run already chose it).
+  const fastFinalInstalled = useMemo(
+    () =>
+      run.tier === 'final' &&
+      (installedComfyModels(COMFY_IMAGE_MODELS, readAnyCachedComfyObjectInfoModels())?.has(
+        FAST_FINAL_ENGINE
+      ) ??
+        false),
+    [run.tier]
+  );
+
   // A typical take's render time here: the Queue's own measure (recent finished jobs).
   const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery(), engine) / 1000, [engine]);
   const plan = useMemo(() => runQueue(run, scenes, typicalSec), [run, scenes, typicalSec]);
@@ -131,6 +155,39 @@ export default function SceneRunPanel({
             ]}
           />
         </div>
+        {run.tier === 'final' && (fastFinalInstalled || run.finalEngine) ? (
+          <div
+            className="flex flex-wrap items-center gap-2 text-sm"
+            title="Edit 2511 is the finishing engine. Fibo 2.0 Edit Turbo renders a Final about 3× faster, with faces as close in a test run, but its weights are non-commercial."
+          >
+            <span className="type-caption text-[var(--text-muted)]">Final on</span>
+            <SegmentedControl<'edit' | 'fibo'>
+              aria-label="Final engine"
+              value={run.finalEngine === 'fibo' ? 'fibo' : 'edit'}
+              onChange={next => {
+                if (disabled || run.state === 'running') return;
+                const { finalEngine: _engine, ...rest } = run;
+                onChange({
+                  ...rest,
+                  ...(next === 'fibo' ? { finalEngine: 'fibo' as const } : {}),
+                  updatedAt: Date.now(),
+                });
+              }}
+              options={[
+                { value: 'edit', label: 'Edit 2511', testId: 'scene-run-final-engine-edit' },
+                { value: 'fibo', label: 'Fibo 2.0 (fast)', testId: 'scene-run-final-engine-fibo' },
+              ]}
+            />
+            {run.finalEngine === 'fibo' ? (
+              <span
+                className="type-caption text-[var(--text-muted)]"
+                data-testid="scene-run-final-engine-note"
+              >
+                About 3× faster. {FAST_FINAL_LICENCE_NOTE}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="flex items-center gap-1">
             At most

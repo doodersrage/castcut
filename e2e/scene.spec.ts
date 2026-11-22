@@ -1886,6 +1886,8 @@ test('a run is prepared from a script: its Scenes made, listed within limits, no
   await expect(page.getByTestId('scene-run-summary')).toContainText('Final: ');
   await expect(page.getByTestId('scene-run-summary')).toContainText('Qwen-Image-Edit-2511');
   await expect(page.getByTestId('scene-run-summary')).toContainText('it keeps the best take by its checks');
+  // The fast Final (Fibo 2.0) is offered only where ComfyUI has it: no inventory here.
+  await expect(page.getByTestId('scene-run-final-engine-fibo')).toHaveCount(0);
   // One room a scene comes on with Final, and can be turned off.
   await expect(page.getByTestId('scene-run-one-room')).toBeChecked();
   await page.getByTestId('scene-run-one-room').uncheck();

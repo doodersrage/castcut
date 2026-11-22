@@ -633,8 +633,8 @@ export async function runSceneRunOnServer(
       imageUrl,
       comfyUrl: deps.comfyUrl,
       ...(report?.prompt ? { prompt: report.prompt } : {}),
-      ...((runTierEngine(tier) ?? bundle.queue?.shared.model)
-        ? { model: runTierEngine(tier) ?? bundle.queue?.shared.model }
+      ...((runTierEngine(runOf()) ?? bundle.queue?.shared.model)
+        ? { model: runTierEngine(runOf()) ?? bundle.queue?.shared.model }
         : {}),
       ...(state.checks[promptId] ? { playChecks: state.checks[promptId] } : {}),
       ...(adultCheck ? { adultCheck } : {}),

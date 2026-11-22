@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { bestSceneTake } from './episode-run';
 import {
+  FAST_FINAL_ENGINE,
   FINAL_ENGINE,
   PREVIEW_ENGINE,
   previewTakeOf,
@@ -52,8 +53,12 @@ const run = (extra: Partial<SceneRun> = {}): SceneRun => ({
 
 describe('run tiers (FINISHING_PLAN Phase 5)', () => {
   it('renders each tier on its engine; no tier on each take’s own', () => {
-    assert.equal(runTierEngine('preview'), PREVIEW_ENGINE);
-    assert.equal(runTierEngine('final'), FINAL_ENGINE);
+    assert.equal(runTierEngine({ tier: 'preview' }), PREVIEW_ENGINE);
+    assert.equal(runTierEngine({ tier: 'final' }), FINAL_ENGINE);
+    assert.equal(runTierEngine({ tier: 'final', finalEngine: 'fibo' }), FAST_FINAL_ENGINE);
+    // The fast Final is Final's: on Preview or no tier it means nothing.
+    assert.equal(runTierEngine({ tier: 'preview', finalEngine: 'fibo' }), PREVIEW_ENGINE);
+    assert.equal(runTierEngine({ finalEngine: 'fibo' }), undefined);
     assert.equal(runTierEngine(undefined), undefined);
   });
 
@@ -121,6 +126,19 @@ describe('run tiers (FINISHING_PLAN Phase 5)', () => {
     const old = normalizeSceneRun({ ...run(), tier: 'draft' });
     assert.equal(old?.tier, undefined);
     assert.equal(old?.onServer, undefined);
+  });
+
+  it('the fast Final is kept on a Final run only, and goes with the tier', () => {
+    // A run saved before the choice existed: Edit 2511, as before.
+    assert.equal(normalizeSceneRun(run({ tier: 'final' }))?.finalEngine, undefined);
+    assert.equal(normalizeSceneRun(run({ tier: 'final', finalEngine: 'fibo' }))?.finalEngine, 'fibo');
+    assert.equal(normalizeSceneRun({ ...run({ tier: 'final' }), finalEngine: 'flux' })?.finalEngine, undefined);
+    assert.equal(normalizeSceneRun(run({ tier: 'preview', finalEngine: 'fibo' }))?.finalEngine, undefined);
+    const fast = withRunTier(run({ tier: 'final', finalEngine: 'fibo' }), 'final', []);
+    assert.equal(fast.finalEngine, 'fibo');
+    assert.equal(withRunTier(fast, 'preview', []).finalEngine, undefined);
+    assert.equal(withRunTier(fast, undefined, []).finalEngine, undefined);
+    assert.equal(animateKeptRun(fast).finalEngine, undefined);
   });
 });
 

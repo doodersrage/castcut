@@ -8,7 +8,13 @@
 import { keptClipNeeded } from './continuous-take';
 import { parseScript } from '../script/parse';
 import { episodeAnimates, normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
-import { isRunTier, previewTakeOf, type RunTier } from './run-tier';
+import {
+  isFinalEngineChoice,
+  isRunTier,
+  previewTakeOf,
+  type FinalEngineChoice,
+  type RunTier,
+} from './run-tier';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
@@ -71,6 +77,11 @@ export type SceneRun = {
    * checks and keep-best. Both render on the server. Unset: on each take's own engine, as before.
    */
   tier?: RunTier;
+  /**
+   * A Final run's engine (run-tier.ts): `fibo` renders on Fibo 2.0 Edit Turbo, the fast Final
+   * (non-commercial weights). Unset: Edit 2511. Kept only on a Final run.
+   */
+  finalEngine?: FinalEngineChoice;
   /**
    * Animate the previews (run-tier.ts): the run renders no stills; each Scene with no kept take
    * has its newest preview animated on the page at the Draft size (MiniMax-H3: 768) for the
@@ -323,6 +334,9 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     ...(run.resumeOnReload === true ? { resumeOnReload: true } : {}),
     ...(run.onServer === true || isRunTier(run.tier) ? { onServer: true } : {}),
     ...(isRunTier(run.tier) ? { tier: run.tier } : {}),
+    ...(run.tier === 'final' && isFinalEngineChoice(run.finalEngine)
+      ? { finalEngine: run.finalEngine }
+      : {}),
     ...(run.animatePreviews === true && !isRunTier(run.tier) ? { animatePreviews: true } : {}),
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
@@ -562,6 +576,7 @@ export function previewsToAnimate(
 export function animatePreviewsRun(run: SceneRun, now = Date.now()): SceneRun {
   const {
     tier: _tier,
+    finalEngine: _finalEngine,
     onServer: _onServer,
     outcomes: _outcomes,
     attempts: _attempts,
@@ -875,6 +890,7 @@ export function keptTakesWithoutClip(run: SceneRun, scenes: readonly SavedScene[
 export function animateKeptRun(run: SceneRun, now = Date.now()): SceneRun {
   const {
     tier: _tier,
+    finalEngine: _finalEngine,
     animatePreviews: _previews,
     onServer: _onServer,
     outcomes: _outcomes,
