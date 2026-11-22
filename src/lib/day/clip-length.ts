@@ -272,3 +272,20 @@ export function dayH3TotalWith(firstSec: number, partSeconds: readonly number[])
     firstSec
   );
 }
+
+/**
+ * Whether Animate all shows its size choice (Full / Draft): some finished still without a clip
+ * would be animated on MiniMax-H3, the one engine with a draft size. `engineOf` names the clip
+ * engine for a still (resolveDayClipEngine).
+ */
+export function dayAnimateAllOffersDraft(
+  slots: ReadonlyArray<{ id: string }>,
+  stills: ReadonlyArray<Pick<DaySlotStill, 'slotId' | 'status' | 'clipStatus' | 'promptId'>>,
+  engineOf: (still: Pick<DaySlotStill, 'promptId'>) => string
+): boolean {
+  return slots.some(slot => {
+    const still = stills.find(entry => entry.slotId === slot.id);
+    if (still?.status !== 'completed' || still.clipStatus === 'completed') return false;
+    return isH3Model(engineOf(still));
+  });
+}

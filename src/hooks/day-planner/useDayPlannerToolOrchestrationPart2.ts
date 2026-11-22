@@ -101,6 +101,7 @@ import { readLineForClip } from '@/lib/cast/voice-read-client';
 import { reactionSoundLine, slotReactor } from '@/lib/day/clip-direction';
 import { requestLineDeliveries } from '@/lib/film/line-delivery';
 import {
+  dayAnimateAllOffersDraft,
   DAY_CLIP_EXTRA_SECONDS,
   dayClipFrames,
   dayClipSeconds,
@@ -977,6 +978,22 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     ]
   );
 
+  // Animate all's size (Full / Draft), kept between visits. Draft only changes MiniMax-H3 clips
+  // (768 long side instead of 1024, about half the time); other engines render as before.
+  const animateAllDraft = toolSettings.animateAllDraft === true;
+  const setAnimateAllDraft = useCallback(
+    (next: boolean) => updateToolSettings({ animateAllDraft: next }),
+    [updateToolSettings]
+  );
+  // The choice is shown only when Animate all would send a clip to MiniMax-H3.
+  const animateAllOffersDraft = dayAnimateAllOffersDraft(slots, toolSettings.stills ?? [], still =>
+    resolveDayClipEngine({
+      stillPromptId: still.promptId,
+      dayMood: toolSettings.dayMood,
+      sharedModel: shared.model,
+    })
+  );
+
   const animateAllClips = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -1000,12 +1017,21 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
       );
       // Sequential — same single-flight Comfy lock as queueAll.
       for (const { slot } of burst.submit) {
-        await animateSlot(slot, { manageBusy: false });
+        await animateSlot(slot, { manageBusy: false, ...(animateAllDraft ? { draft: true } : {}) });
       }
     } finally {
       setBusy(false);
     }
-  }, [animateSlot, shared.model, slots, stillsRef, toolSettings.dayMood, setBusy, setError]);
+  }, [
+    animateAllDraft,
+    animateSlot,
+    shared.model,
+    slots,
+    stillsRef,
+    toolSettings.dayMood,
+    setBusy,
+    setError,
+  ]);
 
   /**
    * Dub (day-dub.ts): every spoken line (and reply) translated, then each talking clip made
@@ -2167,6 +2193,9 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
     queueAll,
     animateSlot,
     animateAllClips,
+    animateAllDraft,
+    setAnimateAllDraft,
+    animateAllOffersDraft,
     dubDay,
     cutDayFilm,
     recordDayNarration,

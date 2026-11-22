@@ -157,6 +157,11 @@ export type DayToolCache = {
    * doesn't name: id order, as before (and as an older release shows them).
    */
   slotOrder?: import('../day/planner').DaySlotId[];
+  /**
+   * Animate all's size: true = Draft (MiniMax-H3 clips at 768, about half the time); unset or
+   * false = Full (1024). Other engines ignore it.
+   */
+  animateAllDraft?: boolean;
   /** Completed / in-flight stills for the day reel and Cut film. */
   stills?: import('../day/planner').DaySlotStill[];
   /** Cast character that owns {@link stills}; cleared when Cast changes. */

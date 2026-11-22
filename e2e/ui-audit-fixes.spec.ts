@@ -79,6 +79,51 @@ test('ComfyUI offline: banner, named chip, Queue and Animate disabled', async ({
   await expect(page.getByTestId('day-queue-block-reason').first()).toContainText('ComfyUI is offline');
 });
 
+test('Animate all on MiniMax-H3: a Full / Draft size, kept after a reload', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: { day: finishedDay(), video: { dayClips: 'h3' } },
+    },
+    { once: true }
+  );
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  const size = page.getByTestId('day-animate-all-size').first();
+  await expect(size).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-animate-all-size-full').first()).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  const draft = page.getByTestId('day-animate-all-size-draft').first();
+  await expect(async () => {
+    await draft.click();
+    await expect(draft).toHaveAttribute('aria-selected', 'true', { timeout: 1_000 });
+  }).toPass({ timeout: 15_000 });
+  await page.waitForTimeout(1_500); // the settings cache saves after a short delay
+  await page.reload();
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-animate-all-size-draft').first()).toHaveAttribute(
+    'aria-selected',
+    'true',
+    { timeout: 30_000 }
+  );
+});
+
+test('Animate all on other engines: no size choice', async ({ page }) => {
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay() },
+  });
+  await gotoStable(page, '/day');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-animate-all').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-animate-all-size')).toHaveCount(0);
+});
+
 test('Online: no banner; the Made with tray names what a still used', async ({ page }) => {
   await page.route('**/api/comfyui/history/workflow**', route =>
     route.fulfill({

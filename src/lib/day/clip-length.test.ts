@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  dayAnimateAllOffersDraft,
   dayAnimateOptions,
   dayAnimateSettingsPatch,
   dayClipFrames,
@@ -342,6 +343,52 @@ describe('Animate at draft size', () => {
     assert.equal(
       dayAnimateOptions({ extraSeconds: 0, talkTotalSeconds: 15, lines: ['Hi'], draft: true }).draft,
       true
+    );
+  });
+});
+
+describe('Animate all size choice', () => {
+  const slots = [{ id: 'morning' }, { id: 'evening' }];
+  const engineOf = (still: { promptId?: string }) =>
+    still.promptId === 'h3' ? H3_MODEL_ID : LTX25_MODEL_ID;
+
+  it('is offered when a still waiting for its clip would go to MiniMax-H3', () => {
+    assert.equal(
+      dayAnimateAllOffersDraft(
+        slots,
+        [
+          { slotId: 'morning', status: 'completed', promptId: 'ltx' },
+          { slotId: 'evening', status: 'completed', promptId: 'h3' },
+        ],
+        engineOf
+      ),
+      true
+    );
+  });
+
+  it('is not offered for other engines, unfinished stills or clips already made', () => {
+    assert.equal(
+      dayAnimateAllOffersDraft(
+        slots,
+        [
+          { slotId: 'morning', status: 'completed', promptId: 'ltx' },
+          { slotId: 'evening', status: 'completed', clipStatus: 'completed', promptId: 'h3' },
+        ],
+        engineOf
+      ),
+      false
+    );
+    assert.equal(
+      dayAnimateAllOffersDraft(slots, [{ slotId: 'evening', status: 'running', promptId: 'h3' }], engineOf),
+      false
+    );
+    assert.equal(
+      dayAnimateAllOffersDraft(
+        [{ id: 'morning' }],
+        [{ slotId: 'evening', status: 'completed', promptId: 'h3' }],
+        engineOf
+      ),
+      false
     );
   });
 });

@@ -41,6 +41,7 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import {
   CollapsibleSection,
+  SegmentedControl,
   ToolActionRow,
   ToolLayout,
   ToolSection,
@@ -276,6 +277,9 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
     animateSlot,
     previewSlotClip,
     animateAllClips,
+    animateAllDraft,
+    setAnimateAllDraft,
+    animateAllOffersDraft,
     dubDay,
     endPoseStatus,
     endPoseReposingSlotId,
@@ -1361,6 +1365,26 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                       ? 'Quick stills for the rest'
                       : 'Quick stills'}
                 </Button>
+                {canAnimateAll && animateAllOffersDraft ? (
+                  <div
+                    data-testid="day-animate-all-size"
+                    title="MiniMax-H3 clips: Draft renders at 768, about twice as fast — Full (1024) for the clips you keep"
+                  >
+                    <SegmentedControl
+                      aria-label="Animate all size"
+                      value={animateAllDraft ? 'draft' : 'full'}
+                      onChange={value => setAnimateAllDraft(value === 'draft')}
+                      options={[
+                        { value: 'full', label: 'Full', testId: 'day-animate-all-size-full' },
+                        {
+                          value: 'draft',
+                          label: 'Draft (768)',
+                          testId: 'day-animate-all-size-draft',
+                        },
+                      ]}
+                    />
+                  </div>
+                ) : null}
                 {canAnimateAll ? (
                   <Button
                     size="sm"
