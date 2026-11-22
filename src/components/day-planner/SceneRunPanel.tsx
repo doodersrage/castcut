@@ -5,9 +5,12 @@ import {
   comfyModelLabel,
   type ComfyImageModel,
 } from '@/lib/comfy-models/client';
-import { readAnyCachedComfyObjectInfoModels } from '@/lib/comfyui/object-info-cache';
+import {
+  fetchComfyObjectInfoModelsCached,
+  readAnyCachedComfyObjectInfoModels,
+} from '@/lib/comfyui/object-info-cache';
 import { installedComfyModels } from '@/lib/model/picker';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SegmentedControl, ToolSection } from '@/components/ui/ToolPageShell';
@@ -69,16 +72,24 @@ export default function SceneRunPanel({
   children?: React.ReactNode;
 }) {
   const engine = runTierEngine(run) ?? model;
-  // The fast Final is offered where ComfyUI has Fibo 2.0 (or a run already chose it).
-  const fastFinalInstalled = useMemo(
-    () =>
-      run.tier === 'final' &&
-      (installedComfyModels(COMFY_IMAGE_MODELS, readAnyCachedComfyObjectInfoModels())?.has(
-        FAST_FINAL_ENGINE
-      ) ??
-        false),
-    [run.tier]
-  );
+  // The fast Final is offered where ComfyUI has Fibo 2.0 (or a run already chose it). The
+  // inventory is fetched (cached) once Final is picked: read from the cache alone, a page that
+  // hadn't asked ComfyUI yet never offered it (2026-11-22, a fresh install's Scene).
+  const [fastFinalInstalled, setFastFinalInstalled] = useState(false);
+  useEffect(() => {
+    if (run.tier !== 'final') return;
+    let live = true;
+    const has = (models: Parameters<typeof installedComfyModels>[1]) =>
+      installedComfyModels(COMFY_IMAGE_MODELS, models)?.has(FAST_FINAL_ENGINE) ?? false;
+    void fetchComfyObjectInfoModelsCached()
+      .then(models => {
+        if (live) setFastFinalInstalled(has(models) || has(readAnyCachedComfyObjectInfoModels()));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [run.tier]);
 
   // A typical take's render time here: the Queue's own measure (recent finished jobs).
   const typicalSec = useMemo(() => typicalRenderMs(loadComfyGallery(), engine) / 1000, [engine]);
