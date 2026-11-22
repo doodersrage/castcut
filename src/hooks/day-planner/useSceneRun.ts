@@ -273,7 +273,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
         () => !pageRef.current.inFlight && pageRef.current.still?.promptId === keptPromptId,
         CHECKS_TIMEOUT_MS
       );
-      const animateOnce = async (direction?: string): Promise<boolean> => {
+      const animateOnce = async (direction?: string, holdShot?: boolean): Promise<boolean> => {
         const clipBefore = pageRef.current.still?.clipPromptId;
         // A continuous take starts on the shot before's last frame (continuous-take.ts); the run
         // animates in script order, so that shot's clip is there first.
@@ -287,6 +287,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           manageBusy: false,
           ...(direction ? { direction } : {}),
           ...(chain ? { chain } : {}),
+          ...(holdShot && !chain ? { holdShot: true } : {}),
         });
         // The page has the queued clip after its next render (pageRef follows in an effect):
         // read at once, it was always the still before — every clip of a real run was called
@@ -352,8 +353,10 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
           }
           if (attempt === CLIP_HEAR_RETRIES) break;
           // Again with the shot held as it is: its beat asked for what the still doesn't have
-          // ("among boxes" on an empty floor) and H3 kept adding it (the flagship's 10A).
-          ok = await animateOnce(line ? undefined : HOLD_THE_SHOT_DIRECTION);
+          // ("among boxes" on an empty floor) and H3 kept adding it (the flagship's 10A). Wordless,
+          // it ends on its own still too: words alone never stopped a stride into the lens
+          // (2026-11-22, 5 of 5); the pinned last frame held all 5.
+          ok = await animateOnce(line ? undefined : HOLD_THE_SHOT_DIRECTION, !line);
           continue;
         }
         heardWrong = hearing.transcript?.trim() || '(nothing)';

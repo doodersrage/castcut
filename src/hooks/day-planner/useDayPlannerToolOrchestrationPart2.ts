@@ -448,6 +448,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         chain?: { frameUrl: string; sceneId: string; clipUrl: string; atSec: number };
         /** Draft size (the Animate sheet): MiniMax-H3 renders the clip at 768, about 2× faster. */
         draft?: boolean;
+        /**
+         * Hold the shot (a run's drift redo, wordless, MiniMax-H3): the clip ends on its own still,
+         * pinned as the last frame, whatever the framing. Live (2026-11-22): a still of her
+         * mid-stride toward the lens walked her into it on 4 of 5 seeds, the words "stays as far
+         * from the camera" on 5 of 5; pinned, all 5 held the shot and still moved.
+         */
+        holdShot?: boolean;
       }
     ) => {
       const manageBusy = options?.manageBusy !== false;
@@ -768,12 +775,13 @@ export function useDayPlannerToolOrchestrationPart2(ctx: DayPlannerToolOrchestra
         if (
           !endImageFilename &&
           !speaking &&
-          slot.poseCamera?.shot === 'head' &&
-          // One face: a two-shot framed "head" (4D, the two holding up boxes) froze under the pin.
-          stillPromptPeople(parentEntry?.prompt) === 1 &&
-          // And a close-up still: a wide one zoomed in and snapped back (10D).
-          stillCloseUp === true &&
-          isH3Model(videoModel)
+          isH3Model(videoModel) &&
+          (options?.holdShot ||
+            (slot.poseCamera?.shot === 'head' &&
+              // One face: a two-shot framed "head" (4D, the two holding up boxes) froze under the pin.
+              stillPromptPeople(parentEntry?.prompt) === 1 &&
+              // And a close-up still: a wide one zoomed in and snapped back (10D).
+              stillCloseUp === true))
         ) {
           const nodeTypes = await fetchComfyObjectInfoNodeTypesCached().catch(() => null);
           if (dayEndPoseSupported(videoModel, nodeTypes)) {
