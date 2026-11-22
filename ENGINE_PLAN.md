@@ -187,6 +187,29 @@ on it (Fibo's shots had the room all along). **Shipped:** an opt-in "Final on: F
 where Fibo is installed (`SceneRun.finalEngine`, main `81f30b62`, `a860d242`); Edit 2511 stays
 the default.
 
+**FLUX.2 klein 4B and a second script (22 November 2026).** Klein 4B distilled (Apache 2.0,
+downloaded to `/mnt/extra-storage/models/diffusion_models`) on the same 43 Scenes, no tier,
+keep, one redo, one room (`castcut-klein-final/`). Every run's new takes scored again by one
+script (`castcut-fibo-second/score.py`: lead's stills only, place shots and 2.1 dress plates left
+out, so the numbers differ from the table above):
+
+| 43 Scenes | Edit 2511 (Final) | Fibo as Final | Klein 4B |
+| --- | --- | --- | --- |
+| Time | 63 min | 22 min | 19 min |
+| Flagged | 15 | 5 | 22 |
+| Median face distance | **0.413** | 0.522 | 0.761 |
+| Over 0.6 | 10 of 36 | 19 of 48 | 46 of 59 |
+
+Klein 4B is rejected: about as fast as Fibo, its faces are far from the Cast and its flags twice
+Edit 2511's. A second script (`castcut-fibo-second/`, six scenes, June and Marcus made Cast
+members, 16 Scenes) tested less than meant: Edit 2511 41 min, 5 flagged; Fibo 17 min, 10
+flagged, but only 6 of its 17 takes were Fibo's (the app sends two-person shots to Edit 2511),
+and its two-shots score against the lead's plate whichever face is found. **Where it stands:**
+Edit 2511 stays Final; Fibo is the opt-in fast Final, about 3× faster on one-person shots with
+faces a step further from the Cast; phase 3's 75 s gate is met only by trading likeness. Open:
+on one fresh install the Final tier didn't offer Fibo even after the inventory fetch (`be5a52a3`),
+though it did on the s26 copy; not found yet.
+
 ## 4. Video (weeks 5–8)
 
 LTX-2.5 renders 97 frames in 45–51 s, yet an animated shot takes about 6 minutes. Find and cut the
