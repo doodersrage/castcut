@@ -1314,7 +1314,7 @@ export default function DayPlannerToolSections({ description, ...vm }: Props) {
                         ? `${completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}: ${batchPlan.queueLine}`
                         : '',
                       batchPlan.animateLine && canAnimateAll
-                        ? `Animate all: ${batchPlan.animateLine}`
+                        ? `Animate all: ${batchPlan.animateLine}${animateAllDraft && animateAllOffersDraft ? ' (timed from past clips; Draft makes H3 clips about twice as fast)' : ''}`
                         : '',
                     ]
                       .filter(Boolean)

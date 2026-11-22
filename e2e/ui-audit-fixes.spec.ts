@@ -112,6 +112,19 @@ test('Animate all on MiniMax-H3: a Full / Draft size, kept after a reload', asyn
   );
 });
 
+test('phone: Animate all on MiniMax-H3 offers the Draft size', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedSettingsCacheOnNextLoad(page, {
+    shared: { activeCharacterId: CAST },
+    characters: cast,
+    tools: { day: finishedDay(), video: { dayClips: 'h3' } },
+  });
+  await gotoStable(page, '/m/day');
+  await dismissBlockingOverlays(page);
+  await expect(page.getByTestId('day-animate-all-size').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('day-animate-all-size-draft').first()).toHaveText('Draft (768)');
+});
+
 test('Animate all on other engines: no size choice', async ({ page }) => {
   await seedSettingsCacheOnNextLoad(page, {
     shared: { activeCharacterId: CAST },

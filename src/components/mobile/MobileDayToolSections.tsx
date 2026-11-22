@@ -57,7 +57,7 @@ import type { ImageLightboxState } from '@/components/ui/ImageLightbox';
 import type { FixAreaTarget } from '@/lib/edit/fix-area-client';
 import type { ImageLightboxSlideChrome } from '@/components/ui/image-lightbox/types';
 import SideSheet from '@/components/ui/SideSheet';
-import { CollapsibleSection } from '@/components/ui/ToolPageShell';
+import { CollapsibleSection, SegmentedControl } from '@/components/ui/ToolPageShell';
 import ClothingPicker from '@/components/wardrobe/ClothingPickerLazy';
 import { usePlaySoftAdvance } from '@/hooks/usePlaySoftAdvance';
 import { useDayQualityPreset } from '@/hooks/day-planner/useDayQualityPreset';
@@ -257,6 +257,9 @@ export default function MobileDayToolSections(vm: ViewModel) {
     animateSlot,
     previewSlotClip,
     animateAllClips,
+    animateAllDraft,
+    setAnimateAllDraft,
+    animateAllOffersDraft,
     dubDay,
     endPoseStatus,
     endPoseReposingSlotId,
@@ -1101,6 +1104,19 @@ export default function MobileDayToolSections(vm: ViewModel) {
           >
             {completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}
           </PrimaryButton>
+          {canAnimateAll && animateAllOffersDraft ? (
+            <div data-testid="day-animate-all-size">
+              <SegmentedControl
+                aria-label="Animate all size"
+                value={animateAllDraft ? 'draft' : 'full'}
+                onChange={value => setAnimateAllDraft(value === 'draft')}
+                options={[
+                  { value: 'full', label: 'Full', testId: 'day-animate-all-size-full' },
+                  { value: 'draft', label: 'Draft (768)', testId: 'day-animate-all-size-draft' },
+                ]}
+              />
+            </div>
+          ) : null}
           {canAnimateAll ? (
             <Button
               variant={dayPhase === 'animate' && !animateFilesMissing ? 'primary' : 'secondary'}
@@ -1127,7 +1143,7 @@ export default function MobileDayToolSections(vm: ViewModel) {
                   ? `${completedShotCount > 0 ? 'Quick stills for the rest' : 'Quick stills'}: ${batchPlan.queueLine}`
                   : '',
                 batchPlan.animateLine && canAnimateAll
-                  ? `Animate all: ${batchPlan.animateLine}`
+                  ? `Animate all: ${batchPlan.animateLine}${animateAllDraft && animateAllOffersDraft ? ' (timed from past clips; Draft makes H3 clips about twice as fast)' : ''}`
                   : '',
               ]
                 .filter(Boolean)
