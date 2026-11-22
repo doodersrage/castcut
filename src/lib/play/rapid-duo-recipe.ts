@@ -1481,7 +1481,7 @@ function vacationPlacement(beat: string): string | null {
     case 'KICKING':
       return 'She walks through ankle-deep surf, kicking up a splash of water with one foot, arms out for balance.';
     case 'MID-STRIDE':
-      return 'She walks mid-step, one foot ahead of the other, arms swinging, full body in frame.';
+      return 'She walks across the frame, seen from a three-quarter side angle — not toward the camera — mid-step, one foot ahead of the other, arms swinging, full body in frame.';
     case 'CLIMBING':
       // "one foot on the next step" stood her at the foot of the stairs; side view + a high
       // knee got the step up 3/3 (live 2026-09-29).
@@ -1829,7 +1829,10 @@ function everydayPlacement(beat: string, setting?: string | null): string | null
     return `She sits${own && !/\b(?:door|window|wall|floor)$/i.test(own) ? ` ${own}` : ''}, knees bent.`;
   }
   if (/\b(?:walking|walks|strolling|mid-stride|striding)\b/.test(b)) {
-    return 'She walks mid-step, one foot ahead of the other, full body in frame.';
+    // Which way: unsaid, she walked straight at the lens, and MiniMax-H3 walked her into it — 4
+    // of 4 clips ended on her dress filling the frame; said "across … not toward the camera",
+    // 0 of 4, her face still to the camera (2026-11-22, ENGINE_PLAN phase 4).
+    return 'She walks across the frame, seen from a three-quarter side angle — not toward the camera — mid-step, one foot ahead of the other, full body in frame.';
   }
   if (/\b(?:running|jogging|sprinting)\b/.test(b)) {
     return 'She runs mid-stride, one knee driving forward, arms pumping, full body in frame.';
