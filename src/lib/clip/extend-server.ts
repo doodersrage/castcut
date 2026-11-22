@@ -1620,12 +1620,8 @@ export async function extendClip(
       h3 && !duoFaces && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
         ? await keyframeEditor(baseUrl, input.llm)
         : null;
-    // CASTCUT_EXTEND_H3_GROUP=off renders each beat as its own 5 s part (ENGINE_PLAN phase 7 test).
     const groups =
-      h3 &&
-      !keyframes &&
-      process.env.CASTCUT_EXTEND_H3_GROUP !== 'off' &&
-      !input.lines?.some(line => line?.trim())
+      h3 && !keyframes && !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
         : null;
     const renders = groups?.length ?? beats.length;
@@ -1882,11 +1878,6 @@ export async function extendClip(
           duoFaces && !anchored && !endFrame
             ? await duoReferenceVideos(ffmpeg, baseUrl, previous, at('piece0.mp4'), at, k)
             : undefined;
-        // CASTCUT_H3_REF_WORDLESS_STEPS (ENGINE_PLAN phase 7 test): fewer steps for a part with no
-        // line — 6 steps lost words (H3_REF_STEPS), which a wordless part has none of.
-        const wordlessSteps = Number(process.env.CASTCUT_H3_REF_WORDLESS_STEPS);
-        const steps =
-          wordlessSteps > 0 && !input.lines?.some(line => line?.trim()) ? wordlessSteps : undefined;
         prompt = anchored
           ? anchored
           : (duoFaces?.pictures ?? h3Pictures).length && !endFrame
@@ -1902,7 +1893,6 @@ export async function extendClip(
                   ],
                   look: duoFaces?.look ?? h3Look,
                   ...(videos ? { videos } : {}),
-                  ...(steps ? { steps } : {}),
                 }) ?? patched.graph
               )
             : timed(patched.graph);

@@ -282,14 +282,6 @@ describe('withH3References', () => {
     );
   });
 
-  it('runs H3_REF_STEPS unless given fewer steps (a part with no words)', () => {
-    const steps = (graph: ReturnType<typeof withH3References>) =>
-      Object.values(graph!).find(node => node?.class_type === 'BasicScheduler')!.inputs!.steps;
-    const pictures = [{ image: 'start.png', shows: 'the first frame' }];
-    assert.equal(steps(withH3References(replay(), { pictures })), H3_REF_STEPS);
-    assert.equal(steps(withH3References(replay(), { pictures, steps: 6 })), 6);
-  });
-
   it('is null for a graph that is not H3, or with no pictures', () => {
     assert.equal(withH3References({ '1': { class_type: 'UNETLoader', inputs: {} } }, { pictures: [{ image: 'a', shows: 'b' }] }), null);
     assert.equal(withH3References(replay(), { pictures: [] }), null);
