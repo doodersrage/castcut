@@ -221,7 +221,8 @@ run's drift redo of a wordless clip now pins its still (`holdShot`). The same ru
 (`castcut-order-run/H`): 4 of 6 first clips drifted, and each passed on its first pinned redo, 0
 flagged, 21 min. The first tries drift as often as before, so the clip count is the same (12);
 pinning the first try of a wordless wide shot would save those ~5 minutes, at the cost of every
-such clip returning to its still.
+such clip returning to its still. **Decided (22 November): redo only**; clips move more freely,
+and a drifted one costs one redo.
 
 ## 5. Sampler-level speedups, A/B tested (weeks 8–10)
 
@@ -489,7 +490,8 @@ for a one-person talking clip on the same model. 6 steps is safe here (no words 
 full and took about another minute. Neither switch is on by default: together about 17% off, not
 the 40% the gate needs. What's left is a product choice: fewer reference inputs on two-person parts
 (the before-video kept the faces' skin through 20 s in M11 T21), or two-person long clips at the
-Draft size (768 halved a plain clip).
+Draft size (768 halved a plain clip). **Decided (22 November): keep the quality.** Two-person long
+clips stay as shipped (about 14–17 minutes for 30 s); the 10-minute gate is for one person.
 
 **Talking clips through the chest-up crop, live (22 November 2026).** Line shots are waist shots,
 and their faces came out at 15.9–20.5% of the still’s height in five real line stills, so the crop
