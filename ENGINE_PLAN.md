@@ -252,7 +252,13 @@ Preview still (median of 40, `castcut-engine-bench/preview1.json`) and under 1% 
 tiny VAE saves at most about 0.3 s a still. None is installed, and it isn't worth adding a model
 for that. H3's decode (9–10 s a clip) uses H3's own VAE, which has no tiny version.
 
-Still open: these candidates on Qwen-Image 2.1 and LTX-2.5.
+**INT8 attention on Preview (22 November 2026): rejected, no gain.** 10 Preview graphs (Qwen-Image
+2.1 Turbo) on their own seeds, plain and with `ModelAttentionBackend` before the guider
+(`castcut-engine-bench/ab-int8-preview*`): the sampler took a median 2.6 s either way. The INT8
+renders looked twice as fast (4.1 s against 8.3 s) only because each ran straight after the same
+graph and reused ComfyUI's cached text encode. A Preview's time is its encode, not attention.
+
+Still open: these candidates on LTX-2.5 (no clips have used it since 10 November).
 
 ## 6. One memory budget (weeks 9–10)
 
