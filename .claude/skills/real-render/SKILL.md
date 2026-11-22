@@ -30,3 +30,9 @@ SCENE_BASE=http://127.0.0.1:<port> SCENE_OUT=<dir> SCENE_CASTS=<dir with .castcu
   an episode run has exhausted it before.
 - Run long phases in the background and log to a file. Report numbers (times, kept/flagged
   counts) with their source.
+- The V2 `script` and `shots` phases are stale (they look for the script importer on Scene; scripts
+  live on Script now). For a small script, use `setup episode epshots` with
+  `EPISODE_SCRIPT_FILE=<a .fountain>`, `EPISODE_LEAD_NAME=<the Cast's name>` and `EPISODE_NEW_CAST=0`.
+- Preview, then its clips: `srvrun` with `SRV_TIER=preview SRV_REBOOT=0`, then `animprev`
+  (Animate the previews at Draft; `ANIMPREV_ENGINE=h3` by default). The script exits 0 even when a
+  phase fails: check each phase's log for "✗ phase" before running the next.
