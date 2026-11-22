@@ -193,6 +193,25 @@ row (below), and the still, reframe and face finish switch models before every c
 stills before clips (the second bullet above) is the next test; the room-tone and Finish-at-export
 bullets apply to LTX-2.5 runs.
 
+**Stills before clips (22 November 2026): no gain, not built.** The same five-scene script for
+Slyne (6 Scenes) on two fresh isolated installs, page runs, keep with no redo, clips on H3 at
+1024 (`castcut-order-run/`, main `b0934b8b`): I animated each kept take before the next still,
+G ran every still and then Animate the kept takes. From ComfyUI's job history:
+
+| | Interleaved (I) | Grouped (G) |
+| --- | --- | --- |
+| Wall time | 18.4 min | 20.1 min |
+| Stills (Qwen-Image 2.1 Turbo) | 7, median 13.7 s | 7, median 10.9 s (6 s back to back) |
+| Clips (H3) | 11, median 72.4 s | 12, median 71.4 s |
+| Clips made again (drift, line not said) | 5 | 6 |
+
+Less one clip made again, G is about 18.7 min against 18.4: the same. A still is 4–8 s faster
+when it doesn't follow a clip, but H3 reloads on every clip either way, so a clip costs the same
+after a still as after a clip. The 15–44 s between a still and its clip in I is checks and the
+clip's set-up on the page, which G pays between stills instead. The bigger cost is clips made
+again: 5–6 of 11–12, about a third of the run, three of them "the camera moves in close" on
+establishing shots. That, not the order, is where this phase's next minutes are.
+
 ## 5. Sampler-level speedups, A/B tested (weeks 8–10)
 
 The repo uses none of the common sampler accelerations, so each is a candidate to test, not a known
