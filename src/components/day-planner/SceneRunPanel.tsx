@@ -158,7 +158,7 @@ export default function SceneRunPanel({
         {run.tier === 'final' && (fastFinalInstalled || run.finalEngine) ? (
           <div
             className="flex flex-wrap items-center gap-2 text-sm"
-            title="Edit 2511 is the finishing engine. Fibo 2.0 Edit Turbo renders a Final about 3× faster, with faces as close in a test run, but its weights are non-commercial."
+            title="Edit 2511 is the finishing engine. Fibo 2.0 Edit Turbo renders a Final about 3× faster; its faces came out a little less like the Cast in a test run, and its weights are non-commercial."
           >
             <span className="type-caption text-[var(--text-muted)]">Final on</span>
             <SegmentedControl<'edit' | 'fibo'>
@@ -183,7 +183,7 @@ export default function SceneRunPanel({
                 className="type-caption text-[var(--text-muted)]"
                 data-testid="scene-run-final-engine-note"
               >
-                About 3× faster. {FAST_FINAL_LICENCE_NOTE}
+                About 3× faster; faces a little less close. {FAST_FINAL_LICENCE_NOTE}
               </span>
             ) : null}
           </div>

@@ -28,9 +28,9 @@ export const PREVIEW_ENGINE = 'qwen-image-2.1-edit-turbo-8';
 export const FINAL_ENGINE = 'qwen-image-edit-2511';
 /**
  * The fast Final (opt-in, `SceneRun.finalEngine: 'fibo'`): Bria Fibo 2.0 Edit Turbo. ENGINE_PLAN
- * phase 3, 2026-11-22: the same 43 Scenes in 23 min against Edit 2511's 63, 7 flagged against
- * 15, faces closer to the plate (median 0.51 against 0.60) — but its weights are non-commercial,
- * so it is a choice, not the default.
+ * phase 3, 2026-11-22: the same 43 Scenes in 22–23 min against Edit 2511's 63, but its faces a
+ * little further from the plate (median 0.56 against 0.52, every new take scored alike) and its
+ * weights non-commercial — a choice for a quick Final, not the default.
  */
 export const FAST_FINAL_ENGINE = 'fibo-2-edit-turbo';
 export const FAST_FINAL_LICENCE_NOTE =

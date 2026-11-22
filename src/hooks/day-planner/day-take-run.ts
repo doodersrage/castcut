@@ -41,7 +41,6 @@ import {
 
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
-import { isFibo2Model } from '@/lib/engine/fibo2-renderer';
 
 import { activeDayEvent } from '@/lib/day/event';
 
@@ -1649,10 +1648,6 @@ export async function runDayTake(
       // there) — on Edit 2511 her Image 2 is the plate.
       (!vacationFaceBreak ||
         Boolean(partnerFace) ||
-        // Fibo 2.0 (the fast Final) takes the room as Image 3 beside her crop and outfit: without
-        // it, a one-room scene's kitchen changed from shot to shot (ENGINE_PLAN phase 3,
-        // 2026-11-22: 0 of its kitchen shots had the room, against every one on Edit 2511).
-        isFibo2Model(stillModel) ||
         (poseModelFamily(stillModel) === 'qwen-image-2.1' &&
           !extraFilenames[1]?.trim() &&
           !extraUrls[1])) &&
