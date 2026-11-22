@@ -9,6 +9,25 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.3.0] - 2026-11-22
+
+- Runs: a wordless clip that drifted is animated again ending on its own still
+- LLM: unload a local model after 10 s idle by default (LLM_IDLE_TTL_SECONDS)
+- Engine test: CASTCUT_H3_REF_WORDLESS_STEPS for two-person parts with no line
+- Engine tests: eprun sets the clip engine; CASTCUT_EXTEND_H3_GROUP=off renders 5 s parts
+- Real render: animcut phase — the script's animatic in Cut plays the preview clips
+- Talking clips: the chest-up crop keeps the still's shape (16:9 from a wide still)
+- real-render skill: the stale V2 script phase, and Preview then animprev
+- Real render: animprev phase — Animate the previews at Draft after a Preview run
+- Runs: Animate the previews at Draft after a Preview run, for a moving animatic
+- Animate all: the Draft size on the phone Short too; the estimate says Draft is faster
+- Animate all: a Full / Draft size for MiniMax-H3 clips, remembered
+- Animate: a Draft size for MiniMax-H3 clips (768, about twice as fast)
+- Write it: a rewritten scene's shots don't keep old Scenes; phone voices and directions read right
+- LLM: opt-in LLM_IDLE_TTL_SECONDS sends LM Studio a per-request ttl
+- Server checks: a still whose words say two people is not checked as hers alone
+- Checks: a book is read only when she reads or holds it; partner lines read whole
+
 ## [v4.2.2] - 2026-11-20
 
 - Desktop: unzip the bundled Node with Windows' tar.exe, Expand-Archive as fallback
