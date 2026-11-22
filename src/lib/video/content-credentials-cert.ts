@@ -24,8 +24,18 @@ const tlv = (tag: number, ...parts: Buffer[]): Buffer => {
 };
 const sequence = (...parts: Buffer[]) => tlv(0x30, ...parts);
 const set = (...parts: Buffer[]) => tlv(0x31, ...parts);
-const integer = (bytes: Buffer) =>
-  tlv(0x02, bytes[0]! & 0x80 ? Buffer.concat([Buffer.from([0]), bytes]) : bytes);
+/**
+ * A DER INTEGER, positive and minimal: leading zero bytes dropped (a random serial whose first
+ * byte came out 0 was "illegal padding" to OpenSSL — about 1 certificate in 256), one 0 added
+ * when the top bit is set.
+ */
+export const derInteger = (input: Buffer) => {
+  let start = 0;
+  while (start < input.length - 1 && input[start] === 0) start += 1;
+  const bytes = input.subarray(start);
+  return tlv(0x02, bytes[0]! & 0x80 ? Buffer.concat([Buffer.from([0]), bytes]) : bytes);
+};
+const integer = derInteger;
 const utf8 = (text: string) => tlv(0x0c, Buffer.from(text, 'utf8'));
 const boolean = (value: boolean) => tlv(0x01, Buffer.from([value ? 0xff : 0]));
 const octets = (bytes: Buffer) => tlv(0x04, bytes);

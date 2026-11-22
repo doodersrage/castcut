@@ -13,7 +13,7 @@ import {
   filmEngineNames,
   normalizeContentCredentialsRequest,
 } from './content-credentials';
-import { makeContentCredentialsIdentity } from './content-credentials-cert';
+import { derInteger, makeContentCredentialsIdentity } from './content-credentials-cert';
 import { resolveFfmpegBinary } from './server-encode';
 
 const run = promisify(execFile);
@@ -22,6 +22,18 @@ const certificates = (pem: string) =>
   (pem.match(/-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g) ?? []).map(
     block => new X509Certificate(block)
   );
+
+describe('Content Credentials: DER integers', () => {
+  // CI, 2026-11-22: a serial drawn with a 0 first byte was "illegal padding" to OpenSSL.
+  it('are minimal and positive: no leading zero bytes, one only before a set top bit', () => {
+    const hex = (b: Buffer) => derInteger(b).toString('hex');
+    assert.equal(hex(Buffer.from([0x00, 0x12, 0x34])), '02021234');
+    assert.equal(hex(Buffer.from([0x00, 0x00, 0x92])), '02020092');
+    assert.equal(hex(Buffer.from([0x92, 0x01])), '0203009201');
+    assert.equal(hex(Buffer.from([0x00])), '020100');
+    assert.equal(hex(Buffer.from([0x02])), '020102');
+  });
+});
 
 describe('Content Credentials: the signing identity', () => {
   it('is a signing certificate issued by its own CA — never one that signed itself', () => {
