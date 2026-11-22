@@ -1620,8 +1620,12 @@ export async function extendClip(
       h3 && !duoFaces && process.env.CASTCUT_EXTEND_KEYFRAMES !== 'off'
         ? await keyframeEditor(baseUrl, input.llm)
         : null;
+    // CASTCUT_EXTEND_H3_GROUP=off renders each beat as its own 5 s part (ENGINE_PLAN phase 7 test).
     const groups =
-      h3 && !keyframes && !input.lines?.some(line => line?.trim())
+      h3 &&
+      !keyframes &&
+      process.env.CASTCUT_EXTEND_H3_GROUP !== 'off' &&
+      !input.lines?.some(line => line?.trim())
         ? groupH3Blocks(beats, input.partSeconds)
         : null;
     const renders = groups?.length ?? beats.length;
