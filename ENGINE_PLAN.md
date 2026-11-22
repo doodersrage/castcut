@@ -335,6 +335,13 @@ Same checks, same results, no load failure. One pair only: replays of the same g
 fits. Left off by default until a second pair (or an overnight with it on) agrees; turning it on is
 one environment variable.
 
+**Second pair (22 November 2026), B run first this time** (`castcut-llmttl-ab2/`, the same s26
+copy, main `d5ba0973`): B **63 min**, 15 flagged, the model on the card 14% of the time, within
+1 GB of full 2.9 min; A **72 min**, 16 flagged, 97%, 3.9 min. −12.5% against the first pair's −16%,
+in the same direction with the order reversed, and no "Failed to load model" in either. **On by
+default** (main `82a7778c`): a local LLM server gets `ttl` 10 unless `LLM_IDLE_TTL_SECONDS` says
+otherwise (`0` keeps the model loaded); a remote one gets nothing.
+
 ## 7. MiniMax-H3 clips (weeks 6–8)
 
 H3 gives the best motion and sound of the three clip engines and is the slowest per second of film:
