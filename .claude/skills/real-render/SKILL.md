@@ -34,5 +34,6 @@ SCENE_BASE=http://127.0.0.1:<port> SCENE_OUT=<dir> SCENE_CASTS=<dir with .castcu
   live on Script now). For a small script, use `setup episode epshots` with
   `EPISODE_SCRIPT_FILE=<a .fountain>`, `EPISODE_LEAD_NAME=<the Cast's name>` and `EPISODE_NEW_CAST=0`.
 - Preview, then its clips: `srvrun` with `SRV_TIER=preview SRV_REBOOT=0`, then `animprev`
-  (Animate the previews at Draft; `ANIMPREV_ENGINE=h3` by default). The script exits 0 even when a
+  (Animate the previews at Draft; `ANIMPREV_ENGINE=h3` by default), then `animcut` (the script's
+  animatic in Cut: clips counted, played, the picture checked to move). The script exits 0 even when a
   phase fails: check each phase's log for "✗ phase" before running the next.

@@ -4314,6 +4314,85 @@ const phases: Record<string, Phase> = {
   },
 
   /**
+   * After animprev: the script's animatic in Cut (/cut?from=script) — each planned shot as its
+   * Scene's kept take or newest preview. Counts the shots that play as clips (marked ▶ on the
+   * timeline) against the previews animprev animated, then plays the cut and checks the picture
+   * moves (two canvas samples a second apart differ). Writes SCENE_OUT/animatic-cut.json.
+   */
+  async animcut(_ctx, page) {
+    await openScene(page, V2_CAST);
+    const script = await v2Script(page);
+    if (!script) throw new Error('no script');
+    const expected = existsSync(join(OUT, 'animate-previews.json'))
+      ? (
+          JSON.parse(readFileSync(join(OUT, 'animate-previews.json'), 'utf8')) as {
+            clips: unknown[];
+          }
+        ).clips.length
+      : undefined;
+    await go(page, `/cut?from=script&character=${V2_CAST}&script=${encodeURIComponent(script.id)}`);
+    await page.getByTestId('cut-animatic').waitFor({ timeout: 180_000 });
+    const blocks = page.locator('[data-testid^="cut-timeline-shot-"]');
+    await blocks.first().waitFor({ timeout: 120_000 });
+    await page.waitForTimeout(4000);
+    const shots = await blocks.evaluateAll(list =>
+      list.map(el => ({
+        key: (el as HTMLElement).dataset.testid!.replace('cut-timeline-shot-', ''),
+        title: (el as HTMLElement).title,
+        // A clip's block shows the still it starts from; its label starts "▶ " (CutTimeline).
+        clip: (el.textContent ?? '').includes('▶'),
+        filmstrip: Boolean(el.querySelector('[data-testid="cut-timeline-filmstrip"]')),
+      }))
+    );
+    const clips = shots.filter(entry => entry.clip).length;
+    log('animatic:', shots.length, 'shots ·', clips, 'clips · animprev made', expected ?? '?');
+    for (const entry of shots)
+      log('  ', entry.clip ? 'clip ' : 'still', entry.title, entry.filmstrip ? '(filmstrip)' : '');
+    await shot(page, 'animatic-cut');
+    const sample = () =>
+      page.getByTestId('cut-preview-canvas').evaluate(el => {
+        const canvas = el as HTMLCanvasElement;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return [] as number[];
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const out: number[] = [];
+        for (let i = 0; i < data.length; i += 4 * 211)
+          out.push(data[i]! + data[i + 1]! + data[i + 2]!);
+        return out;
+      });
+    await page.getByTestId('cut-preview-play').click();
+    await page.waitForTimeout(1500);
+    const a = await sample();
+    const timeA = (await page.getByTestId('cut-preview-time').textContent())?.trim();
+    await page.waitForTimeout(1000);
+    const b = await sample();
+    const timeB = (await page.getByTestId('cut-preview-time').textContent())?.trim();
+    const lit = a.reduce((sum, value) => sum + value, 0);
+    const changed = a.length
+      ? a.filter((value, i) => Math.abs(value - (b[i] ?? 0)) > 12).length / a.length
+      : 0;
+    log(
+      'playing',
+      timeA,
+      '→',
+      timeB,
+      '· brightness',
+      lit,
+      '· pixels changed',
+      `${Math.round(changed * 100)}%`
+    );
+    await shot(page, 'animatic-playing', false);
+    writeFileSync(
+      join(OUT, 'animatic-cut.json'),
+      JSON.stringify({ shots, clips, expected, timeA, timeB, lit, changed }, null, 1)
+    );
+    if (expected !== undefined && clips < expected)
+      problems.push(`animcut: ${clips} clips in the animatic, ${expected} previews animated`);
+    if (!lit) problems.push('animcut: blank canvas');
+    if (changed < 0.01) problems.push('animcut: the picture did not move while playing');
+  },
+
+  /**
    * A kept voice for the lead and each Cast member of the script (EPISODE_VOICE_NAMES, default
    * the lead's and EPISODE_PARTNER_NAME): Cast → Voice → Audition, the first kept (pick again on
    * the Cast page by ear). Talking clips on MiniMax-H3 then speak in it.
