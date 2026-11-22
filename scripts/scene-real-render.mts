@@ -4029,7 +4029,34 @@ const phases: Record<string, Phase> = {
       await page.getByTestId(`scene-run-tier-${tier}`).click();
       // SRV_FINAL_ENGINE=fibo: the fast Final (Fibo 2.0), picked in the panel as you would.
       if (tier === 'final' && process.env.SRV_FINAL_ENGINE === 'fibo') {
-        await page.getByTestId('scene-run-final-engine-fibo').click({ timeout: 30_000 });
+        const fibo = page.getByTestId('scene-run-final-engine-fibo');
+        if (
+          !(await fibo
+            .waitFor({ timeout: 90_000 })
+            .then(() => true)
+            .catch(() => false))
+        ) {
+          // Not offered: what the page itself gets from ComfyUI's inventory.
+          const seen = await page.evaluate(async () => {
+            const response = await fetch('/api/comfyui/object-info');
+            const data = (await response.json().catch(() => ({}))) as {
+              models?: {
+                clipLoaderTypes?: string[];
+                unets?: string[];
+                clips?: string[];
+                vaes?: string[];
+              };
+            };
+            return {
+              status: response.status,
+              fibo2ClipType: data.models?.clipLoaderTypes?.includes('fibo2'),
+              fiboUnets: data.models?.unets?.filter(name => /fibo/i.test(name)),
+            };
+          });
+          log('fast Final not offered; the page sees', JSON.stringify(seen));
+          await shot(page, 'final-engine-missing');
+        }
+        await fibo.click({ timeout: 5_000 });
         log(
           'final on:',
           (await page.getByTestId('scene-run-final-engine-note').textContent())?.trim()
@@ -4046,6 +4073,8 @@ const phases: Record<string, Phase> = {
     if (process.env.SRV_ONE_ROOM === '1') await page.getByTestId('scene-run-one-room').check();
     log('plan:', (await page.getByTestId('scene-run-summary').textContent())?.trim());
     await shot(page, 'server-run-prepared');
+    // SRV_PREPARE_ONLY=1: stop at the prepared run (nothing rendered).
+    if (process.env.SRV_PREPARE_ONLY === '1') return;
     const started = Date.now();
     await page.getByTestId('scene-run-start').click({ timeout: 60_000 });
     const run = await waitForRun(page, entry => entry.state === 'running', 5);

@@ -81,13 +81,27 @@ export default function SceneRunPanel({
     let live = true;
     const has = (models: Parameters<typeof installedComfyModels>[1]) =>
       installedComfyModels(COMFY_IMAGE_MODELS, models)?.has(FAST_FINAL_ENGINE) ?? false;
-    void fetchComfyObjectInfoModelsCached()
-      .then(models => {
-        if (live) setFastFinalInstalled(has(models) || has(readAnyCachedComfyObjectInfoModels()));
-      })
-      .catch(() => undefined);
+    // Asked again a few times while no answer comes: the Scene page's panels ask ComfyUI's
+    // inventory together on load, and one refused (the API's 120 a minute) left Fibo unoffered
+    // on 1 of 2 fresh installs (2026-11-22), while the next ask had it.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = (attempt: number) => {
+      void fetchComfyObjectInfoModelsCached()
+        .catch(() => null)
+        .then(models => {
+          if (!live) return;
+          if (models || attempt >= 5) {
+            setFastFinalInstalled(has(models) || has(readAnyCachedComfyObjectInfoModels()));
+            return;
+          }
+          // 5, 10, … 25 s: past the API's one-minute rate-limit window.
+          timer = setTimeout(() => ask(attempt + 1), 5_000 * (attempt + 1));
+        });
+    };
+    ask(0);
     return () => {
       live = false;
+      if (timer) clearTimeout(timer);
     };
   }, [run.tier]);
 
