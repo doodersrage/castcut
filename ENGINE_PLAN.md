@@ -402,7 +402,8 @@ made for portrait stills (October) that 16:9 stills had inherited, so a wide fil
 padded it with black bars. Fixed (e7ef1468): the crop keeps the still's shape. On the second
 run the line still's face was 16.8% of its height, over the 16% bar, so it was used whole
 (768×416). The new crop on the first run's line still (face 15.9%) gives a 16:9 chest-up frame,
-768×416 at Draft. The Cut animatic playing them is not checked yet.
+768×416 at Draft. The script's animatic in Cut (`animcut`) plays all 4 as clips, each trimmed to
+its planned 3 s (12 s in all), and the picture moves while it plays.
 
 **Keyframed 30 s clip (20 November 2026): 9.4 minutes, the gate met.** Run through
 `/api/clip/extend` on an isolated server (`castcut-x30-run/`), from a fresh 1024 replay of a
