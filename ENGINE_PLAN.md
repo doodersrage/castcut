@@ -475,7 +475,7 @@ the 40% the gate needs. What's left is a product choice: fewer reference inputs 
 Draft size (768 halved a plain clip).
 
 **Talking clips through the chest-up crop, live (22 November 2026).** Line shots are waist shots,
-and their faces came out at 15.9–20.5% of the still's height in seven real line stills, so the crop
+and their faces came out at 15.9–20.5% of the still’s height in five real line stills, so the crop
 (under 16%) fires only on the odd one (`castcut-crop-run/`: three new line stills at 18.0, 16.3 and
 20.5%, all used whole at 768×416). To see it render, today's 1B Draft graph was replayed with its
 start image swapped for the app's crop of a wide kitchen still (face 8.7%,
