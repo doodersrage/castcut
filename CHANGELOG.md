@@ -9,6 +9,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.3.1] - 2026-11-22
+
+- Content Credentials: encode certificate integers minimally (1 identity in ~200 was unreadable)
+- Desktop: stage Turbopack's hashed externals as real folders (issue #8)
+- Stills: a walking shot walks across the frame, not at the camera
+- Fast Final: ask ComfyUI's inventory again when refused, so Final offers Fibo reliably
+- Remove the two-person 30 s test switches (CASTCUT_EXTEND_H3_GROUP, CASTCUT_H3_REF_WORDLESS_STEPS)
+- Fast Final: fetch ComfyUI's models when Final is picked, so a fresh page offers it
+- Fast Final: correct its numbers; drop the Fibo room change
+- Runs: Fibo 2.0 as an opt-in fast Final; Fibo keeps a one-room scene's room
+
 ## [v4.3.0] - 2026-11-22
 
 - Runs: a wordless clip that drifted is animated again ending on its own still
