@@ -1882,6 +1882,11 @@ export async function extendClip(
           duoFaces && !anchored && !endFrame
             ? await duoReferenceVideos(ffmpeg, baseUrl, previous, at('piece0.mp4'), at, k)
             : undefined;
+        // CASTCUT_H3_REF_WORDLESS_STEPS (ENGINE_PLAN phase 7 test): fewer steps for a part with no
+        // line — 6 steps lost words (H3_REF_STEPS), which a wordless part has none of.
+        const wordlessSteps = Number(process.env.CASTCUT_H3_REF_WORDLESS_STEPS);
+        const steps =
+          wordlessSteps > 0 && !input.lines?.some(line => line?.trim()) ? wordlessSteps : undefined;
         prompt = anchored
           ? anchored
           : (duoFaces?.pictures ?? h3Pictures).length && !endFrame
@@ -1897,6 +1902,7 @@ export async function extendClip(
                   ],
                   look: duoFaces?.look ?? h3Look,
                   ...(videos ? { videos } : {}),
+                  ...(steps ? { steps } : {}),
                 }) ?? patched.graph
               )
             : timed(patched.graph);

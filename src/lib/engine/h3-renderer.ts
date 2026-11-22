@@ -494,6 +494,8 @@ export function withH3References(
      * sentence (M11 T21: the moment before the part, and how the first clip really looks).
      */
     videos?: ReadonlyArray<{ video: string; tells: string }>;
+    /** Sampler steps (default H3_REF_STEPS); fewer only for a part with no words to keep. */
+    steps?: number;
   }
 ): Workflow | null {
   const graph = JSON.parse(JSON.stringify(source)) as Workflow;
@@ -509,7 +511,7 @@ export function withH3References(
   const old = h3[1].inputs;
   unet.inputs.unet_name = H3_REF_FILES.transformer;
   if (lora?.inputs) lora.inputs.lora_name = H3_REF_FILES.turboLora;
-  if (scheduler?.inputs) scheduler.inputs.steps = H3_REF_STEPS;
+  if (scheduler?.inputs) scheduler.inputs.steps = input.steps ?? H3_REF_STEPS;
   const tags = input.pictures
     .map((picture, k) => `<Picture ${k + 1}> is ${picture.shows}.`)
     .join(' ');
