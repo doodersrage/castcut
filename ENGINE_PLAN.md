@@ -201,14 +201,18 @@ out, so the numbers differ from the table above):
 | Over 0.6 | 10 of 36 | 19 of 48 | 46 of 59 |
 
 Klein 4B is rejected: about as fast as Fibo, its faces are far from the Cast and its flags twice
-Edit 2511's. A second script (`castcut-fibo-second/`, six scenes, June and Marcus made Cast
-members, 16 Scenes) tested less than meant: Edit 2511 41 min, 5 flagged; Fibo 17 min, 10
-flagged, but only 6 of its 17 takes were Fibo's (the app sends two-person shots to Edit 2511),
-and its two-shots score against the lead's plate whichever face is found. **Where it stands:**
+Edit 2511's. A second script (`castcut-fibo-second/`, six scenes, June and Marcus made Cast members, 16
+Scenes, mostly two-shots): Edit 2511 41 min, 5 flagged; Fibo 17 min, 10 flagged. (A first
+reading said only 6 of Fibo's 17 takes were Fibo's: the others' pictures are the partner's face
+finish, an Edit 2511 pass run after the still on both engines; the stills under them were
+Fibo's.) Face scores there are left out: its two-shots match the lead's plate against whichever
+face is found. **Where it stands:**
 Edit 2511 stays Final; Fibo is the opt-in fast Final, about 3× faster on one-person shots with
 faces a step further from the Cast; phase 3's 75 s gate is met only by trading likeness. Open:
 on one fresh install the Final tier didn't offer Fibo even after the inventory fetch (`be5a52a3`),
-though it did on the s26 copy; not found yet.
+though it did on the s26 copy. It now asks again when no answer comes (`86a06bb0`) and passed 3
+of 3 clean cold checks; the commit blames the API's rate limit, but no 429 was logged, so the
+cause is not confirmed.
 
 ## 4. Video (weeks 5–8)
 
@@ -271,6 +275,14 @@ flagged, 21 min. The first tries drift as often as before, so the clip count is 
 pinning the first try of a wordless wide shot would save those ~5 minutes, at the cost of every
 such clip returning to its still. **Decided (22 November): redo only**; clips move more freely,
 and a drifted one costs one redo.
+
+**The cause, at the still (22 November 2026, main `859ce369`).** The walking pose said no direction,
+and the stills had her striding straight at the lens. The run's street still replayed on its own
+seed and three more, each animated on the same H3 graph: today's wording, 4 of 4 clips walked into
+the camera; "walks across the frame, seen from a three-quarter side angle — not toward the camera —
+mid-step", 0 of 4, still full-body at the end, her face still to the camera (face distance on the
+stills 0.43 against 0.38). Shipped for both walking poses. The hallway's coat drift was not a
+walk; the pinned redo still covers the rest.
 
 ## 5. Sampler-level speedups, A/B tested (weeks 8–10)
 
@@ -440,6 +452,8 @@ and less motion.
 
 One check before investing here: the code notes that MiniMax's licence excludes use in the US, EU,
 UK and South Korea. Confirm it covers how H3 will be used and shipped.
+**Decided (22 November 2026): H3 stays as it is;** the user accepts the licence question as others
+using it do.
 
 **Done when:** a plain 5 s clip is under 100 s and a keyframed 30 s clip is under 10 minutes, with
 face match and motion unchanged on the benchmark.
