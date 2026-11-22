@@ -859,14 +859,19 @@ async function* ollamaNativeChatCompletionStream(options: {
 
 /**
  * LM Studio's per-request `ttl` (seconds): a model loaded on demand unloads after that long idle,
- * so ComfyUI gets its memory back between checks (ENGINE_PLAN phase 6 A/B). Off unless
- * LLM_IDLE_TTL_SECONDS is set; only for an LLM server on this machine (it shares the GPU).
+ * so ComfyUI gets its memory back between checks. LLM_IDLE_TTL_SECONDS, default
+ * {@link LLM_IDLE_TTL_DEFAULT_SECONDS}; 0 keeps the model loaded. Only for an LLM server on this
+ * machine (it shares the GPU). Two A/Bs of a 43-Scene Final run (ENGINE_PLAN phase 6): 82 → 69 min
+ * and 72 → 63 min with 10 s, the same flags, no load failure.
  */
+export const LLM_IDLE_TTL_DEFAULT_SECONDS = 10;
+
 export function llmIdleTtlBody(
   baseUrl: string,
   env: Record<string, string | undefined> = typeof process === 'undefined' ? {} : process.env
 ): { ttl?: number } {
-  const seconds = Math.round(Number(env.LLM_IDLE_TTL_SECONDS));
+  const raw = env.LLM_IDLE_TTL_SECONDS?.trim();
+  const seconds = raw ? Math.round(Number(raw)) : LLM_IDLE_TTL_DEFAULT_SECONDS;
   if (!Number.isFinite(seconds) || seconds <= 0) return {};
   try {
     const host = new URL(baseUrl).hostname.toLowerCase();

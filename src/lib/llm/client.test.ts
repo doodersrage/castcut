@@ -196,12 +196,16 @@ describe('transient LLM failures', () => {
 });
 
 describe('llmIdleTtlBody', () => {
-  it('sends LM Studio a ttl only when set, and only to a server on this machine', () => {
+  it('sends LM Studio a ttl, 10 s unless set (0 turns it off), only to a server on this machine', () => {
     const on = { LLM_IDLE_TTL_SECONDS: '10' };
     assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', on), { ttl: 10 });
     assert.deepEqual(llmIdleTtlBody('http://localhost:1234/v1', on), { ttl: 10 });
     assert.deepEqual(llmIdleTtlBody('https://api.example.com/v1', on), {});
-    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', {}), {});
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', {}), { ttl: 10 });
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: ' ' }), { ttl: 10 });
+    assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: '60' }), { ttl: 60 });
+    assert.deepEqual(llmIdleTtlBody('http://localhost:1234/v1', {}), { ttl: 10 });
+    assert.deepEqual(llmIdleTtlBody('https://api.example.com/v1', {}), {});
     assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: '0' }), {});
     assert.deepEqual(llmIdleTtlBody('http://127.0.0.1:1234/v1', { LLM_IDLE_TTL_SECONDS: 'x' }), {});
   });
