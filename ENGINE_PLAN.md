@@ -164,26 +164,28 @@ sampler tested broke the pictures (phase 5). This gate needs a faster model, not
 
 **A faster Final model: Fibo 2.0 Edit Turbo (22 November 2026).** Already installed and supported
 (`fibo2-renderer.ts`, a 4-step editor on Qwen-Image 2.1's path). The same 43-Scene s26 copy as
-phase 6's A/B, keep the best by the checks, one redo, one room a scene, on the server, Fibo as the
-engine (no tier: Final pins Edit 2511), main `febd50e7` (`castcut-fibo-final/`), against that
-A/B's B run (Edit 2511 Final, the same build's unload on). Faces scored the same way for both
-(`/api/face-match`, every kept still against Slyne's plate, cosine distance, lower closer):
+phase 6's A/B, keep the best by the checks, one redo, one room a scene, on the server: Fibo with
+no tier (`castcut-fibo-final/`, main `febd50e7`), Fibo through the Final tier's new choice
+(`castcut-fibo-final2/`, main `81f30b62`), against that A/B's B run (Edit 2511 Final). Every
+take each run rendered (read from its patches; a server run's takes reach the settings only when
+a page applies them) scored alike against Slyne's plate (`/api/face-match`, lower closer):
 
-| | Edit 2511 (Final) | Fibo 2.0 Edit Turbo |
-| --- | --- | --- |
-| 43 Scenes | 63 min | **23 min** (32 s a Scene) |
-| Flagged | 15 | **7** |
-| Median render a still | 66.2 s | **12.0 s** |
-| Median face distance (39 paired) | 0.604 | **0.514** |
-| Closer by more than 0.1 | | 12 stills; worse on 5 |
+| | Edit 2511 (Final) | Fibo, no tier | Fibo as Final |
+| --- | --- | --- | --- |
+| 43 Scenes | 63 min | 23 min | **22 min** |
+| Flagged | 15 | 7 | 5 |
+| New takes scored | 45 | 42 | 41 |
+| Median face distance | **0.515** | 0.619 | 0.556 |
+| Over 0.6 | 16 | 23 | 19 |
 
-The gate (75 s a Scene) is met with room to spare, and the faces score closer. Side by side
-(`pairs-*.jpg`), both runs keep failures: Edit 2511 a blue mannequin, a doubled man and a hologram
-phone; Fibo the wrong outfit on a few two-shots (a yellow dress for the green one, a dress for the
-denim shirt; 3 outfit misses in its checks) and the kitchen looking different from shot to shot
-in one scene where Edit 2511's held. Not switched: Fibo's weights are **CC BY-NC 4.0** (no
-commercial use), one run is one run, and the room drift needs a look. Making it Final is
-`FINAL_ENGINE` in `run-tier.ts`.
+Paired by Scene (38), Fibo as Final was closer by more than 0.1 on 9 and further on 14. Keep the
+best, choosing among all of a Scene's takes, kept only 8 and 2 of Fibo's new takes over the
+older Edit 2511 ones. So Fibo is about 3× faster with faces somewhat less like the Cast, and its
+weights are **CC BY-NC 4.0**. A first reading of this, from each Scene's kept take in the
+settings (older Edit 2511 renders), said the opposite and is withdrawn, with a room change made
+on it (Fibo's shots had the room all along). **Shipped:** an opt-in "Final on: Fibo 2.0 (fast)"
+where Fibo is installed (`SceneRun.finalEngine`, main `81f30b62`, `a860d242`); Edit 2511 stays
+the default.
 
 ## 4. Video (weeks 5–8)
 
