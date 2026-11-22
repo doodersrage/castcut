@@ -37,11 +37,13 @@ function collectTestFiles(dir) {
 }
 
 const libTestFiles = collectTestFiles(LIB_DIR).sort();
-const desktopTestFile = join(ROOT, 'desktop', 'scripts', 'targets.test.mjs');
-const allTestFiles = [desktopTestFile, ...libTestFiles];
+const desktopTestFiles = ['targets.test.mjs', 'stage-standalone.test.mjs'].map(name =>
+  join(ROOT, 'desktop', 'scripts', name)
+);
+const allTestFiles = [...desktopTestFiles, ...libTestFiles];
 
 console.log(
-  `Running ${allTestFiles.length} test files (${libTestFiles.length} under src/lib + 1 desktop target).`
+  `Running ${allTestFiles.length} test files (${libTestFiles.length} under src/lib + ${desktopTestFiles.length} desktop).`
 );
 
 const extraArgs = process.argv.slice(2);
