@@ -7,7 +7,9 @@ import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { SegmentedControl, ToolSection } from '@/components/ui/ToolPageShell';
 import { EPISODE_REDO_MAX } from '@/lib/day/episode-run';
 import {
+  animatePreviewsRun,
   animateKeptRun,
+  previewsToAnimate,
   flaggedByScene,
   keptTakesWithoutClip,
   RUN_DEFAULT_MAX_MINUTES,
@@ -62,6 +64,7 @@ export default function SceneRunPanel({
   const leftIds = new Set(plan.left.map(entry => entry.sceneId));
   const set = (patch: Partial<SceneRun>) => onChange({ ...run, ...patch, updatedAt: Date.now() });
   const toAnimate = useMemo(() => keptTakesWithoutClip(run, scenes), [run, scenes]);
+  const previewsWaiting = useMemo(() => previewsToAnimate(run, scenes), [run, scenes]);
   // A Final run holds back the shots whose newest preview you rejected (run-tier.ts).
   const heldCount =
     run.tier === 'final'
@@ -86,21 +89,25 @@ export default function SceneRunPanel({
     <ToolSection title={`Run · ${run.label}`} data-testid="scene-run">
       <div className="space-y-2">
         <p className="type-caption" data-testid="scene-run-summary">
-          {plan.queued.length
-            ? `${run.tier === 'preview' ? 'Preview: ' : run.tier === 'final' ? 'Final: ' : ''}${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}${engine ? ` on ${comfyModelLabel(engine as ComfyImageModel)}` : ''}`
-            : 'Nothing to queue with these limits.'}
-          {heldCount
+          {run.animatePreviews
+            ? `Animate the previews: ${previewsWaiting} clip${previewsWaiting === 1 ? '' : 's'} at the Draft size (768 on MiniMax-H3), on this page — no new stills. Keep the page open while it runs.`
+            : plan.queued.length
+              ? `${run.tier === 'preview' ? 'Preview: ' : run.tier === 'final' ? 'Final: ' : ''}${plan.queued.length} take${plan.queued.length === 1 ? '' : 's'}, one at a time, about ${formatEta(plan.totalSec).replace('~', '')}${engine ? ` on ${comfyModelLabel(engine as ComfyImageModel)}` : ''}`
+              : 'Nothing to queue with these limits.'}
+          {heldCount && !run.animatePreviews
             ? ` · ${heldCount} held back — you rejected its preview (preview it again, or restore the take)`
             : ''}
           {plan.left.length ? ` · ${plan.left.length} past the limits` : ''}
           {plan.gone.length
             ? ` · ${plan.gone.length} Scene${plan.gone.length === 1 ? '' : 's'} gone`
             : ''}
-          {run.tier === 'preview'
-            ? ' · drafts for the animatic: unchecked, never kept — reject one in its Scene to change it before the Final.'
-            : run.auto?.keep
-              ? ' · it keeps the best take by its checks; any it isn’t sure of are listed for you.'
-              : ' · it never keeps a take: you choose.'}
+          {run.animatePreviews
+            ? ''
+            : run.tier === 'preview'
+              ? ' · drafts for the animatic: unchecked, never kept — reject one in its Scene to change it before the Final.'
+              : run.auto?.keep
+                ? ' · it keeps the best take by its checks; any it isn’t sure of are listed for you.'
+                : ' · it never keeps a take: you choose.'}
         </p>
         <div
           className="flex flex-wrap items-center gap-2 text-sm"
@@ -461,6 +468,21 @@ export default function SceneRunPanel({
               onClick={() => onChange(animateKeptRun(run))}
             >
               Animate the kept takes ({toAnimate})
+            </Button>
+          ) : null}
+          {/* After a Preview run: its drafts made to move, at the Draft size, for the animatic. */}
+          {run.tier === 'preview' &&
+          (run.state === 'done' || run.state === 'cancelled' || run.state === 'paused') &&
+          previewsWaiting > 0 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={disabled}
+              data-testid="scene-run-animate-previews"
+              title="The run again on this page, rendering no stills: each preview made a clip at the Draft size (768 on MiniMax-H3, about twice as fast), for the animatic"
+              onClick={() => onChange(animatePreviewsRun(run))}
+            >
+              Animate the previews at Draft ({previewsWaiting})
             </Button>
           ) : null}
           <Button

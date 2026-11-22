@@ -66,7 +66,8 @@ export function withRunTier(
   scenes: readonly Pick<SavedScene, 'id' | 'takes'>[]
 ): SceneRun {
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
-  const { tier: _old, ...rest } = run;
+  // A tier set again is a render run: an Animate the previews run's mode goes.
+  const { tier: _old, animatePreviews: _previews, ...rest } = run;
   if (!tier) return rest;
   if (tier === 'preview') {
     return {

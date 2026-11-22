@@ -2014,6 +2014,108 @@ test('a run renders Scene by Scene, keeps nothing, and resumes without a second 
   await expect(page.getByTestId('scene-run-log').locator('[data-event="queued"]')).toHaveCount(2);
 });
 
+test('after a Preview run, Animate the previews makes each preview a Draft clip on this page', async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  const queued = await stubComfyQueue(page);
+  // Every job asked about has finished, with a clip.
+  await page.route('**/api/comfyui/jobs**', route =>
+    route.fulfill({
+      json: {
+        status: {
+          status: 'completed',
+          images: [{ filename: 'e2e-preview-clip.mp4', subfolder: '', type: 'output' }],
+        },
+      },
+    })
+  );
+  for (const check of ['adult-check', 'play-checks', 'face-match', 'marks-check', 'outfit-check', 'clip-check', 'clip-hear']) {
+    await page.route(`**/api/${check}**`, route => route.fulfill({ json: { ok: true, skipped: true } }));
+  }
+  const withPreview = (id: string, name: string, at: number) => ({
+    id,
+    castId: CAST,
+    name,
+    slot: { id: 'morning', label: 'Morning', location: 'kitchen', sceneHints: 'pours coffee' },
+    takes: [{ id: `${id}-p`, promptId: `${id}-p`, imageUrl: `/icon.svg?${id}`, at, tier: 'preview' }],
+    createdAt: at,
+    updatedAt: at,
+  });
+  const base = sceneWithTakes();
+  await seedSettingsCacheOnNextLoad(
+    page,
+    {
+      shared: { activeCharacterId: CAST },
+      characters: cast,
+      tools: {
+        video: { dayClips: 'h3' },
+        scene: {
+          ...base,
+          scenes: [
+            { ...base.scenes[0]!, keptTakeId: 'take-1' },
+            withPreview('prev-a', 'Preview A', 3),
+            withPreview('prev-b', 'Preview B', 4),
+          ],
+          run: {
+            id: 'run-preview',
+            castId: CAST,
+            label: 'Preview run',
+            items: [
+              { sceneId: 'scene-e2e', include: true },
+              { sceneId: 'prev-a', include: true },
+              { sceneId: 'prev-b', include: true },
+            ],
+            maxTakes: 8,
+            maxMinutes: 60,
+            skipKept: false,
+            tier: 'preview',
+            onServer: true,
+            state: 'done',
+            position: 3,
+            outcomes: { 'scene-e2e': 'landed', 'prev-a': 'landed', 'prev-b': 'landed' },
+            log: [],
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      },
+    },
+    { once: true }
+  );
+  await gotoStable(page, `/scene?character=${CAST}`);
+  await dismissBlockingOverlays(page);
+  // The kept Scene has its clip from its kept take: two previews to animate.
+  const animate = page.getByTestId('scene-run-animate-previews');
+  await expect(animate).toContainText('Animate the previews at Draft (2)', { timeout: 60_000 });
+  await animate.click();
+  await expect(page.getByTestId('scene-run-summary')).toContainText('Animate the previews: 2 clips');
+  await startRun(page);
+  await expect(page.getByTestId('scene-run-state')).toHaveAttribute('data-state', 'done', {
+    timeout: 180_000,
+  });
+  // Two clips, each at the Draft size; no still rendered.
+  const clips = queued.filter(body => body.includes('"videoDraft":"on"'));
+  expect(clips).toHaveLength(2);
+  expect(queued).toHaveLength(2);
+  // Each clip joined its preview take, which stays a preview (never kept).
+  await expect
+    .poll(
+      async () => {
+        const tool = JSON.parse((await storedSceneTool(page)) || '{}');
+        return ['prev-a', 'prev-b']
+          .map(id => {
+            const scene = (tool.scenes ?? []).find((entry: { id: string }) => entry.id === id);
+            const take = scene?.takes?.[0];
+            return `${take?.tier}:${take?.clipUrl ? 'clip' : 'none'}:${scene?.keptTakeId ?? '-'}:${tool.run?.outcomes?.[id]}`;
+          })
+          .join('|');
+      },
+      { timeout: 30_000 }
+    )
+    .toBe('preview:clip:-:landed|preview:clip:-:landed');
+});
+
 // FINISHING_PLAN Phase 3, step 2 (shadow mode): a run sends its inputs at Start, each take what it
 // decided; the server decides again from the inputs alone and finds no difference. Needs server
 // storage (a local run's data folder): skipped where the server has none (CI).

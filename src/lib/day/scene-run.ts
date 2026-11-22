@@ -8,7 +8,7 @@
 import { keptClipNeeded } from './continuous-take';
 import { parseScript } from '../script/parse';
 import { episodeAnimates, normalizeEpisodeRunAuto, type EpisodeRunAuto } from './episode-run';
-import { isRunTier, type RunTier } from './run-tier';
+import { isRunTier, previewTakeOf, type RunTier } from './run-tier';
 import { SCENE_LIMIT_PER_CAST, scenesForCast, type SavedScene } from './scenes';
 import type { SavedScript } from './scene-scripts';
 import { shotsForScene, type PlannedShot } from './script-shots';
@@ -71,6 +71,12 @@ export type SceneRun = {
    * checks and keep-best. Both render on the server. Unset: on each take's own engine, as before.
    */
   tier?: RunTier;
+  /**
+   * Animate the previews (run-tier.ts): the run renders no stills; each Scene with no kept take
+   * has its newest preview animated on the page at the Draft size (MiniMax-H3: 768) for the
+   * animatic. The clip joins the preview take. Unset: an ordinary run.
+   */
+  animatePreviews?: boolean;
   state: SceneRunState;
   /** Items done so far (W4). */
   position: number;
@@ -317,6 +323,7 @@ export function normalizeSceneRun(raw: unknown): SceneRun | undefined {
     ...(run.resumeOnReload === true ? { resumeOnReload: true } : {}),
     ...(run.onServer === true || isRunTier(run.tier) ? { onServer: true } : {}),
     ...(isRunTier(run.tier) ? { tier: run.tier } : {}),
+    ...(run.animatePreviews === true && !isRunTier(run.tier) ? { animatePreviews: true } : {}),
     state: states.includes(run.state as SceneRunState) ? (run.state as SceneRunState) : 'prepared',
     position: whole(run.position, 0, RUN_MAX_ITEMS, 0),
     ...(run.outcomes && typeof run.outcomes === 'object'
@@ -460,6 +467,8 @@ export type RunStep =
   | { kind: 'scene'; sceneId: string }
   /** A kept take with no clip yet, on a run that animates them: animated, no new take. */
   | { kind: 'animate'; sceneId: string }
+  /** Animate the previews: this Scene's newest preview, animated at the Draft size. */
+  | { kind: 'animate-preview'; sceneId: string; takeId: string }
   | { kind: 'done'; reason: 'finished' | 'take-limit' | 'time-limit' };
 
 /**
@@ -489,6 +498,20 @@ export function nextRunStep(
     }
     return { kind: 'done', reason: 'finished' };
   }
+  if (run.animatePreviews) {
+    if (run.startedAt && now - run.startedAt > run.maxMinutes * 60_000) {
+      return { kind: 'done', reason: 'time-limit' };
+    }
+    const byId = new Map(scenes.map(scene => [scene.id, scene]));
+    for (const item of run.items) {
+      if (!item.include || run.outcomes?.[item.sceneId]) continue;
+      const scene = byId.get(item.sceneId);
+      const preview = scene ? previewNeedingClip(scene) : undefined;
+      if (scene && preview)
+        return { kind: 'animate-preview', sceneId: scene.id, takeId: preview.id };
+    }
+    return { kind: 'done', reason: 'finished' };
+  }
   if (runTakesTaken(run) >= run.maxTakes) return { kind: 'done', reason: 'take-limit' };
   if (run.startedAt && now - run.startedAt > run.maxMinutes * 60_000) {
     return { kind: 'done', reason: 'time-limit' };
@@ -508,6 +531,63 @@ export function nextRunStep(
   return { kind: 'done', reason: 'finished' };
 }
 
+/**
+ * The preview an Animate the previews run animates for this Scene: its newest preview you haven't
+ * rejected, while it has no clip and the Scene has no kept take (a kept take is the Scene's clip).
+ */
+export function previewNeedingClip(
+  scene: Pick<SavedScene, 'takes' | 'keptTakeId'>
+): SavedScene['takes'][number] | undefined {
+  if (scene.keptTakeId) return undefined;
+  const preview = previewTakeOf(scene);
+  return preview && !preview.clipUrl ? preview : undefined;
+}
+
+/** The Scenes of a run whose previews Animate the previews would animate. */
+export function previewsToAnimate(
+  run: Pick<SceneRun, 'items'>,
+  scenes: readonly Pick<SavedScene, 'id' | 'takes' | 'keptTakeId'>[]
+): number {
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  return run.items.filter(item => {
+    const scene = byId.get(item.sceneId);
+    return Boolean(scene && previewNeedingClip(scene));
+  }).length;
+}
+
+/**
+ * A Preview run made again to animate its previews on this page (Draft size), rendering no stills.
+ * Its tier goes: the run is the page's, not the server's.
+ */
+export function animatePreviewsRun(run: SceneRun, now = Date.now()): SceneRun {
+  const {
+    tier: _tier,
+    onServer: _onServer,
+    outcomes: _outcomes,
+    attempts: _attempts,
+    flagged: _flagged,
+    current: _current,
+    ahead: _ahead,
+    handOff: _handOff,
+    stopReason: _stopReason,
+    startedAt: _startedAt,
+    auto: _auto,
+    ...rest
+  } = run;
+  return withRunLog(
+    {
+      ...rest,
+      animatePreviews: true,
+      state: 'prepared',
+      position: 0,
+      items: run.items.map(item => ({ ...item, include: true })),
+      maxMinutes: Math.max(run.maxMinutes, 24 * 60),
+      updatedAt: now,
+    },
+    { at: now, event: 'prepared', detail: 'to animate the previews at the Draft size' }
+  );
+}
+
 /** "3 of 8 done": what the run has been through, of what it has to go through now. */
 export function runProgress(
   run: SceneRun,
@@ -518,6 +598,14 @@ export function runProgress(
   if (run.handOff) {
     const open = run.handOff.sceneIds.filter(id => !run.outcomes?.[id]).length;
     return { done, total: done + open };
+  }
+  if (run.animatePreviews) {
+    const waiting = run.items.filter(item => {
+      if (!item.include || run.outcomes?.[item.sceneId]) return false;
+      const scene = byId.get(item.sceneId);
+      return Boolean(scene && previewNeedingClip(scene));
+    }).length;
+    return { done, total: done + waiting };
   }
   const open = run.items.filter(item => {
     if (!item.include || run.outcomes?.[item.sceneId]) return false;
@@ -787,6 +875,7 @@ export function keptTakesWithoutClip(run: SceneRun, scenes: readonly SavedScene[
 export function animateKeptRun(run: SceneRun, now = Date.now()): SceneRun {
   const {
     tier: _tier,
+    animatePreviews: _previews,
     onServer: _onServer,
     outcomes: _outcomes,
     attempts: _attempts,

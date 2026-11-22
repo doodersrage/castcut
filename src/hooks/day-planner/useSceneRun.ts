@@ -456,6 +456,50 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
   );
 
   /**
+   * Animate the previews (scene-run.ts): the Scene's preview put on the card and animated with the
+   * page's own Animate at the Draft size (MiniMax-H3: 768; other engines as they are). The clip
+   * joins the preview take, which the Cut room's animatic then plays. True when it landed.
+   */
+  const animatePreview = useCallback(async (takeId: string): Promise<boolean> => {
+    const take = () => pageRef.current.active?.takes.find(entry => entry.id === takeId);
+    const promptId = take()?.promptId;
+    if (!promptId) return false;
+    // On the card once nothing renders there (showTake waits for nothing: asked again).
+    let asked = 0;
+    const onCard = await until(() => {
+      if (!pageRef.current.inFlight && pageRef.current.still?.promptId === promptId) return true;
+      if (Date.now() - asked >= OPEN_RETRY_MS) {
+        asked = Date.now();
+        const current = take();
+        if (current) pageRef.current.showTake(current);
+      }
+      return false;
+    }, OPEN_TIMEOUT_MS);
+    if (!onCard) return false;
+    const clipBefore = pageRef.current.still?.clipPromptId;
+    await vmRef.current.animateSlot(pageRef.current.slot, { manageBusy: false, draft: true });
+    // Queued once the page has the clip's job (pageRef follows in an effect: see animateKept).
+    await until(() => {
+      const still = pageRef.current.still;
+      return (
+        still?.clipStatus === 'error' ||
+        Boolean(still?.clipPromptId && still.clipPromptId !== clipBefore && still.clipStatus)
+      );
+    }, OPEN_TIMEOUT_MS);
+    const queued = pageRef.current.still?.clipStatus;
+    const landed =
+      queued === 'queued' || queued === 'running' || queued === 'completed'
+        ? await until(() => {
+            const status = pageRef.current.still?.clipStatus;
+            return status === 'completed' || status === 'error';
+          }, RENDER_TIMEOUT_MS)
+        : false;
+    if (!landed || pageRef.current.still?.clipStatus !== 'completed') return false;
+    // The page merges the clip into the take on the card (recordSceneFromWorking).
+    return until(() => Boolean(take()?.clipUrl), OPEN_TIMEOUT_MS);
+  }, []);
+
+  /**
    * An episode run's take, landed and checked (Part 19 G1, episode-run.ts): the best of the
    * Scene's takes by their checks is kept — or, when even that one fails them and redos are
    * left, the Scene is rendered again. Out of redos, the least-bad is kept, noted and flagged
@@ -622,7 +666,9 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
               ? 'the take limit was reached'
               : step.reason === 'time-limit'
                 ? 'the time limit was reached'
-                : 'every Scene in it has had its take';
+                : run.animatePreviews
+                  ? 'every preview in it has been animated'
+                  : 'every Scene in it has had its take';
           save(withRunLog({ ...run, state: 'done' }, { at: Date.now(), event: 'done', detail }));
           return;
         }
@@ -659,6 +705,22 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
             );
             return;
           }
+        }
+
+        // Animate the previews: its preview animated at the Draft size, no new take.
+        if (step.kind === 'animate-preview') {
+          const ok = await animatePreview(step.takeId);
+          save(
+            withRunOutcome(
+              runRef.current ?? run,
+              sceneId,
+              ok ? 'landed' : 'failed',
+              ok
+                ? `${scene.name}: preview animated (Draft)`
+                : `${scene.name}: its preview’s clip didn’t land — the still is used`
+            )
+          );
+          continue;
         }
 
         // Kept already, no clip yet (a Final rendered on the server): animated, no new take.
@@ -815,7 +877,7 @@ export function useSceneRun(vm: DayEngineView, page: ScenePage) {
       setLooping(false);
       setStopping(null);
     }
-  }, [afterEpisodeTake, animateKept, me, save]);
+  }, [afterEpisodeTake, animateKept, animatePreview, me, save]);
 
   // A run the server renders: what it did, applied here in order (each patch once), while the
   // page is open — and when it opens again, everything since. Stops asking once it has ended.

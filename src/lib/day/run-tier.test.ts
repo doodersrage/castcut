@@ -9,8 +9,18 @@ import {
   sceneHeldFromFinals,
   withRunTier,
 } from './run-tier';
-import { normalizeSceneRun, type SceneRun } from './scene-run';
-import type { SceneTake } from './scenes';
+import {
+  animateKeptRun,
+  animatePreviewsRun,
+  nextRunStep,
+  normalizeSceneRun,
+  previewNeedingClip,
+  previewsToAnimate,
+  runProgress,
+  withRunOutcome,
+  type SceneRun,
+} from './scene-run';
+import type { SavedScene, SceneTake } from './scenes';
 
 const take = (id: string, at: number, extra: Partial<SceneTake> = {}): SceneTake => ({
   id,
@@ -111,5 +121,53 @@ describe('run tiers (FINISHING_PLAN Phase 5)', () => {
     const old = normalizeSceneRun({ ...run(), tier: 'draft' });
     assert.equal(old?.tier, undefined);
     assert.equal(old?.onServer, undefined);
+  });
+});
+
+describe('Animate the previews (Draft clips for the animatic)', () => {
+  const scene = (id: string, takes: SceneTake[], keptTakeId?: string): SavedScene =>
+    ({ id, castId: 'cast', name: id, slot: { id: 'morning' }, takes, ...(keptTakeId ? { keptTakeId } : {}) }) as unknown as SavedScene;
+  const scenes = [
+    // a: its newest preview has no clip yet.
+    scene('a', [take('a1', 1, { tier: 'preview' }), take('a2', 2, { tier: 'preview' })]),
+    // b: left out of the run.
+    scene('b', [take('b1', 1, { tier: 'preview' })]),
+    // c: kept already — its kept take is its clip, not the preview.
+    scene('c', [take('c1', 1, { tier: 'preview' }), take('c2', 2)], 'c2'),
+  ];
+  const previewRun = run({ tier: 'preview', onServer: true, state: 'done', startedAt: 5, outcomes: { a: 'landed', c: 'landed' } });
+
+  it('animates the newest preview of a Scene with no kept take, once, while it has no clip', () => {
+    assert.equal(previewNeedingClip(scenes[0]!)?.id, 'a2');
+    assert.equal(previewNeedingClip(scenes[2]!), undefined);
+    const withClip = scene('a', [take('a2', 2, { tier: 'preview', clipUrl: '/a2.mp4' })]);
+    assert.equal(previewNeedingClip(withClip), undefined);
+    const rejected = scene('a', [take('a2', 2, { tier: 'preview', review: 'rejected' })]);
+    assert.equal(previewNeedingClip(rejected), undefined);
+  });
+
+  it('a done Preview run made again on this page: no tier, no server, no stills rendered', () => {
+    const next = animatePreviewsRun(previewRun, 10);
+    assert.equal(next.animatePreviews, true);
+    assert.equal(next.tier, undefined);
+    assert.equal(next.onServer, undefined);
+    assert.equal(next.state, 'prepared');
+    assert.equal(next.outcomes, undefined);
+    assert.equal(next.startedAt, undefined);
+    assert.equal(previewsToAnimate(next, scenes), 2); // a, and b (every Scene is included again)
+    assert.deepEqual(nextRunStep(next, scenes), { kind: 'animate-preview', sceneId: 'a', takeId: 'a2' });
+    const afterA = withRunOutcome(next, 'a', 'landed', 'a: preview animated (Draft)');
+    assert.deepEqual(nextRunStep(afterA, scenes), { kind: 'animate-preview', sceneId: 'b', takeId: 'b1' });
+    const afterB = withRunOutcome(afterA, 'b', 'failed', 'b: its preview’s clip didn’t land');
+    assert.deepEqual(nextRunStep(afterB, scenes), { kind: 'done', reason: 'finished' });
+    assert.deepEqual(runProgress(afterA, scenes), { done: 1, total: 2 });
+  });
+
+  it('is kept when stored; a tier or Animate the kept takes ends it', () => {
+    const next = animatePreviewsRun(previewRun, 10);
+    assert.equal(normalizeSceneRun(next)?.animatePreviews, true);
+    assert.equal(normalizeSceneRun(run({ animatePreviews: 'yes' as never }))?.animatePreviews, undefined);
+    assert.equal(withRunTier(next, 'final', scenes).animatePreviews, undefined);
+    assert.equal(animateKeptRun(next, 11).animatePreviews, undefined);
   });
 });
