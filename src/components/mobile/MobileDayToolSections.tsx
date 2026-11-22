@@ -234,7 +234,6 @@ export default function MobileDayToolSections(vm: ViewModel) {
     intimateMix,
     suggestDayScenes,
     writeDayFromIdea,
-    writeDayEvent,
     leaveDayEvent,
     rerollActiveSlotScene,
     queueBlockReason,
@@ -1067,7 +1066,8 @@ export default function MobileDayToolSections(vm: ViewModel) {
           slotCount={slots.length}
           onWrite={writeDayFromIdea}
           event={activeDayEvent(toolSettings.dayEvent, slots)}
-          onWriteEvent={writeDayEvent}
+          // One event is no longer offered for a new short (2026-11-22): a script scene does it (one
+          // room a scene, continuous takes). A saved one keeps its banner and Back to a whole short.
           onLeaveEvent={leaveDayEvent}
           onSwitchToWholeDay={() => void suggestDayScenes()}
           castId={character?.id}
