@@ -162,6 +162,29 @@ The 15-step change took 35% off the run. What is left around the render is about
 (checks 16 s, finishing 9 s); the render itself is the gate's whole budget, and every faster
 sampler tested broke the pictures (phase 5). This gate needs a faster model, not less overhead.
 
+**A faster Final model: Fibo 2.0 Edit Turbo (22 November 2026).** Already installed and supported
+(`fibo2-renderer.ts`, a 4-step editor on Qwen-Image 2.1's path). The same 43-Scene s26 copy as
+phase 6's A/B, keep the best by the checks, one redo, one room a scene, on the server, Fibo as the
+engine (no tier: Final pins Edit 2511), main `febd50e7` (`castcut-fibo-final/`), against that
+A/B's B run (Edit 2511 Final, the same build's unload on). Faces scored the same way for both
+(`/api/face-match`, every kept still against Slyne's plate, cosine distance, lower closer):
+
+| | Edit 2511 (Final) | Fibo 2.0 Edit Turbo |
+| --- | --- | --- |
+| 43 Scenes | 63 min | **23 min** (32 s a Scene) |
+| Flagged | 15 | **7** |
+| Median render a still | 66.2 s | **12.0 s** |
+| Median face distance (39 paired) | 0.604 | **0.514** |
+| Closer by more than 0.1 | | 12 stills; worse on 5 |
+
+The gate (75 s a Scene) is met with room to spare, and the faces score closer. Side by side
+(`pairs-*.jpg`), both runs keep failures: Edit 2511 a blue mannequin, a doubled man and a hologram
+phone; Fibo the wrong outfit on a few two-shots (a yellow dress for the green one, a dress for the
+denim shirt; 3 outfit misses in its checks) and the kitchen looking different from shot to shot
+in one scene where Edit 2511's held. Not switched: Fibo's weights are **CC BY-NC 4.0** (no
+commercial use), one run is one run, and the room drift needs a look. Making it Final is
+`FINAL_ENGINE` in `run-tier.ts`.
+
 ## 4. Video (weeks 5–8)
 
 LTX-2.5 renders 97 frames in 45–51 s, yet an animated shot takes about 6 minutes. Find and cut the
