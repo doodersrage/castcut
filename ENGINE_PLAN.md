@@ -388,7 +388,21 @@ Every size kept the set, faces and outfits of the 1024 run on three clips; the m
 a new seed's would. At 576 faces are soft but hold. On the fourth clip outfits changed mid-clip at
 every size, 1024 included, and worst at 768 (the man ended in a white dress), so the drift is H3's,
 not the size's. 768 looks right for the Preview animatic: about 2× faster with no loss a draft
-would show. Not wired in yet: `H3_LONG_SIDE` is one constant for every tier.
+would show. Wired in on 21 November 2026 as a choice, not by tier: Draft (768) in the Animate
+sheet and beside Animate all (remembered), and **Animate the previews at Draft** after a Preview
+run, which animates each Scene's preview on the page (no clips in server runs: the card was at
+24.0 of 24.5 GB with stills alone). `H3_DRAFT_LONG_SIDE` = 768; Final stays at 1024.
+
+**Real Preview then Draft clips (21 November 2026).** A three-scene script for Slyne, 4 shots, on
+an isolated server (`castcut-prevanim-run/`): Preview on the server in about 1 min, then Animate
+the previews at Draft: 4 of 4 clips landed in 3 min on the page, 37–51 s each in ComfyUI, all
+768 on the long side, 5.2 s with sound, each on its preview take. Same face, dress and rooms as
+the stills. It found one problem: the line shot's clip came out 576×768, a 3:4 chest-up crop
+made for portrait stills (October) that 16:9 stills had inherited, so a wide film would have
+padded it with black bars. Fixed (e7ef1468): the crop keeps the still's shape. On the second
+run the line still's face was 16.8% of its height, over the 16% bar, so it was used whole
+(768×416). The new crop on the first run's line still (face 15.9%) gives a 16:9 chest-up frame,
+768×416 at Draft. The Cut animatic playing them is not checked yet.
 
 **Keyframed 30 s clip (20 November 2026): 9.4 minutes, the gate met.** Run through
 `/api/clip/extend` on an isolated server (`castcut-x30-run/`), from a fresh 1024 replay of a
