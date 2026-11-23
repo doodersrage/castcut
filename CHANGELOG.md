@@ -9,6 +9,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [v4.3.2] - 2026-11-23
+
+- Anatomy check: a crop check per person, from the pose
+- Anatomy check: ask person by person what is at their own crotch
+- Anatomy check: ask whether anyone's genitals don't match their own body
+- Adult gate: an anatomy check — every visible body matches who it should be
+
 ## [v4.3.1] - 2026-11-22
 
 - Content Credentials: encode certificate integers minimally (1 identity in ~200 was unreadable)
