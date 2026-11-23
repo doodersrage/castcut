@@ -118,15 +118,24 @@ function cardEntry(layout: string): { beat: string; setting: string } {
       setting?: string;
     }>) {
       if (entry.layout === layout && entry.beat)
-        return { beat: entry.beat, setting: entry.setting || PLACE };
+        return { beat: entry.beat, setting: lyingSetting(entry.beat, entry.setting || PLACE) };
     }
   }
   const cue = POSE_LAYOUT_CUES[layout] ?? SPORT_CUE_FALLBACK[layout];
   if (!cue) throw new Error(`card: no beat for ${layout}`);
   return {
     beat: cue,
-    setting: layout.startsWith('sport_') ? (SPORT_SETTINGS[layout] ?? 'a sports ground') : PLACE,
+    setting: layout.startsWith('sport_')
+      ? (SPORT_SETTINGS[layout] ?? 'a sports ground')
+      : lyingSetting(cue, PLACE),
   };
+}
+/**
+ * The app reads PLACE as a plaza, where there is nowhere to lie (scene/surface.ts): a lying beat
+ * there is queued as sitting on a bench. Lying cells get the lawn alone.
+ */
+function lyingSetting(beat: string, setting: string): string {
+  return setting === PLACE && /\b(?:lie|lies|lying)\b/i.test(beat) ? PARK_LAWN : setting;
 }
 /** Where each sport is played (cells with no pose pack entry). */
 const SPORT_SETTINGS: Record<string, string> = {
@@ -206,6 +215,7 @@ const BEATS = [
   'unwinds for a moment',
 ];
 const PLACE = 'a sunny city park lawn beside a wide paved plaza';
+const PARK_LAWN = 'a sunny city park lawn';
 const SLOT_IDS: Record<number, string[]> = {
   2: ['morning', 'night'],
   3: ['morning', 'afternoon', 'night'],
@@ -713,7 +723,10 @@ const rows = ids.map((id, index) => {
     photoStatus: photoStatus[id],
     graph:
       mode === 'card'
-        ? (graphByFile.get(cardGraphs.get(id) ?? '') ?? null)
+        ? // The slot's own prompt id when the page has it; else the graph holding its beat.
+          ((still?.promptId ? graphs.get(still.promptId) : undefined) ??
+          graphByFile.get(cardGraphs.get(id) ?? '') ??
+          null)
         : still?.promptId
           ? (graphs.get(still.promptId) ?? null)
           : null,

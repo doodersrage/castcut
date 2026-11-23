@@ -9,8 +9,9 @@
 #    Sport, plus the Suggestive and Vacation rows) and captures the graphs Day queues;
 # 3. renders every captured graph at SEEDS (11, 22, 33), one at a time, and reads each still's pose
 #    through the app's /api/pose-detect (replay.py);
-# 4. scores with the app's scorePoseMatch (score.mts) and draws contact sheets (sheet.py); with
-#    <work-dir>/labels.json (eye labels), report.py tallies them.
+# 4. scores with the app's scorePoseMatch (score.mts) and draws contact sheets (card_sheet.py);
+#    with <work-dir>/card-labels.json (eye labels), card_report.py tallies them, and
+#    card_review.py makes a page for a second reviewer.
 # Every step resumes. CARD_ONLY=a,b limits the cells (a smoke test).
 # Env: COMFY_URL (default http://127.0.0.1:8188), BENCH_PORT (47963), PROXY_PORT (47964),
 # SEEDS (11,22), ENV_LOCAL (a .env.local to link for the LLM / vision model; default the main
@@ -63,8 +64,8 @@ scripts/pose-bench/card_all.sh "$WORK" "$@"
 python3 scripts/pose-bench/replay.py "$WORK" --seeds "$SEEDS" --comfy "$COMFY_URL" --app "$BENCH_URL"
 node --import tsx scripts/pose-bench/score.mts "$WORK"
 python3 scripts/pose-bench/card_sheet.py "$WORK"
-if [ -f "$WORK/labels.json" ]; then
-  python3 scripts/pose-bench/report.py "$WORK"
+if [ -f "$WORK/card-labels.json" ]; then
+  python3 scripts/pose-bench/card_report.py "$WORK"
 else
-  echo "Judge the sheets in $WORK/sheets by eye, write $WORK/labels.json (format: baseline-labels.json), then: python3 scripts/pose-bench/report.py $WORK"
+  echo "Judge the sheets in $WORK/sheets by eye, write $WORK/card-labels.json ({\"<number>\": \"right\" | \"wrong\" | \"unsure\"}), then: python3 scripts/pose-bench/card_review.py $WORK and card_report.py $WORK"
 fi
