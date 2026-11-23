@@ -33,6 +33,12 @@ export async function askAdultAppearanceVision(options: {
   clothed?: boolean;
   /** A nude adult still: also ask the anatomy question (anatomy-check.ts). */
   anatomy?: import('./anatomy-check').AnatomyAsk | null;
+  /**
+   * The still as a ComfyUI view URL: with the anatomy question, the crop check runs too
+   * (anatomy-crops-server.ts) — a second opinion the whole-picture answer misses.
+   */
+  comfyImageUrl?: string;
+  comfyUrl?: string;
 }): Promise<AdultGateVisionResult> {
   if (!resolveRequestLlmEnabled(options.llm)) return { available: false, reply: null };
   const model = await resolveVisionModel(options.llm);
@@ -51,7 +57,29 @@ export async function askAdultAppearanceVision(options: {
       endpoint: resolveRequestLlmEndpoint(options.llm),
       usageContext: { route: 'adult-check' },
     });
-    return { available: true, reply: parseAdultGateReply(text), model, text: text?.slice(0, 400) };
+    const reply = parseAdultGateReply(text);
+    // The crop check, when the whole picture read as adult and not already a mismatch: a woman's
+    // extra penis given to the man beside her, a man's missing one filled in (anatomy-check.ts).
+    if (
+      reply &&
+      options.anatomy &&
+      !options.clothed &&
+      options.comfyImageUrl &&
+      reply.answer === 'yes' &&
+      reply.anatomy !== 'mismatch'
+    ) {
+      const { anatomyFromCrops } = await import('./anatomy-crops-server');
+      const comma = options.imageDataUrl.indexOf(',');
+      const crops = await anatomyFromCrops({
+        imageUrl: options.comfyImageUrl,
+        image: Buffer.from(options.imageDataUrl.slice(comma + 1), 'base64'),
+        ...(options.comfyUrl ? { comfyUrl: options.comfyUrl } : {}),
+        ...(options.llm ? { llm: options.llm } : {}),
+        ...(reply.people ? { peopleInPhoto: reply.people } : {}),
+      });
+      if (crops === 'mismatch') reply.anatomy = 'mismatch';
+    }
+    return { available: true, reply, model, text: text?.slice(0, 400) };
   } catch {
     return { available: true, reply: null, model };
   }

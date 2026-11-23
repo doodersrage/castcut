@@ -31,6 +31,9 @@ export async function POST(request: Request) {
       clothed?: boolean;
       /** A nude still: also ask the anatomy question (`{ cast }`, anatomy-check.ts). */
       anatomy?: unknown;
+      /** The still as a ComfyUI view URL: the anatomy crop check reads its pose there. */
+      comfyImageUrl?: string;
+      comfyUrl?: string;
     };
     if (!body.image?.trim()) {
       return apiError('Image data is required.', 400);
@@ -43,6 +46,11 @@ export async function POST(request: Request) {
       llm: parseLlmRequestOptions(body),
       clothed: body.clothed === true,
       anatomy: body.clothed === true ? null : normalizeAnatomyAsk(body.anatomy),
+      // Only a ComfyUI view path (the pose reader resolves it against the configured ComfyUI).
+      ...(typeof body.comfyImageUrl === 'string' &&
+      body.comfyImageUrl.startsWith('/api/comfyui/view?')
+        ? { comfyImageUrl: body.comfyImageUrl.slice(0, 600) }
+        : {}),
     });
     return apiJson({ available: result.available, reply: result.reply, model: result.model });
   } catch (error) {

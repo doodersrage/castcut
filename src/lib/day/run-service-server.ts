@@ -184,6 +184,8 @@ async function renderOnServer(
           llm: parseLlmRequestOptions(sharedLlmRequestBody(bundle.queue!.shared)),
           clothed,
           anatomy: anatomy ?? null,
+          comfyImageUrl: imageUrl,
+          comfyUrl,
         });
         return decideAdultGate({
           visionAvailable: vision.available,

@@ -11,7 +11,10 @@ import {
   anatomyCastFor,
   anatomyCastFromPrompt,
   anatomyCastWords,
+  anatomyPersonsFromPose,
   anatomyRedoLine,
+  decideAnatomyFromCrops,
+  readCropField,
   normalizeAnatomyAsk,
   normalizeAnatomyCast,
   readAnatomyAnswer,
@@ -150,5 +153,44 @@ describe('anatomy check: the decision', () => {
   it('is a cause of its own, with its own tray line', () => {
     assert.equal(isAdultGateCause('anatomy'), true);
     assert.match(adultGateRequeueMessage('anatomy'), /anatomy line/);
+  });
+});
+
+describe('anatomy check: the crop check', () => {
+  const body = (neck: [number, number], hip: [number, number]) => {
+    const points: Array<{ x: number; y: number } | null> = Array.from({ length: 18 }, () => null);
+    points[1] = { x: neck[0], y: neck[1] };
+    points[8] = { x: hip[0] - 0.02, y: hip[1] };
+    points[11] = { x: hip[0] + 0.02, y: hip[1] };
+    return points;
+  };
+  const size = { width: 1000, height: 1000 };
+
+  it('crops each person with a neck and both hips, and says who can be judged', () => {
+    const apart = anatomyPersonsFromPose([body([0.25, 0.2], [0.25, 0.5]), body([0.75, 0.2], [0.75, 0.5])], size);
+    assert.equal(apart.length, 2);
+    assert.deepEqual(apart.map(p => [p.near, p.inFrame]), [[false, true], [false, true]]);
+    assert.ok(apart[0]!.crotchBox.top > apart[0]!.faceBox.top);
+    // Hips together (a sex position): neither is judged on their crop.
+    const together = anatomyPersonsFromPose([body([0.45, 0.2], [0.5, 0.5]), body([0.55, 0.2], [0.52, 0.52])], size);
+    assert.deepEqual(together.map(p => p.near), [true, true]);
+    // Crotch below the frame (a belly read as "smooth"): not judged.
+    assert.equal(anatomyPersonsFromPose([body([0.5, 0.5], [0.5, 0.92])], size)[0]!.inFrame, false);
+    // No hips: nobody.
+    assert.equal(anatomyPersonsFromPose([[null, { x: 0.5, y: 0.2 }]], size).length, 0);
+  });
+
+  it('decides on the judgeable: a woman with a penis, a man with a vulva or nothing', () => {
+    const read = (gender: string, center: string, near = false, inFrame = true) => ({ gender, center, near, inFrame });
+    assert.equal(decideAnatomyFromCrops([read('woman', 'penis'), read('man', 'penis')]), 'mismatch');
+    assert.equal(decideAnatomyFromCrops([read('woman', 'both')]), 'mismatch');
+    assert.equal(decideAnatomyFromCrops([read('woman', 'vulva'), read('man', 'smooth')]), 'mismatch');
+    assert.equal(decideAnatomyFromCrops([read('woman', 'vulva'), read('man', 'penis')]), 'ok');
+    // Not judged: near, out of frame, or the pose found fewer people than the photo has.
+    assert.equal(decideAnatomyFromCrops([read('woman', 'penis', true)]), null);
+    assert.equal(decideAnatomyFromCrops([read('man', 'smooth', false, false)]), null);
+    assert.equal(decideAnatomyFromCrops([read('man', 'smooth')], 2), null);
+    assert.equal(readCropField('{"center":"Penis"}', 'center'), 'penis');
+    assert.equal(readCropField('no json', 'gender'), '');
   });
 });

@@ -170,3 +170,126 @@ export function readAnatomyAnswer(value: unknown): AnatomyRead | null {
 
 /** The run's / card's flag when the redo still doesn't match. */
 export const ANATOMY_FLAG_REASON = 'the anatomy may be wrong (checked twice)';
+
+/*
+ * The crop check (2026-11-22, on the user's own failed renders): the whole picture lets the model
+ * give a woman's extra penis to the man beside her, or see one on a man who has none. Each
+ * person's face-and-chest and crotch are cropped from the pose (DWPose) and asked about apart, the
+ * crotch without saying whose. A person whose hips touch another's (a sex position: a partner's
+ * genitals are in the crop) or whose crotch crop runs off the picture (a belly read as "smooth")
+ * is not judged, and the check is skipped when the pose found fewer people than the photo has
+ * (hips landed on the wrong body). With the whole-picture question: 4 of the user's 5 caught,
+ * 0 of 41 clean stills flagged.
+ */
+
+/** A crop in pixels. */
+export type AnatomyCropBox = { left: number; top: number; width: number; height: number };
+
+/** One person to judge: where to crop, and whether their crotch can be judged at all. */
+export type AnatomyPerson = {
+  faceBox: AnatomyCropBox;
+  crotchBox: AnatomyCropBox;
+  /** Their hips touch another person's: a partner's genitals would be in the crop. */
+  near: boolean;
+  /** The crotch crop lies inside the picture. */
+  inFrame: boolean;
+};
+
+type PosePoint = { x: number; y: number } | null | undefined;
+
+const NECK = 1;
+const RIGHT_HIP = 8;
+const LEFT_HIP = 11;
+
+/** People with a neck and both hips, from the pose (normalised points, OpenPose 18 order). */
+export function anatomyPersonsFromPose(
+  people: ReadonlyArray<ReadonlyArray<PosePoint>>,
+  size: { width: number; height: number }
+): AnatomyPerson[] {
+  const { width: W, height: H } = size;
+  const found = people
+    .map(points => {
+      const at = (i: number) => {
+        const p = points[i];
+        return p ? { x: p.x * W, y: p.y * H } : null;
+      };
+      const neck = at(NECK);
+      const right = at(RIGHT_HIP);
+      const left = at(LEFT_HIP);
+      if (!neck || !right || !left) return null;
+      const hip = { x: (right.x + left.x) / 2, y: (right.y + left.y) / 2 };
+      const torso = Math.hypot(neck.x - hip.x, neck.y - hip.y);
+      return torso >= 30 ? { neck, hip, torso } : null;
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null);
+  const box = (cx: number, cy: number, side: number): AnatomyCropBox => {
+    const left = Math.max(0, Math.round(cx - side / 2));
+    const top = Math.max(0, Math.round(cy - side / 2));
+    return {
+      left,
+      top,
+      width: Math.max(1, Math.min(W, Math.round(cx + side / 2)) - left),
+      height: Math.max(1, Math.min(H, Math.round(cy + side / 2)) - top),
+    };
+  };
+  return found.map((p, i) => {
+    const cy = p.hip.y + 0.18 * p.torso;
+    const half = 0.375 * p.torso;
+    return {
+      faceBox: box(p.neck.x, p.neck.y - 0.05 * p.torso, 1.1 * p.torso),
+      crotchBox: box(p.hip.x, cy, 2 * half),
+      near: found.some(
+        (q, j) =>
+          j !== i &&
+          Math.hypot(p.hip.x - q.hip.x, p.hip.y - q.hip.y) < 0.7 * Math.max(p.torso, q.torso)
+      ),
+      inFrame:
+        cy + half <= H * 0.99 && cy - half >= 0 && p.hip.x - half >= 0 && p.hip.x + half <= W,
+    };
+  });
+}
+
+export const ANATOMY_GENDER_CROP_PROMPT =
+  'This crop shows part of one person: their face and chest. Is this person a woman or a man? Reply with strict JSON only: {"gender":"woman"} — "unsure" when you cannot tell.';
+
+export const ANATOMY_CROTCH_CROP_PROMPT =
+  'This is a close-up crop of one area of a photo. Describe only what is at the CENTER of the crop: "penis", "vulva", "both" (a penis and a vulva together), "smooth" (bare skin with no genitals at all — a blank, featureless crotch), "covered" (clothing, a hand, a sheet), or "not_visible" (the center is not a crotch, or it is hidden). Reply with strict JSON only: {"center":"..."}';
+
+/** One person's two crop answers, with whether they can be judged. */
+export type AnatomyCropRead = { gender: string; center: string; near: boolean; inFrame: boolean };
+
+/** The JSON field `key` of a model reply, lower-cased; '' when unreadable. */
+export function readCropField(reply: string | null | undefined, key: 'gender' | 'center'): string {
+  const text = String(reply ?? '');
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) return '';
+  try {
+    const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    return String(parsed[key] ?? '')
+      .trim()
+      .toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The crop check's verdict: a woman with a penis (or both) at her crotch, or a man with a vulva or
+ * a smooth crotch — among the people it can judge. Null: not judged (no one judgeable, or the pose
+ * found fewer people than the photo shows).
+ */
+export function decideAnatomyFromCrops(
+  reads: readonly AnatomyCropRead[],
+  peopleInPhoto?: number
+): AnatomyRead | null {
+  if (peopleInPhoto && reads.length < peopleInPhoto) return null;
+  const judged = reads.filter(read => !read.near && read.inFrame);
+  if (!judged.length) return null;
+  const wrong = judged.some(read =>
+    read.gender.startsWith('woman')
+      ? read.center === 'penis' || read.center === 'both'
+      : read.gender.startsWith('man') && (read.center === 'vulva' || read.center === 'smooth')
+  );
+  return wrong ? 'mismatch' : 'ok';
+}

@@ -86,6 +86,9 @@ export async function checkStillAdultAppearance(input: {
         mimeType,
         ...(input.clothed ? { clothed: true } : {}),
         ...(input.anatomy && !input.clothed ? { anatomy: input.anatomy } : {}),
+        ...(input.anatomy && !input.clothed && input.imageUrl.startsWith('/api/comfyui/view?')
+          ? { comfyImageUrl: input.imageUrl }
+          : {}),
         ...(input.shared ? sharedLlmRequestBody(input.shared) : {}),
       }),
     });
