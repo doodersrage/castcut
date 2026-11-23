@@ -11,6 +11,9 @@
 /** Who a still should show, by body. */
 export type AnatomyCast = { women: number; men: number };
 
+/** The gate asks the anatomy question: with the cast as context when the prompt states it. */
+export type AnatomyAsk = { cast: AnatomyCast | null };
+
 /** A noun the take knows a person by. */
 type Noun = 'woman' | 'man' | string | null | undefined;
 
@@ -38,20 +41,22 @@ export function anatomyCastFor(input: {
 }
 
 /**
- * Who a still should show, read from its own prompt: a two-person prompt says who outright
- * ("a woman and a man", "two women", "two men" — the words stillPromptPeople keys on); a
- * one-person still is the lead. Null when the prompt says two people some other way.
+ * Who a still is meant to show, when its prompt says so outright ("a woman and a man", "two
+ * women", "two men"); else null. Not guessed from a one-person reading: adult duo prompts name
+ * the partner as "the man" and "the couple", and read as one person (calibration, 2026-11-22).
  */
-export function anatomyCastFromPrompt(
-  prompt: string | null | undefined,
-  leadNoun: Noun,
-  people: 1 | 2
-): AnatomyCast | null {
+export function anatomyCastFromPrompt(prompt: string | null | undefined): AnatomyCast | null {
   const text = String(prompt ?? '');
   if (/\b(?:a woman and a man|a man and a woman)\b/i.test(text)) return { women: 1, men: 1 };
   if (/\btwo women\b/i.test(text)) return { women: 2, men: 0 };
   if (/\btwo men\b/i.test(text)) return { women: 0, men: 2 };
-  return people === 1 ? anatomyCastFor({ leadNoun, people: 1 }) : null;
+  return null;
+}
+
+/** The ask from a request body: `{ cast }` (a cast or null); anything else is not asked. */
+export function normalizeAnatomyAsk(value: unknown): AnatomyAsk | null {
+  if (!value || typeof value !== 'object') return null;
+  return { cast: normalizeAnatomyCast((value as Record<string, unknown>).cast) };
 }
 
 /** A cast from a request body: one or two people, each a woman or a man; else null. */
@@ -74,20 +79,26 @@ export function anatomyCastWords(cast: AnatomyCast): string {
   return cast.women ? count(cast.women, 'woman', 'women') : count(cast.men, 'man', 'men');
 }
 
-/** The gate's extra question (adultGateVisionPrompt), for a nude adult still. */
-export function anatomyQuestionLines(cast: AnatomyCast): string[] {
-  const checks = [
-    ...(cast.women ? ['a woman shown with a penis'] : []),
-    ...(cast.men ? ['a man whose groin is clearly visible but shows no penis'] : []),
-  ];
+/**
+ * The gate's extra question (adultGateVisionPrompt), for a nude adult still. It asks whether
+ * anyone's genitals don't match the rest of their own body — so it holds when the cast isn't
+ * known. Calibration (2026-11-22): told "one woman" from a prompt that read as one person, the
+ * model judged two-person stills (her and a man) against it and called the man a mismatch; a
+ * cast is now only context, and only when the prompt states it outright.
+ */
+export function anatomyQuestionLines(cast: AnatomyCast | null): string[] {
   return [
-    `Third question, "anatomy": this photo should show ${anatomyCastWords(cast)}. Look only at genitals that are clearly visible.`,
-    `Answer "mismatch" when a visible body does not match who it should be — ${checks.join(', or ')}. Answer "ok" when every visible body matches, and "not_visible" when no genitals are visible.`,
+    `Third question, "anatomy": look only at genitals that are clearly visible.${cast ? ` This photo is meant to show ${anatomyCastWords(cast)}.` : ''}`,
+    "Answer \"mismatch\" only when someone's visible genitals clearly do not match the rest of their own body — someone with a woman's face, breasts and body who has a penis, or someone with a man's face, flat chest and build whose groin is clearly visible and has no penis. Judge each person against their own body, not against the description.",
+    'Answer "ok" when every visible body is consistent, and "not_visible" when no genitals are clearly visible.',
   ];
 }
 
 /** The one redo's line: each person's body said outright, leading the prompt. */
-export function anatomyRedoLine(cast: AnatomyCast): string {
+export function anatomyRedoLine(cast: AnatomyCast | null): string {
+  if (!cast) {
+    return "ANATOMY (mandatory): each person's body is consistent — every woman has a woman's body and a woman's genitals, no penis; every man has a man's body and a penis.";
+  }
   const parts: string[] = [];
   if (cast.women === 1) parts.push("the woman has a woman's body and a woman's genitals, no penis");
   if (cast.women === 2) parts.push("both women have women's bodies and women's genitals, no penis");
@@ -97,7 +108,7 @@ export function anatomyRedoLine(cast: AnatomyCast): string {
 }
 
 /** The redo's prompt: the anatomy line leads it (as the coverage line leads its redo). */
-export function withAnatomyRedoLine(prompt: string, cast: AnatomyCast): string {
+export function withAnatomyRedoLine(prompt: string, cast: AnatomyCast | null): string {
   const line = anatomyRedoLine(cast);
   return prompt.includes(line) ? prompt : `${line} ${prompt.trim()}`;
 }

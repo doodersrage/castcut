@@ -1,4 +1,4 @@
-import type { AnatomyCast } from './anatomy-check';
+import type { AnatomyAsk } from './anatomy-check';
 import {
   decideAdultGate,
   decideBackdropGate,
@@ -43,8 +43,8 @@ export async function checkStillAdultAppearance(input: {
   backdropTake?: boolean;
   /** The moment's place (a place meant to be white is never judged as "no scene"). */
   place?: string;
-  /** Who a nude still should show (anatomy-check.ts): the anatomy question is asked too. */
-  anatomy?: AnatomyCast | null;
+  /** A nude still: the anatomy question is asked too (anatomy-check.ts). */
+  anatomy?: AnatomyAsk | null;
   /** This take is already the anatomy redo. */
   anatomyTake?: boolean;
   shared?: VisionShared;

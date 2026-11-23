@@ -12,6 +12,7 @@ import {
   anatomyCastFromPrompt,
   anatomyCastWords,
   anatomyRedoLine,
+  normalizeAnatomyAsk,
   normalizeAnatomyCast,
   readAnatomyAnswer,
   withAnatomyRedoLine,
@@ -32,15 +33,20 @@ describe('anatomy check: who the still should show', () => {
     assert.equal(anatomyCastFor({ leadNoun: undefined, people: 1 }), null);
   });
 
-  it('is read from the still prompt: who a two-person prompt names, else the lead alone', () => {
-    assert.deepEqual(anatomyCastFromPrompt('Day photo: a woman and a man together in bed.', 'woman', 2), { women: 1, men: 1 });
-    assert.deepEqual(anatomyCastFromPrompt('Two women together on the couch.', 'woman', 2), { women: 2, men: 0 });
-    assert.deepEqual(anatomyCastFromPrompt('two men together', 'man', 2), { women: 0, men: 2 });
-    assert.deepEqual(anatomyCastFromPrompt('One woman alone in the shower.', 'woman', 1), { women: 1, men: 0 });
-    assert.equal(anatomyCastFromPrompt('She and her partner on the bed.', 'woman', 2), null);
+  it('is read from the still prompt only when it says who outright, never guessed', () => {
+    assert.deepEqual(anatomyCastFromPrompt('Day photo: a woman and a man together in bed.'), { women: 1, men: 1 });
+    assert.deepEqual(anatomyCastFromPrompt('Two women together on the couch.'), { women: 2, men: 0 });
+    assert.deepEqual(anatomyCastFromPrompt('two men together'), { women: 0, men: 2 });
+    // Calibration: adult duo prompts say "the man" and "the couple" — no cast, not "one woman".
+    assert.equal(anatomyCastFromPrompt('The couple on the bed; the man leans over her.'), null);
+    assert.equal(anatomyCastFromPrompt('One woman alone in the shower.'), null);
   });
 
-  it('from a request is one or two people, each a woman or a man, else nothing', () => {
+  it('from a request: an ask is { cast }, the cast one or two people, else nothing', () => {
+    assert.deepEqual(normalizeAnatomyAsk({ cast: null }), { cast: null });
+    assert.deepEqual(normalizeAnatomyAsk({ cast: { women: 1, men: 1 } }), { cast: { women: 1, men: 1 } });
+    assert.deepEqual(normalizeAnatomyAsk({ cast: { women: 9 } }), { cast: null });
+    assert.equal(normalizeAnatomyAsk(true), null);
     assert.deepEqual(normalizeAnatomyCast({ women: 1, men: 1 }), { women: 1, men: 1 });
     assert.deepEqual(normalizeAnatomyCast({ women: 0, men: 2 }), { women: 0, men: 2 });
     for (const bad of [null, 'x', {}, { women: 0, men: 0 }, { women: 3, men: 0 }, { women: 1.5, men: 0 }, { women: -1, men: 2 }, { women: 2, men: 1 }])
@@ -53,6 +59,7 @@ describe('anatomy check: who the still should show', () => {
     assert.equal(anatomyCastWords({ women: 0, men: 1 }), 'one man');
     assert.match(anatomyRedoLine({ women: 1, men: 1 }), /^ANATOMY \(mandatory\): the woman .*no penis; the man .*penis\.$/);
     assert.match(anatomyRedoLine({ women: 2, men: 0 }), /both women .*no penis/);
+    assert.match(anatomyRedoLine(null), /every woman .*no penis; every man .*a penis\.$/);
     const redo = withAnatomyRedoLine('A photo.', { women: 1, men: 0 });
     assert.match(redo, /^ANATOMY \(mandatory\): .* A photo\.$/);
     assert.equal(withAnatomyRedoLine(redo, { women: 1, men: 0 }), redo);
@@ -60,14 +67,14 @@ describe('anatomy check: who the still should show', () => {
 });
 
 describe('anatomy check: the gate question and answer', () => {
-  it('is asked on a nude still whose cast is known, never on a clothed-mood one', () => {
-    const asked = adultGateVisionPrompt({ anatomy: { women: 1, men: 1 } });
-    assert.match(asked, /"anatomy": this photo should show a woman and a man/);
-    assert.match(asked, /a woman shown with a penis, or a man whose groin is clearly visible but shows no penis/);
-    assert.match(asked, /"anatomy":"ok, mismatch or not_visible"/);
-    // Two women: only what could be wrong with them.
-    assert.doesNotMatch(adultGateVisionPrompt({ anatomy: { women: 2, men: 0 } }), /a man whose groin/);
-    assert.doesNotMatch(adultGateVisionPrompt({ clothed: true, anatomy: { women: 1, men: 0 } }), /anatomy/);
+  it('asks whether anyone’s genitals do not match their own body, with the cast only as context', () => {
+    const plain = adultGateVisionPrompt({ anatomy: { cast: null } });
+    assert.match(plain, /"anatomy": look only at genitals that are clearly visible\./);
+    assert.match(plain, /Judge each person against their own body, not against the description/);
+    assert.match(plain, /"anatomy":"ok, mismatch or not_visible"/);
+    assert.doesNotMatch(plain, /meant to show/);
+    assert.match(adultGateVisionPrompt({ anatomy: { cast: { women: 1, men: 1 } } }), /meant to show a woman and a man/);
+    assert.doesNotMatch(adultGateVisionPrompt({ clothed: true, anatomy: { cast: null } }), /anatomy/);
     assert.doesNotMatch(adultGateVisionPrompt(), /anatomy/);
   });
 

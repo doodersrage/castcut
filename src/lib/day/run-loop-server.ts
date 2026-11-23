@@ -56,8 +56,7 @@ import {
 } from '../adult/adult-appearance-gate';
 import type { GalleryAdultCheck } from '../gallery/adult-check';
 import { dayMoodMustStayClothed } from '../wardrobe/clothed-coverage';
-import { stillPromptPeople } from '../still/clip-prompt';
-import { anatomyCastFromPrompt, type AnatomyCast } from '../adult/anatomy-check';
+import { anatomyCastFromPrompt, type AnatomyAsk } from '../adult/anatomy-check';
 import { dayPlayedMood } from './still-prompt';
 
 /** A take's gallery entry as the page registers it, and its checks. */
@@ -134,8 +133,8 @@ export type ServerRunDeps = ServerTakeDeps & {
     backdropTake?: boolean;
     /** The moment's place (a place meant to be white is never "no scene"). */
     place?: string;
-    /** Who the still should show (anatomy-check.ts): asked about on a nude still. */
-    anatomy?: AnatomyCast | null;
+    /** A nude still: the anatomy question too, with the cast when its prompt says (anatomy-check.ts). */
+    anatomy?: AnatomyAsk | null;
     /** This take is already the anatomy redo. */
     anatomyTake?: boolean;
   }) => Promise<AdultGateDecision>;
@@ -535,14 +534,10 @@ export async function runSceneRunOnServer(
     // unreadable answer about no one).
     if (dayMoodNeedsAdultSafeguards(mood) && !sceneOf(sceneId)?.slot.placeOnly) {
       const redoneFor = state.gateRedo?.[sceneId];
-      // Who the still should show, for the anatomy question (nude moods only; anatomy-check.ts).
-      const anatomy = dayMoodMustStayClothed(mood)
+      // The anatomy question, on a nude mood's take (anatomy-check.ts).
+      const anatomy: AnatomyAsk | null = dayMoodMustStayClothed(mood)
         ? null
-        : anatomyCastFromPrompt(
-            report?.prompt,
-            report?.leadNoun,
-            stillPromptPeople(report?.prompt)
-          );
+        : { cast: anatomyCastFromPrompt(report?.prompt) };
       const decision: AdultGateDecision = deps.adultGate
         ? await deps
             .adultGate({

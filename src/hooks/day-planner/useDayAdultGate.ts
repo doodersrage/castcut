@@ -20,7 +20,6 @@ import { persistCompletedGalleryMedia } from '@/lib/gallery/comfyui-gallery-clie
 import { dayPlayedMood } from '@/lib/day/still-prompt';
 import { pushSystemTrayMessage } from '@/lib/app/system-tray-messages';
 import { ANATOMY_FLAG_REASON, anatomyCastFromPrompt } from '@/lib/adult/anatomy-check';
-import { stillPromptPeople } from '@/lib/still/clip-prompt';
 
 /** The slot's card still holds `promptId` (its take, or the second of two takes). */
 function takeOnCard(
@@ -48,7 +47,6 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
   const {
     busy,
     intimateEnabled,
-    leadNoun,
     mounted,
     queueSlot,
     shared,
@@ -128,10 +126,8 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
           entry.adultCheck?.backdrop === true || backdropRedoRef.current.has(target.slotId);
         const anatomyTake =
           entry.adultCheck?.anatomy === true || anatomyRedoRef.current.has(target.slotId);
-        // Who the still should show, from its own prompt: asked about on a nude still.
-        const anatomy = clothed
-          ? null
-          : anatomyCastFromPrompt(entry.prompt, leadNoun, stillPromptPeople(entry.prompt));
+        // The anatomy question, on a nude mood's still (anatomy-check.ts).
+        const anatomy = clothed ? null : { cast: anatomyCastFromPrompt(entry.prompt) };
         const decision = await checkStillAdultAppearance({
           imageUrl,
           strongTake,
@@ -222,7 +218,7 @@ export function useDayAdultGate(ctx: DayPlannerToolOrchestrationCore) {
         setTick(value => value + 1);
       }
     })();
-  }, [clothed, leadNoun, mounted, shared, slots, stills, stillsRef, tick]);
+  }, [clothed, mounted, shared, slots, stills, stillsRef, tick]);
 
   // The one requeue, once the Day queue is free (never overlaps a Queue-all submit).
   useEffect(() => {

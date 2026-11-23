@@ -1,6 +1,6 @@
 import { apiError, apiJson, apiMethodNotAllowed } from '@/lib/api/response';
 import { askAdultAppearanceVision } from '@/lib/adult/adult-appearance-gate-server';
-import { normalizeAnatomyCast } from '@/lib/adult/anatomy-check';
+import { normalizeAnatomyAsk } from '@/lib/adult/anatomy-check';
 import { parseLlmRequestOptions } from '@/lib/llm/request-options';
 import { normalizeImageDataUrl } from '@/lib/specialized/image-prompt-generator';
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       llmApiKey?: string;
       /** A clothed-mood still (Day Suggestive): also ask the bare-skin question. */
       clothed?: boolean;
-      /** Who a nude still should show: also ask the anatomy question (anatomy-check.ts). */
+      /** A nude still: also ask the anatomy question (`{ cast }`, anatomy-check.ts). */
       anatomy?: unknown;
     };
     if (!body.image?.trim()) {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       imageDataUrl: normalizeImageDataUrl(body.image.trim(), body.mimeType),
       llm: parseLlmRequestOptions(body),
       clothed: body.clothed === true,
-      anatomy: body.clothed === true ? null : normalizeAnatomyCast(body.anatomy),
+      anatomy: body.clothed === true ? null : normalizeAnatomyAsk(body.anatomy),
     });
     return apiJson({ available: result.available, reply: result.reply, model: result.model });
   } catch (error) {

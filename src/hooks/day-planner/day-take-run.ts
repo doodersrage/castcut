@@ -42,7 +42,6 @@ import {
 import { fetchComfyObjectInfoNodeTypesCached } from '@/lib/comfyui/object-info-cache';
 import { poseModelFamily, poseProfileForModel } from '@/lib/pose/pose-model-profile';
 import { anatomyCastFromPrompt, withAnatomyRedoLine } from '@/lib/adult/anatomy-check';
-import { stillPromptPeople } from '@/lib/still/clip-prompt';
 
 import { activeDayEvent } from '@/lib/day/event';
 
@@ -1547,8 +1546,7 @@ export async function runDayTake(
     });
     // The anatomy redo: each person's body said outright, leading the prompt (anatomy-check.ts).
     if (options?.anatomyLine === true) {
-      const cast = anatomyCastFromPrompt(finalized, leadNoun, stillPromptPeople(finalized));
-      if (cast) finalized = withAnatomyRedoLine(finalized, cast);
+      finalized = withAnatomyRedoLine(finalized, anatomyCastFromPrompt(finalized));
     }
     // An adult beat played with Intimate off still reads as adult content: gate it too.
     const adultSafeguards =

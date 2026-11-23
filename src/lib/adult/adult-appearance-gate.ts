@@ -18,7 +18,7 @@ import {
   ANATOMY_FLAG_REASON,
   anatomyQuestionLines,
   readAnatomyAnswer,
-  type AnatomyCast,
+  type AnatomyAsk,
   type AnatomyRead,
 } from './anatomy-check';
 
@@ -33,8 +33,8 @@ import {
  */
 export function adultGateVisionPrompt(options?: {
   clothed?: boolean;
-  /** A nude adult still: who it should show — also ask whether any visible body doesn't match. */
-  anatomy?: AnatomyCast | null;
+  /** A nude adult still: also ask whether anyone's genitals don't match their own body. */
+  anatomy?: AnatomyAsk | null;
 }): string {
   const clothed = options?.clothed === true;
   const anatomy = !clothed && options?.anatomy ? options.anatomy : null;
@@ -48,7 +48,7 @@ export function adultGateVisionPrompt(options?: {
           'Underwear, lingerie, a bra, a bikini or swimsuit, a slip, or a robe worn over underwear all count as covered, and so does a chest covered by an arm, hands, hair, a sheet or a towel. Cleavage, a low neckline, bare legs, thighs, a bare back, shoulders or a bare midriff are NOT bare. Answer "yes" only when a nipple, the genitals or a bare bottom is actually visible.',
         ]
       : []),
-    ...(anatomy ? anatomyQuestionLines(anatomy) : []),
+    ...(anatomy ? anatomyQuestionLines(anatomy.cast) : []),
     'Reply with strict JSON only, no other text, in this shape:',
     clothed
       ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"bare":"yes or no"}'
