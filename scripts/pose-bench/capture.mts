@@ -627,7 +627,20 @@ const graphText = (name: string) =>
     .replace(/\s+/g, ' ');
 const cardMatches = () => {
   const texts = capturedFiles().map(name => ({ name, text: graphText(name) }));
-  return new Map(ids.map(id => [id, texts.find(entry => entry.text.includes(cardKey(id)))?.name]));
+  const matches = new Map(
+    ids.map(id => [id, texts.find(entry => entry.text.includes(cardKey(id)))?.name])
+  );
+  // The app can reword a beat (lie → "lies flat on her back on the bed"): one cell left and one
+  // graph left that is no filler slot's are each other's.
+  const filler = BEATS.map(beat => beat.toLowerCase().slice(0, 24));
+  const taken = new Set([...matches.values()].filter(Boolean));
+  const leftCells = ids.filter(id => !matches.get(id));
+  const leftGraphs = texts.filter(
+    entry => !taken.has(entry.name) && !filler.some(key => entry.text.includes(key))
+  );
+  if (leftCells.length === 1 && leftGraphs.length === 1)
+    matches.set(leftCells[0]!, leftGraphs[0]!.name);
+  return matches;
 };
 // Done when every target slot's still has a prompt id the proxy captured (or 15 minutes).
 for (let i = 0; i < 900; i += 1) {
