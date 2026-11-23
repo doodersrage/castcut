@@ -15,6 +15,8 @@ import {
   normalizeAnatomyAsk,
   normalizeAnatomyCast,
   readAnatomyAnswer,
+  readAnatomyBodies,
+  readAnatomyFromBodies,
   withAnatomyRedoLine,
 } from './anatomy-check';
 
@@ -67,15 +69,33 @@ describe('anatomy check: who the still should show', () => {
 });
 
 describe('anatomy check: the gate question and answer', () => {
-  it('asks whether anyone’s genitals do not match their own body, with the cast only as context', () => {
+  it('asks, person by person, what is at their own crotch, with the cast only as context', () => {
     const plain = adultGateVisionPrompt({ anatomy: { cast: null } });
-    assert.match(plain, /"anatomy": look only at genitals that are clearly visible\./);
-    assert.match(plain, /Judge each person against their own body, not against the description/);
-    assert.match(plain, /"anatomy":"ok, mismatch or not_visible"/);
+    assert.match(plain, /"bodies": look at each person's own crotch/);
+    assert.match(plain, /counts as hers even when a man's face or hand is near it/);
+    assert.match(plain, /"bodies":\[\{"gender":"woman","crotch_in_view":"yes","at_crotch":"vulva"\}\]/);
     assert.doesNotMatch(plain, /meant to show/);
     assert.match(adultGateVisionPrompt({ anatomy: { cast: { women: 1, men: 1 } } }), /meant to show a woman and a man/);
-    assert.doesNotMatch(adultGateVisionPrompt({ clothed: true, anatomy: { cast: null } }), /anatomy/);
-    assert.doesNotMatch(adultGateVisionPrompt(), /anatomy/);
+    assert.doesNotMatch(adultGateVisionPrompt({ clothed: true, anatomy: { cast: null } }), /bodies/);
+    assert.doesNotMatch(adultGateVisionPrompt(), /bodies/);
+  });
+
+  it('reads a mismatch from the bodies: a woman with a penis at her own crotch, a man in view with only a vulva', () => {
+    const read = (bodies: unknown) => readAnatomyFromBodies(readAnatomyBodies(bodies));
+    // The user's renders (2026-11-22), as the model answered them.
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'penis' }, { gender: 'man', crotch_in_view: 'yes', at_crotch: 'penis' }]), 'mismatch');
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'both' }]), 'mismatch');
+    assert.equal(read([{ gender: 'man', crotch_in_view: 'yes', at_crotch: 'vulva' }]), 'mismatch');
+    // A partner's penis read as his, his crotch hidden, nothing in view: not a mismatch.
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'vulva' }, { gender: 'man', crotch_in_view: 'yes', at_crotch: 'penis' }]), 'ok');
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'vulva' }, { gender: 'man', crotch_in_view: 'no' }]), 'ok');
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'penis' }].map(b => ({ ...b, crotch_in_view: 'no' }))), 'not_visible');
+    assert.equal(read([{ gender: 'woman', crotch_in_view: 'yes', at_crotch: 'covered' }]), 'not_visible');
+    assert.equal(read('nope'), null);
+    assert.equal(
+      parseAdultGateReply('{"answer":"yes","confidence":90,"bodies":[{"gender":"woman","crotch_in_view":"yes","at_crotch":"penis"}]}')?.anatomy,
+      'mismatch'
+    );
   });
 
   it('reads the anatomy answer, and an unreadable one as unsure', () => {

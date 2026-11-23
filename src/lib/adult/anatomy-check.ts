@@ -80,18 +80,58 @@ export function anatomyCastWords(cast: AnatomyCast): string {
 }
 
 /**
- * The gate's extra question (adultGateVisionPrompt), for a nude adult still. It asks whether
- * anyone's genitals don't match the rest of their own body — so it holds when the cast isn't
- * known. Calibration (2026-11-22): told "one woman" from a prompt that read as one person, the
- * model judged two-person stills (her and a man) against it and called the man a mismatch; a
- * cast is now only context, and only when the prompt states it outright.
+ * The gate's extra question (adultGateVisionPrompt), for a nude adult still: for each person,
+ * their apparent gender (face, chest, build) and what is at their own crotch — the code decides
+ * a mismatch (readAnatomyFromBodies). Tested on the user's own failed renders (2026-11-22): a
+ * yes/no "does anyone's anatomy not match?" caught 0 of 5, a woman with a penis where her partner
+ * was beside her read as "ok" every time; asked person by person, 1 of 5 caught, 0 of 41 clean
+ * stills flagged. Counting penises against men in view caught 4 of 5 but flagged 27 of 41 clean
+ * stills (a partner's penis read as nobody's), so it is not used.
  */
 export function anatomyQuestionLines(cast: AnatomyCast | null): string[] {
   return [
-    `Third question, "anatomy": look only at genitals that are clearly visible.${cast ? ` This photo is meant to show ${anatomyCastWords(cast)}.` : ''}`,
-    "Answer \"mismatch\" only when someone's visible genitals clearly do not match the rest of their own body — someone with a woman's face, breasts and body who has a penis, or someone with a man's face, flat chest and build whose groin is clearly visible and has no penis. Judge each person against their own body, not against the description.",
-    'Answer "ok" when every visible body is consistent, and "not_visible" when no genitals are clearly visible.',
+    `Third question, "bodies": look at each person's own crotch — the place between their own thighs, where their legs join their own hips.${cast ? ` This photo is meant to show ${anatomyCastWords(cast)}.` : ''}`,
+    'For each person give their apparent gender from face and chest ("woman" or "man"), whether their own crotch is in view ("yes" or "no"), and what is at it: "vulva", "penis", "both" or "covered". Judge only what is attached at that person\'s own crotch: a penis at a woman\'s crotch, between her thighs, counts as hers even when a man\'s face or hand is near it.',
   ];
+}
+
+/** One person's answer to the bodies question. */
+export type AnatomyBody = { gender: string; inView: boolean; atCrotch: string };
+
+/** The bodies list from the gate's JSON reply; null when there is none to read. */
+export function readAnatomyBodies(value: unknown): AnatomyBody[] | null {
+  if (!Array.isArray(value)) return null;
+  return value
+    .filter(
+      (entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object'
+    )
+    .map(entry => ({
+      gender: String(entry.gender ?? '')
+        .trim()
+        .toLowerCase(),
+      inView: !/^no\b/i.test(String(entry.crotch_in_view ?? entry.crotchInView ?? 'yes').trim()),
+      atCrotch: String(entry.at_crotch ?? entry.atCrotch ?? '')
+        .trim()
+        .toLowerCase(),
+    }));
+}
+
+/**
+ * The read: a woman with a penis (or both) at her own crotch, or a man in view with a vulva
+ * and no penis, is a mismatch; any crotch in view with something at it is ok; else not visible.
+ */
+export function readAnatomyFromBodies(bodies: AnatomyBody[] | null): AnatomyRead | null {
+  if (!bodies) return null;
+  const shown = bodies.filter(body => body.inView && /penis|vulva|both/.test(body.atCrotch));
+  const wrong = shown.some(body =>
+    body.gender.startsWith('woman')
+      ? /penis|both/.test(body.atCrotch)
+      : body.gender.startsWith('man') &&
+        /vulva/.test(body.atCrotch) &&
+        !/penis|both/.test(body.atCrotch)
+  );
+  if (wrong) return 'mismatch';
+  return shown.length ? 'ok' : 'not_visible';
 }
 
 /** The one redo's line: each person's body said outright, leading the prompt. */

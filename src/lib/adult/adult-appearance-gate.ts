@@ -18,6 +18,8 @@ import {
   ANATOMY_FLAG_REASON,
   anatomyQuestionLines,
   readAnatomyAnswer,
+  readAnatomyBodies,
+  readAnatomyFromBodies,
   type AnatomyAsk,
   type AnatomyRead,
 } from './anatomy-check';
@@ -53,7 +55,7 @@ export function adultGateVisionPrompt(options?: {
     clothed
       ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"bare":"yes or no"}'
       : anatomy
-        ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"anatomy":"ok, mismatch or not_visible"}'
+        ? '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100,"bodies":[{"gender":"woman","crotch_in_view":"yes","at_crotch":"vulva"}]}'
         : '{"people":1,"youngest_apparent_age":30,"answer":"yes or no","confidence":0-100}',
     'confidence is how sure you are of the answer.',
   ].join('\n');
@@ -100,7 +102,9 @@ export function parseAdultGateReply(text: string | null | undefined): AdultGateR
   const youngest = Number(parsed.youngest_apparent_age ?? parsed.youngestApparentAge);
   const people = Number(parsed.people);
   const bare = parsed.bare == null || typeof parsed.bare === 'object' ? null : yesNo(parsed.bare);
-  const anatomy = readAnatomyAnswer(parsed.anatomy);
+  // The bodies list (anatomy-check.ts); a plain anatomy word as a fallback.
+  const anatomy =
+    readAnatomyFromBodies(readAnatomyBodies(parsed.bodies)) ?? readAnatomyAnswer(parsed.anatomy);
   return {
     answer,
     confidence,
