@@ -49,6 +49,24 @@ one Cast. Every later phase needs it current.
 
 **Done when:** one command regenerates the card.
 
+**Progress (2026-11-23): done.** `scripts/pose-bench/card.sh <work-dir>` captures every card cell
+through today's Short and renders it; `card_review.py` makes the second reviewer's page and
+`card_report.py --write` updates the card (`docs/pose-report-card.md`, 9f961a62).
+
+- Three engines (2.1 Turbo, Edit 2511, Fibo 2.0) at three seeds a cell, not five: 918 stills.
+  Every still labelled, then a second reviewer checked every wrong or unsure call and a random
+  10 % of the right ones (they changed 124 of 307). The labels are the gold set, kept with the
+  run (`card-labels.json`, `card-labels-review.json`), not in the repo.
+- Right by eye: 2.1 Turbo 93 %, Fibo 2.0 85 %, Edit 2511 69 %.
+- **Phase 3's gate is already met by Turbo:** 114/123 everyday (93 %) and 88/93 sport (95 %) on
+  2.1 without leaving the engine. Its weak rows are `run`, `stairs`, `lounge_elbows`,
+  `sport_jump_shot` and `sport_pullup`.
+- **New problem:** Edit 2511 is 38 % on Suggestive and 33 % on Vacation (October 96 % / 100 %):
+  12 cells render broken pictures on every seed. Those moods start from the face cutout at
+  denoise 0.78–0.8; not traced yet.
+- Fixed on the way: the nude check read "never a topless … look" as a topless still and moved
+  Fibo's running stills to Turbo (82a810fc).
+
 ## 2. A judge you can trust (weeks 2–4)
 
 The pose check returns one score that mixes several questions. Its misses are arm gestures and
