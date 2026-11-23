@@ -14,7 +14,7 @@ import { DAY_CLOTHED_RECIPE_MARK } from '@/lib/prompt/recipe-mark';
 import { danceMoveWords } from '@/lib/pose/dance-move';
 
 /** Body-part description per layout — what must be true of the joints, not the scene. */
-const POSE_LAYOUT_CUES: Record<string, string> = {
+export const POSE_LAYOUT_CUES: Record<string, string> = {
   // Everyday
   phone: 'one hand holds a phone up near the face, elbow bent, eyes on the screen',
   drink: 'one hand holds a cup or glass at chest height, elbow bent close to the body',

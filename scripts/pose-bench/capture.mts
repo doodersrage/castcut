@@ -47,13 +47,21 @@ import { putAppKv, seedSettingsCacheOnNextLoad } from '../../e2e/helpers/idb';
 import { isolateServerStorage } from '../../e2e/helpers/storage';
 import { dayDressPlateRequestKey } from '../../src/lib/day/dress-plate';
 import { normalizeFootwear } from '../../src/lib/wardrobe/footwear';
+import { BUILT_IN_POSE_PACKS } from '../../src/lib/day/pose-packs';
+import { POSE_LAYOUT_CUES } from '../../src/lib/pose/coaching';
 
 const arg = (flag: string, fallback?: string) => {
   const index = process.argv.indexOf(flag);
   return index > 0 ? process.argv[index + 1]! : fallback;
 };
 const engine = arg('--engine')!;
-const mode = arg('--mode', 'joints') as 'joints' | 'photo' | 'camera' | 'duo';
+const mode = arg('--mode', 'joints') as 'joints' | 'photo' | 'camera' | 'duo' | 'card';
+/**
+ * Card mode (the pose report card, POSE_PLAN phase 1): each id is a Day pose layout, played in
+ * `--mood` (everyday, sport, suggestive, vacation) with a beat and setting that say the pose — a
+ * built-in pose pack's own entry where there is one, else the layout's coaching cue.
+ */
+const cardMood = arg('--mood', 'everyday')!;
 const extraShared = JSON.parse(arg('--shared', '{}')!) as Record<string, unknown>;
 /** Camera mode: a beat that states each Day pose (set PICKED_ONLY=1 to keep the neutral beats). */
 const POSE_BEATS: Record<string, string> = process.env.PICKED_ONLY
@@ -101,6 +109,61 @@ export const CAMERA_PICKS: Record<string, Record<string, string> | null> = {
   waist: { shot: 'waist' },
   closeup: { shot: 'head' },
 };
+/** A card cell's beat and setting: a pose pack's entry for the layout, else its coaching cue. */
+function cardEntry(layout: string): { beat: string; setting: string } {
+  for (const pack of BUILT_IN_POSE_PACKS) {
+    for (const entry of pack.entries as Array<{
+      layout?: string;
+      beat?: string;
+      setting?: string;
+    }>) {
+      if (entry.layout === layout && entry.beat)
+        return { beat: entry.beat, setting: entry.setting || PLACE };
+    }
+  }
+  const cue = POSE_LAYOUT_CUES[layout] ?? SPORT_CUE_FALLBACK[layout];
+  if (!cue) throw new Error(`card: no beat for ${layout}`);
+  return {
+    beat: cue,
+    setting: layout.startsWith('sport_') ? (SPORT_SETTINGS[layout] ?? 'a sports ground') : PLACE,
+  };
+}
+/** Where each sport is played (cells with no pose pack entry). */
+const SPORT_SETTINGS: Record<string, string> = {
+  sport_block: 'a martial arts gym',
+  sport_box: 'a boxing gym',
+  sport_dunk: 'an outdoor basketball court',
+  sport_forehand: 'a tennis court',
+  sport_serve: 'a tennis court',
+  sport_handstand: 'a gymnastics hall',
+  sport_hurdle: 'an outdoor running track',
+  sport_jump_shot: 'an indoor basketball court',
+  sport_kick: 'a football pitch',
+  sport_lunge: 'a gym floor',
+  sport_overhead: 'a weight room',
+  sport_pitch: 'a baseball diamond',
+  sport_pullup: 'a gym with a pull-up bar',
+  sport_pushup: 'a gym floor',
+  sport_putt: 'a golf green',
+  sport_skate: 'a skate park',
+  sport_ski: 'a snowy ski slope',
+  sport_slide: 'a baseball diamond',
+  sport_spike: 'a beach volleyball court',
+  sport_stick: 'a hockey rink',
+  sport_swim: 'a swimming pool',
+  sport_swing: 'a golf driving range',
+  sport_throw: 'an athletics field',
+};
+/** Plain postures with no coaching cue: the app's own posture words (still-prompt.ts). */
+const SPORT_CUE_FALLBACK: Record<string, string> = {
+  crouch: 'crouches low on the plaza, knees deeply bent',
+  kneel: 'kneels on the grass',
+  lean: 'leans with her shoulder and hip against a lamp post beside her',
+  lie: 'lies on her back on the grass, whole body horizontal',
+  reach: 'reaches up high with one arm toward a branch',
+  run: 'runs across the plaza mid-stride, one foot off the ground',
+};
+
 const ids = arg('--ids')!.split(',').filter(Boolean);
 const outDir = arg('--out')!;
 const captureDir = arg('--capture')!;
@@ -223,6 +286,13 @@ const slots = ids.map((id, index) => {
     slot.sceneHintsTyped = beat;
     slot.location = 'a cozy apartment';
   }
+  if (mode === 'card') {
+    const entry = cardEntry(id);
+    slot.poseLayout = id;
+    slot.sceneHints = entry.beat;
+    slot.sceneHintsTyped = entry.beat;
+    slot.location = entry.setting;
+  }
   if (mode === 'camera') {
     const [pose, camera] = id.split('~');
     if (!pose || !camera || !(camera in CAMERA_PICKS)) throw new Error(`bad camera id ${id}`);
@@ -256,7 +326,7 @@ const dayTool = {
   slots,
   stills: [],
   dayLength: length,
-  dayMood: mode === 'duo' ? 'intimate' : 'everyday',
+  dayMood: mode === 'duo' ? 'intimate' : mode === 'card' ? cardMood : 'everyday',
   intimateMix: mode === 'duo' ? 'duo' : 'solo',
   allowCompanions: false,
   ...(mode === 'duo'
