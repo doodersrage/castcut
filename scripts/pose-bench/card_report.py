@@ -88,6 +88,9 @@ if a.write:
                 score['face'] = row[family]['face']
             row[family] = score
     report['date'] = datetime.date.today().isoformat()
-    json.dump(report, open(REPORT, 'w'), indent=2)
-    open(REPORT, 'a').write('\n')
+    # One line per pose, as the file has always been kept (a readable diff).
+    rows = [f'    {json.dumps(k)}: {json.dumps(v)}' for k, v in report['poses'].items()]
+    text = '{\n  "date": ' + json.dumps(report['date']) + ',\n  "poses": {\n' + ',\n'.join(rows) + '\n  }\n}\n'
+    assert json.loads(text) == report
+    open(REPORT, 'w').write(text)
     print('wrote', os.path.relpath(REPORT, ROOT))
