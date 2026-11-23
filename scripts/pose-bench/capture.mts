@@ -608,10 +608,38 @@ const capturedIds = () =>
         .join('-')
     )
   );
+/**
+ * Card mode: a captured graph is a cell's when its prompt holds the cell's beat (each cell's is its
+ * own). The Short page keeps its stills out of tools.day and queues one still at a time, so the
+ * stills' prompt ids are not read; the proxy reports each captured job finished (FAKE_DONE).
+ */
+const cardKey = (id: string) =>
+  cardEntry(id)
+    .beat.toLowerCase()
+    .replace(/[^a-z ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 28);
+const graphText = (name: string) =>
+  readFileSync(join(captureDir, name), 'utf8')
+    .toLowerCase()
+    .replace(/\\u[0-9a-f]{4}|[^a-z ]+/g, ' ')
+    .replace(/\s+/g, ' ');
+const cardMatches = () => {
+  const texts = capturedFiles().map(name => ({ name, text: graphText(name) }));
+  return new Map(ids.map(id => [id, texts.find(entry => entry.text.includes(cardKey(id)))?.name]));
+};
 // Done when every target slot's still has a prompt id the proxy captured (or 15 minutes).
 for (let i = 0; i < 900; i += 1) {
   await page.waitForTimeout(1000);
   if (i % 10 !== 9) continue;
+  if (mode === 'card') {
+    const matched = [...cardMatches().values()].filter(Boolean).length;
+    if (i % 60 === 59)
+      console.log(`… ${matched}/${want} cells captured (${capturedFiles().length} graphs)`);
+    if (matched >= want) break;
+    continue;
+  }
   const state = await readDayState(page);
   const have = capturedIds();
   const stillsNow = (state?.stills ?? []) as Array<{ slotId: string; promptId?: string }>;
@@ -630,14 +658,18 @@ for (let i = 0; i < 900; i += 1) {
 await page.waitForTimeout(3000);
 await page.screenshot({ path: join(outDir, 'page.png'), fullPage: false });
 const after = await readDayState(page);
+const cardGraphs = mode === 'card' ? cardMatches() : new Map<string, string | undefined>();
 const graphs = new Map<string, unknown>();
+const graphByFile = new Map<string, unknown>();
 for (const name of capturedFiles()) {
   const id = name
     .replace(/\.json$/, '')
     .split('-')
     .slice(2)
     .join('-');
-  graphs.set(id, JSON.parse(readFileSync(join(captureDir, name), 'utf8')));
+  const graph = JSON.parse(readFileSync(join(captureDir, name), 'utf8'));
+  graphs.set(id, graph);
+  graphByFile.set(name, graph);
   mkdirSync(join(outDir, 'graphs'), { recursive: true });
   renameSync(join(captureDir, name), join(outDir, 'graphs', name));
 }
@@ -653,16 +685,25 @@ const rows = ids.map((id, index) => {
   const still = stills.find(entry => entry.slotId === slotId);
   const slot = afterSlots.find(entry => entry.id === slotId);
   return {
-    target: id,
+    // Card mode: the card's own key (a Suggestive or Vacation row is `<mood>/<layout>`).
+    target:
+      mode === 'card' && (cardMood === 'suggestive' || cardMood === 'vacation')
+        ? `${cardMood}/${id}`
+        : id,
     mode,
     engine,
     slotId,
     promptId: still?.promptId ?? null,
     posePhoto: slot?.posePhoto ?? null,
-    beat: slot?.sceneHints,
+    beat: mode === 'card' ? cardEntry(id).beat : slot?.sceneHints,
     location: slot?.location,
     photoStatus: photoStatus[id],
-    graph: still?.promptId ? (graphs.get(still.promptId) ?? null) : null,
+    graph:
+      mode === 'card'
+        ? (graphByFile.get(cardGraphs.get(id) ?? '') ?? null)
+        : still?.promptId
+          ? (graphs.get(still.promptId) ?? null)
+          : null,
   };
 });
 writeFileSync(

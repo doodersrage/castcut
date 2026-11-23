@@ -58,10 +58,11 @@ const posture = (body: Body, aspect: number) => {
 };
 
 const stills = [...latest.values()].map(row => {
-  const ref = refs.get(row.target)!;
+  const ref = refs.get(row.target);
   const out: Record<string, unknown> = { ...row };
   delete out.detected;
-  if (row.detected && row.detected.people?.length) {
+  // A card cell (POSE_PLAN phase 1) has no reference skeleton: judged by eye only.
+  if (ref && row.detected && row.detected.people?.length) {
     const match = scorePoseMatch({
       guide: ref.people as never,
       guideAspect: ref.aspect,

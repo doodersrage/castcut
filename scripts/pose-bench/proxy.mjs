@@ -19,8 +19,12 @@ const SAMPLES =
   /"class_type"\s*:\s*"(?:KSampler|KSamplerAdvanced|SamplerCustom|SamplerCustomAdvanced|T8QwenImage21FunAccPDD4Step)"/;
 let n = 0;
 // Captured ids stay "pending" in GET /queue, so the page keeps its cards waiting instead of
-// calling the still lost (and redoing it).
+// calling the still lost (and redoing it). FAKE_DONE=<input image>: each is reported finished
+// instead, its output that picture — the Short queues one still at a time and waits for each
+// (the card bench, POSE_PLAN phase 1); nothing real renders.
 const fake = [];
+const FAKE_DONE = process.env.FAKE_DONE || '';
+const done = new Set();
 http
   .createServer((req, res) => {
     const chunks = [];
@@ -33,7 +37,8 @@ http
         const id = randomUUID();
         n += 1;
         writeFileSync(`${OUT}${Date.now()}-${String(n).padStart(4, '0')}-${id}.json`, body);
-        fake.push([1000 + n, id, {}, {}, []]);
+        if (FAKE_DONE) done.add(id);
+        else fake.push([1000 + n, id, {}, {}, []]);
         console.log('captured', n, id);
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(JSON.stringify({ prompt_id: id, number: n, node_errors: {} }));
@@ -42,6 +47,22 @@ http
       if (req.method !== 'GET' && /^\/(queue|interrupt|free|history)$/.test(path)) {
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end('{}');
+        return;
+      }
+      // A captured still reported finished (FAKE_DONE): its history says so, its output the picture.
+      const historyId = req.method === 'GET' ? path.match(/^\/(?:api\/)?history\/([\w-]+)$/)?.[1] : null;
+      if (historyId && done.has(historyId)) {
+        const image = { filename: FAKE_DONE, subfolder: '', type: 'input' };
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            [historyId]: {
+              prompt: [0, historyId, {}, {}, []],
+              outputs: { 9: { images: [image] } },
+              status: { status_str: 'success', completed: true, messages: [] },
+            },
+          })
+        );
         return;
       }
       const mergeQueue = req.method === 'GET' && path === '/queue';

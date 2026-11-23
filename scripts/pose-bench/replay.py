@@ -103,7 +103,7 @@ for seed, row in plan:
             if isinstance(node['inputs'].get(key), int):
                 node['inputs'][key] = seed
         if node['class_type'] == 'SaveImage':
-            node['inputs']['filename_prefix'] = f"posebench-{row['engine']}-{row['mode']}-{row['target']}-s{seed}"
+            node['inputs']['filename_prefix'] = f"posebench-{row['engine']}-{row['mode']}-{row['target'].replace('/', '__')}-s{seed}"
     gi = info(g)
     rec.update({'guide': gi['guide'], 'mapAttached': gi['mapAttached'], 'poseFirst': gi['poseFirst'],
                 'poseSentence': gi['poseSentence'], 'models': gi['models']})

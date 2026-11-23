@@ -46,7 +46,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-COMFY_PORT=${COMFY_URL##*:} CAPTURE_DIR="$WORK/captured" PROXY_PORT=$PROXY_PORT \
+FAKE_DONE=day-dress-plate-252d755af9eb93c0.png COMFY_PORT=${COMFY_URL##*:} CAPTURE_DIR="$WORK/captured" PROXY_PORT=$PROXY_PORT \
   node scripts/pose-bench/proxy.mjs > "$WORK/proxy.log" 2>&1 &
 PROXY_PID=$!
 # Turbopack refuses a symlinked node_modules (worktrees): webpack dev server.
@@ -62,7 +62,7 @@ done
 scripts/pose-bench/card_all.sh "$WORK" "$@"
 python3 scripts/pose-bench/replay.py "$WORK" --seeds "$SEEDS" --comfy "$COMFY_URL" --app "$BENCH_URL"
 node --import tsx scripts/pose-bench/score.mts "$WORK"
-python3 scripts/pose-bench/sheet.py "$WORK"
+python3 scripts/pose-bench/card_sheet.py "$WORK"
 if [ -f "$WORK/labels.json" ]; then
   python3 scripts/pose-bench/report.py "$WORK"
 else
