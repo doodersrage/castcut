@@ -117,6 +117,19 @@ describe('Fibo 2.0 renderer', () => {
     const graph = (prompt: string) => ({ '1': { class_type: 'TextEncodeQwenImage21', inputs: { prompt } } });
     assert.equal(fibo2RendersStill(graph('She wears a pink dress, seated.')), true);
     assert.equal(fibo2RendersStill(graph('She is fully nude on the bed.')), false);
+    // Sport's running kit forbids a topless look: a lock, not a nude still (pose card, the hurdle).
+    assert.equal(
+      fibo2RendersStill(
+        graph(
+          'POSE FIRST: clearing a hurdle. Running activity—use a running singlet or top with visible running shorts or track pants and running shoes. Never a topless, bottomless, or sports-bra-only look. No cycling bibs, soccer cleats, or formalwear.'
+        )
+      ),
+      true
+    );
+    assert.equal(
+      fibo2RendersStill(graph('She lies topless on the towel, never looking at the lens.')),
+      false
+    );
     assert.equal(hasQwenImage21TurboLoraRoute({ unets: ['qwen_image_2.1_bf16.safetensors'], loras: [] }), false);
     assert.equal(
       hasQwenImage21TurboLoraRoute({

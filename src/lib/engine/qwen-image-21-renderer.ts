@@ -8,6 +8,7 @@ import { isGroundSitRedoPrompt } from '../pose/ground-sit-words';
 import { POSE_MODEL_PROFILES } from '../pose/pose-model-profile';
 import { MAX_INPUT_IMAGE_FILENAMES } from '../workflow/load-image-bindings';
 import { beatLiesDown } from '../prompt/beat-text';
+import { stripLocksAndConditions } from '../prompt/negated-clauses';
 import { isFaceDownNudeSolo } from '../pose/face-down-solo';
 export { isFaceDownNudeSolo } from '../pose/face-down-solo';
 
@@ -1056,9 +1057,13 @@ export function withProfilePromptFixes(
   return next;
 }
 
-/** Nude / explicit stills (Day Intimate & Raunchy, Story adult beats). */
+/**
+ * Nude / explicit stills (Day Intimate & Raunchy, Story adult beats). Locks are not the scene:
+ * Sport's running kit says "Never a topless, bottomless, or sports-bra-only look", and read
+ * literally it sent Fibo's hurdle still to 2.1 Turbo as a nude one (pose card, 2026-11-23).
+ */
 export function isNudePrompt(prompt: string): boolean {
-  return /\b(?:nude|naked|explicit|sex(?:ual)?|topless)\b/i.test(prompt);
+  return /\b(?:nude|naked|explicit|sex(?:ual)?|topless)\b/i.test(stripLocksAndConditions(prompt));
 }
 
 /** Penetration between two people (not oral, kissing, touching). */

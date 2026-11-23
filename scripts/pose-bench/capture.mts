@@ -635,13 +635,16 @@ const graphText = (name: string) =>
     .toLowerCase()
     .replace(/\\u[0-9a-f]{4}|[^a-z ]+/g, ' ')
     .replace(/\s+/g, ' ');
-const cardMatches = () => {
+const cardMatches = (final = false) => {
   const texts = capturedFiles().map(name => ({ name, text: graphText(name) }));
   const matches = new Map(
     ids.map(id => [id, texts.find(entry => entry.text.includes(cardKey(id)))?.name])
   );
   // The app can reword a beat (lie → "lies flat on her back on the bed"): one cell left and one
-  // graph left that is no filler slot's are each other's.
+  // graph left that is no filler slot's are each other's — once the page is done queueing. While
+  // it still queues, the leftover can be a filler still whose beat the app rewrote (Vacation's
+  // market walk), and the cell's own still not queued yet (the 2.1 vacation lie_side, 2026-11-23).
+  if (!final) return matches;
   const filler = BEATS.map(beat => beat.toLowerCase().slice(0, 24));
   const taken = new Set([...matches.values()].filter(Boolean));
   const leftCells = ids.filter(id => !matches.get(id));
@@ -657,7 +660,18 @@ for (let i = 0; i < 900; i += 1) {
   await page.waitForTimeout(1000);
   if (i % 10 !== 9) continue;
   if (mode === 'card') {
-    const matched = [...cardMatches().values()].filter(Boolean).length;
+    // A cell is in when its beat is in a captured graph, or its slot's still has a captured id.
+    const have = capturedIds();
+    const stillsNow = ((await readDayState(page))?.stills ?? []) as Array<{
+      slotId: string;
+      promptId?: string;
+    }>;
+    const byBeat = cardMatches();
+    const matched = ids.filter((id, index) => {
+      if (byBeat.get(id)) return true;
+      const still = stillsNow.find(entry => entry.slotId === slotIds[index]);
+      return Boolean(still?.promptId && have.has(still.promptId));
+    }).length;
     if (i % 60 === 59)
       console.log(`… ${matched}/${want} cells captured (${capturedFiles().length} graphs)`);
     if (matched >= want) break;
@@ -681,7 +695,7 @@ for (let i = 0; i < 900; i += 1) {
 await page.waitForTimeout(3000);
 await page.screenshot({ path: join(outDir, 'page.png'), fullPage: false });
 const after = await readDayState(page);
-const cardGraphs = mode === 'card' ? cardMatches() : new Map<string, string | undefined>();
+const cardGraphs = mode === 'card' ? cardMatches(true) : new Map<string, string | undefined>();
 const graphs = new Map<string, unknown>();
 const graphByFile = new Map<string, unknown>();
 for (const name of capturedFiles()) {

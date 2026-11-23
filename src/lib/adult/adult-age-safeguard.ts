@@ -14,7 +14,7 @@
  */
 
 import type { CharacterAgeBand } from '@/lib/character/appearance';
-import { stripNegatedClauses } from '@/lib/prompt/negated-clauses';
+import { stripLocksAndConditions } from '@/lib/prompt/negated-clauses';
 
 export type AgePersonNoun = 'woman' | 'man' | 'person';
 
@@ -222,20 +222,9 @@ export const ADULT_YOUTH_NEGATIVE =
 const EXPLICIT_RE =
   /\b(?:nude|naked|nudity|topless|bottomless|sex|sexual|sexy|explicit|erotic|porn\w*|penis|cock|vulva|vagina\w*|pussy|clit\w*|labia|nipples?|genitals?|masturbat\w*|orgasm\w*|penetrat\w*|cowgirl|missionary|doggy\w*|blowjob|fellatio|cunnilingus|handjob|oral sex|69|sixty[- ]nine|cum\w*|semen|dildo|vibrator|sex toy|strap-on|lingerie|bdsm|bondage|fetish|seductive|seduct\w*|sultry|lustful|aroused|arousal|foreplay|undress\w*|striptease|stripper|strip(?:s|ping|ped)?\s+(?:off|down|naked|nude|bare))\b|MOOD:\s*(?:intimate|raunchy|suggestive)\b/i;
 
-/**
- * Locks and conditions are not the scene: "never a topless look", "zero fabric when the beat is
- * nude" (Sport's stock lines) say nothing about this still.
- */
-function sceneWords(text: string): string {
-  return stripNegatedClauses(text.replace(/\b(?:never|without)\b[^.;:\n]*/gi, ' ')).replace(
-    /\b(?:when|if|unless)\b[^.,;:—\n]*/gi,
-    ' '
-  );
-}
-
 /** The adult word a prompt's scene uses ("nude", "mid-sex" …), or null. */
 export function adultContentWord(text: string | null | undefined): string | null {
-  return EXPLICIT_RE.exec(sceneWords(text ?? ''))?.[0] ?? null;
+  return EXPLICIT_RE.exec(stripLocksAndConditions(text ?? ''))?.[0] ?? null;
 }
 
 export function isAdultContentPrompt(text: string | null | undefined): boolean {
